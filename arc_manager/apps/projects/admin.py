@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Project, Phase, Task, ProjectFile
+from .models import Project, Phase, Task, ProjectFile, ProjectTemplate, PhaseTemplate
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
@@ -29,3 +29,14 @@ class ProjectFileAdmin(admin.ModelAdmin):
     list_filter = ('phase__name', 'phase__project__name')
     search_fields = ('file__name',)
     ordering = ('-uploaded_at',)
+
+class PhaseTemplateInline(admin.TabularInline):
+    model = PhaseTemplate
+    extra = 1  # Number of extra forms to display
+    ordering = ('order',)
+
+@admin.register(ProjectTemplate)
+class ProjectTemplateAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description', 'created_by', 'created_at')
+    search_fields = ('name', 'description')
+    inlines = [PhaseTemplateInline]

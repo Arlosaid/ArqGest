@@ -65,8 +65,8 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'task-list' %}active{% endif %}"
-                           href="{% url 'projects:task-list' %}" data-tooltip="Ver Tareas">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'my-task-list' %}active{% endif %}"
+                           href="{% url 'projects:my-task-list' %}" data-tooltip="Ver Mis Tareas">
                             <div class="nav-icon">
                                 <i class="fas fa-tasks"></i>
                             </div>

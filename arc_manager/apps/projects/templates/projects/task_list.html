@@ -21,34 +21,38 @@
                         <strong>{{ task.title }}</strong>
                         <br>
                         <small class="text-muted">
-                            {% trans "Project:" %} <a href="{% url 'projects:project-detail' task.project.pk %}">{{ task.project.name }}</a>
+                            {% trans "Project:" %} <a href="{% url 'projects:project-detail' task.phase.project.pk %}">{{ task.phase.project.name }}</a>
                         </small>
                     </div>
                     <div class="d-flex align-items-center">
                         <span class="badge 
-                            {% if task.status == 'COMPLETED' %}bg-success
+                            {% if task.status == 'DONE' %}bg-success
                             {% elif task.status == 'IN_PROGRESS' %}bg-primary
-                            {% else %}bg-secondary{% endif %} me-3">
+                            {% elif task.status == 'PAUSED' %}bg-secondary
+                            {% else %}bg-info{% endif %} me-3">
                             {{ task.get_status_display }}
                         </span>
                         <div class="btn-group" role="group">
-                            <form action="{% url 'projects:update-task-status' task.pk %}" method="post" class="me-1">
+                            <form action="{% url 'projects:update-task-status' task.pk %}" method="post" class="d-inline">
                                 {% csrf_token %}
-                                {% if task.status == 'PENDING' %}
+                                {% if task.status == 'TODO' %}
                                     <input type="hidden" name="status" value="IN_PROGRESS">
                                     <button type="submit" class="btn btn-sm btn-primary">{% trans "Start" %}</button>
                                 {% elif task.status == 'IN_PROGRESS' %}
-                                    <input type="hidden" name="status" value="COMPLETED">
-                                    <button type="submit" class="btn btn-sm btn-success">{% trans "Complete" %}</button>
+                                    <input type="hidden" name="status" value="PAUSED">
+                                    <button type="submit" class="btn btn-sm btn-warning me-1">{% trans "Pause" %}</button>
                                 {% endif %}
                             </form>
-                            {% if task.status == 'IN_PROGRESS' %}
-                            <form action="{% url 'projects:update-task-status' task.pk %}" method="post">
+                            <form action="{% url 'projects:update-task-status' task.pk %}" method="post" class="d-inline">
                                 {% csrf_token %}
-                                <input type="hidden" name="status" value="PENDING">
-                                <button type="submit" class="btn btn-sm btn-warning">{% trans "Pause" %}</button>
+                                {% if task.status == 'IN_PROGRESS' %}
+                                    <input type="hidden" name="status" value="DONE">
+                                    <button type="submit" class="btn btn-sm btn-success">{% trans "Done" %}</button>
+                                {% elif task.status == 'PAUSED' %}
+                                    <input type="hidden" name="status" value="IN_PROGRESS">
+                                    <button type="submit" class="btn btn-sm btn-primary">{% trans "Resume" %}</button>
+                                {% endif %}
                             </form>
-                            {% endif %}
                         </div>
                     </div>
                 </li>

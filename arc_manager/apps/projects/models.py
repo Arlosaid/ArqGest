@@ -66,9 +66,10 @@ class Task(models.Model):
     """Represents a specific task within a phase."""
 
     class Status(models.TextChoices):
-        PENDING = 'PENDING', _('Pending')
-        IN_PROGRESS = 'IN_PROGRESS', _('In Progress')
-        COMPLETED = 'COMPLETED', _('Completed')
+        TODO = 'TODO', _('Por Hacer')
+        IN_PROGRESS = 'IN_PROGRESS', _('En Progreso')
+        PAUSED = 'PAUSED', _('En Pausa')
+        DONE = 'DONE', _('Terminado')
 
     class Priority(models.TextChoices):
         LOW = 'LOW', _('Low')
@@ -95,7 +96,7 @@ class Task(models.Model):
         _("Status"),
         max_length=20,
         choices=Status.choices,
-        default=Status.PENDING
+        default=Status.TODO
     )
     priority = models.CharField(
         _("Priority"),
@@ -135,3 +136,44 @@ class ProjectFile(models.Model):
 
     def __str__(self):
         return self.file.name
+
+class ProjectTemplate(models.Model):
+    """
+    Represents a template for creating new projects.
+    Includes a predefined set of phases.
+    """
+    name = models.CharField(_("Template Name"), max_length=100)
+    description = models.TextField(_("Description"), blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Created By")
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Project Template")
+        verbose_name_plural = _("Project Templates")
+
+    def __str__(self):
+        return self.name
+
+class PhaseTemplate(models.Model):
+    """Represents a phase within a project template."""
+    project_template = models.ForeignKey(
+        ProjectTemplate,
+        on_delete=models.CASCADE,
+        related_name='phase_templates'
+    )
+    name = models.CharField(_("Phase Name"), max_length=100)
+    order = models.PositiveIntegerField(_("Order"))
+
+    class Meta:
+        verbose_name = _("Phase Template")
+        verbose_name_plural = _("Phase Templates")
+        ordering = ['project_template', 'order']
+
+    def __str__(self):
+        return f"{self.project_template.name} - Phase: {self.name}"
