@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "My Tasks" %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">{% trans "My Tasks" %}</h1>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">{% trans "All Tasks" %}</h5>
+            <p class="card-text">{% trans "Here is a list of all your tasks from all your projects." %}</p>
+        </div>
+        <ul class="list-group list-group-flush">
+            {% for task in tasks %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ task.title }}</strong>
+                        <br>
+                        <small class="text-muted">
+                            {% trans "Project:" %} <a href="{% url 'projects:project-detail' task.project.pk %}">{{ task.project.name }}</a>
+                        </small>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="badge 
+                            {% if task.status == 'COMPLETED' %}bg-success
+                            {% elif task.status == 'IN_PROGRESS' %}bg-primary
+                            {% else %}bg-secondary{% endif %} me-3">
+                            {{ task.get_status_display }}
+                        </span>
+                        <div class="btn-group" role="group">
+                            <form action="{% url 'projects:update-task-status' task.pk %}" method="post" class="me-1">
+                                {% csrf_token %}
+                                {% if task.status == 'PENDING' %}
+                                    <input type="hidden" name="status" value="IN_PROGRESS">
+                                    <button type="submit" class="btn btn-sm btn-primary">{% trans "Start" %}</button>
+                                {% elif task.status == 'IN_PROGRESS' %}
+                                    <input type="hidden" name="status" value="COMPLETED">
+                                    <button type="submit" class="btn btn-sm btn-success">{% trans "Complete" %}</button>
+                                {% endif %}
+                            </form>
+                            {% if task.status == 'IN_PROGRESS' %}
+                            <form action="{% url 'projects:update-task-status' task.pk %}" method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="status" value="PENDING">
+                                <button type="submit" class="btn btn-sm btn-warning">{% trans "Pause" %}</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </li>
+            {% empty %}
+                <li class="list-group-item">{% trans "You don't have any tasks yet." %}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

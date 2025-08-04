@@ -4,7 +4,7 @@
 {% block title %}{{ project.name }}{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container-fluid mt-4">
     <!-- Project Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -17,61 +17,96 @@
         </div>
     </div>
 
-    <!-- Phase Stepper -->
-    <div class="mb-5">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <h4>{% trans "Project Phase" %}</h4>
-            {% if project.phase != project.Phases.values|last %}
-            <form action="{% url 'projects:project-advance-phase' project.pk %}" method="post">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-success">{% trans "Advance to Next Phase" %} →</button>
-            </form>
-            {% endif %}
-        </div>
-        <div class="steps">
-            {% for phase_id, phase_name in project.Phases.choices %}
-            <div class="step-item {% if project.phase == phase_id %}active{% endif %}">
-                <div class="step-marker">{{ forloop.counter }}</div>
-                <div class="step-details">
-                    <div class="step-title">{{ phase_name }}</div>
+    <!-- Kanban Board -->
+    <div class="kanban-board-container">
+        <div class="kanban-board">
+            {% for phase in phases %}
+            <div class="kanban-column">
+                <div class="kanban-column-header">
+                    <h5 class="mb-0">{{ phase.name }}</h5>
+                </div>
+                <div class="kanban-column-body">
+                    {% for task in phase.tasks.all %}
+                    <div class="kanban-card">
+                        <div class="card-body">
+                            <h6 class="card-title">{{ task.title }}</h6>
+                            <p class="card-text">{{ task.description|truncatewords:15 }}</p>
+                            <span class="badge 
+                                {% if task.priority == 'HIGH' %}bg-danger
+                                {% elif task.priority == 'MEDIUM' %}bg-warning
+                                {% else %}bg-info{% endif %}">
+                                {{ task.get_priority_display }}
+                            </span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted p-2">{% trans "No tasks in this phase." %}</p>
+                    {% endfor %}
+                </div>
+                <div class="kanban-column-footer">
+                     <form action="{% url 'projects:task-create' project.pk %}" method="post" class="add-task-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="phase" value="{{ phase.id }}">
+                        <div class="input-group">
+                            {{ task_form.title }}
+                            <button class="btn btn-primary" type="submit">+</button>
+                        </div>
+                    </form>
                 </div>
             </div>
             {% endfor %}
         </div>
     </div>
-
-    <!-- Tasks and Files Section -->
-    <div class="row">
-        <!-- Tasks Column -->
-        <div class="col-md-6">
-            <h4>{% trans "Tasks" %}</h4>
-            <div class="card">
-                <ul class="list-group list-group-flush">
-                    {% for task in project.tasks.all %}
-                        <li class="list-group-item">{{ task.title }}</li>
-                    {% empty %}
-                        <li class="list-group-item">{% trans "No tasks yet." %}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-
-        <!-- Files Column -->
-        <div class="col-md-6">
-            <h4>{% trans "Files" %}</h4>
-            <div class="card">
-                 <ul class="list-group list-group-flush">
-                    {% for file in project.files.all %}
-                        <li class="list-group-item">
-                            <a href="{{ file.file.url }}" target="_blank">{{ file.file.name|cut:"project_"|cut:project.id|cut:"/"|cut:file.upload_phase }}</a>
-                            <span class="badge bg-secondary">{{ file.upload_phase }}</span>
-                        </li>
-                    {% empty %}
-                        <li class="list-group-item">{% trans "No files yet." %}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-    </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.kanban-board-container {
+    overflow-x: auto;
+    padding-bottom: 1rem;
+}
+.kanban-board {
+    display: flex;
+    gap: 1.5rem;
+    min-width: fit-content;
+}
+.kanban-column {
+    width: 300px;
+    flex-shrink: 0;
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    display: flex;
+    flex-direction: column;
+}
+.kanban-column-header {
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+.kanban-column-body {
+    flex-grow: 1;
+    padding: 0.5rem;
+    overflow-y: auto;
+    max-height: 60vh;
+}
+.kanban-card {
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.kanban-column-footer {
+    padding: 0.5rem;
+    border-top: 1px solid #e9ecef;
+}
+.add-task-form .form-control {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.add-task-form .btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+</style>
 {% endblock %}
