@@ -1,0 +1,36 @@
+{% load i18n %}
+<form hx-post="{% url 'projects:task-edit' task.pk %}" hx-target="body" hx-swap="none">
+    {% csrf_token %}
+    <div class="modal-header">
+        <h5 class="modal-title">{% trans "Edit Task" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div class="mb-3">
+            {{ form.title.label_tag }}
+            {{ form.title }}
+        </div>
+        <div class="mb-3">
+            {{ form.description.label_tag }}
+            {{ form.description }}
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                {{ form.assigned_to.label_tag }}
+                {{ form.assigned_to }}
+            </div>
+            <div class="col-md-6 mb-3">
+                {{ form.priority.label_tag }}
+                {{ form.priority }}
+            </div>
+        </div>
+        <div class="mb-3">
+            {{ form.due_date.label_tag }}
+            {{ form.due_date }}
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button>
+        <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+    </div>
+</form>

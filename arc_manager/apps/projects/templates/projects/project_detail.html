@@ -4,7 +4,7 @@
 {% block title %}{{ project.name }}{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container-fluid mt-4">
     <!-- Project Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -17,61 +17,254 @@
         </div>
     </div>
 
-    <!-- Phase Stepper -->
-    <div class="mb-5">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <h4>{% trans "Project Phase" %}</h4>
-            {% if project.phase != project.Phases.values|last %}
-            <form action="{% url 'projects:project-advance-phase' project.pk %}" method="post">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-success">{% trans "Advance to Next Phase" %} →</button>
-            </form>
-            {% endif %}
-        </div>
-        <div class="steps">
-            {% for phase_id, phase_name in project.Phases.choices %}
-            <div class="step-item {% if project.phase == phase_id %}active{% endif %}">
-                <div class="step-marker">{{ forloop.counter }}</div>
-                <div class="step-details">
-                    <div class="step-title">{{ phase_name }}</div>
+    <!-- Kanban Board -->
+    <div class="kanban-board-container">
+        <div class="kanban-board">
+            {% for phase in phases %}
+            <div class="kanban-column">
+                <div class="kanban-column-header">
+                    <h5 class="mb-0">{{ phase.name }}</h5>
+                </div>
+                <div class="kanban-column-body" data-phase-id="{{ phase.id }}">
+                    {% for task in phase.tasks.all %}
+                    <div class="kanban-card" data-task-id="{{ task.id }}">
+                        <div class="card-body">
+                            <h6 class="card-title">{{ task.title }}</h6>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="badge 
+                                    {% if task.status == 'DONE' %}bg-success
+                                    {% elif task.status == 'IN_PROGRESS' %}bg-primary
+                                    {% elif task.status == 'PAUSED' %}bg-secondary
+                                    {% else %}bg-info{% endif %}">
+                                    {{ task.get_status_display }}
+                                </span>
+                                <span class="badge 
+                                    {% if task.priority == 'HIGH' %}bg-danger
+                                    {% elif task.priority == 'MEDIUM' %}bg-warning
+                                    {% else %}bg-light text-dark{% endif %}">
+                                    {{ task.get_priority_display }}
+                                </span>
+                            </div>
+                            <p class="card-text small">{{ task.description|truncatewords:15 }}</p>
+
+                            <!-- Task Actions Dropdown -->
+                            <div class="mt-2 d-flex justify-content-end">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-light" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Acciones
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <form action="{% url 'projects:update-task-status' task.pk %}" method="post" class="d-inline">
+                                            {% csrf_token %}
+                                            {% if task.status != 'IN_PROGRESS' %}
+                                            <li><button class="dropdown-item" type="submit" name="status" value="IN_PROGRESS">{% trans "Marcar como 'En Progreso'" %}</button></li>
+                                            {% endif %}
+                                            {% if task.status != 'PAUSED' %}
+                                            <li><button class="dropdown-item" type="submit" name="status" value="PAUSED">{% trans "Marcar como 'En Pausa'" %}</button></li>
+                                            {% endif %}
+                                            {% if task.status != 'DONE' %}
+                                            <li><button class="dropdown-item" type="submit" name="status" value="DONE">{% trans "Marcar como 'Terminado'" %}</button></li>
+                                            {% endif %}
+                                        </form>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item" href="#" 
+                                               data-bs-toggle="modal" data-bs-target="#taskModal"
+                                               hx-get="{% url 'projects:task-edit' task.pk %}" 
+                                               hx-target="#taskModalContent"
+                                               hx-trigger="click">
+                                                {% trans "Ver/Editar Detalles" %}
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted p-2">{% trans "No tasks in this phase." %}</p>
+                    {% endfor %}
+                </div>
+                <div class="kanban-column-footer">
+                    {% if error_phase_id and error_phase_id == phase.id %}
+                        <!-- Display the full form with errors if this is the phase with the validation error -->
+                        <form action="{% url 'projects:task-create' project.pk %}" method="post" class="add-task-form-full">
+                            {% csrf_token %}
+                            <input type="hidden" name="phase" value="{{ phase.id }}">
+                            
+                            <div class="mb-2">
+                                <label for="id_title_{{phase.id}}" class="form-label visually-hidden">{% trans "Title" %}</label>
+                                {{ task_form.title }}
+                                {% if task_form.title.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ task_form.title.errors.as_text }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-2">
+                                <label for="id_description_{{phase.id}}" class="form-label visually-hidden">{% trans "Description" %}</label>
+                                {{ task_form.description }}
+                            </div>
+
+                            <div class="row gx-2">
+                                <div class="col">
+                                    <label for="id_priority_{{phase.id}}" class="form-label visually-hidden">{% trans "Priority" %}</label>
+                                    {{ task_form.priority }}
+                                </div>
+                                <div class="col">
+                                    <label for="id_due_date_{{phase.id}}" class="form-label visually-hidden">{% trans "Due Date" %}</label>
+                                    {{ task_form.due_date }}
+                                </div>
+                            </div>
+                            
+                            <div class="mt-2">
+                                <label for="id_assigned_to_{{phase.id}}" class="form-label visually-hidden">{% trans "Assign To" %}</label>
+                                {{ task_form.assigned_to }}
+                            </div>
+                            
+                            <div class="d-grid mt-2">
+                                <button class="btn btn-primary" type="submit">{% trans "Add Task" %}</button>
+                            </div>
+                        </form>
+                    {% else %}
+                        <!-- Default quick add form -->
+                        <form action="{% url 'projects:task-create' project.pk %}" method="post" class="add-task-form">
+                           {% csrf_token %}
+                           <input type="hidden" name="phase" value="{{ phase.id }}">
+                           <div class="input-group">
+                               <input type="text" name="title" class="form-control" placeholder="{% trans 'New task title...' %}" required>
+                               <button class="btn btn-primary" type="submit">+</button>
+                           </div>
+                       </form>
+                    {% endif %}
                 </div>
             </div>
             {% endfor %}
         </div>
     </div>
-
-    <!-- Tasks and Files Section -->
-    <div class="row">
-        <!-- Tasks Column -->
-        <div class="col-md-6">
-            <h4>{% trans "Tasks" %}</h4>
-            <div class="card">
-                <ul class="list-group list-group-flush">
-                    {% for task in project.tasks.all %}
-                        <li class="list-group-item">{{ task.title }}</li>
-                    {% empty %}
-                        <li class="list-group-item">{% trans "No tasks yet." %}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-
-        <!-- Files Column -->
-        <div class="col-md-6">
-            <h4>{% trans "Files" %}</h4>
-            <div class="card">
-                 <ul class="list-group list-group-flush">
-                    {% for file in project.files.all %}
-                        <li class="list-group-item">
-                            <a href="{{ file.file.url }}" target="_blank">{{ file.file.name|cut:"project_"|cut:project.id|cut:"/"|cut:file.upload_phase }}</a>
-                            <span class="badge bg-secondary">{{ file.upload_phase }}</span>
-                        </li>
-                    {% empty %}
-                        <li class="list-group-item">{% trans "No files yet." %}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-    </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.kanban-board-container {
+    overflow-x: auto;
+    padding-bottom: 1rem;
+}
+.kanban-board {
+    display: flex;
+    gap: 1.5rem;
+    min-width: fit-content;
+}
+.kanban-column {
+    width: 300px;
+    flex-shrink: 0;
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    display: flex;
+    flex-direction: column;
+}
+.kanban-column-header {
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+.kanban-column-body {
+    flex-grow: 1;
+    padding: 0.5rem;
+    overflow-y: auto;
+    max-height: 60vh;
+}
+.kanban-card {
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    cursor: grab;
+}
+.kanban-column-footer {
+    padding: 0.5rem;
+    border-top: 1px solid #e9ecef;
+}
+.add-task-form .form-control {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.add-task-form .btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Modal Placeholder -->
+<div class="modal fade" id="taskModal" tabindex="-1" aria-labelledby="taskModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content" id="taskModalContent">
+      <!-- Content will be loaded here via HTMX -->
+    </div>
+  </div>
+</div>
+
+<!-- HTMX Core -->
+<script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+<!-- Sortable.js para Drag and Drop -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const columns = document.querySelectorAll('.kanban-column-body');
+    
+    columns.forEach(column => {
+        new Sortable(column, {
+            group: 'kanban', // Permite arrastrar entre columnas
+            animation: 150,
+            ghostClass: 'bg-light', // Estilo para el fantasma de la tarjeta
+
+            onEnd: function (evt) {
+                const taskCard = evt.item;
+                const taskId = taskCard.dataset.taskId;
+                const toPhaseId = evt.to.dataset.phaseId;
+
+                // Prepara los datos para enviar con HTMX
+                const params = {
+                    'phase_id': toPhaseId,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                };
+                
+                // Dispara una petición POST a la URL de actualización
+                // Usamos htmx.ajax() para hacerlo manualmente desde JS
+                htmx.ajax('POST', `/projects/tasks/${taskId}/move/`, {
+                    values: params,
+                    target: htmx.find('body'), // Objetivo de la actualización (opcional)
+                    swap: 'none' // No queremos intercambiar ningún contenido
+                }).then(data => {
+                    // Puedes añadir lógica aquí después de una respuesta exitosa,
+                    // como mostrar una notificación.
+                    console.log('Task moved successfully');
+                }).catch(error => {
+                    console.error('Error moving task:', error);
+                    // Aquí podrías revertir el movimiento si falla la petición
+                    alert('Failed to move task. Please refresh the page.');
+                });
+            }
+        });
+    });
+
+    // Handle modal reload on form submission success
+    document.body.addEventListener('htmx:afterOnLoad', function(event) {
+        if (event.detail.successful) {
+            var myModalEl = document.getElementById('taskModal');
+            var modal = bootstrap.Modal.getInstance(myModalEl);
+            if (modal) {
+                modal.hide();
+            }
+            // Optionally, you can trigger a reload of the kanban board here
+            // htmx.trigger('#kanban-board', 'load'); 
+        }
+    });
+});
+</script>
 {% endblock %}

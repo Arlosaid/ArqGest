@@ -45,12 +45,32 @@
                 </div>
                 <ul class="nav-list">
                     <li class="nav-item">
-                        <a class="nav-link {% if 'projects:' in request.resolver_match.namespace|default:'' or 'project' in request.resolver_match.url_name|default:'' or '/projects/' in request.path %}active{% endif %}" 
+                        <a class="nav-link {% if request.resolver_match.url_name == 'project-list' %}active{% endif %}" 
                            href="{% url 'projects:project-list' %}" data-tooltip="Ver Proyectos">
                             <div class="nav-icon">
                                 <i class="fas fa-stream"></i>
                             </div>
                             <span class="nav-text">Mis Proyectos</span>
+                            <div class="nav-indicator"></div>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'project-create' %}active{% endif %}"
+                           href="{% url 'projects:project-create' %}" data-tooltip="Crear Proyecto">
+                            <div class="nav-icon">
+                                <i class="fas fa-plus-circle"></i>
+                            </div>
+                            <span class="nav-text">Nuevo Proyecto</span>
+                            <div class="nav-indicator"></div>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'my-task-list' %}active{% endif %}"
+                           href="{% url 'projects:my-task-list' %}" data-tooltip="Ver Mis Tareas">
+                            <div class="nav-icon">
+                                <i class="fas fa-tasks"></i>
+                            </div>
+                            <span class="nav-text">Mis Tareas</span>
                             <div class="nav-indicator"></div>
                         </a>
                     </li>
