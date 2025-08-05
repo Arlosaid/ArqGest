@@ -1,26 +1,18 @@
 # arc_manager/apps/projects/forms.py
 from django import forms
-from .models import Task, Project, ProjectTemplate
+from .models import Task, Project
 from apps.orgs.models import Client
 
 class ProjectForm(forms.ModelForm):
     """
-    Form for creating a project, with an option to use a template.
+    Form for creating a project.
     """
-    template = forms.ModelChoiceField(
-        queryset=ProjectTemplate.objects.all(),
-        required=False,
-        label="Crear desde plantilla",
-        help_text="Selecciona una plantilla para crear las fases del proyecto automáticamente."
-    )
-
     class Meta:
         model = Project
-        fields = ['name', 'client', 'template']
+        fields = ['name', 'client']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'client': forms.Select(attrs={'class': 'form-control'}),
-            'template': forms.Select(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):

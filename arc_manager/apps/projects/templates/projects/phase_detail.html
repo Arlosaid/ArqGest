@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load humanize %}
+
+{% block title %}{{ phase.name }} - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Breadcrumbs and Header -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'projects:project-list' %}">{% trans "Projects" %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'projects:project-detail' project.pk %}">{{ project.name }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ phase.name }}</li>
+        </ol>
+    </nav>
+    <h1 class="h2">{{ phase.name }}</h1>
+    <p>{{ phase.description|default:"" }}</p>
+    <hr>
+
+    <!-- Message container for HTMX responses -->
+    <div id="message-container" class="mb-3"></div>
+
+    <div class="row">
+        <!-- Files Section -->
+        <div class="col-md-7">
+            <h3>{% trans "Files" %}</h3>
+            <!-- File Upload Form with HTMX -->
+            <form id="file-upload-form"
+                  hx-post="{% url 'files:upload_file' project_id=project.pk phase_id=phase.pk %}"
+                  hx-target="#file-list"
+                  hx-swap="innerHTML"
+                  hx-encoding="multipart/form-data"
+                  hx-indicator="#upload-spinner"
+                  class="mb-3">
+                {% csrf_token %}
+                <div class="input-group">
+                    <input type="file" name="files" class="form-control" multiple required>
+                    <button class="btn btn-primary" type="submit">
+                        <span id="upload-spinner" class="spinner-border spinner-border-sm htmx-indicator" role="status" aria-hidden="true"></span>
+                        {% trans "Upload" %}
+                    </button>
+                </div>
+            </form>
+            
+            <!-- File List (updated by HTMX) -->
+            <div id="file-list">
+                {% include 'projects/partials/file_list.html' %}
+            </div>
+        </div>
+
+        <!-- Notes Section -->
+        <div class="col-md-5">
+            <h3>{% trans "Notes" %}</h3>
+            <!-- Notes Form with HTMX -->
+            <form id="notes-form" 
+                  hx-post="{% url 'projects:phase-detail' pk=phase.pk %}"
+                  hx-trigger="keyup changed delay:500ms"
+                  hx-swap="none"
+                  hx-indicator="#notes-spinner">
+                {% csrf_token %}
+                <div class="position-relative">
+                    <textarea name="notes" class="form-control" rows="10">{{ phase.notes|default_if_none:"" }}</textarea>
+                    <span id="notes-spinner" class="spinner-border spinner-border-sm htmx-indicator position-absolute" style="top: 10px; right: 10px;" role="status" aria-hidden="true"></span>
+                </div>
+                 <div id="notes-save-status" class="form-text text-muted mt-2"></div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Display a confirmation message when notes are saved via HTMX
+    document.body.addEventListener('htmx:afterRequest', function(evt) {
+        if (evt.target.id === 'notes-form' && evt.detail.successful) {
+            const statusEl = document.getElementById('notes-save-status');
+            statusEl.textContent = '{% trans "Notes saved!" %}';
+            setTimeout(() => { statusEl.textContent = ''; }, 3000);
+        }
+    });
+
+    // Reset the file input after a successful upload
+    document.body.addEventListener('htmx:afterOnLoad', function(evt) {
+        if (evt.target.id === 'file-upload-form') {
+            evt.target.reset();
+        }
+    });
+});
+</script>
+{% endblock %}

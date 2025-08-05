@@ -1,6 +1,7 @@
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import HttpResponse, HttpResponseBadRequest
+from django.views import View
 from django.views.generic import (
     ListView,
     CreateView,
@@ -8,13 +9,14 @@ from django.views.generic import (
     UpdateView,
     DeleteView
 )
-from .models import Project, Task, Phase, ProjectTemplate
+from .models import Project, Task, Phase
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.utils.translation import gettext_lazy as _
 from .forms import TaskForm, ProjectForm
+from django.db.models import Count
 
 
 @login_required
@@ -64,57 +66,67 @@ class ProjectCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         """
-        Assign the current user as the owner and create phases from a template if selected.
-        If no template is chosen, create default phases.
+        Assign the current user as the owner and create default phases for the new project.
         """
         form.instance.owner = self.request.user
         form.instance.organization = self.request.user.organization
         
         response = super().form_valid(form)
 
-        template = form.cleaned_data.get('template')
-        if template:
-            phase_templates = template.phase_templates.all().order_by('order')
-            for phase_template in phase_templates:
-                Phase.objects.create(
-                    project=self.object,
-                    name=phase_template.name,
-                    order=phase_template.order
-                )
-        else:
-            default_phases = [
-                _("Por Hacer"), 
-                _("En Progreso"), 
-                _("Revisión"), 
-                _("Bloqueado"), 
-                _("Completado")
-            ]
-            phases_to_create = [
-                Phase(project=self.object, name=str(phase_name), order=i)
-                for i, phase_name in enumerate(default_phases)
-            ]
-            Phase.objects.bulk_create(phases_to_create)
+        # Create a standard set of architectural phases
+        default_phases = [
+            _("Estudios Preliminares"), 
+            _("Anteproyecto"), 
+            _("Proyecto Básico y de Ejecución"), 
+            _("Licitación y Contratación"), 
+            _("Dirección de Obra")
+        ]
+        phases_to_create = [
+            Phase(project=self.object, name=str(phase_name), order=i)
+            for i, phase_name in enumerate(default_phases)
+        ]
+        Phase.objects.bulk_create(phases_to_create)
         
         return response
 
-class ProjectDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+class ProjectDetailView(LoginRequiredMixin, UserPassesTestMixin, View):
+    def get(self, request, *args, **kwargs):
+        project_id = kwargs.get('pk')
+        project = get_object_or_404(Project, pk=project_id)
+
+        if not self.test_func(project):
+            # You can decide what to do if the test fails, 
+            # e.g., show an error or redirect to a different page.
+            # For this example, let's redirect to the project list.
+            return redirect(reverse_lazy('projects:project-list'))
+
+        # Redirect to the Kanban view for this project
+        return redirect(reverse_lazy('projects:project-kanban', kwargs={'pk': project_id}))
+
+    def test_func(self, project):
+        # The test_func now needs to be called manually, passing the project.
+        return self.request.user.organization == project.organization
+
+
+class ProjectKanbanView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    """
+    Displays the Kanban board for a single project.
+    """
     model = Project
-    template_name = 'projects/project_detail.html'
+    template_name = 'projects/kanban_board.html'
     context_object_name = 'project'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         project = self.get_object()
-        phases = project.phases.order_by('order').prefetch_related('tasks')
-        context['phases'] = phases
-        if 'task_form' not in context:
-            context['task_form'] = TaskForm(user=self.request.user)
-            
+        context['phases'] = project.phases.order_by('order').prefetch_related('tasks')
+        context['task_form'] = TaskForm(user=self.request.user)
         return context
 
     def test_func(self):
         project = self.get_object()
         return self.request.user.organization == project.owner.organization
+
 
 class ProjectUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Project
@@ -195,8 +207,6 @@ def task_create(request, project_pk):
 
     phase = get_object_or_404(Phase, id=phase_id, project=project)
     
-    # Quick-add form only submits a title.
-    # We check for other fields to decide if it's the full form.
     is_quick_add = 'description' not in request.POST and 'priority' not in request.POST
 
     if is_quick_add:
@@ -282,3 +292,38 @@ class MyTaskListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         context['total_tasks'] = self.get_queryset().count()
         return context
+
+class PhaseDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    model = Phase
+    template_name = 'projects/phase_detail.html'
+    context_object_name = 'phase'
+
+    def get_queryset(self):
+        """Prefetch related files to avoid N+1 queries."""
+        return super().get_queryset().prefetch_related('files')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        phase = self.get_object()
+        context['project'] = phase.project
+        # The files are already prefetched thanks to get_queryset
+        context['files'] = phase.files.all()
+        return context
+
+    def test_func(self):
+        phase = self.get_object()
+        return self.request.user.organization == phase.project.organization
+
+    def post(self, request, *args, **kwargs):
+        phase = self.get_object()
+        notes = request.POST.get('notes')
+        phase.notes = notes
+        phase.save(update_fields=['notes'])
+        messages.success(request, _("Notes updated successfully."))
+
+        # If the request is from HTMX, return a partial response
+        if request.htmx:
+            # We can just return a success message or the updated notes component
+            return HttpResponse(status=204) 
+
+        return redirect(request.path_info)
