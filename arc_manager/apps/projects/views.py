@@ -42,7 +42,9 @@ class ProjectListView(LoginRequiredMixin, ListView):
         Ensure users can only see projects from their organization.
         """
         if hasattr(self.request.user, 'organization') and self.request.user.organization:
-            return Project.objects.filter(owner__organization=self.request.user.organization).order_by('-created_at')
+            return Project.objects.filter(
+                organization=self.request.user.organization
+            ).select_related('client', 'owner').order_by('-created_at')
         return Project.objects.none()
 
 class ProjectCreateView(LoginRequiredMixin, CreateView):
@@ -87,12 +89,11 @@ class ProjectCreateView(LoginRequiredMixin, CreateView):
                 _("Bloqueado"), 
                 _("Completado")
             ]
-            for i, phase_name in enumerate(default_phases):
-                Phase.objects.create(
-                    project=self.object,
-                    name=str(phase_name),
-                    order=i
-                )
+            phases_to_create = [
+                Phase(project=self.object, name=str(phase_name), order=i)
+                for i, phase_name in enumerate(default_phases)
+            ]
+            Phase.objects.bulk_create(phases_to_create)
         
         return response
 
@@ -153,29 +154,15 @@ class TaskListView(LoginRequiredMixin, ListView):
         Users can only see tasks from projects within their organization.
         """
         if hasattr(self.request.user, 'organization') and self.request.user.organization:
-            return Task.objects.filter(phase__project__owner__organization=self.request.user.organization).order_by('status', '-created_at')
+            return Task.objects.filter(
+                phase__project__organization=self.request.user.organization
+            ).select_related(
+                'phase__project', 
+                'phase__project__client', 
+                'assigned_to'
+            ).order_by('status', '-created_at')
         return Task.objects.none()
 
-
-@login_required
-@require_POST
-def advance_project_phase(request, pk):
-    """
-    Advances the project to the next phase.
-    """
-    project = get_object_or_404(Project, pk=pk, owner__organization=request.user.organization)
-    
-    current_phase_index = project.Phases.values.index(project.phase)
-    
-    if current_phase_index < len(project.Phases.values) - 1:
-        next_phase = project.Phases.values[current_phase_index + 1]
-        project.phase = next_phase
-        project.save()
-        messages.success(request, _(f"Project advanced to {project.get_phase_display()}"))
-    else:
-        messages.info(request, _("The project is already in the final phase."))
-        
-    return redirect('projects:project-detail', pk=project.pk)
 
 @login_required
 @require_POST
@@ -283,6 +270,9 @@ class MyTaskListView(LoginRequiredMixin, ListView):
         """
         return Task.objects.filter(
             assigned_to=self.request.user
+        ).select_related(
+            'phase__project', 
+            'phase__project__client'
         ).order_by('due_date')
 
     def get_context_data(self, **kwargs):

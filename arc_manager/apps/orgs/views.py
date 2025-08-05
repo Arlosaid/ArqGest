@@ -33,7 +33,7 @@ class ClientDetailView(LoginRequiredMixin, ClientOwnerMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         client = self.get_object()
-        context['projects'] = client.projects.all().order_by('-created_at')
+        context['projects'] = client.projects.select_related('owner').order_by('-created_at')
         return context
 
 
