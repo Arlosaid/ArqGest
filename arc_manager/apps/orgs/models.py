@@ -305,4 +305,31 @@ class Organization(models.Model):
             'total_users': current_users,
             'has_inactive_users': self.get_inactive_user_count() > 0,
             'is_at_limit': current_users >= max_users
-        }    
+        }
+
+class Client(models.Model):
+    """Modelo para gestionar clientes dentro de una organización."""
+    
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name='clients',
+        verbose_name="Organización"
+    )
+    name = models.CharField("Nombre del cliente", max_length=255)
+    email = models.EmailField("Correo electrónico", max_length=254, blank=True, null=True)
+    phone_number = models.CharField("Teléfono", max_length=50, blank=True, null=True)
+    address = models.TextField("Dirección", blank=True, null=True)
+    
+    is_active = models.BooleanField("Activo", default=True)
+    created_at = models.DateTimeField("Fecha de creación", auto_now_add=True)
+    updated_at = models.DateTimeField("Última actualización", auto_now=True)
+    
+    class Meta:
+        verbose_name = "Cliente"
+        verbose_name_plural = "Clientes"
+        ordering = ['name']
+        unique_together = ('organization', 'name')
+
+    def __str__(self):
+        return self.name

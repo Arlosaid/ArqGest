@@ -1,50 +1,98 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.views.generic import ListView, CreateView, UpdateView, DetailView
+from django.views.generic import ListView, CreateView, UpdateView, DetailView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
-from .models import Organization
-from .mixins import OrganizationAdminMixin
-from .forms import OrganizationForm
+from .models import Organization, Client
+from .mixins import ClientOwnerMixin
+from .forms import OrganizationForm, ClientForm
 
 # =============================================================================
-# NOTA IMPORTANTE: Vista de edición de organizaciones DESHABILITADA
-# =============================================================================
-# 
-# PROBLEMA: Permitir que un org_admin edite su organización puede causar:
-# 
-# 1. CAMBIO DE NOMBRE:
-#    - Afecta logs del sistema, emails automáticos, reportes
-#    - Rompe referencias en URLs del admin
-#    - Confunde a usuarios y administradores del sistema
-# 
-# 2. DESACTIVAR ORGANIZACIÓN (is_active=False):
-#    - Bloquea acceso a TODOS los usuarios incluido el propio admin
-#    - Rompe funcionalidades del middleware de validación
-#    - Crea problemas con suscripciones y facturación
-#    - El admin no puede volver a activarla después
-# 
-# 3. BAJO VALOR DE LA FUNCIONALIDAD:
-#    - Solo quedaría editar la descripción
-#    - No justifica toda una vista compleja
-# 
-# SOLUCIÓN: Solo superusers pueden editar organizaciones desde el admin panel
-# 
+# Vistas de Clientes
 # =============================================================================
 
-# class OrganizationUpdateView(LoginRequiredMixin, UpdateView):
-#     """
-#     Vista DESHABILITADA para editar organizaciones.
-#     """
-#     pass
+class ClientListView(LoginRequiredMixin, ListView):
+    model = Client
+    template_name = 'orgs/client_list.html'
+    context_object_name = 'clients'
+
+    def get_queryset(self):
+        """
+        Return clients that belong to the user's organization.
+        """
+        if hasattr(self.request.user, 'organization') and self.request.user.organization:
+            return Client.objects.filter(organization=self.request.user.organization)
+        return Client.objects.none()
+
+class ClientDetailView(LoginRequiredMixin, ClientOwnerMixin, DetailView):
+    model = Client
+    template_name = 'orgs/client_detail.html'
+    context_object_name = 'client'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        client = self.get_object()
+        context['projects'] = client.projects.all().order_by('-created_at')
+        return context
+
+
+class ClientCreateView(LoginRequiredMixin, CreateView):
+    model = Client
+    form_class = ClientForm
+    template_name = 'orgs/client_form.html'
+    success_url = reverse_lazy('orgs:client_list')
+
+    def get_form_kwargs(self):
+        """Pass the organization to the form."""
+        kwargs = super().get_form_kwargs()
+        if hasattr(self.request.user, 'organization'):
+            kwargs['organization'] = self.request.user.organization
+        return kwargs
+
+    def form_valid(self, form):
+        """
+        Assign the organization from the logged-in user to the client.
+        """
+        form.instance.organization = self.request.user.organization
+        messages.success(self.request, "Cliente creado con éxito.")
+        return super().form_valid(form)
+
+class ClientUpdateView(LoginRequiredMixin, ClientOwnerMixin, UpdateView):
+    model = Client
+    form_class = ClientForm
+    template_name = 'orgs/client_form.html'
+    success_url = reverse_lazy('orgs:client_list')
+
+    def get_form_kwargs(self):
+        """Pass the request to the form."""
+        kwargs = super().get_form_kwargs()
+        if hasattr(self.request.user, 'organization'):
+            kwargs['organization'] = self.request.user.organization
+        return kwargs
+
+    def form_valid(self, form):
+        messages.success(self.request, "Cliente actualizado con éxito.")
+        return super().form_valid(form)
+
+class ClientDeleteView(LoginRequiredMixin, ClientOwnerMixin, DeleteView):
+    model = Client
+    template_name = 'orgs/client_confirm_delete.html'
+    success_url = reverse_lazy('orgs:client_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, "Cliente eliminado con éxito.")
+        return super().form_valid(form)
+
+
+# =============================================================================
+# Vistas de Organización
+# =============================================================================
 
 @login_required
 def my_organization(request):
     """Vista para que el usuario vea su propia organización"""
     if not request.user.organization:
-        # NO mostrar mensaje aquí - esto debería manejarse a nivel de middleware
-        # o en la página principal donde es más apropiado
         return redirect('main:dashboard')
     
     organization = request.user.organization
@@ -66,12 +114,10 @@ class OrganizationDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         organization = self.get_object()
         
-        # Obtener usuarios de la organización
         context['users'] = organization.users.all()
         context['admins'] = organization.users.filter(is_org_admin=True)
         context['active_users'] = organization.users.filter(is_active=True)
         
-        # Calcular porcentaje de capacidad usando get_max_users()
         max_users = organization.get_max_users()
         context['percentage'] = int((organization.get_user_count() / max_users) * 100) if max_users > 0 else 0
         
@@ -79,7 +125,6 @@ class OrganizationDetailView(LoginRequiredMixin, DetailView):
     
     def dispatch(self, request, *args, **kwargs):
         org = self.get_object()
-        # Solo usuarios de la organización pueden verla
         if not (request.user.organization == org):
             messages.error(request, "No tienes permisos para ver esta organización.")
             return redirect('main:dashboard')

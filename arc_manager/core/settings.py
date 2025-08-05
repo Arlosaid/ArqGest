@@ -47,6 +47,9 @@ INSTALLED_APPS = [
     'apps.users',
     'apps.plans',
     'apps.projects',
+
+    'crispy_forms',
+    'crispy_bootstrap5',
 ]
 
 AUTH_USER_MODEL = 'accounts.User'
@@ -509,3 +512,7 @@ def health_check(request):
     """Endpoint simple para health check de AWS"""
     from django.http import JsonResponse
     return JsonResponse({'status': 'healthy', 'service': 'arc-manager'})
+
+
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"

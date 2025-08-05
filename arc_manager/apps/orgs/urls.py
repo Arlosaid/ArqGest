@@ -4,7 +4,14 @@ from . import views
 app_name = 'orgs'
 
 urlpatterns = [
-    # Ver detalles de una organización específica
+    # URLs de Clientes
+    path('clients/', views.ClientListView.as_view(), name='client_list'),
+    path('clients/new/', views.ClientCreateView.as_view(), name='client_create'),
+    path('clients/<int:pk>/', views.ClientDetailView.as_view(), name='client_detail'),
+    path('clients/<int:pk>/edit/', views.ClientUpdateView.as_view(), name='client_edit'),
+    path('clients/<int:pk>/delete/', views.ClientDeleteView.as_view(), name='client_delete'),
+
+    # URLs de Organización
     path('<int:pk>/', views.OrganizationDetailView.as_view(), name='detail'),
     
     # Editar organización - DESHABILITADO
@@ -16,4 +23,4 @@ urlpatterns = [
 
     # Mi organización (vista para usuarios normales)
     path('mi-organizacion/', views.my_organization, name='my_organization'),
-] 
+]

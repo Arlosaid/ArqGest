@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.contrib import messages
-from .models import Organization
+from .models import Organization, Client
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
@@ -101,3 +101,20 @@ class OrganizationAdmin(admin.ModelAdmin):
             messages.SUCCESS
         )
     deactivate_organizations.short_description = "❌ Desactivar organizaciones"
+
+@admin.register(Client)
+class ClientAdmin(admin.ModelAdmin):
+    list_display = ('name', 'organization', 'email', 'phone_number', 'is_active', 'created_at')
+    list_filter = ('is_active', 'organization')
+    search_fields = ('name', 'email', 'organization__name')
+    readonly_fields = ('created_at', 'updated_at')
+
+    fieldsets = (
+        ('Información del Cliente', {
+            'fields': ('organization', 'name', 'email', 'phone_number', 'address', 'is_active')
+        }),
+        ('Información del Sistema', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )

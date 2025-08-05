@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    {% if object %}
+        Editar Cliente: {{ object.name }}
+    {% else %}
+        Crear Nuevo Cliente
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">
+        {% if object %}
+            Editar Cliente
+        {% else %}
+            Crear Nuevo Cliente
+        {% endif %}
+    </h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{% url 'main:dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'orgs:client_list' %}">Clientes</a></li>
+        <li class="breadcrumb-item active">{% if object %}Editar{% else %}Crear{% endif %}</li>
+    </ol>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-user-plus me-1"></i>
+            Datos del Cliente
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                {{ form|crispy }}
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i>
+                    {% if object %}
+                        Guardar Cambios
+                    {% else %}
+                        Crear Cliente
+                    {% endif %}
+                </button>
+                <a href="{% url 'orgs:client_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times me-1"></i>
+                    Cancelar
+                </a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
