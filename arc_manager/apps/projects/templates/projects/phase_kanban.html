@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Tablero Kanban" %} - {{ phase.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'projects:project-list' %}">{% trans "Proyectos" %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'projects:project-detail' pk=project.pk %}">{{ project.name }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ phase.name }} - {% trans "Kanban" %}</li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-4 text-gray-800">{{ phase.name }}: {% trans "Tablero Kanban" %}</h1>
+
+    <div class="row">
+        {% for status_value, status_display in task_status_choices %}
+        <div class="col-md">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">{{ status_display }}</h6>
+                </div>
+                <div class="card-body">
+                    {% for task in tasks %}
+                        {% if task.status == status_value %}
+                        <div class="card mb-2">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ task.title }}</h5>
+                                <p class="card-text">{{ task.description|truncatewords:10 }}</p>
+                                <a href="{% url 'projects:task-edit' task.pk %}" class="btn btn-sm btn-primary">{% trans "Ver" %}</a>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

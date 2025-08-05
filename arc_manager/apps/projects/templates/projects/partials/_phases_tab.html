@@ -1,0 +1,19 @@
+<!-- templates/projects/partials/_phases_tab.html -->
+{% load i18n %}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">{% trans "Fases del Proyecto" %}</h6>
+    </div>
+    <div class="card-body">
+        <div class="list-group">
+            {% for phase in phases %}
+                <a href="{% url 'projects:phase-detail' project_pk=project.pk pk=phase.pk %}" class="list-group-item list-group-item-action">
+                    {{ phase.name }}
+                </a>
+            {% empty %}
+                <p>{% trans "Aún no se han definido fases para este proyecto." %}</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>

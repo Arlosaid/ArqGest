@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Confirmar Eliminación" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="h3 mb-4 text-gray-800">{% trans "Eliminar Fase Predeterminada" %}</h1>
+
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <p>{% blocktrans with name=object.name template_name=object.template.name %}¿Estás seguro de que quieres eliminar la fase "<strong>{{ name }}</strong>" de la plantilla "<strong>{{ template_name }}</strong>"?{% endblocktrans %}</p>
+            <p class="text-danger">{% trans "Esta acción no se puede deshacer." %}</p>
+
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">{% trans "Sí, eliminar" %}</button>
+                <a href="{% url 'projects:phasetemplate-detail' object.template.pk %}" class="btn btn-secondary">{% trans "Cancelar" %}</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}
+    {% if form.instance.pk %}
+        {% trans "Editar Plantilla de Fase" %}
+    {% else %}
+        {% trans "Crear Plantilla de Fase" %}
+    {% endif %}
+{% endblock title %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header">
+            <h3>
+                {% if form.instance.pk %}
+                    {% trans "Editar Plantilla de Fase" %}
+                {% else %}
+                    {% trans "Crear Plantilla de Fase" %}
+                {% endif %}
+            </h3>
+        </div>
+        <div class="card-body">
+            <form method="post" id="phase-template-form">
+                {% csrf_token %}
+                
+                {{ form.as_p }}
+
+                <hr>
+
+                <h4>{% trans "Fases" %}</h4>
+                
+                <div id="phase-formset">
+                    {{ phase_formset.management_form }}
+                    <div id="phase-forms-container">
+                        {% for form in phase_formset %}
+                            <div class="phase-form mb-2 p-2 border rounded" data-form-index="{{ forloop.counter0 }}">
+                                <div class="row align-items-center">
+                                    <div class="col-auto">
+                                        <i class="fas fa-bars drag-handle" style="cursor: move;"></i>
+                                    </div>
+                                    <div class="col">
+                                        {{ form.name }}
+                                        {{ form.order }}
+                                        {% if form.instance.pk %}{{ form.id }}{% endif %}
+                                    </div>
+                                    <div class="col-auto">
+                                        {% if phase_formset.can_delete %}
+                                            <div class="form-check">
+                                                {{ form.DELETE }}
+                                                <label class="form-check-label" for="{{ form.DELETE.id_for_label }}">{% trans "Eliminar" %}</label>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div id="empty-form" class="d-none">
+                    <div class="phase-form mb-2 p-2 border rounded" data-form-index="__prefix__">
+                        <div class="row align-items-center">
+                             <div class="col-auto">
+                                <i class="fas fa-bars drag-handle" style="cursor: move;"></i>
+                            </div>
+                            <div class="col">
+                                {{ phase_formset.empty_form.name }}
+                                {{ phase_formset.empty_form.order }}
+                            </div>
+                            <div class="col-auto">
+                                {% if phase_formset.can_delete %}
+                                    <div class="form-check">
+                                        {{ phase_formset.empty_form.DELETE }}
+                                        <label class="form-check-label" for="{{ phase_formset.empty_form.DELETE.id_for_label }}">{% trans "Eliminar" %}</label>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" id="add-form" class="btn btn-outline-primary btn-sm mt-2">{% trans "Añadir Fase" %}</button>
+                <hr>
+                <button type="submit" class="btn btn-primary">{% trans "Guardar Plantilla" %}</button>
+                <a href="{% url 'projects:phasetemplate-list' %}" class="btn btn-secondary">{% trans "Cancelar" %}</a>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const formsetContainer = document.getElementById('phase-forms-container');
+    const addButton = document.getElementById('add-form');
+    const emptyForm = document.getElementById('empty-form').innerHTML;
+    const totalForms = document.getElementById('id_phases-TOTAL_FORMS');
+    
+    let formNum = {{ phase_formset.total_form_count }};
+
+    addButton.addEventListener('click', function() {
+        const newFormHtml = emptyForm.replace(/__prefix__/g, formNum);
+        const newForm = document.createElement('div');
+        newForm.innerHTML = newFormHtml;
+        formsetContainer.appendChild(newForm.firstElementChild);
+        
+        updateOrder();
+        
+        totalForms.value = ++formNum;
+    });
+
+    formsetContainer.addEventListener('change', function(e) {
+        if (e.target && e.target.matches('input[type="checkbox"][name$="-DELETE"]')) {
+            const form = e.target.closest('.phase-form');
+            if (e.target.checked) {
+                form.style.backgroundColor = '#f8d7da';
+                form.querySelector('input[name$="-name"]').required = false;
+            } else {
+                form.style.backgroundColor = '';
+                form.querySelector('input[name$="-name"]').required = true;
+            }
+        }
+    });
+
+    function updateOrder() {
+        const forms = formsetContainer.querySelectorAll('.phase-form');
+        forms.forEach((form, index) => {
+            const orderInput = form.querySelector('input[name$="-order"]');
+            if (orderInput) {
+                orderInput.value = index;
+            }
+        });
+    }
+
+    new Sortable(formsetContainer, {
+        handle: '.drag-handle',
+        animation: 150,
+        onEnd: function() {
+            updateOrder();
+        }
+    });
+
+    // Initial order for existing forms
+    updateOrder();
+});
+</script>
+{% endblock extra_js %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Edit Default Phase" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="h3 mb-4 text-gray-800">{% trans "Edit Default Phase" %}</h1>
+
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+                <a href="{% url 'projects:phasetemplate-detail' object.template.pk %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

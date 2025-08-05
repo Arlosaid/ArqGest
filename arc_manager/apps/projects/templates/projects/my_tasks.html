@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "My Tasks" %}{% endblock %}
+{% block title %}{% trans "Mis Tareas" %}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h2">{% trans "My Tasks" %}</h1>
-        <span class="badge bg-primary rounded-pill">{{ total_tasks }} {% trans "task(s)" %}</span>
+        <h1 class="h2">{% trans "Mis Tareas" %}</h1>
+        <span class="badge bg-primary rounded-pill">{{ total_tasks }} {% trans "tarea(s)" %}</span>
     </div>
 
     {% if tasks %}
@@ -18,15 +18,15 @@
                         <h5 class="mb-1">{{ task.title }}</h5>
                         <small class="text-muted">
                             {% if task.due_date %}
-                                {% trans "Due:" %} {{ task.due_date|date:"d M, Y" }}
+                                {% trans "Vence:" %} {{ task.due_date|date:"d M, Y" }}
                             {% else %}
-                                {% trans "No due date" %}
+                                {% trans "Sin fecha de vencimiento" %}
                             {% endif %}
                         </small>
                     </div>
                     <p class="mb-1">
-                        <strong>{% trans "Project:" %}</strong> {{ task.phase.project.name }} <br>
-                        <strong>{% trans "Phase:" %}</strong> {{ task.phase.name }}
+                        <strong>{% trans "Proyecto:" %}</strong> {{ task.phase.project.name }} <br>
+                        <strong>{% trans "Fase:" %}</strong> {{ task.phase.name }}
                     </p>
                     <small>
                         <span class="badge 
@@ -42,8 +42,8 @@
         </div>
     {% else %}
         <div class="text-center p-5">
-            <p class="lead">{% trans "You have no assigned tasks." %}</p>
-            <p>{% trans "Enjoy your day or go find something to work on!" %}</p>
+            <p class="lead">{% trans "No tienes tareas asignadas." %}</p>
+            <p>{% trans "¡Disfruta de tu día o busca algo en qué trabajar!" %}</p>
         </div>
     {% endif %}
 </div>

@@ -3,7 +3,6 @@ from .views import (
     ProjectListView,
     ProjectCreateView,
     ProjectDetailView,
-    ProjectKanbanView,  # Import the new Kanban view
     ProjectUpdateView,
     ProjectDeleteView,
     PhaseDetailView,
@@ -13,6 +12,11 @@ from .views import (
     update_task_status,
     move_task,
     task_edit,
+    PhaseTemplateListView,
+    PhaseTemplateCreateView,
+    PhaseTemplateDetailView,
+    PhaseTemplateUpdateView,
+    PhaseTemplateDeleteView,
 )
 
 app_name = 'projects'
@@ -21,7 +25,7 @@ urlpatterns = [
     path('', ProjectListView.as_view(), name='project-list'),
     path('new/', ProjectCreateView.as_view(), name='project-create'),
     path('<int:pk>/', ProjectDetailView.as_view(), name='project-detail'),
-    path('<int:pk>/kanban/', ProjectKanbanView.as_view(), name='project-kanban'),  # New Kanban URL
+
     path('<int:pk>/edit/', ProjectUpdateView.as_view(), name='project-update'),
     path('<int:pk>/delete/', ProjectDeleteView.as_view(), name='project-delete'),
     
@@ -32,5 +36,16 @@ urlpatterns = [
     path('tasks/<int:task_pk>/move/', move_task, name='task-move'),
     
     path('<int:project_pk>/phases/<int:pk>/', PhaseDetailView.as_view(), name='phase-detail'),
+
     path('<int:project_pk>/tasks/create/', task_create, name='task-create'),
+
+    # Phase Templates
+    path('templates/', PhaseTemplateListView.as_view(), name='phasetemplate-list'),
+    path('templates/new/', PhaseTemplateCreateView.as_view(), name='phasetemplate-create'),
+
+        path('templates/<int:pk>/', PhaseTemplateDetailView.as_view(), name='phasetemplate-detail'),
+    path('templates/<int:pk>/edit/', PhaseTemplateUpdateView.as_view(), name='phasetemplate-update'),
+    path('templates/<int:pk>/delete/', PhaseTemplateDeleteView.as_view(), name='phasetemplate-delete'),
+    
+
 ]

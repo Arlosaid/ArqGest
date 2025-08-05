@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Plantillas de Fases" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">{% trans "Plantillas de Fases" %}</h1>
+        <a href="{% url 'projects:phasetemplate-create' %}" class="btn btn-primary btn-sm shadow-sm">
+            <i class="fas fa-plus fa-sm text-white-50"></i> {% trans "Crear Nueva Plantilla" %}
+        </a>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">{% trans "Mis Plantillas" %}</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>{% trans "Nombre" %}</th>
+                            <th>{% trans "Descripción" %}</th>
+                            <th>{% trans "Acciones" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for template in templates %}
+                        <tr>
+                            <td>{{ template.name }}</td>
+                            <td>{{ template.description|truncatewords:15 }}</td>
+                            <td>
+                                <a href="{% url 'projects:phasetemplate-detail' template.pk %}" class="btn btn-info btn-sm">{% trans "Ver" %}</a>
+                                <a href="{% url 'projects:phasetemplate-update' template.pk %}" class="btn btn-warning btn-sm">{% trans "Editar" %}</a>
+                                <a href="{% url 'projects:phasetemplate-delete' template.pk %}" class="btn btn-danger btn-sm">{% trans "Eliminar" %}</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center">{% trans "No se encontraron plantillas de fases. ¡Empieza creando una!" %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

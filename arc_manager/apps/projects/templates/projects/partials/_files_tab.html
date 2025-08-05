@@ -1,0 +1,42 @@
+<!-- templates/projects/partials/_files_tab.html -->
+{% load i18n %}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">{% trans "Archivos del Proyecto" %}</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>{% trans "Nombre del Archivo" %}</th>
+                        <th>{% trans "Fase" %}</th>
+                        <th>{% trans "Subido por" %}</th>
+                        <th>{% trans "Subido el" %}</th>
+                        <th>{% trans "Tamaño" %}</th>
+                        <th>{% trans "Acciones" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in files %}
+                    <tr>
+                        <td><a href="{{ file.file.url }}" target="_blank">{{ file.file.name|cut:"organizations/"|cut:request.user.organization.id|cut:"/projects/"|cut:project.id|cut:"/phases/"|cut:file.phase.id|cut:"/" }}</a></td>
+                        <td>{{ file.phase.name }}</td>
+                        <td>{{ file.uploaded_by.get_full_name|default:"N/A" }}</td>
+                        <td>{{ file.uploaded_at|date:"d M Y, H:i" }}</td>
+                        <td>{{ file.size|filesizeformat }}</td>
+                        <td>
+                            <a href="{{ file.file.url }}" class="btn btn-sm btn-primary" download>{% trans "Descargar" %}</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6">{% trans "Aún no se han subido archivos para este proyecto." %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
