@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Dashboard - Arc Manager{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/dashboard.css' %}?v=27" rel="stylesheet">
+<link href="{% static 'css/dashboard.css' %}?v=28" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 {% endblock %}
 
@@ -16,220 +17,166 @@
             <div class="welcome-section">
                 <div class="welcome-content">
                     <div class="time-greeting">¡Bienvenido de vuelta!</div>
-                    <h1 class="user-name">{{ user.first_name|default:"Roberto" }} {{ user.last_name|default:"Dela" }}</h1>
-                    <p class="welcome-subtitle">Tienes 2 proyectos activos y 3 planos pendientes de revisión.<br/>¡Sigue adelante con tu progreso semanal!</p>
+                    <h1 class="user-name">{{ greeting_name }}</h1>
+                    <p class="welcome-subtitle">
+                        Tienes <strong>{{ active_projects.count }}</strong> proyectos activos y <strong>{{ my_tasks.count }}</strong> tareas pendientes.<br/>
+                        ¡Sigue adelante con tu progreso semanal!
+                    </p>
                 </div>
                 <div class="header-stats">
                     <div class="stat-item">
-                        <div class="stat-value">75%</div>
-                        <div class="stat-label">Progreso General</div>
+                        <div class="stat-value">{{ my_tasks.count }}</div>
+                        <div class="stat-label">Tareas Pendientes</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">2</div>
+                        <div class="stat-value">{{ active_projects.count }}</div>
                         <div class="stat-label">Proyectos Activos</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">3</div>
-                        <div class="stat-label">Planos Pendientes</div>
+                        <div class="stat-value">{{ total_clients }}</div>
+                        <div class="stat-label">Clientes</div>
                     </div>
                 </div>
             </div>
         </header>
 
-        <!-- Métricas -->
+        <!-- Widgets Principales -->
         <section class="metrics-section">
             <div class="metrics-grid">
                 <div class="metric-card">
-                    <div class="metric-icon"><i class="fas fa-project-diagram"></i></div>
+                    <div class="metric-icon"><i class="fas fa-tasks"></i></div>
                     <div class="metric-content">
-                        <div class="metric-value" data-target="{{ active_projects_count|default:2 }}">2</div>
+                        <div class="metric-value">{{ my_tasks.count }}</div>
+                        <div class="metric-label">Mis Tareas Pendientes</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon"><i class="fas fa-building"></i></div>
+                    <div class="metric-content">
+                        <div class="metric-value">{{ active_projects.count }}</div>
                         <div class="metric-label">Proyectos Activos</div>
                     </div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-icon"><i class="fas fa-check-double"></i></div>
+                    <div class="metric-icon"><i class="fas fa-users"></i></div>
                     <div class="metric-content">
-                        <div class="metric-value" data-target="{{ tasks_completed_week|default:5 }}">5</div>
-                        <div class="metric-label">Tareas Completadas</div>
+                        <div class="metric-value">{{ total_clients }}</div>
+                        <div class="metric-label">Total de Clientes</div>
                     </div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-icon"><i class="fas fa-file-upload"></i></div>
+                    <div class="metric-icon"><i class="fas fa-handshake"></i></div>
                     <div class="metric-content">
-                        <div class="metric-value" data-target="{{ total_documents_uploaded|default:12 }}">12</div>
-                        <div class="metric-label">Documentos Técnicos</div>
-                    </div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-icon"><i class="fas fa-drafting-compass"></i></div>
-                    <div class="metric-content">
-                        <div class="metric-value" data-target="{{ blueprints_reviewed|default:8 }}">8</div>
-                        <div class="metric-label">Planos Revisados</div>
+                        <div class="metric-value">{{ recent_clients.count }}</div>
+                        <div class="metric-label">Nuevos Clientes</div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Proyectos Activos -->
-        <section class="projects-section-compact">
-            <div class="section-header-mini">
-                <h3><i class="fas fa-building"></i> Proyectos Activos</h3>
-                <div class="section-actions-mini">
-                    <a href="#" class="btn-add-project"><i class="fas fa-plus"></i> Nuevo Proyecto</a>
-                    <a href="#" class="btn-mini-secondary">Ver Todos</a>
-                </div>
-            </div>
-            
-            <div class="projects-grid-mini">
-                <div class="project-card-mini">
-                    <div class="project-image-mini">
-                        <img src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=200&h=60&fit=crop" alt="Torre Central">
-                        <div class="project-status-mini in-progress">En Desarrollo</div>
-                    </div>
-                    <div class="project-info-mini">
-                        <h4>Torre Central</h4>
-                        <p>Complejo habitacional 15 pisos</p>
-                        <div class="project-progress-mini">
-                            <div class="progress-bar-mini">
-                                <div class="progress-fill-mini" style="width: 75%;"></div>
-                            </div>
-                            <span class="progress-text-mini">75%</span>
-                        </div>
-                        <div class="project-meta-mini">
-                            <span><i class="fas fa-calendar-alt"></i> 3 meses</span>
-                            <span><i class="fas fa-users"></i> 8 miembros</span>
-                        </div>
-                        <div class="project-actions-mini">
-                            <a href="#" class="btn-project-primary">Abrir Proyecto</a>
-                            <a href="#" class="btn-project-secondary">Ver Planos</a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="project-card-mini">
-                    <div class="project-image-mini">
-                        <img src="https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=200&h=60&fit=crop" alt="Oficinas">
-                        <div class="project-status-mini completed">Finalizado</div>
-                    </div>
-                    <div class="project-info-mini">
-                        <h4>Remodelación Oficinas</h4>
-                        <p>Renovación integral espacios</p>
-                        <div class="project-progress-mini">
-                            <div class="progress-bar-mini">
-                                <div class="progress-fill-mini completed" style="width: 100%;"></div>
-                            </div>
-                            <span class="progress-text-mini">100%</span>
-                        </div>
-                        <div class="project-meta-mini">
-                            <span><i class="fas fa-check-circle"></i> Completado</span>
-                            <span><i class="fas fa-award"></i> Entregado</span>
-                        </div>
-                        <div class="project-actions-mini">
-                            <a href="#" class="btn-project-primary">Ver Detalles</a>
-                            <a href="#" class="btn-project-secondary">Ver Renders</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Tareas y Documentos -->
-        <div class="dashboard-summary-grid">
-            <!-- Tareas Recientes -->
-            <section class="summary-section-mini">
+        <!-- Proyectos y Tareas -->
+        <div class="dashboard-main-grid">
+            <!-- Columna de Proyectos Activos -->
+            <section class="projects-section-compact">
                 <div class="section-header-mini">
-                    <h3><i class="fas fa-tasks"></i> Tareas Recientes</h3>
-                    <a href="#" class="btn-mini-link">Ver todas</a>
+                    <h3><i class="fas fa-building"></i> Proyectos Activos</h3>
+                    <div class="section-actions-mini">
+                        <a href="{% url 'projects:project-create' %}" class="btn-add-project"><i class="fas fa-plus"></i> Nuevo Proyecto</a>
+                        <a href="{% url 'projects:project-list' %}" class="btn-mini-secondary">Ver Todos</a>
+                    </div>
                 </div>
-                <div class="summary-list-mini">
-                    <div class="summary-item-mini">
-                        <div class="priority-dot high"></div>
-                        <div class="item-content-mini">
-                            <h5>Revisión Estructural Nivel 10-15</h5>
-                            <p>Torre Central • Vence en 3 días</p>
-                            <div class="progress-inline-mini">
-                                <div class="progress-bar-inline" style="width: 65%;"></div>
-                                <span>65%</span>
+                
+                <div class="projects-grid-mini">
+                    {% for project in active_projects %}
+                    <div class="project-card-mini">
+                        <div class="project-image-mini">
+                            <img src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=200&h=60&fit=crop" alt="{{ project.name }}">
+                            <div class="project-status-mini {{ project.status }}">{{ project.get_status_display }}</div>
+                        </div>
+                        <div class="project-info-mini">
+                            <h4>{{ project.name }}</h4>
+                            <p>{{ project.client.name|default:"Sin cliente" }}</p>
+                            <div class="project-progress-mini">
+                                <div class="progress-bar-mini">
+                                    <div class="progress-fill-mini" style="width: 50%;"></div> {# Placeholder for progress %}
+                                </div>
+                                <span class="progress-text-mini">50%</span>
+                            </div>
+                            <div class="project-meta-mini">
+                                <span><i class="fas fa-calendar-alt"></i> Finaliza: {{ project.end_date|date:"d M, Y"|default:"N/A" }}</span>
+                                <span><i class="fas fa-users"></i> {{ project.assigned_users.count }} miem.</span>
+                            </div>
+                            <div class="project-actions-mini">
+                                <a href="{% url 'projects:project-detail' project.pk %}" class="btn-project-primary">Abrir Proyecto</a>
                             </div>
                         </div>
-                        <div class="assignee-mini">
-                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=24&h=24&fit=crop" alt="Carlos">
-                        </div>
                     </div>
-
-                    <div class="summary-item-mini">
-                        <div class="priority-dot medium"></div>
-                        <div class="item-content-mini">
-                            <h5>Selección Materiales Interior</h5>
-                            <p>Oficinas • En progreso</p>
-                            <div class="progress-inline-mini">
-                                <div class="progress-bar-inline" style="width: 85%;"></div>
-                                <span>85%</span>
-                            </div>
-                        </div>
-                        <div class="assignee-mini">
-                            <img src="https://images.unsplash.com/photo-1494790108755-2616b332c1c7?w=24&h=24&fit=crop" alt="Ana">
-                        </div>
+                    {% empty %}
+                    <div class="empty-state-card">
+                        <p>No hay proyectos activos en este momento. ¡Crea uno para empezar!</p>
                     </div>
-
-                    <div class="summary-item-mini">
-                        <div class="priority-dot low"></div>
-                        <div class="item-content-mini">
-                            <h5>Actualización Normativa BIM</h5>
-                            <p>General • Sin fecha límite</p>
-                            <div class="progress-inline-mini">
-                                <div class="progress-bar-inline" style="width: 25%;"></div>
-                                <span>25%</span>
-                            </div>
-                        </div>
-                        <div class="assignee-mini">
-                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=24&h=24&fit=crop" alt="Miguel">
-                        </div>
-                    </div>
+                    {% endfor %}
                 </div>
             </section>
 
-            <!-- Documentos Recientes -->
-            <section class="summary-section-mini">
-                <div class="section-header-mini">
-                    <h3><i class="fas fa-folder-open"></i> Documentos Recientes</h3>
-                    <a href="#" class="btn-mini-link">Ver biblioteca</a>
-                </div>
-                <div class="summary-list-mini">
-                    <div class="summary-item-mini">
-                        <div class="doc-icon-mini pdf">
-                            <i class="fas fa-file-pdf"></i>
-                        </div>
-                        <div class="item-content-mini">
-                            <h5>Planos Estructurales</h5>
-                            <p>Torre Central • 2.4 MB • Hace 2 horas</p>
-                        </div>
-                        <div class="doc-status-text approved">Aprobado</div>
+            <!-- Columna de Tareas y Clientes -->
+            <div class="dashboard-side-grid">
+                <!-- Mis Tareas -->
+                <section class="summary-section-mini">
+                    <div class="section-header-mini">
+                        <h3><i class="fas fa-tasks"></i> Mis Tareas Pendientes</h3>
+                        <a href="{% url 'projects:my-task-list' %}" class="btn-mini-link">Ver todas</a>
                     </div>
+                    <div class="summary-list-mini">
+                        {% for task in my_tasks %}
+                        <div class="summary-item-mini">
+                            <div class="priority-dot high"></div> <!-- Placeholder -->
+                            <div class="item-content-mini">
+                                <h5>{{ task.title }}</h5>
+                                <p>{{ task.phase.project.name }} • Vence {{ task.due_date|naturalday }}</p>
+                            </div>
+                             <div class="assignee-mini">
+                                {% if task.assigned_to.profile.avatar %}
+                                <img src="{{ task.assigned_to.profile.avatar.url }}" alt="{{ task.assigned_to.first_name }}">
+                                {% else %}
+                                <div class="initial-avatar">{{ task.assigned_to.first_name|first|upper }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="empty-state-card-small">
+                            <p>¡Felicidades! No tienes tareas pendientes.</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
 
-                    <div class="summary-item-mini">
-                        <div class="doc-icon-mini dwg">
-                            <i class="fas fa-drafting-compass"></i>
-                        </div>
-                        <div class="item-content-mini">
-                            <h5>Detalles Arquitectónicos</h5>
-                            <p>Oficinas • 5.8 MB • Ayer</p>
-                        </div>
-                        <div class="doc-status-text review">En Revisión</div>
+                <!-- Clientes Recientes -->
+                <section class="summary-section-mini">
+                    <div class="section-header-mini">
+                        <h3><i class="fas fa-handshake"></i> Clientes Recientes</h3>
+                        <a href="{% url 'orgs:client_list' %}" class="btn-mini-link">Ver todos</a>
                     </div>
-
-                    <div class="summary-item-mini">
-                        <div class="doc-icon-mini excel">
-                            <i class="fas fa-file-excel"></i>
+                    <div class="summary-list-mini">
+                        {% for client in recent_clients %}
+                        <div class="summary-item-mini">
+                            <div class="doc-icon-mini client-icon">
+                                <i class="fas fa-user-tie"></i>
+                            </div>
+                            <div class="item-content-mini">
+                                <h5>{{ client.name }}</h5>
+                                <p>Registrado {{ client.created_at|naturaltime }}</p>
+                            </div>
+                            <a href="{% url 'orgs:client_detail' client.pk %}" class="btn-client-action"><i class="fas fa-eye"></i></a>
                         </div>
-                        <div class="item-content-mini">
-                            <h5>Presupuesto Q2 2024</h5>
-                            <p>General • 1.2 MB • Hace 3 días</p>
+                        {% empty %}
+                        <div class="empty-state-card-small">
+                             <p>No se han añadido clientes recientemente.</p>
                         </div>
-                        <div class="doc-status-text pending">Pendiente</div>
+                        {% endfor %}
                     </div>
-                </div>
-            </section>
+                </section>
+            </div>
         </div>
     </div>
 </div>
@@ -237,4 +184,4 @@
 
 {% block extra_js %}
 <script src="{% static 'js/dashboard.js' %}?v=12"></script>
-{% endblock %} 
+{% endblock %}
