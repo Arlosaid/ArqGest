@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
+from apps.orgs.models import Client, Organization
 
 def project_file_path(instance, filename):
     """
@@ -12,14 +13,41 @@ def project_file_path(instance, filename):
 class Project(models.Model):
     """Represents an architectural project."""
 
+    class Status(models.TextChoices):
+        ACTIVE = 'ACTIVE', _('Active')
+        ARCHIVED = 'ARCHIVED', _('Archived')
+        COMPLETED = 'COMPLETED', _('Completed')
+
+
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name='projects',
+        verbose_name=_("Organization")
+    )
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='projects',
+        related_name='owned_projects',
         verbose_name=_("Owner")
     )
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='projects',
+        verbose_name=_("Client")
+    )
     name = models.CharField(_("Project Name"), max_length=255)
-    client = models.CharField(_("Client Name"), max_length=255, blank=True)
+    status = models.CharField(
+        _("Status"),
+        max_length=20,
+        choices=Status.choices,
+        default=Status.ACTIVE
+    )
+    start_date = models.DateField(_("Start Date"), null=True, blank=True)
+    end_date = models.DateField(_("End Date"), null=True, blank=True)
     created_at = models.DateTimeField(_("Creation Date"), auto_now_add=True)
 
     class Meta:
@@ -52,6 +80,8 @@ class Phase(models.Model):
         default=Status.PENDING
     )
     order = models.PositiveIntegerField(_("Order"))
+    start_date = models.DateField(_("Start Date"), null=True, blank=True)
+    end_date = models.DateField(_("End Date"), null=True, blank=True)
     created_at = models.DateTimeField(_("Creation Date"), auto_now_add=True)
 
     class Meta:

@@ -1,11 +1,34 @@
 from django import forms
-from .models import Organization
+from .models import Organization, Client
 from apps.plans.models import Plan
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Layout, Field, Submit
+
+class ClientForm(forms.ModelForm):
+    """
+    Formulario para crear y editar Clientes.
+    """
+    class Meta:
+        model = Client
+        fields = ['name', 'email', 'phone_number', 'address', 'is_active']
+
+    def __init__(self, *args, **kwargs):
+        kwargs.pop('organization', None)
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            Field('name', css_class='form-control', placeholder='Nombre completo o Razón Social'),
+            Field('email', css_class='form-control', placeholder='correo@ejemplo.com'),
+            Field('phone_number', css_class='form-control', placeholder='+52 1 234 567 890'),
+            Field('address', css_class='form-control', rows='3', placeholder='Dirección completa'),
+            Field('is_active', css_class='form-check-input'),
+            Submit('submit', 'Guardar Cliente', css_class='btn btn-primary mt-3')
+        )
+
 
 class OrganizationForm(forms.ModelForm):
     """Formulario para crear y editar organizaciones"""
     
-    # Campo adicional para seleccionar el plan inicial
     initial_plan = forms.ModelChoiceField(
         queryset=Plan.objects.filter(is_active=True).order_by('price', 'max_users'),
         required=True,
@@ -39,7 +62,6 @@ class OrganizationForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        # Si es una nueva organización, establecer plan de prueba por defecto
         if not self.instance.pk:
             try:
                 trial_plan = Plan.objects.get(name='trial', is_active=True)
@@ -52,14 +74,12 @@ class OrganizationForm(forms.ModelForm):
                 except Plan.DoesNotExist:
                     pass
         else:
-            # Si es edición, no mostrar el campo de plan inicial
             if 'initial_plan' in self.fields:
                 del self.fields['initial_plan']
     
 
     
     def clean_initial_plan(self):
-        # Solo validar si es una nueva organización
         if not self.instance.pk:
             plan = self.cleaned_data.get('initial_plan')
             if not plan:
@@ -76,7 +96,6 @@ class OrganizationForm(forms.ModelForm):
         if commit:
             instance.save()
             
-            # Si es una nueva organización, crear la suscripción
             if not hasattr(instance, 'subscription'):
                 initial_plan = self.cleaned_data.get('initial_plan')
                 if initial_plan:
@@ -85,4 +104,4 @@ class OrganizationForm(forms.ModelForm):
                         plan=initial_plan
                     )
         
-        return instance 
+        return instance

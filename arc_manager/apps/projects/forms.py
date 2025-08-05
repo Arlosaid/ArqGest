@@ -1,6 +1,7 @@
 # arc_manager/apps/projects/forms.py
 from django import forms
 from .models import Task, Project, ProjectTemplate
+from apps.orgs.models import Client
 
 class ProjectForm(forms.ModelForm):
     """
@@ -9,8 +10,8 @@ class ProjectForm(forms.ModelForm):
     template = forms.ModelChoiceField(
         queryset=ProjectTemplate.objects.all(),
         required=False,
-        label="Create from template",
-        help_text="Select a template to automatically create project phases."
+        label="Crear desde plantilla",
+        help_text="Selecciona una plantilla para crear las fases del proyecto automáticamente."
     )
 
     class Meta:
@@ -18,9 +19,25 @@ class ProjectForm(forms.ModelForm):
         fields = ['name', 'client', 'template']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'client': forms.TextInput(attrs={'class': 'form-control'}),
+            'client': forms.Select(attrs={'class': 'form-control'}),
             'template': forms.Select(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        # Extraer el usuario de la organización de los kwargs
+        organization = kwargs.pop('organization', None)
+        super().__init__(*args, **kwargs)
+
+        if organization:
+            # Filtrar el queryset de clientes para que solo muestre los de la organización actual
+            self.fields['client'].queryset = Client.objects.filter(organization=organization)
+        else:
+            # Si no hay organización, no mostrar ningún cliente
+            self.fields['client'].queryset = Client.objects.none()
+            
+        # Opcional: Añadir un texto de ayuda o un placeholder
+        self.fields['client'].help_text = "Selecciona un cliente de tu organización."
+        self.fields['client'].empty_label = "Seleccionar un Cliente"
 
 
 class TaskForm(forms.ModelForm):

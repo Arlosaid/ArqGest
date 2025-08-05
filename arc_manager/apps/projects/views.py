@@ -39,9 +39,11 @@ class ProjectListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         """
-        Ensure users can only see their own projects.
+        Ensure users can only see projects from their organization.
         """
-        return Project.objects.filter(owner=self.request.user).order_by('-created_at')
+        if hasattr(self.request.user, 'organization') and self.request.user.organization:
+            return Project.objects.filter(owner__organization=self.request.user.organization).order_by('-created_at')
+        return Project.objects.none()
 
 class ProjectCreateView(LoginRequiredMixin, CreateView):
     model = Project
@@ -49,14 +51,24 @@ class ProjectCreateView(LoginRequiredMixin, CreateView):
     template_name = 'projects/project_form.html'
     success_url = reverse_lazy('projects:project-list')
 
+    def get_form_kwargs(self):
+        """
+        Pass the organization to the form.
+        """
+        kwargs = super().get_form_kwargs()
+        if hasattr(self.request.user, 'organization'):
+            kwargs['organization'] = self.request.user.organization
+        return kwargs
+
     def form_valid(self, form):
         """
         Assign the current user as the owner and create phases from a template if selected.
+        If no template is chosen, create default phases.
         """
         form.instance.owner = self.request.user
+        form.instance.organization = self.request.user.organization
         
-        # Call the superclass's form_valid to save the object and get the redirect response
-        self.object = form.save()
+        response = super().form_valid(form)
 
         template = form.cleaned_data.get('template')
         if template:
@@ -67,8 +79,22 @@ class ProjectCreateView(LoginRequiredMixin, CreateView):
                     name=phase_template.name,
                     order=phase_template.order
                 )
+        else:
+            default_phases = [
+                _("Por Hacer"), 
+                _("En Progreso"), 
+                _("Revisión"), 
+                _("Bloqueado"), 
+                _("Completado")
+            ]
+            for i, phase_name in enumerate(default_phases):
+                Phase.objects.create(
+                    project=self.object,
+                    name=str(phase_name),
+                    order=i
+                )
         
-        return super().form_valid(form)
+        return response
 
 class ProjectDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     model = Project
@@ -78,14 +104,7 @@ class ProjectDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         project = self.get_object()
-
-        # Obtener todas las fases del proyecto, ordenadas, y precargar las tareas
-        # para evitar consultas adicionales a la base de datos en el bucle.
         phases = project.phases.order_by('order').prefetch_related('tasks')
-
-        # We need a clean form for the "quick add" functionality in each phase footer.
-        # If the view is being re-rendered due to a validation error in `task_create`,
-        # the context will contain an invalid form instance. We check for it.
         context['phases'] = phases
         if 'task_form' not in context:
             context['task_form'] = TaskForm(user=self.request.user)
@@ -94,17 +113,26 @@ class ProjectDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
 
     def test_func(self):
         project = self.get_object()
-        return self.request.user == project.owner
+        return self.request.user.organization == project.owner.organization
 
 class ProjectUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Project
+    form_class = ProjectForm
     template_name = 'projects/project_form.html'
-    fields = ['name', 'client']
     success_url = reverse_lazy('projects:project-list')
+
+    def get_form_kwargs(self):
+        """
+        Pass the organization to the form.
+        """
+        kwargs = super().get_form_kwargs()
+        if hasattr(self.request.user, 'organization'):
+            kwargs['organization'] = self.request.user.organization
+        return kwargs
 
     def test_func(self):
         project = self.get_object()
-        return self.request.user == project.owner
+        return self.request.user.organization == project.owner.organization
 
 class ProjectDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     model = Project
@@ -113,7 +141,7 @@ class ProjectDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 
     def test_func(self):
         project = self.get_object()
-        return self.request.user == project.owner
+        return self.request.user.organization == project.owner.organization
 
 class TaskListView(LoginRequiredMixin, ListView):
     model = Task
@@ -122,10 +150,12 @@ class TaskListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         """
-        Users can only see tasks from projects they own.
+        Users can only see tasks from projects within their organization.
         """
-        # Order by status (e.g., pending first), then by creation date
-        return Task.objects.filter(phase__project__owner=self.request.user).order_by('status', '-created_at')
+        if hasattr(self.request.user, 'organization') and self.request.user.organization:
+            return Task.objects.filter(phase__project__owner__organization=self.request.user.organization).order_by('status', '-created_at')
+        return Task.objects.none()
+
 
 @login_required
 @require_POST
@@ -133,7 +163,7 @@ def advance_project_phase(request, pk):
     """
     Advances the project to the next phase.
     """
-    project = get_object_or_404(Project, pk=pk, owner=request.user)
+    project = get_object_or_404(Project, pk=pk, owner__organization=request.user.organization)
     
     current_phase_index = project.Phases.values.index(project.phase)
     
@@ -153,7 +183,7 @@ def update_task_status(request, task_pk):
     """
     Updates the status of a task.
     """
-    task = get_object_or_404(Task, pk=task_pk, phase__project__owner=request.user)
+    task = get_object_or_404(Task, pk=task_pk, phase__project__owner__organization=request.user.organization)
     new_status = request.POST.get('status')
 
     if new_status in Task.Status.values:
@@ -163,26 +193,35 @@ def update_task_status(request, task_pk):
     else:
         messages.error(request, _("Invalid status provided."))
 
-    # Redirect back to the referrer page (e.g., task list or project detail)
-    # or a default view if the referrer is not available.
     return redirect(request.META.get('HTTP_REFERER', reverse_lazy('projects:task-list')))
 
 
 @login_required
 @require_POST
 def task_create(request, project_pk):
-    """
-    Handles the creation of a new task for a specific project.
-    """
-    project = get_object_or_404(Project, pk=project_pk, owner=request.user)
+    project = get_object_or_404(Project, pk=project_pk, owner__organization=request.user.organization)
     
     phase_id = request.POST.get('phase')
     if not phase_id:
         messages.error(request, _("Could not determine the phase for the new task."))
         return redirect('projects:project-detail', pk=project.pk)
 
-    phase = get_object_or_404(project.phases, id=phase_id)
-    form = TaskForm(request.POST, user=request.user)
+    phase = get_object_or_404(Phase, id=phase_id, project=project)
+    
+    # Quick-add form only submits a title.
+    # We check for other fields to decide if it's the full form.
+    is_quick_add = 'description' not in request.POST and 'priority' not in request.POST
+
+    if is_quick_add:
+        data = {
+            'title': request.POST.get('title'),
+            'description': '',
+            'priority': Task.Priority.MEDIUM,
+            'status': Task.Status.TODO,
+        }
+        form = TaskForm(data, user=request.user)
+    else:
+        form = TaskForm(request.POST, user=request.user)
 
     if form.is_valid():
         task = form.save(commit=False)
@@ -190,25 +229,18 @@ def task_create(request, project_pk):
         task.save()
         messages.success(request, _("Task created successfully."))
         
-        # Instead of a standard redirect, send a response with a header
-        # that HTMX will use to redirect the whole page.
         response = HttpResponse(status=204)
         response['HX-Redirect'] = reverse_lazy('projects:project-detail', kwargs={'pk': project.pk})
         return response
     else:
-        # If the form is invalid, re-render the detail page with the form and its errors.
         messages.error(request, _("There was an error creating the task. Please check the data."))
         
-        # We need to gather the context again for the detail view
         phases = project.phases.order_by('order').prefetch_related('tasks')
-        
-        # To display the errors, we need to inject the invalid form into the context,
-        # but only for the specific phase where the user tried to add the task.
         context = {
             'project': project,
             'phases': phases,
-            'task_form': form,  # The invalid form with its errors
-            'error_phase_id': phase.id  # To know where to display the form with errors
+            'task_form': form,
+            'error_phase_id': phase.id
         }
         return render(request, 'projects/project_detail.html', context)
 
@@ -219,22 +251,20 @@ def move_task(request, task_pk):
     Handles moving a task to a new phase via HTMX.
     """
     try:
-        task = get_object_or_404(Task, pk=task_pk, phase__project__owner=request.user)
+        task = get_object_or_404(Task, pk=task_pk, phase__project__owner__organization=request.user.organization)
         
         new_phase_id = request.POST.get('phase_id')
         if not new_phase_id:
             return HttpResponseBadRequest("Phase ID is missing.")
 
-        new_phase = get_object_or_404(Phase, pk=new_phase_id, project__owner=request.user)
+        new_phase = get_object_or_404(Phase, pk=new_phase_id, project__owner__organization=request.user.organization)
 
-        # Update the task's phase
         task.phase = new_phase
         task.save(update_fields=['phase'])
 
         return HttpResponse(status=200)
 
     except Exception as e:
-        # Log the error for debugging
         print(f"Error moving task: {e}")
         return HttpResponseBadRequest("An error occurred while moving the task.")
 

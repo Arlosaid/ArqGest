@@ -63,11 +63,6 @@ class Command(BaseCommand):
                 else:
                     raise
             
-            # Recopilar archivos estáticos
-            self.stdout.write("📦 Recopilando archivos estáticos...")
-            call_command('collectstatic', verbosity=1, interactive=False)
-            self.stdout.write(self.style.SUCCESS("✅ Archivos estáticos listos"))
-            
             self.stdout.write(self.style.SUCCESS("🎉 ¡Configuración de base de datos completada exitosamente!"))
             
         except Exception as e:
