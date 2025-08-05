@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'apps.users',
     'apps.plans',
     'apps.projects',
+    'apps.files',
 
     'crispy_forms',
     'crispy_bootstrap5',

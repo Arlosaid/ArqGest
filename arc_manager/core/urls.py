@@ -22,6 +22,7 @@ urlpatterns = [
     path('users/', include('apps.users.urls')),
     path('plans/', include('apps.plans.urls')),
     path('projects/', include('apps.projects.urls')),
+    path('', include('apps.files.urls')),
     path('health/', health_check, name='health_check'),
     path('', root_redirect),
 ]

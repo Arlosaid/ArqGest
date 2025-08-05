@@ -1,14 +1,8 @@
 from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
-from apps.orgs.models import Client, Organization
+from apps.orgs.models import Organization, Client
 
-def project_file_path(instance, filename):
-    """
-    Generate the file path for a new project file.
-    Example: project_1/phase_3/document.pdf
-    """
-    return f'projects/{instance.phase.project.id}/phase_{instance.phase.id}/{filename}'
 
 class Project(models.Model):
     """Represents an architectural project."""
@@ -82,6 +76,7 @@ class Phase(models.Model):
     order = models.PositiveIntegerField(_("Order"))
     start_date = models.DateField(_("Start Date"), null=True, blank=True)
     end_date = models.DateField(_("End Date"), null=True, blank=True)
+    notes = models.TextField(_("Notes"), blank=True)
     created_at = models.DateTimeField(_("Creation Date"), auto_now_add=True)
 
     class Meta:
@@ -144,66 +139,3 @@ class Task(models.Model):
 
     def __str__(self):
         return self.title
-
-class ProjectFile(models.Model):
-    """Represents a file associated with a project's phase."""
-    phase = models.ForeignKey(
-        Phase,
-        on_delete=models.CASCADE,
-        related_name='files',
-        verbose_name=_("Phase")
-    )
-    file = models.FileField(
-        _("File"),
-        upload_to=project_file_path
-    )
-    uploaded_at = models.DateTimeField(_("Upload Date"), auto_now_add=True)
-
-    class Meta:
-        verbose_name = _("Project File")
-        verbose_name_plural = _("Project Files")
-        ordering = ['-uploaded_at']
-
-    def __str__(self):
-        return self.file.name
-
-class ProjectTemplate(models.Model):
-    """
-    Represents a template for creating new projects.
-    Includes a predefined set of phases.
-    """
-    name = models.CharField(_("Template Name"), max_length=100)
-    description = models.TextField(_("Description"), blank=True)
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        verbose_name=_("Created By")
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name = _("Project Template")
-        verbose_name_plural = _("Project Templates")
-
-    def __str__(self):
-        return self.name
-
-class PhaseTemplate(models.Model):
-    """Represents a phase within a project template."""
-    project_template = models.ForeignKey(
-        ProjectTemplate,
-        on_delete=models.CASCADE,
-        related_name='phase_templates'
-    )
-    name = models.CharField(_("Phase Name"), max_length=100)
-    order = models.PositiveIntegerField(_("Order"))
-
-    class Meta:
-        verbose_name = _("Phase Template")
-        verbose_name_plural = _("Phase Templates")
-        ordering = ['project_template', 'order']
-
-    def __str__(self):
-        return f"{self.project_template.name} - Phase: {self.name}"

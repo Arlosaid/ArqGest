@@ -6,7 +6,38 @@ Este documento resume la estrategia y los pasos técnicos para construir ArcMana
 
 Crear un **"Organizador Visual de Proyectos"** para arquitectos, con una capa de gestión multi-tenant que permita a diferentes organizaciones utilizar la herramienta de forma aislada y bajo un modelo de suscripción.
 
-## 2. Módulos y Progreso
+## 2. Visión Estratégica y Flujo de Usuario (UX)
+
+Para asegurar la adopción y el éxito de ArcManager entre los arquitectos, la aplicación debe ser intuitiva y reflejar los flujos de trabajo naturales del sector de la construcción. Esta sección define la filosofía de diseño y la estructura funcional que guiará el desarrollo.
+
+### Principios Clave
+- **Simplicidad para el MVP:** Enfocarse en las funcionalidades esenciales que resuelven problemas reales, evitando la complejidad innecesaria.
+- **Consistencia:** La interfaz y la lógica de negocio deben ser predecibles y fáciles de entender.
+- **Flujo de Trabajo Natural:** La estructura de la aplicación debe emular cómo los arquitectos gestionan sus proyectos en el mundo real.
+
+### Estructura Centrada en Fases de Proyecto
+
+El corazón de la aplicación será la organización de los proyectos en **Fases**, que son distintas a los estados del tablero Kanban. Un proyecto ya no será una entidad monolítica, sino un contenedor de fases secuenciales.
+
+- **Fases de Proyecto:** Representan las etapas macro de un proyecto de arquitectura (p. ej., "Estudios Preliminares", "Anteproyecto", "Proyecto de Ejecución", "Dirección de Obra").
+    -   **Modelo de Datos:** Existirá un modelo `Phase` con nombre, descripción, fechas y una relación directa con `Project`.
+    -   **Creación de Proyectos:** Se eliminará el concepto de "Plantillas de Proyecto" para simplificar. Al crear un proyecto, se podrán generar un conjunto de fases por defecto, que el usuario podrá personalizar, eliminando la rigidez de las plantillas.
+
+### Gestión de Archivos por Fases
+
+El módulo `files` se integrará directamente con las Fases de Proyecto para crear una estructura de carpetas virtual e intuitiva.
+
+-   **Asociación:** Cada archivo subido se asociará a un `Proyecto` y a una `Fase` específica.
+-   **Visualización:** La vista de detalle del proyecto se organizará en torno a estas fases, permitiendo a los usuarios navegar fácilmente por la documentación de cada etapa.
+
+### Gestión de Tareas (Kanban)
+
+El tablero Kanban se mantendrá como la herramienta para la gestión de tareas del día a día.
+
+-   **Asociación:** Cada `Task` podrá vincularse a una `FaseProyecto` para contextualizar el trabajo.
+-   **Estados del Kanban:** Para reflejar mejor el lenguaje del sector, el estado **"Bloqueado"** se renombrará a **"En Pausa"**.
+
+## 3. Módulos y Progreso
 
 ### **Módulo 1: Gestión Administrativa**
 - **Estado:** ✅ **Completado**
@@ -28,7 +59,7 @@ Crear un **"Organizador Visual de Proyectos"** para arquitectos, con una capa de
 - **Estado:** ✅ **Completado**
 - **Descripción:** Corrección de errores en la asignación de usuarios y la gestión de formularios.
 
-## 3. Arquitectura y Flujo de Datos
+## 4. Arquitectura y Flujo de Datos
 
 ```mermaid
 graph TD;
@@ -51,7 +82,7 @@ graph TD;
     style CL fill:#f9b,stroke:#333,stroke-width:2px
 ```
 
-## 4. Próximos Pasos
+## 5. Próximos Pasos
 
 A continuación se detallan las fases restantes para completar el MVP (Producto Mínimo Viable).
 
@@ -86,14 +117,24 @@ A continuación se detallan las fases restantes para completar el MVP (Producto 
     - **[✓]** **Widget "Mis Tareas":** Un resumen de las tareas asignadas al usuario actual.
     - **[✓]** **Widget "Proyectos Activos":** Un listado de los proyectos con actividad reciente.
     - **[✓]** **Widget "Resumen de Clientes":** Número total de clientes y acceso rápido a los más recientes.
-    - **[ ]** **Feed de Actividad Reciente:** Un historial de las últimas acciones en la organización (ej: "Usuario X creó la tarea Y").
 
-### **Fase 9: Gestión Avanzada de Archivos y Notas**
-- **Estado:** ⚪ **Pendiente**
-- **Descripción:** Completar y mejorar la funcionalidad de gestión de archivos y añadir notas colaborativas, una característica que quedó pendiente.
-- **Componentes:**
-    - **[ ]** **Subida de Archivos por Fase:** Permitir adjuntar múltiples archivos directamente a cada fase del proyecto, no solo al proyecto en general.
-    - **[ ]** **Notas por Fase:** Añadir un campo de "notas" o "comentarios" a nivel de fase para facilitar la comunicación del equipo sobre etapas específicas.
+### **Fase 9: Módulo de Gestión de Archivos y Notas**
+- **Estado:** ✅ **Completado**
+- **Descripción:** Se ha implementado un sistema para gestionar archivos y notas a nivel de fase, mejorando la colaboración y la organización de los proyectos.
+- **Funcionamiento:**
+    - Desde el tablero Kanban de un proyecto, cada fase tiene un menú de acciones que permite acceder a una nueva vista de **"Detalle de Fase"**.
+    - En esta vista, los usuarios pueden:
+        - **Subir uno o más archivos** directamente a la fase.
+        - **Visualizar una lista de los archivos** de la fase, con enlaces para verlos y opciones para eliminarlos.
+        - **Añadir y editar notas de texto** en un campo específico para la fase.
+    - La lógica de negocio está encapsulada en una nueva aplicación `files`, y el sistema de archivos está preparado para una futura integración con almacenamiento en la nube (S3).
+- **Componentes Realizados:**
+    - **[✓]** Nueva app `files` para la gestión de archivos.
+    - **[✓]** Campo `notes` añadido al modelo `Phase`.
+    - **[✓]** Modelo `ProjectFile` para asociar archivos a las fases.
+    - **[✓]** Vistas para la subida y eliminación de archivos.
+    - **[✓]** Nueva página de "Detalle de Fase" para centralizar la gestión.
+    - **[✓]** Integración en la interfaz del tablero Kanban.
 
 ### **Fase 10: Refinamiento Final y Pre-Lanzamiento**
 - **Estado:** ⚪ **Pendiente**
@@ -103,7 +144,7 @@ A continuación se detallan las fases restantes para completar el MVP (Producto 
     - **[ ]** Optimización de consultas a la base de datos.
     - **[ ]** Revisión de la seguridad.
 
-## 5. Notas de Desarrollo
+## 6. Notas de Desarrollo
 
 ### Flujo de Trabajo con Docker y Base de Datos
 
@@ -122,7 +163,7 @@ Para evitar conflictos y tener un control claro sobre el estado de la base de da
 
 Este enfoque manual y explícito previene inconsistencias y te da control total sobre el esquema de la base de datos.
 
-## 6. Deuda Técnica y Optimizaciones Identificadas
+## 7. Deuda Técnica y Optimizaciones Identificadas
 
 Esta sección documenta mejoras técnicas específicas que se han identificado durante la revisión del código. Abordarlas mejorará el rendimiento, la mantenibilidad y la escalabilidad de la aplicación a largo plazo.
 
@@ -140,3 +181,33 @@ Esta sección documenta mejoras técnicas específicas que se han identificado d
     -   **Descripción:** La función `advance_project_phase` en `projects/views.py` contiene una lógica que no coincide con la estructura actual de los modelos (`Phase` es un modelo, no una lista de opciones). Actualmente, este código está roto y no se utiliza.
     -   **Solución:** Eliminar la función y su URL correspondiente para limpiar el código base y evitar confusiones. Si la funcionalidad es necesaria, debe ser reescrita desde cero.
     -   **Por qué es importante:** Mejora la mantenibilidad del código al eliminar partes que no funcionan y que podrían causar errores o ser malinterpretadas por otros desarrolladores en el futuro.
+
+## Plan de Trabajo y Estado Actual
+
+Esta sección funciona como una hoja de ruta (roadmap) y un registro de cambios (changelog). Aquí se documenta el progreso y las tareas pendientes.
+
+### ✅ **Hito 1: Fundación y Módulos Base (Completado)**
+- **[✓]** **Gestión Administrativa:** Panel para altas de organizaciones y suscripciones.
+- **[✓]** **Módulo de Clientes:** CRUD completo para la gestión de clientes.
+- **[✓]** **Dashboard Principal:** Panel inicial con widgets de resumen (mis tareas, proyectos activos).
+
+### ✅ **Hito 2: Refactorización a una Arquitectura por Fases (Completado)**
+- **[✓]** **Modelos de Datos:** Se eliminó la complejidad de las "Plantillas de Proyecto" y se consolidó la estructura `Project -> Phase -> Task`.
+- **[✓]** **Flujo de Creación:** Al crear un proyecto, se generan automáticamente fases estándar de arquitectura (ej. "Estudios Preliminares", "Anteproyecto", etc.), simplificando el proceso.
+- **[✓]** **Limpieza de Código:** Se refactorizaron vistas, formularios, URLs y el panel de administrador para eliminar el código obsoleto.
+- **[✓]** **Base de Datos:** Se crearon y aplicaron las migraciones para reflejar la nueva estructura.
+
+### ✅ **Hito 3: Integración de Archivos y UI (Completado)**
+- **[✓]** **Módulo de Archivos (`files`):**
+    -   **[✓]** **Conectar Archivos a Fases:** Se ha implementado la lógica para que los archivos se puedan subir y asociar directamente a una fase específica del proyecto.
+    -   **[✓]** **Vista de Gestión de Archivos:** Se ha creado una interfaz (`phase_detail.html`) donde los usuarios pueden ver, descargar y eliminar los archivos de una fase de forma asíncrona con HTMX.
+- **[✓]** **Mejora de la Interfaz de Proyecto (`project_detail`):**
+    -   **[✓]** **Visualización por Fases:** Se ha rediseñado la página de detalle del proyecto. Ahora es una vista organizada por fases en formato de acordeón, mostrando un resumen de tareas y archivos.
+    -   **[✓]** **Acceso al Kanban:** Se ha añadido un botón claro en la vista de detalle del proyecto que lleva a un tablero Kanban independiente (`kanban_board.html`).
+- **[✓]** **Ajustes Finales en Kanban:**
+    -   **[✓]** **Confirmar Estado "En Pausa":** Se ha verificado en el modelo `Task` que el estado "Bloqueado" ha sido reemplazado por "En Pausa".
+
+### ⚪ **Hito 4: Refinamiento y Pre-Lanzamiento (Pendiente)**
+- **[ ]** **Pruebas de Usabilidad (E2E):** Realizar un recorrido completo por la aplicación desde la perspectiva de un arquitecto para identificar puntos de fricción.
+- **[ ]** **Optimización de Rendimiento:** Revisar consultas a la base de datos y tiempos de carga.
+- **[ ]** **Revisión de Seguridad:** Asegurar que los datos de las organizaciones estén correctamente aislados.
