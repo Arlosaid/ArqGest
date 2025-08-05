@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ template.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="h3 mb-2 text-gray-800">{{ template.name }}</h1>
+    <p class="mb-4">{{ template.description }}</p>
+
+    <div class="row">
+        <!-- List of Default Phases -->
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{% trans "Fases Predeterminadas" %}</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        {% for phase in template.default_phases.all %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span><strong>{{ phase.order }}.</strong> {{ phase.name }}</span>
+                                <div>
+                                    <a href="{% url 'projects:defaultphase-update' phase.pk %}" class="btn btn-warning btn-sm">{% trans "Editar" %}</a>
+                                    <a href="{% url 'projects:defaultphase-delete' phase.pk %}" class="btn btn-danger btn-sm">{% trans "Eliminar" %}</a>
+                                </div>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item">{% trans "Aún no se han añadido fases predeterminadas a esta plantilla." %}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add New Phase Form -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{% trans "Añadir Nueva Fase" %}</h6>
+                </div>
+                <div class="card-body">
+                    <form action="{% url 'projects:add-default-phase' template.pk %}" method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="id_name" class="form-label">{% trans "Nombre de la Fase" %}</label>
+                            {{ form.name }}
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_order" class="form-label">{% trans "Orden" %}</label>
+                            {{ form.order }}
+                        </div>
+                        <button type="submit" class="btn btn-primary">{% trans "Añadir Fase" %}</button>
+                    </form>
+                </div>
+            </div>
+             <a href="{% url 'projects:phasetemplate-list' %}" class="btn btn-secondary mt-3">{% trans "Volver a las Plantillas" %}</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

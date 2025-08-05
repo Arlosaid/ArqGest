@@ -1,116 +1,84 @@
-# Plan de Acción para el MVP - ArcManager
+# Plan de Acción - ArcManager (Evolución Continua)
 
 ## 1. Introducción y Filosofía Central
 
-Tras analizar las excelentes ideas propuestas, este documento define un plan de acción unificado y simplificado para el **Producto Mínimo Viable (MVP)**. El objetivo es lanzar una herramienta funcional, intuitiva y de alto valor que resuelva los problemas centrales del arquitecto.
+Este documento refleja la evolución constante de ArcManager. Nuestra meta es crear una herramienta intuitiva, flexible y potente que se adapte al flujo de trabajo real de un arquitecto.
 
-**Filosofía Central: "El Proyecto es el Universo"**
-Toda la lógica de la aplicación debe girar en torno al proyecto. Un arquitecto no gestiona tareas o archivos aislados, sino que los organiza dentro del contexto de un proyecto específico (Ej: "Casa López"). La interfaz y el flujo deben reflejar esta mentalidad.
-
----
-
-## 2. Flujo de Usuario Esencial para el MVP
-
-Este es el recorrido principal, optimizado para ser lo más simple y efectivo posible.
-
-**Paso 1: Creación de Proyecto Simplificada**
-- El usuario inicia sesión y ve un **Dashboard** limpio, inicialmente vacío, con un llamado a la acción claro: **[+ Crear Nuevo Proyecto]**.
-- Al hacer clic, aparece un formulario simple:
-    1.  **Nombre del Proyecto** (Campo de texto, obligatorio).
-    2.  **Cliente** (Campo de texto, opcional).
-    3.  **Plantilla de Fases (Feature Clave)**: Un selector para elegir una estructura predefinida.
-        - Opciones: `[Diseño Residencial]`, `[Remodelación]`, `[Proyecto Ejecutivo]`, `[En Blanco]`.
-- Al crear el proyecto, se redirige automáticamente a la **Vista de Proyecto**.
-
-**Paso 2: Dashboard Principal**
-- Es la pantalla de inicio una vez que existen proyectos.
-- Muestra una lista o tarjetas de los proyectos existentes.
-- Cada "tarjeta" de proyecto debe mostrar:
-    - Nombre del Proyecto.
-    - Cliente.
-    - Un indicador de progreso simple (ej: "Fase 2 de 5: Anteproyecto").
-- Un botón flotante `[+]` siempre visible para crear nuevos proyectos.
-
-**Paso 3: Vista de Proyecto (El Hub Central)**
-- Esta es la pantalla más importante. Debe ser limpia y organizada. Se usará una **interfaz de pestañas** para separar contextos y mantener la simplicidad.
-- **Header:** Nombre del proyecto siempre visible.
-- **Pestañas:**
-    - **📁 Fases:** Una lista vertical o timeline simple de las fases del proyecto. Permite ver el macro-progreso.
-    - **✅ Tareas (Kanban):** La vista de trabajo principal para el día a día.
-    - **🧷 Archivos:** Un repositorio central para todos los documentos del proyecto.
+**Filosofía Central: "El Proyecto como Hub Central"**
+Hemos abandonado la idea de un único Kanban por proyecto. Ahora, cada proyecto funciona como un **hub centralizado** con pestañas, permitiendo una navegación clara y un acceso rápido a toda la información relevante: Detalles, Fases, Tareas y Archivos.
 
 ---
 
-## 3. Funcionalidades Clave Detalladas (MVP)
+## 2. Flujo de Usuario Esencial (Visión Actual)
 
-**A. Gestión de Proyectos y Fases (Pestaña `Fases`)**
-- Crear/Editar/Eliminar proyectos.
-- Lógica para aplicar plantillas de fases al crear un proyecto.
-- En la pestaña `Fases`, el usuario puede:
-    - Ver la lista de fases.
-    - Marcar una fase como: `No Iniciada`, `En Progreso`, `Completada`.
-    - Añadir nuevas fases manualmente.
+**Paso 1: Creación de Proyecto Flexible y Simplificada**
+- **[✓] (COMPLETADO Y MEJORADO)**: El usuario crea un proyecto y tiene dos opciones claras para definir las fases:
+    1.  **Usar una plantilla de fases**: Selecciona una de sus plantillas predefinidas.
+    2.  **Definir fases manualmente**: Añade, elimina y reordena fases directamente en el formulario de creación del proyecto.
+- **[✓] (COMPLETADO Y MEJORADO)**: La gestión de plantillas se ha rediseñado por completo. Ahora, desde una única e intuitiva interfaz, el arquitecto puede **crear, ver, editar y eliminar sus plantillas, añadiendo, eliminando y reordenando las fases de forma dinámica**.
 
-**B. Tablero Kanban de Tareas (Pestaña `Tareas`)**
-- Columnas fijas para el MVP: **`Por Hacer`**, **`En Proceso`**, **`Hecho`**.
-- Las tareas son tarjetas que se pueden arrastrar y soltar (Drag & Drop) entre columnas.
-- Al hacer clic en una tarea, se abre un modal con sus detalles:
-    - Título.
-    - Descripción.
-    - **Fase asociada** (selector para vincular la tarea a una fase).
-    - **Archivos adjuntos** a la tarea.
-- Un botón `[+ Nueva Tarea]` en la columna "Por Hacer".
+**Paso 2: Navegación desde el Hub del Proyecto**
+- Al entrar a un proyecto, el usuario aterriza en una vista con 4 pestañas:
+    1.  **Detalles**: Información clave del proyecto (cliente, fechas, etc.).
+    2.  **Fases**: Un listado de las fases del proyecto. Cada fase es un enlace a su propio tablero.
+    3.  **Tareas**: Una lista completa de *todas* las tareas del proyecto, ideal para una visión general.
+    4.  **Archivos**: Un repositorio central con todos los archivos del proyecto.
 
-**C. Gestión de Archivos (Pestaña `Archivos`)**
-- Una galería visual (grid con miniaturas) para todos los archivos del proyecto. Los arquitectos son visuales.
-- Funcionalidad para **subir archivos**, idealmente con Drag & Drop desde el escritorio.
-- Al subir un archivo, se puede asociar opcionalmente a una **fase**.
-- Filtro para ver archivos por fase.
+**Paso 3: Gestión de Fases con Kanban Dedicado**
+- Al hacer clic en una fase específica, el usuario accede a un **tablero Kanban exclusivo para esa fase**.
+- Este tablero muestra las tareas de la fase, organizadas por estado (Por Hacer, En Progreso, etc.), permitiendo una gestión detallada y enfocada del trabajo.
 
 ---
 
-## 4. Tareas de Desarrollo (Checklist para el MVP)
+## 3. Funcionalidades Clave (Implementadas y Planificadas)
 
-Este es el desglose técnico de las tareas necesarias para construir el MVP.
+**A. Gestión de Proyectos**
+- **[✓]** CRUD completo de Proyectos.
+- **[✓]** Vista de "Hub de Proyecto" con pestañas.
+- **[✓] (COMPLETADO Y MEJORADO)** Implementado un sistema de **plantillas de fases personalizables**, con una experiencia de usuario fluida y dinámica para el CRUD completo.
+
+**B. Gestión de Fases y Tareas**
+- **[✓]** **Kanban a nivel de Fase**: Cada fase tiene su propio tablero para gestionar el ciclo de vida de sus tareas.
+- **[✓]** Gestión completa de tareas (crear, editar, asignar, etc.) dentro del contexto de su fase.
+
+**C. Barra Lateral y Navegación**
+- **[✓]** **Sidebar rediseñado**: La navegación principal ha sido simplificada para un acceso más rápido a las secciones clave (Dashboard, Proyectos, Mis Tareas, Administración).
+
+**D. Internacionalización (i18n)**
+- **[✓] (COMPLETADO)** Se ha traducido al español toda la interfaz de usuario visible en la aplicación de `projects`.
+- **[✓] (COMPLETADO)** Se ha verificado que la aplicación de `orgs` ya se encontraba completamente traducida.
+- **[✓] (COMPLETADO)** Todos los modelos, formularios y plantillas relevantes usan el sistema de traducción de Django para facilitar el soporte de múltiples idiomas.
+
+---
+
+## 4. Tareas de Desarrollo (Checklist de Evolución)
 
 ### Backend (Django)
-- [ ] **Autenticación:** Sistema de registro y login de usuarios.
-- [ ] **Modelos de Datos:**
-    - `Project(name, client, owner)`
-    - `Phase(name, project, status, order)`
-    - `Task(name, description, phase, status)`
-    - `File(project, phase, task, uploaded_file)`
-- [ ] **APIs (DRF):**
-    - [ ] Endpoints CRUD para Proyectos.
-    - [ ] Endpoints CRUD para Fases (incluyendo cambio de estado).
-    - [ ] Endpoints CRUD para Tareas (incluyendo cambio de estado por D&D).
-    - [ ] Endpoint para subida de Archivos.
-- [ ] **Lógica de Negocio:**
-    - [ ] Implementar la creación de fases a partir de las plantillas predefinidas.
-
-### Frontend (React/Vue/HTMX - a definir)
-- [ ] **UI/UX Base:**
-    - [ ] Definir paleta de colores (neutros + acento), tipografía e iconografía.
-    - [ ] Estructura general: Layout con sidebar/navbar y área de contenido.
-- [ ] **Componentes Principales:**
-    - [ ] **Página de Login/Registro.**
-    - [ ] **Componente: Dashboard de Proyectos** (vista de tarjetas).
-    - [ ] **Componente: Formulario de Creación de Proyecto** (con selector de plantillas).
-    - [ ] **Componente: Vista de Proyecto** (contenedor con las 3 pestañas).
-    - [ ] **Componente: Pestaña Fases** (lista de fases y estados).
-    - [ ] **Componente: Tablero Kanban** (columnas, tareas, D&D, modal de detalle).
-    - [ ] **Componente: Pestaña Archivos** (grid de archivos, subida con D&D, filtros).
+- **[✓]** **Modelos de Datos:**
+    - `Project`, `Phase`, `Task`, `File` (Modelos robustos).
+    - **[✓] (SIMPLIFICADO)** `PhaseTemplate` ahora utiliza un campo `JSONField` para almacenar las fases, eliminando la necesidad de `DefaultPhase`.
+- **[✓]** **Vistas:**
+    - **[✓]** Vistas CRUD para Proyectos, Tareas y Fases.
+    - **[✓]** `ProjectDetailView` actualizada para funcionar como hub.
+    - **[✓]** **Implementada `PhaseKanbanView` para el tablero por fase.**
+    - **[✓] (COMPLETADO Y MEJORADO)** Las vistas CRUD para `PhaseTemplate` ahora usan `formsets` para una gestión dinámica y unificada de las plantillas y sus fases.
+    
+### Frontend (Django Templates + HTMX)
+- **[✓]** **UI/UX:**
+    - **[✓]** **Implementada la interfaz de pestañas en la vista de detalle del proyecto.**
+    - **[✓]** **Implementada la plantilla para el tablero Kanban a nivel de fase.**
+    - **[✓]** **Rediseñada y simplificada la barra de navegación lateral.**
+- **[✓] (COMPLETADO Y MEJORADO)** Creadas las plantillas y formularios para la nueva gestión de plantillas de fases (CRUD completo) y para la creación de proyectos, con lógica de JavaScript para una experiencia de usuario dinámica.
+- **[✓] (COMPLETADO)** Se han implementado las etiquetas de traducción `{% trans "..." %}` en todas las plantillas para permitir la internacionalización.
 
 ---
 
-## 5. Funcionalidades Post-MVP (Aparcadas para el Futuro)
+## 5. Funcionalidades Futuras (Post-Evolución Actual)
 
-Para mantener el MVP simple, estas excelentes ideas se dejan para futuras versiones:
+Una vez completada la gestión de plantillas personalizables, podríamos explorar:
 
-- **Visor de PDF/DWG con anotaciones:** Muy potente, pero complejo.
-- **Control de versiones de archivos:** (v1, v2, etc.).
-- **Comentarios y menciones (`@user`):** Fomenta la colaboración pero no es esencial para el flujo básico.
-- **Exportación de reportes en PDF.**
-- **Roles de usuario avanzados** (Cliente, Colaborador, Admin).
-- **Notificaciones.**
-- **Funciones "Wow" complejas:** Escaneo de planos, modo maqueta 3D, etc.
+- Notificaciones y comentarios.
+- Control de versiones de archivos.
+- Exportación de reportes.
+- Roles de usuario avanzados.
+- Visor de PDF/DWG con anotaciones.

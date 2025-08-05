@@ -1,21 +1,205 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}{% if object %}{% trans "Edit Project" %}{% else %}{% trans "Create Project" %}{% endif %}{% endblock %}
+{% block title %}
+    {% if form.instance.pk %}
+        {% trans "Editar Proyecto" %}
+    {% else %}
+        {% trans "Crear Proyecto" %}
+    {% endif %}
+{% endblock title %}
 
 {% block content %}
 <div class="container mt-4">
-    <h2>{% if object %}{% trans "Edit Project" %}: {{ object.name }}{% else %}{% trans "Create a New Project" %}{% endif %}</h2>
-    
-    <form method="post">
-        {% csrf_token %}
-        
-        {{ form.as_p }}
+    <div class="card shadow">
+        <div class="card-header">
+            <h3>
+                {% if form.instance.pk %}
+                    {% trans "Editar Proyecto" %}
+                {% else %}
+                    {% trans "Crear Proyecto" %}
+                {% endif %}
+            </h3>
+        </div>
+        <div class="card-body">
+            <form method="post" id="project-form">
+                {% csrf_token %}
+                
+                {{ form.non_field_errors }}
 
-        <button type="submit" class="btn btn-success">
-            {% if object %}{% trans "Save Changes" %}{% else %}{% trans "Create Project" %}{% endif %}
-        </button>
-        <a href="{% url 'projects:project-list' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
-    </form>
+                <div class="mb-3">
+                    <label for="{{ form.name.id_for_label }}" class="form-label">{{ form.name.label }}</label>
+                    {{ form.name }}
+                    {{ form.name.errors }}
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.client.id_for_label }}" class="form-label">{{ form.client.label }}</label>
+                    {{ form.client }}
+                    {{ form.client.errors }}
+                </div>
+                
+                <hr>
+
+                <div class="mb-3">
+                    <label class="form-label">{{ form.phase_creation_method.label }}</label>
+                    <div id="phase_creation_method_options">
+                        {% for radio in form.phase_creation_method %}
+                            <div class="form-check">
+                                {{ radio.tag }}
+                                <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div id="phase-template-container" class="mb-3">
+                    <label for="{{ form.phase_template.id_for_label }}" class="form-label">{{ form.phase_template.label }}</label>
+                    {{ form.phase_template }}
+                    {{ form.phase_template.errors }}
+                </div>
+
+                <div id="manual-phases-container" style="display: none;">
+                    <h4>{% trans "Definir Fases" %}</h4>
+                    <div id="phase-formset">
+                        {{ phase_formset.management_form }}
+                        <div id="phase-forms-container">
+                            {% for form in phase_formset %}
+                                <div class="phase-form mb-2 p-2 border rounded" data-form-index="{{ forloop.counter0 }}">
+                                    <div class="row align-items-center">
+                                        <div class="col-auto">
+                                            <i class="fas fa-bars drag-handle" style="cursor: move;"></i>
+                                        </div>
+                                        <div class="col">
+                                            {{ form.name }}
+                                            {{ form.order }}
+                                            {% if form.instance.pk %}{{ form.id }}{% endif %}
+                                        </div>
+                                        <div class="col-auto">
+                                            {% if phase_formset.can_delete %}
+                                                <div class="form-check">
+                                                    {{ form.DELETE }}
+                                                    <label class="form-check-label" for="{{ form.DELETE.id_for_label }}">{% trans "Eliminar" %}</label>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div id="empty-form" class="d-none">
+                        <div class="phase-form mb-2 p-2 border rounded" data-form-index="__prefix__">
+                            <div class="row align-items-center">
+                                 <div class="col-auto">
+                                    <i class="fas fa-bars drag-handle" style="cursor: move;"></i>
+                                </div>
+                                <div class="col">
+                                    {{ phase_formset.empty_form.name }}
+                                    {{ phase_formset.empty_form.order }}
+                                </div>
+                                <div class="col-auto">
+                                    {% if phase_formset.can_delete %}
+                                        <div class="form-check">
+                                            {{ phase_formset.empty_form.DELETE }}
+                                            <label class="form-check-label" for="{{ phase_formset.empty_form.DELETE.id_for_label }}">{% trans "Eliminar" %}</label>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" id="add-form" class="btn btn-outline-primary btn-sm mt-2">{% trans "Añadir Fase" %}</button>
+                </div>
+
+                <hr>
+                <button type="submit" class="btn btn-primary">{% trans "Guardar Proyecto" %}</button>
+                <a href="{% url 'projects:project-list' %}" class="btn btn-secondary">{% trans "Cancelar" %}</a>
+            </form>
+        </div>
+    </div>
 </div>
-{% endblock %}
+{% endblock content %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Phase Creation Method toggle
+    const creationMethodRadios = document.querySelectorAll('input[name="phase_creation_method"]');
+    const templateContainer = document.getElementById('phase-template-container');
+    const manualContainer = document.getElementById('manual-phases-container');
+
+    function togglePhaseCreationVisibility() {
+        const selectedMethod = document.querySelector('input[name="phase_creation_method"]:checked').value;
+        if (selectedMethod === 'template') {
+            templateContainer.style.display = 'block';
+            manualContainer.style.display = 'none';
+        } else {
+            templateContainer.style.display = 'none';
+            manualContainer.style.display = 'block';
+        }
+    }
+
+    creationMethodRadios.forEach(radio => {
+        radio.addEventListener('change', togglePhaseCreationVisibility);
+    });
+
+    // Formset logic
+    const formsetContainer = document.getElementById('phase-forms-container');
+    const addButton = document.getElementById('add-form');
+    const emptyForm = document.getElementById('empty-form').innerHTML;
+    const totalForms = document.getElementById('id_phases-TOTAL_FORMS');
+    
+    let formNum = {{ phase_formset.total_form_count }};
+
+    addButton.addEventListener('click', function() {
+        const newFormHtml = emptyForm.replace(/__prefix__/g, formNum);
+        const newForm = document.createElement('div');
+        newForm.innerHTML = newFormHtml;
+        formsetContainer.appendChild(newForm.firstElementChild);
+        
+        updateOrder();
+        
+        totalForms.value = ++formNum;
+    });
+
+    formsetContainer.addEventListener('change', function(e) {
+        if (e.target && e.target.matches('input[type="checkbox"][name$="-DELETE"]')) {
+            const form = e.target.closest('.phase-form');
+            if (e.target.checked) {
+                form.style.backgroundColor = '#f8d7da';
+                form.querySelector('input[name$="-name"]').required = false;
+            } else {
+                form.style.backgroundColor = '';
+                form.querySelector('input[name$="-name"]').required = true;
+            }
+        }
+    });
+
+    function updateOrder() {
+        const forms = formsetContainer.querySelectorAll('.phase-form');
+        forms.forEach((form, index) => {
+            const orderInput = form.querySelector('input[name$="-order"]');
+            if (orderInput) {
+                orderInput.value = index;
+            }
+        });
+    }
+
+    new Sortable(formsetContainer, {
+        handle: '.drag-handle',
+        animation: 150,
+        onEnd: function() {
+            updateOrder();
+        }
+    });
+
+    // Initial state
+    togglePhaseCreationVisibility();
+    updateOrder();
+});
+</script>
+{% endblock extra_js %}

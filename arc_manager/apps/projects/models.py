@@ -5,25 +5,25 @@ from apps.orgs.models import Organization, Client
 
 
 class Project(models.Model):
-    """Represents an architectural project."""
+    """Representa un proyecto de arquitectura."""
 
     class Status(models.TextChoices):
-        ACTIVE = 'ACTIVE', _('Active')
-        ARCHIVED = 'ARCHIVED', _('Archived')
-        COMPLETED = 'COMPLETED', _('Completed')
+        ACTIVE = 'ACTIVE', _('Activo')
+        ARCHIVED = 'ARCHIVED', _('Archivado')
+        COMPLETED = 'COMPLETED', _('Completado')
 
 
     organization = models.ForeignKey(
         Organization,
         on_delete=models.CASCADE,
         related_name='projects',
-        verbose_name=_("Organization")
+        verbose_name=_("Organización")
     )
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='owned_projects',
-        verbose_name=_("Owner")
+        verbose_name=_("Propietario")
     )
     client = models.ForeignKey(
         Client,
@@ -31,81 +31,81 @@ class Project(models.Model):
         null=True,
         blank=True,
         related_name='projects',
-        verbose_name=_("Client")
+        verbose_name=_("Cliente")
     )
-    name = models.CharField(_("Project Name"), max_length=255)
+    name = models.CharField(_("Nombre del Proyecto"), max_length=255)
     status = models.CharField(
-        _("Status"),
+        _("Estado"),
         max_length=20,
         choices=Status.choices,
         default=Status.ACTIVE
     )
-    start_date = models.DateField(_("Start Date"), null=True, blank=True)
-    end_date = models.DateField(_("End Date"), null=True, blank=True)
-    created_at = models.DateTimeField(_("Creation Date"), auto_now_add=True)
+    start_date = models.DateField(_("Fecha de Inicio"), null=True, blank=True)
+    end_date = models.DateField(_("Fecha de Fin"), null=True, blank=True)
+    created_at = models.DateTimeField(_("Fecha de Creación"), auto_now_add=True)
 
     class Meta:
-        verbose_name = _("Project")
-        verbose_name_plural = _("Projects")
+        verbose_name = _("Proyecto")
+        verbose_name_plural = _("Proyectos")
         ordering = ['-created_at']
 
     def __str__(self):
         return self.name
 
 class Phase(models.Model):
-    """Represents a phase within a project, e.g., Preliminary Design."""
+    """Representa una fase dentro de un proyecto, ej., Diseño Preliminar."""
 
     class Status(models.TextChoices):
-        PENDING = 'PENDING', _('Pending')
-        IN_PROGRESS = 'IN_PROGRESS', _('In Progress')
-        COMPLETED = 'COMPLETED', _('Completed')
+        PENDING = 'PENDING', _('Pendiente')
+        IN_PROGRESS = 'IN_PROGRESS', _('En Progreso')
+        COMPLETED = 'COMPLETED', _('Completado')
 
     project = models.ForeignKey(
         Project,
         on_delete=models.CASCADE,
         related_name='phases',
-        verbose_name=_("Project")
+        verbose_name=_("Proyecto")
     )
-    name = models.CharField(_("Phase Name"), max_length=255)
+    name = models.CharField(_("Nombre de la Fase"), max_length=255)
     status = models.CharField(
-        _("Status"),
+        _("Estado"),
         max_length=20,
         choices=Status.choices,
         default=Status.PENDING
     )
-    order = models.PositiveIntegerField(_("Order"))
-    start_date = models.DateField(_("Start Date"), null=True, blank=True)
-    end_date = models.DateField(_("End Date"), null=True, blank=True)
-    notes = models.TextField(_("Notes"), blank=True)
-    created_at = models.DateTimeField(_("Creation Date"), auto_now_add=True)
+    order = models.PositiveIntegerField(_("Orden"))
+    start_date = models.DateField(_("Fecha de Inicio"), null=True, blank=True)
+    end_date = models.DateField(_("Fecha de Fin"), null=True, blank=True)
+    notes = models.TextField(_("Notas"), blank=True)
+    created_at = models.DateTimeField(_("Fecha de Creación"), auto_now_add=True)
 
     class Meta:
-        verbose_name = _("Phase")
-        verbose_name_plural = _("Phases")
+        verbose_name = _("Fase")
+        verbose_name_plural = _("Fases")
         ordering = ['project', 'order']
 
     def __str__(self):
         return f"{self.project.name} - {self.name}"
 
 class Task(models.Model):
-    """Represents a specific task within a phase."""
+    """Representa una tarea específica dentro de una fase."""
 
     class Status(models.TextChoices):
         TODO = 'TODO', _('Por Hacer')
         IN_PROGRESS = 'IN_PROGRESS', _('En Progreso')
         PAUSED = 'PAUSED', _('En Pausa')
-        DONE = 'DONE', _('Terminado')
+        DONE = 'DONE', _('Hecho')
 
     class Priority(models.TextChoices):
-        LOW = 'LOW', _('Low')
-        MEDIUM = 'MEDIUM', _('Medium')
-        HIGH = 'HIGH', _('High')
+        LOW = 'LOW', _('Baja')
+        MEDIUM = 'MEDIUM', _('Media')
+        HIGH = 'HIGH', _('Alta')
 
     phase = models.ForeignKey(
         Phase,
         on_delete=models.CASCADE,
         related_name='tasks',
-        verbose_name=_("Phase")
+        verbose_name=_("Fase")
     )
     assigned_to = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -113,29 +113,49 @@ class Task(models.Model):
         null=True,
         blank=True,
         related_name='assigned_tasks',
-        verbose_name=_("Assigned To")
+        verbose_name=_("Asignado a")
     )
-    title = models.CharField(_("Task Title"), max_length=255)
-    description = models.TextField(_("Description"), blank=True)
+    title = models.CharField(_("Título de la Tarea"), max_length=255)
+    description = models.TextField(_("Descripción"), blank=True)
     status = models.CharField(
-        _("Status"),
+        _("Estado"),
         max_length=20,
         choices=Status.choices,
         default=Status.TODO
     )
     priority = models.CharField(
-        _("Priority"),
+        _("Prioridad"),
         max_length=20,
         choices=Priority.choices,
         default=Priority.MEDIUM
     )
-    due_date = models.DateField(_("Due Date"), null=True, blank=True)
-    created_at = models.DateTimeField(_("Creation Date"), auto_now_add=True)
+    due_date = models.DateField(_("Fecha de Vencimiento"), null=True, blank=True)
+    created_at = models.DateTimeField(_("Fecha de Creación"), auto_now_add=True)
 
     class Meta:
-        verbose_name = _("Task")
-        verbose_name_plural = _("Tasks")
+        verbose_name = _("Tarea")
+        verbose_name_plural = _("Tareas")
         ordering = ['due_date', 'priority']
 
     def __str__(self):
         return self.title
+
+class PhaseTemplate(models.Model):
+    name = models.CharField(_("Nombre"), max_length=100)
+    description = models.TextField(_("Descripción"), blank=True)
+    organization = models.ForeignKey(
+        Organization, 
+        on_delete=models.CASCADE, 
+        related_name='phase_templates',
+        null=True,
+        blank=True,
+        verbose_name=_("Organización")
+    )
+    phases = models.JSONField(_("Fases"), default=list, blank=True)
+
+    def __str__(self):
+        return self.name
+    
+    class Meta:
+        verbose_name = _("Plantilla de Fase")
+        verbose_name_plural = _("Plantillas de Fase")

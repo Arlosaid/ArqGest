@@ -9,7 +9,7 @@
     <!-- Breadcrumbs and Header -->
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'projects:project-list' %}">{% trans "Projects" %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'projects:project-list' %}">{% trans "Proyectos" %}</a></li>
             <li class="breadcrumb-item"><a href="{% url 'projects:project-detail' project.pk %}">{{ project.name }}</a></li>
             <li class="breadcrumb-item active" aria-current="page">{{ phase.name }}</li>
         </ol>
@@ -24,7 +24,7 @@
     <div class="row">
         <!-- Files Section -->
         <div class="col-md-7">
-            <h3>{% trans "Files" %}</h3>
+            <h3>{% trans "Archivos" %}</h3>
             <!-- File Upload Form with HTMX -->
             <form id="file-upload-form"
                   hx-post="{% url 'files:upload_file' project_id=project.pk phase_id=phase.pk %}"
@@ -38,7 +38,7 @@
                     <input type="file" name="files" class="form-control" multiple required>
                     <button class="btn btn-primary" type="submit">
                         <span id="upload-spinner" class="spinner-border spinner-border-sm htmx-indicator" role="status" aria-hidden="true"></span>
-                        {% trans "Upload" %}
+                        {% trans "Subir" %}
                     </button>
                 </div>
             </form>
@@ -51,10 +51,10 @@
 
         <!-- Notes Section -->
         <div class="col-md-5">
-            <h3>{% trans "Notes" %}</h3>
+            <h3>{% trans "Notas" %}</h3>
             <!-- Notes Form with HTMX -->
             <form id="notes-form" 
-                  hx-post="{% url 'projects:phase-detail' pk=phase.pk %}"
+                  hx-post="{% url 'projects:phase-detail' project_pk=project.pk pk=phase.pk %}"
                   hx-trigger="keyup changed delay:500ms"
                   hx-swap="none"
                   hx-indicator="#notes-spinner">
@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.addEventListener('htmx:afterRequest', function(evt) {
         if (evt.target.id === 'notes-form' && evt.detail.successful) {
             const statusEl = document.getElementById('notes-save-status');
-            statusEl.textContent = '{% trans "Notes saved!" %}';
+            statusEl.textContent = '{% trans "Notas guardadas!" %}';
             setTimeout(() => { statusEl.textContent = ''; }, 3000);
         }
     });

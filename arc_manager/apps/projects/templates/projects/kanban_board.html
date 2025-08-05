@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "Kanban Board" %} - {{ project.name }}{% endblock %}
+{% block title %}{% trans "Tablero Kanban" %} - {{ project.name }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-4">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="h2">{{ project.name }} - {% trans "Kanban Board" %}</h1>
+            <h1 class="h2">{{ project.name }} - {% trans "Tablero Kanban" %}</h1>
             <a href="{% url 'projects:project-detail' project.pk %}" class="btn btn-sm btn-outline-secondary">
-                <i class="fas fa-arrow-left me-2"></i>{% trans "Back to Project Overview" %}
+                <i class="fas fa-arrow-left me-2"></i>{% trans "Volver a la Vista General del Proyecto" %}
             </a>
         </div>
     </div>
@@ -27,7 +27,7 @@
                             <i class="fas fa-ellipsis-v"></i>
                         </button>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{% url 'projects:phase-detail' project_pk=project.pk pk=phase.pk %}">{% trans "Manage Phase" %}</a></li>
+                            <li><a class="dropdown-item" href="{% url 'projects:phase-detail' project_pk=project.pk pk=phase.pk %}">{% trans "Gestionar Fase" %}</a></li>
                         </ul>
                     </div>
                 </div>
@@ -64,7 +64,7 @@
                         </div>
                     </div>
                     {% empty %}
-                    <p class="text-muted p-2">{% trans "No tasks in this phase." %}</p>
+                    <p class="text-muted p-2">{% trans "No hay tareas en esta fase." %}</p>
                     {% endfor %}
                 </div>
                 <div class="kanban-column-footer">
@@ -72,7 +72,7 @@
                        {% csrf_token %}
                        <input type="hidden" name="phase" value="{{ phase.id }}">
                        <div class="input-group">
-                           <input type="text" name="title" class="form-control" placeholder="{% trans 'New task...' %}" required>
+                           <input type="text" name="title" class="form-control" placeholder="{% trans 'Nueva tarea...' %}" required>
                            <button class="btn btn-primary" type="submit">+</button>
                        </div>
                    </form>

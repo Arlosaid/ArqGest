@@ -1,0 +1,75 @@
+<!-- templates/projects/partials/_tasks_tab.html -->
+{% load i18n %}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-primary">{% trans "Tareas" %}</h6>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTaskModal">
+            {% trans "Nueva Tarea" %}
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>{% trans "Título" %}</th>
+                        <th>{% trans "Fase" %}</th>
+                        <th>{% trans "Asignado a" %}</th>
+                        <th>{% trans "Prioridad" %}</th>
+                        <th>{% trans "Fecha de Vencimiento" %}</th>
+                        <th>{% trans "Acciones" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks %}
+                    <tr>
+                        <td>{{ task.title }}</td>
+                        <td>{{ task.phase.name }}</td>
+                        <td>{{ task.assigned_to.get_full_name|default:"Sin asignar" }}</td>
+                        <td>{{ task.get_priority_display }}</td>
+                        <td>{{ task.due_date|date:"d M Y"|default:"--" }}</td>
+                        <td>
+                            <a href="{% url 'projects:task-edit' task.pk %}" class="btn btn-sm btn-warning">{% trans "Editar" %}</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6">{% trans "Aún no hay tareas." %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Create Task Modal -->
+<div class="modal fade" id="createTaskModal" tabindex="-1" aria-labelledby="createTaskModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="createTaskModalLabel">{% trans "Nueva Tarea" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form action="{% url 'projects:task-create' project_pk=project.pk %}" method="post">
+          {% csrf_token %}
+          <div class="modal-body">
+              {{ task_form.as_p }}
+              <div class="mb-3">
+                  <label for="id_phase" class="form-label">{% trans "Fase" %}</label>
+                  <select name="phase" id="id_phase" class="form-select">
+                      {% for phase in phases %}
+                          <option value="{{ phase.id }}">{{ phase.name }}</option>
+                      {% endfor %}
+                  </select>
+              </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cerrar" %}</button>
+            <button type="submit" class="btn btn-primary">{% trans "Crear Tarea" %}</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>

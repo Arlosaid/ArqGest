@@ -1,41 +1,117 @@
 # arc_manager/apps/projects/forms.py
 from django import forms
-from .models import Task, Project
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+from .models import Task, Project, PhaseTemplate
 from apps.orgs.models import Client
+from django.forms import formset_factory
+
+class PhaseForm(forms.Form):
+    name = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Nombre de la fase')})
+    )
+    order = forms.IntegerField(
+        widget=forms.HiddenInput()
+    )
+
+class BasePhaseFormSet(forms.BaseFormSet):
+    def clean(self):
+        if any(self.errors):
+            return
+        
+        names = []
+        for form in self.forms:
+            if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
+                name = form.cleaned_data.get('name')
+                if name in names:
+                    raise forms.ValidationError(_("Los nombres de las fases deben ser únicos."))
+                names.append(name)
+
+PhaseFormSet = formset_factory(PhaseForm, formset=BasePhaseFormSet, can_delete=True, can_order=True, extra=1)
 
 class ProjectForm(forms.ModelForm):
     """
-    Form for creating a project.
+    Formulario para crear un proyecto.
     """
+    PHASE_CREATION_CHOICES = [
+        ('template', _('Usar una plantilla de fases')),
+        ('manual', _('Definir fases manualmente')),
+    ]
+
+    phase_creation_method = forms.ChoiceField(
+        choices=PHASE_CREATION_CHOICES,
+        widget=forms.RadioSelect,
+        initial='template',
+        label=_("¿Cómo te gustaría crear las fases para este proyecto?")
+    )
+    phase_template = forms.ModelChoiceField(
+        queryset=PhaseTemplate.objects.all(),
+        required=False,
+        label=_("Plantilla de Fases"),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
+
     class Meta:
         model = Project
-        fields = ['name', 'client']
+        fields = ['name', 'client', 'phase_creation_method', 'phase_template']
+        labels = {
+            'name': _('Nombre del Proyecto'),
+            'client': _('Cliente'),
+        }
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'client': forms.Select(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
-        # Extraer el usuario de la organización de los kwargs
         organization = kwargs.pop('organization', None)
         super().__init__(*args, **kwargs)
 
         if organization:
-            # Filtrar el queryset de clientes para que solo muestre los de la organización actual
             self.fields['client'].queryset = Client.objects.filter(organization=organization)
+            self.fields['phase_template'].queryset = PhaseTemplate.objects.filter(
+                models.Q(organization=organization) | models.Q(organization__isnull=True)
+            )
         else:
-            # Si no hay organización, no mostrar ningún cliente
             self.fields['client'].queryset = Client.objects.none()
+            self.fields['phase_template'].queryset = PhaseTemplate.objects.none()
             
-        # Opcional: Añadir un texto de ayuda o un placeholder
-        self.fields['client'].help_text = "Selecciona un cliente de tu organización."
-        self.fields['client'].empty_label = "Seleccionar un Cliente"
+        self.fields['client'].help_text = _("Selecciona un cliente de tu organización.")
+        self.fields['client'].empty_label = _("Seleccionar un Cliente")
+
+    def clean(self):
+        cleaned_data = super().clean()
+        creation_method = cleaned_data.get('phase_creation_method')
+        phase_template = cleaned_data.get('phase_template')
+
+        if creation_method == 'template' and not phase_template:
+            self.add_error('phase_template', _("Este campo es obligatorio cuando se utiliza una plantilla."))
+
+        return cleaned_data
 
 
 class TaskForm(forms.ModelForm):
     """
-    Form for creating and updating tasks.
+    Formulario para crear y actualizar tareas.
     """
+    class Meta:
+        model = Task
+        fields = ['title', 'description', 'assigned_to', 'priority', 'due_date']
+        labels = {
+            'title': _('Título'),
+            'description': _('Descripción'),
+            'assigned_to': _('Asignado a'),
+            'priority': _('Prioridad'),
+            'due_date': _('Fecha de Vencimiento'),
+        }
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Título de la tarea')}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': _('Añade una descripción...')}),
+            'assigned_to': forms.Select(attrs={'class': 'form-select'}),
+            'priority': forms.Select(attrs={'class': 'form-select'}),
+            'due_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        }
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
@@ -43,13 +119,16 @@ class TaskForm(forms.ModelForm):
         if user and user.organization:
             self.fields['assigned_to'].queryset = user.organization.users.all()
 
+class PhaseTemplateForm(forms.ModelForm):
+    """Formulario para crear y editar Plantillas de Fase."""
     class Meta:
-        model = Task
-        fields = ['title', 'description', 'assigned_to', 'priority', 'due_date']
+        model = PhaseTemplate
+        fields = ['name', 'description']
+        labels = {
+            'name': _('Nombre'),
+            'description': _('Descripción'),
+        }
         widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Task title'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Add a description...'}),
-            'assigned_to': forms.Select(attrs={'class': 'form-select'}),
-            'priority': forms.Select(attrs={'class': 'form-select'}),
-            'due_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
