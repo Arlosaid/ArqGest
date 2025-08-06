@@ -126,6 +126,26 @@
 - **[ ]** **Happy Path:** Ver todas las tareas asignadas.
 - **[ ]** **Casos Límite:** Vista para usuario sin tareas o sin proyectos.
 
+### **4.8. Módulo del Panel de Administración (Nuevas Funcionalidades)**
+- **[ ]** **Pruebas de Acciones de Suscripción:**
+    - **[ ]** **Extender Suscripción:**
+        - **[ ]** Seleccionar una suscripción y usar la acción "Extender suscripción". Proporcionar 30 días.
+        - **[ ]** **Verificar:** La fecha de vencimiento de la suscripción debe haberse incrementado en 30 días. Se debe crear un registro en el historial de pagos.
+    - **[ ]** **Cambiar Plan:**
+        - **[ ]** Seleccionar una suscripción con un plan "Básico" y usar la acción "Cambiar plan" a "Prueba Gratuita".
+        - **[ ]** **Verificar:** La suscripción debe ahora estar asociada al nuevo plan, y las fechas deben haberse reseteado. Se debe crear un registro de pago tipo "upgrade".
+- **[ ]** **Pruebas de Importación/Exportación de Datos:**
+    - **[ ]** **Exportar Usuarios:**
+        - **[ ]** En el admin de Usuarios, exportar los datos a formato CSV.
+        - **[ ]** **Verificar:** El archivo CSV se descarga y contiene los datos correctos (ID, email, nombre, etc.).
+    - **[ ]** **Importar (Modificar) Usuarios:**
+        - **[ ]** Modificar el archivo CSV exportado (ej. cambiar el `first_name` de un usuario).
+        - **[ ]** Realizar una "Prueba de importación" (dry run) desde el admin.
+        - **[ ]** **Verificar:** La prueba debe indicar que la fila será actualizada sin errores.
+        - **[ ]** Realizar la importación real.
+        - **[ ]** **Verificar:** El nombre del usuario debe haberse actualizado en la base de datos.
+    - **[ ]** Repetir las pruebas de exportación/importación para `Organization`, `Client`, `Plan` y `Subscription`.
+
 ---
 
 ## Fase 5: Revisión Final y Pase a Producción

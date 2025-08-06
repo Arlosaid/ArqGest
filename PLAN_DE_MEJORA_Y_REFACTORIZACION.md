@@ -58,15 +58,15 @@
         - **[X]** Usar `readonly_fields` para mostrar información no editable (ej. `created_at`, `updated_at`).
         - **[X]** Usar `inlines` para gestionar modelos relacionados en la misma página (ej. ver y editar las tareas de un proyecto directamente desde la página del proyecto en el admin).
 
-- **[ ]** **3.2. Implementación de Acciones Administrativas (Plan B):**
+- **[X]** **3.2. Implementación de Acciones Administrativas (Plan B):**
     - **[X]** **Gestión de Usuarios:**
         - **[X]** Crear una **acción de administrador** para "Forzar cambio de contraseña". Esta acción debería generar un enlace de reseteo de un solo uso y mostrarlo al admin para que pueda enviarlo manualmente al usuario.
         - **[X]** Crear una acción para "Reenviar correo de bienvenida/verificación".
-    - **[ ]** **Gestión de Suscripciones (Planes):**
-        - **[ ]** Crear una acción para "Extender suscripción", que permita a un admin añadir días a la fecha de expiración de un plan para una organización específica.
-        - **[ ]** Crear una acción para "Cambiar plan manualmente" a una organización.
-    - **[ ]** **Gestión de Datos:**
-        - **[ ]** Implementar `django-import-export` para los modelos clave. Esto permitirá exportar datos a Excel/CSV y, más importante, realizar modificaciones masivas e importarlas de nuevo, una herramienta de gestión extremadamente potente.
+    - **[X]** **Gestión de Suscripciones (Planes):**
+        - **[X]** Crear una acción para "Extender suscripción", que permita a un admin añadir días a la fecha de expiración de un plan para una organización específica.
+        - **[X]** Crear una acción para "Cambiar plan manualmente" a una organización.
+    - **[X]** **Gestión de Datos:**
+        - **[X]** Implementar `django-import-export` para los modelos clave. Esto permitirá exportar datos a Excel/CSV y, más importante, realizar modificaciones masivas e importarlas de nuevo, una herramienta de gestión extremadamente potente.
 
 ---
 

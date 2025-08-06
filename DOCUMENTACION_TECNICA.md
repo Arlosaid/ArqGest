@@ -16,14 +16,15 @@ Las aplicaciones instaladas están organizadas en tres grupos para mayor clarida
 2.  **Aplicaciones de Terceros:** Paquetes externos instalados.
     *   `axes`: Para controlar e impedir intentos de inicio de sesión por fuerza bruta.
     *   `crispy_forms` y `crispy_bootstrap5`: Para renderizar formularios de Django con estilos de Bootstrap 5 de forma automática y limpia.
+    *   `import_export`: Librería clave para añadir funcionalidades de importación y exportación de datos en el panel de administración.
 3.  **Aplicaciones Locales:** Las aplicaciones propias del proyecto.
     *   `core`: Aplicación principal que contiene la configuración central.
     *   `apps.accounts`: Gestión de usuarios, autenticación, login/logout y reseteo de contraseñas.
     *   `apps.main`: Vistas principales como el dashboard.
     *   `apps.orgs`: Lógica de organizaciones y clientes.
     *   `apps.plans`: Sistema de suscripciones y pagos.
-    *   `apps.projects`: Gestión de proyectos, fases y tareas.
-    *   `apps.files`: Almacenamiento de archivos de proyectos.
+    -   `apps.projects`: Gestión de proyectos, fases y tareas.
+    -   `apps.files`: Almacenamiento de archivos de proyectos.
 
 #### `MIDDLEWARE`
 

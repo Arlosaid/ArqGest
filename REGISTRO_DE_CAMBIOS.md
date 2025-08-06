@@ -80,3 +80,29 @@ Se solucionó un error 404 que ocurría después de un inicio de sesión exitoso
 1.  **Asegurar URL Absoluta en Middleware:**
     -   Se modificó `LoginRequiredMiddleware` para que el parámetro `next` en la URL de redirección sea siempre una ruta absoluta (ej. `/main/`) en lugar de relativa (`main/`).
     -   **Impacto:** Esto previene que Django resuelva la URL de forma incorrecta y genere errores 404 después del login.
+
+## Sección 5: Overhaul del Panel de Administración (Sección 3.2)
+
+Se implementaron funcionalidades avanzadas en el panel de administración de Django para convertirlo en un centro de control más potente.
+
+### Archivos Modificados:
+- `arc_manager/apps/plans/models.py`
+- `arc_manager/apps/plans/admin.py`
+- `arc_manager/apps/orgs/admin.py`
+- `arc_manager/apps/accounts/admin.py`
+- `arc_manager/templates/admin/extend_subscription_intermediate.html` (nuevo)
+- `arc_manager/templates/admin/change_plan_intermediate.html` (nuevo)
+- `requirements.txt`
+- `arc_manager/core/settings.py`
+
+### Resumen de Cambios:
+
+1.  **Acciones de Administración de Suscripciones:**
+    -   Se añadió una acción para **extender suscripciones** manualmente. Un administrador ahora puede seleccionar una o más suscripciones y añadir un número específico de días a su fecha de vencimiento.
+    -   Se creó una acción para **cambiar el plan** de una organización directamente desde el listado de suscripciones.
+    -   **Impacto:** Estas herramientas otorgan a los administradores un control granular sobre la gestión de los clientes sin necesidad de intervenir directamente en la base de datos.
+
+2.  **Implementación de Importación/Exportación de Datos:**
+    -   Se integró la librería `django-import-export`.
+    -   Se habilitó la funcionalidad de importación y exportación (en formatos como CSV, Excel) para los siguientes modelos clave: `User`, `Organization`, `Client`, `Plan` y `Subscription`.
+    -   **Impacto:** Facilita enormemente la gestión masiva de datos, permitiendo a los administradores realizar modificaciones en bloque, migraciones o simplemente obtener backups de información crítica de forma sencilla.
