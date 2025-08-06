@@ -3,9 +3,27 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.contrib import messages
 from .models import Organization, Client
+from import_export import resources
+from import_export.admin import ImportExportModelAdmin
+from django.db import models
+
+# --- Recursos para Import/Export ---
+
+class OrganizationResource(resources.ModelResource):
+    class Meta:
+        model = Organization
+        fields = ('id', 'name', 'is_active', 'created_at', 'subscription__plan__name', 'subscription__end_date')
+        export_order = fields
+
+class ClientResource(resources.ModelResource):
+    class Meta:
+        model = Client
+        fields = ('id', 'name', 'organization__name', 'email', 'phone_number', 'is_active')
+        export_order = fields
 
 @admin.register(Organization)
-class OrganizationAdmin(admin.ModelAdmin):
+class OrganizationAdmin(ImportExportModelAdmin):
+    resource_class = OrganizationResource
     list_display = ['name', 'is_active', 'user_count', 'get_subscription_status', 'get_subscription_link', 'created_at']
     list_filter = ['is_active', 'created_at', 'subscription__plan__display_name', 'subscription__subscription_status']
     search_fields = ['name', 'description']
@@ -47,7 +65,6 @@ class OrganizationAdmin(admin.ModelAdmin):
 
     def get_subscription_status(self, obj):
         """Muestra el estado de la suscripción de forma simple y visual."""
-        # 'subscription' y 'plan' ya están precargados gracias a prefetch_related
         if hasattr(obj, 'subscription') and obj.subscription:
             subscription = obj.subscription
             plan = subscription.plan
@@ -97,12 +114,13 @@ class OrganizationAdmin(admin.ModelAdmin):
     deactivate_organizations.short_description = "❌ Desactivar organizaciones"
 
 @admin.register(Client)
-class ClientAdmin(admin.ModelAdmin):
+class ClientAdmin(ImportExportModelAdmin):
+    resource_class = ClientResource
     list_display = ('name', 'organization', 'email', 'phone_number', 'is_active', 'created_at')
     list_filter = ('is_active', 'organization__name')
     search_fields = ('name', 'email', 'organization__name')
     readonly_fields = ('created_at', 'updated_at')
-    autocomplete_fields = ['organization'] # Mejora de UX
+    autocomplete_fields = ['organization']
 
     fieldsets = (
         ('Información del Cliente', {

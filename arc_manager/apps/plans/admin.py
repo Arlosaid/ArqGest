@@ -1,15 +1,58 @@
 # apps/plans/admin.py
-from django.contrib import admin
+from django import forms
+from django.contrib import admin, messages
+from django.shortcuts import render
 from django.utils.html import format_html
 from django.urls import reverse
-from django.contrib import messages
 from .models import Plan, Subscription, UpgradeRequest, Payment
+from import_export import resources
+from import_export.admin import ImportExportModelAdmin
 import logging
 
 logger = logging.getLogger(__name__)
 
+# --- Recursos para Import/Export ---
+
+class PlanResource(resources.ModelResource):
+    class Meta:
+        model = Plan
+        fields = ('id', 'name', 'display_name', 'price', 'max_users', 'trial_days', 'billing_cycle_days', 'is_active')
+        export_order = fields
+
+class SubscriptionResource(resources.ModelResource):
+    class Meta:
+        model = Subscription
+        fields = ('id', 'organization__name', 'plan__name', 'start_date', 'end_date', 'subscription_status')
+        export_order = fields
+
+# --- Formularios para Acciones ---
+
+class ExtendSubscriptionForm(forms.Form):
+    days = forms.IntegerField(
+        label="Días a extender",
+        required=True,
+        min_value=1,
+        help_text="Número de días para extender la suscripción."
+    )
+    reason = forms.CharField(
+        label="Razón de la extensión",
+        required=False,
+        widget=forms.Textarea(attrs={'rows': 3}),
+        help_text="Opcional: explique por qué se realiza esta extensión."
+    )
+
+class ChangePlanForm(forms.Form):
+    plan = forms.ModelChoiceField(
+        queryset=Plan.objects.filter(is_active=True),
+        label="Nuevo Plan",
+        required=True
+    )
+
+# --- ModelAdmin ---
+
 @admin.register(Plan)
-class PlanAdmin(admin.ModelAdmin):
+class PlanAdmin(ImportExportModelAdmin):
+    resource_class = PlanResource
     list_display = ('display_name', 'name', 'price', 'max_users', 'trial_days', 'billing_cycle_days', 'grace_period_days', 'is_active')
     list_filter = ('is_active', 'name')
     search_fields = ('name', 'display_name')
@@ -42,63 +85,42 @@ class PaymentInline(admin.TabularInline):
         return False
 
 @admin.register(Subscription)
-class SubscriptionAdmin(admin.ModelAdmin):
+class SubscriptionAdmin(ImportExportModelAdmin):
+    resource_class = SubscriptionResource
     list_display = ('organization', 'plan', 'subscription_status', 'end_date_formatted', 'days_remaining_display', 'is_active')
     list_filter = ('subscription_status', 'plan__name')
     search_fields = ('organization__name', 'plan__display_name')
     list_select_related = ('organization', 'plan')
     
-    # Define los campos que siempre deben ser de solo lectura.
     readonly_fields = ('start_date', 'grace_end_date', 'created_at', 'updated_at', 'days_remaining_display')
     
-    # Define los fieldsets para las vistas de agregar y cambiar.
-    add_fieldsets = (
-        ("Información General", {
-            'fields': ('organization', 'plan', 'subscription_status')
-        }),
-        ("Fechas Clave (se autocalculan)", {
-            'fields': ('end_date',)
-        }),
-    )
-    
-    change_fieldsets = (
-        ("Información General", {
-            'fields': ('organization', 'plan', 'subscription_status')
-        }),
-        ("Fechas Clave", {
-            'fields': ('start_date', 'end_date', 'grace_end_date', 'days_remaining_display')
-        }),
-        ("Timestamps", {
-            'fields': ('created_at', 'updated_at')
-        }),
-    )
-    
     inlines = [PaymentInline]
-    actions = ['process_selected_payments']
+    actions = ['process_selected_payments', 'extend_subscription_action', 'change_plan_action']
 
     def get_fieldsets(self, request, obj=None):
-        if not obj:
-            return self.add_fieldsets
-        return self.change_fieldsets
+        # Simplificado para mostrar los mismos campos en add y change
+        return (
+            ("Información General", {
+                'fields': ('organization', 'plan', 'subscription_status')
+            }),
+            ("Fechas Clave", {
+                'fields': ('start_date', 'end_date', 'grace_end_date', 'days_remaining_display')
+            }),
+            ("Timestamps", {
+                'fields': ('created_at', 'updated_at')
+            }),
+        )
 
     def get_readonly_fields(self, request, obj=None):
-        # Si el objeto ya existe (vista de cambio), define campos de solo lectura específicos.
         if obj:
-            # Permite la edición de 'plan' y 'end_date', pero mantiene el resto como solo lectura.
             return ('organization', 'subscription_status', 'start_date', 'grace_end_date', 'created_at', 'updated_at', 'days_remaining_display')
-        
-        # Para un objeto nuevo, usa la configuración estándar de solo lectura.
         return self.readonly_fields
     
     def add_view(self, request, form_url='', extra_context=None):
-        # Precarga el ID de la organización desde el parámetro GET.
-        # Esto asegura que el campo 'organization' se establezca correctamente.
         organization_id = request.GET.get('organization')
         if organization_id:
-            # Inyecta el ID de la organización en los datos iniciales del formulario.
             request.GET = request.GET.copy()
             request.GET['organization'] = organization_id
-            
         return super().add_view(request, form_url, extra_context)
     
     def save_model(self, request, obj, form, change):
@@ -142,11 +164,6 @@ class SubscriptionAdmin(admin.ModelAdmin):
                     amount=subscription.plan.price,
                     processed_by=request.user.username
                 )
-                
-                # Limpiar la fecha de gracia explícitamente al procesar el pago
-                subscription.grace_end_date = None
-                subscription.save(update_fields=['grace_end_date'])
-
                 if payment_result.get('success'):
                     processed_count += 1
             except Exception as e:
@@ -155,6 +172,69 @@ class SubscriptionAdmin(admin.ModelAdmin):
         
         if processed_count > 0:
             self.message_user(request, f"{processed_count} suscripciones han sido extendidas exitosamente.", messages.SUCCESS)
+
+    @admin.action(description="🗓️ Extender suscripción manualmente")
+    def extend_subscription_action(self, request, queryset):
+        if 'apply' in request.POST:
+            form = ExtendSubscriptionForm(request.POST)
+            if form.is_valid():
+                days = form.cleaned_data['days']
+                reason = form.cleaned_data['reason']
+                extended_count = 0
+                for subscription in queryset:
+                    try:
+                        subscription.extend_subscription(
+                            days=days,
+                            processed_by=request.user.username,
+                            reason=reason
+                        )
+                        extended_count += 1
+                    except Exception as e:
+                        logger.error(f"Error extendiendo suscripción para {subscription.organization.name}: {e}")
+                        self.message_user(request, f"Error al extender la suscripción de {subscription.organization.name}.", messages.ERROR)
+                
+                if extended_count > 0:
+                    self.message_user(request, f"{extended_count} suscripciones han sido extendidas por {days} días.", messages.SUCCESS)
+                return
+        else:
+            form = ExtendSubscriptionForm()
+
+        return render(request, 'admin/extend_subscription_intermediate.html', context={
+            'subscriptions': queryset,
+            'form': form
+        })
+        
+    @admin.action(description="🔄 Cambiar plan manualmente")
+    def change_plan_action(self, request, queryset):
+        if 'apply' in request.POST:
+            form = ChangePlanForm(request.POST)
+            if form.is_valid():
+                new_plan = form.cleaned_data['plan']
+                changed_count = 0
+                for subscription in queryset:
+                    if subscription.plan == new_plan:
+                        self.message_user(request, f"La suscripción de {subscription.organization.name} ya tiene el plan {new_plan.display_name}.", messages.WARNING)
+                        continue
+                    try:
+                        subscription.switch_plan(
+                            new_plan=new_plan,
+                            processed_by=request.user.username
+                        )
+                        changed_count += 1
+                    except Exception as e:
+                        logger.error(f"Error cambiando el plan para {subscription.organization.name}: {e}")
+                        self.message_user(request, f"Error al cambiar el plan de {subscription.organization.name}.", messages.ERROR)
+                
+                if changed_count > 0:
+                    self.message_user(request, f"Se cambió el plan a {new_plan.display_name} para {changed_count} suscripciones.", messages.SUCCESS)
+                return
+        else:
+            form = ChangePlanForm()
+
+        return render(request, 'admin/change_plan_intermediate.html', context={
+            'subscriptions': queryset,
+            'form': form
+        })
 
 @admin.register(UpgradeRequest)
 class UpgradeRequestAdmin(admin.ModelAdmin):
@@ -196,7 +276,8 @@ class UpgradeRequestAdmin(admin.ModelAdmin):
     approve_selected_requests.short_description = "Aprobar solicitudes seleccionadas"
 
 @admin.register(Payment)
-class PaymentAdmin(admin.ModelAdmin):
+class PaymentAdmin(ImportExportModelAdmin):
+    # No se define resource_class para que sea de solo lectura
     list_display = [
         'subscription', 'amount', 'payment_method', 'payment_type', 'status', 
         'processed_by', 'created_at'

@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'axes',
     'crispy_forms',
     'crispy_bootstrap5',
+    'import_export',
 
     # Local apps
     'core',

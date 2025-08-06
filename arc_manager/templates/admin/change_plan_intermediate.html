@@ -1,0 +1,33 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}">{% endblock %}
+
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+    <div>
+        <h2>{% trans 'Cambiar Plan de Suscripción' %}</h2>
+        <p>{% blocktrans %}Está a punto de cambiar el plan para las siguientes suscripciones:{% endblocktrans %}</p>
+        <ul>
+            {% for subscription in subscriptions %}
+            <li>{{ subscription.organization.name }} (Plan Actual: {{ subscription.plan.display_name }})</li>
+            {% endfor %}
+        </ul>
+
+        <fieldset class="module aligned">
+            <div class="form-row">
+                {{ form.plan.label_tag }} {{ form.plan }}
+                {% if form.plan.help_text %}
+                <div class="help">{{ form.plan.help_text|safe }}</div>
+                {% endif %}
+            </div>
+        </fieldset>
+
+        <div class="submit-row">
+            <input type="hidden" name="action" value="change_plan_action">
+            <input type="submit" name="apply" value="{% trans 'Aplicar Cambio de Plan' %}">
+        </div>
+    </div>
+</form>
+{% endblock %}
