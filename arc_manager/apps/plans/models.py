@@ -214,6 +214,39 @@ class Subscription(models.Model):
         self.save()
         return {'success': True, 'payment_id': payment.id}
 
+    def extend_subscription(self, days, processed_by, reason=""):
+        """
+        Extiende la suscripción por un número determinado de días.
+        """
+        now = timezone.now()
+        old_end_date = self.end_date
+
+        # Extender desde la fecha de vencimiento si aún no ha pasado, o desde hoy si ya expiró.
+        base_date = max(now, self.end_date or now)
+        self.end_date = base_date + timedelta(days=days)
+
+        self.subscription_status = f'{self.plan.name}_active'
+        self.grace_end_date = None  # Reiniciar el período de gracia
+
+        description = f'Extensión de {days} días para el plan {self.plan.display_name}.'
+        if reason:
+            description += f' Razón: {reason}'
+
+        payment = Payment.objects.create(
+            subscription=self,
+            amount=0,  # No hay un pago monetario directo para esta acción
+            payment_method='manual',
+            payment_type='extension',  # Nuevo tipo de pago para distinguir extensiones
+            status='completed',
+            processed_by=processed_by,
+            description=description,
+            days_added=days,
+            old_end_date=old_end_date,
+            new_end_date=self.end_date
+        )
+        self.save()
+        return {'success': True, 'payment_id': payment.id}
+
     def switch_plan(self, new_plan, processed_by):
         """Cambia el plan de la suscripción, reinicia las fechas y crea un registro."""
         now = timezone.now()
@@ -246,7 +279,12 @@ class Payment(models.Model):
     """Modelo para registrar todos los pagos y transacciones, simplificado para MVP."""
     PAYMENT_STATUS = [('completed', 'Completado')]
     PAYMENT_METHODS = [('manual', 'Pago Manual'), ('upgrade', 'Upgrade')]
-    PAYMENT_TYPES = [('subscription', 'Suscripción'), ('upgrade', 'Upgrade'), ('trial_to_paid', 'Activación Trial')]
+    PAYMENT_TYPES = [
+        ('subscription', 'Suscripción'),
+        ('upgrade', 'Upgrade'),
+        ('trial_to_paid', 'Activación Trial'),
+        ('extension', 'Extensión Manual')
+    ]
     
     subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField("Monto", max_digits=10, decimal_places=2)

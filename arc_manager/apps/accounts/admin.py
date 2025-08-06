@@ -12,7 +12,18 @@ from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from .models import User
 from apps.users.utils import send_welcome_reminder_email
+from import_export import resources
+from import_export.admin import ImportExportModelAdmin
 
+# --- Recurso para Import/Export ---
+
+class UserResource(resources.ModelResource):
+    class Meta:
+        model = User
+        fields = ('id', 'email', 'first_name', 'last_name', 'organization__name', 'is_active', 'is_staff', 'is_org_admin', 'date_joined')
+        export_order = fields
+
+# --- Formularios ---
 
 class UserCreationForm(forms.ModelForm):
     """Formulario para crear nuevos usuarios."""
@@ -59,8 +70,11 @@ class UserChangeForm(forms.ModelForm):
     def clean_password(self):
         return self.initial["password"]
 
+# --- ModelAdmin ---
 
-class UserAdmin(BaseUserAdmin):
+@admin.register(User)
+class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
+    resource_class = UserResource
     form = UserChangeForm
     add_form = UserCreationForm
 
@@ -182,5 +196,3 @@ class UserAdmin(BaseUserAdmin):
             self.message_user(request, f"❌ Falló el envío de {error_count} correos de bienvenida.", messages.ERROR)
             
     resend_welcome_email.short_description = "📧 Reenviar correo de bienvenida"
-
-admin.site.register(User, UserAdmin)
