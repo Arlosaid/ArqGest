@@ -18,11 +18,24 @@ class Command(BaseCommand):
             action='store_true',
             help='Solo muestra qué se haría, sin hacer cambios'
         )
+        parser.add_argument(
+            '--yes',
+            action='store_true',
+            help='Skip interactive confirmation when not in dry-run mode.',
+        )
 
     def handle(self, *args, **options):
         days = options['days']
         dry_run = options['dry_run']
+        skip_confirmation = options['yes']
         
+        if not dry_run and not skip_confirmation:
+            self.stdout.write(self.style.WARNING("\nThis command will archive old upgrade requests by changing their status to 'completed'."))
+            confirm = input("Are you sure you want to continue? Type 'yes' to confirm: ")
+            if confirm != 'yes':
+                self.stdout.write(self.style.ERROR('Cleanup cancelled.'))
+                return
+
         cutoff_date = timezone.now() - timedelta(days=days)
         
         self.stdout.write(self.style.SUCCESS(f'=== LIMPIEZA DE SOLICITUDES DE UPGRADE ==='))

@@ -121,4 +121,39 @@ Este mensaje fue generado automáticamente, por favor no respondas a este email.
         
     except Exception as e:
         logger.error(f"Error enviando email a {user.email}: {str(e)}")
-        return False 
+        return False
+
+def send_welcome_reminder_email(user, request=None):
+    """
+    Envía un email de recordatorio de bienvenida a un usuario existente.
+    """
+    try:
+        site_name = getattr(settings, 'SITE_NAME', 'ARC Manager')
+        if request:
+            login_url = request.build_absolute_uri(reverse('accounts:login'))
+        else:
+            base_url = getattr(settings, 'SITE_URL', 'http://localhost:8000')
+            login_url = f"{base_url}{reverse('accounts:login')}"
+
+        context = {
+            'user': user,
+            'site_name': site_name,
+            'login_url': login_url
+        }
+        
+        html_message = render_to_string('users/emails/welcome_reminder.html', context)
+        text_message = f"Hola {user.full_name},\n\nEste es un recordatorio de que tienes una cuenta en {site_name}.\nPuedes acceder aquí: {login_url}\n\nEl equipo de {site_name}"
+        
+        subject = f'Recordatorio de tu cuenta en {site_name}'
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@localhost')
+        
+        email = EmailMultiAlternatives(subject, text_message, from_email, [user.email])
+        email.attach_alternative(html_message, "text/html")
+        email.send()
+        
+        logger.info(f"Email de recordatorio de bienvenida enviado a {user.email}")
+        return True
+    except Exception as e:
+        logger.error(f"Error enviando email de recordatorio a {user.email}: {str(e)}")
+        return False
+ 

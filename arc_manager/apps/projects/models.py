@@ -21,9 +21,10 @@ class Project(models.Model):
     )
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name='owned_projects',
-        verbose_name=_("Propietario")
+        verbose_name=_("Propietario"),
+        null=True
     )
     client = models.ForeignKey(
         Client,
@@ -33,12 +34,13 @@ class Project(models.Model):
         related_name='projects',
         verbose_name=_("Cliente")
     )
-    name = models.CharField(_("Nombre del Proyecto"), max_length=255)
+    name = models.CharField(_("Nombre del Proyecto"), max_length=255, db_index=True)
     status = models.CharField(
         _("Estado"),
         max_length=20,
         choices=Status.choices,
-        default=Status.ACTIVE
+        default=Status.ACTIVE,
+        db_index=True
     )
     start_date = models.DateField(_("Fecha de Inicio"), null=True, blank=True)
     end_date = models.DateField(_("Fecha de Fin"), null=True, blank=True)
@@ -71,7 +73,8 @@ class Phase(models.Model):
         _("Estado"),
         max_length=20,
         choices=Status.choices,
-        default=Status.PENDING
+        default=Status.PENDING,
+        db_index=True
     )
     order = models.PositiveIntegerField(_("Orden"))
     start_date = models.DateField(_("Fecha de Inicio"), null=True, blank=True)
@@ -121,15 +124,17 @@ class Task(models.Model):
         _("Estado"),
         max_length=20,
         choices=Status.choices,
-        default=Status.TODO
+        default=Status.TODO,
+        db_index=True
     )
     priority = models.CharField(
         _("Prioridad"),
         max_length=20,
         choices=Priority.choices,
-        default=Priority.MEDIUM
+        default=Priority.MEDIUM,
+        db_index=True
     )
-    due_date = models.DateField(_("Fecha de Vencimiento"), null=True, blank=True)
+    due_date = models.DateField(_("Fecha de Vencimiento"), null=True, blank=True, db_index=True)
     created_at = models.DateTimeField(_("Fecha de Creación"), auto_now_add=True)
 
     class Meta:

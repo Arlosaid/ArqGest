@@ -31,7 +31,7 @@ class Plan(models.Model):
     grace_period_days = models.PositiveIntegerField("Días de gracia", default=0, help_text="Días de gracia después de la expiración antes de restringir el acceso.")
     
     # Estado y configuración
-    is_active = models.BooleanField("Activo", default=True)
+    is_active = models.BooleanField("Activo", default=True, db_index=True)
     
     # Timestamps
     created_at = models.DateTimeField("Fecha de creación", auto_now_add=True)
@@ -97,10 +97,10 @@ class Subscription(models.Model):
     plan = models.ForeignKey(Plan, on_delete=models.PROTECT, verbose_name="Plan Actual")
     
     start_date = models.DateTimeField("Fecha de inicio", default=timezone.now)
-    end_date = models.DateTimeField("Fecha de vencimiento", null=True, blank=True)
+    end_date = models.DateTimeField("Fecha de vencimiento", null=True, blank=True, db_index=True)
     grace_end_date = models.DateTimeField("Fin del período de gracia", null=True, blank=True)
     
-    subscription_status = models.CharField("Estado de Suscripción", max_length=20, choices=SUBSCRIPTION_STATUS_CHOICES, default='trial_active')
+    subscription_status = models.CharField("Estado de Suscripción", max_length=20, choices=SUBSCRIPTION_STATUS_CHOICES, default='trial_active', db_index=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -280,11 +280,11 @@ class UpgradeRequest(models.Model):
     ]
     
     organization = models.ForeignKey('orgs.Organization', on_delete=models.CASCADE, related_name='upgrade_requests')
-    current_plan = models.ForeignKey(Plan, on_delete=models.CASCADE, related_name='+')
-    requested_plan = models.ForeignKey(Plan, on_delete=models.CASCADE, related_name='+')
+    current_plan = models.ForeignKey(Plan, on_delete=models.PROTECT, related_name='+')
+    requested_plan = models.ForeignKey(Plan, on_delete=models.PROTECT, related_name='+')
     
     amount = models.DecimalField("Monto del upgrade", max_digits=10, decimal_places=2)
-    status = models.CharField("Estado", max_length=20, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField("Estado", max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True)
     
     approved_by = models.CharField("Aprobado por", max_length=100, blank=True)
     

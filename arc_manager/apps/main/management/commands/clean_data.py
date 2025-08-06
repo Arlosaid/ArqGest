@@ -10,8 +10,26 @@ User = get_user_model()
 class Command(BaseCommand):
     help = 'Deletes all organizations, subscriptions, and non-superuser users.'
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--no-input',
+            '--yes',
+            action='store_true',
+            help='Skip interactive confirmation.',
+        )
+
     @transaction.atomic
     def handle(self, *args, **options):
+        no_input = options.get('no_input')
+        
+        if not no_input:
+            self.stdout.write(self.style.WARNING("\nThis command will permanently delete all organizations, subscriptions, payments, upgrade requests, and non-superuser users."))
+            self.stdout.write(self.style.WARNING("This action is irreversible."))
+            confirm = input("Are you sure you want to continue? Type 'yes' to confirm: ")
+            if confirm != 'yes':
+                self.stdout.write(self.style.ERROR('Cleanup cancelled.'))
+                return
+
         self.stdout.write(self.style.WARNING('Starting data cleanup...'))
 
         # Delete related objects first

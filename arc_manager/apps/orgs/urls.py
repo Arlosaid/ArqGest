@@ -12,7 +12,7 @@ urlpatterns = [
     path('clients/<int:pk>/delete/', views.ClientDeleteView.as_view(), name='client_delete'),
 
     # URLs de Organización
-    path('<int:pk>/', views.OrganizationDetailView.as_view(), name='detail'),
+    path('<int:pk>/', views.OrganizationDetailView.as_view(), name='organization_detail'),
     
     # Editar organización - DESHABILITADO
     # RAZÓN: Los org_admin no deberían poder editar campos críticos como:

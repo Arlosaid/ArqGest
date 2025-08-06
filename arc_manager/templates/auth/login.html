@@ -54,7 +54,7 @@
             <a href="{% url 'accounts:password_reset' %}" class="forgot-link">¿Olvidaste tu contraseña?</a>
         </div>
 
-        <input type="hidden" name="next" value="{{ next }}">
+        <input type="hidden" name="next" value="{{ next|default:'/' }}">
     </form>
 </div>
 {% endblock %}

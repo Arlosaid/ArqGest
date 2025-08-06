@@ -32,7 +32,13 @@
                 </div>
                 <div class="card-body">
                     <p><strong>{% trans "Cliente" %}:</strong> {{ project.client.name }}</p>
-                    <p><strong>{% trans "Propietario" %}:</strong> {{ project.owner.get_full_name }}</p>
+                    <p><strong>{% trans "Propietario" %}:</strong> 
+                        {% if project.owner %}
+                            {{ project.owner.get_full_name }}
+                        {% else %}
+                            <span class="text-muted">{% trans "No asignado" %}</span>
+                        {% endif %}
+                    </p>
                     <p><strong>{% trans "Creado el" %}:</strong> {{ project.created_at|date:"d M Y" }}</p>
                     <a href="{% url 'projects:project-update' project.pk %}" class="btn btn-primary">{% trans "Editar Proyecto" %}</a>
                 </div>

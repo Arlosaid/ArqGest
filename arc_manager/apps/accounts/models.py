@@ -41,7 +41,7 @@ class User(AbstractUser):
     is_org_admin = models.BooleanField("Administrador de organización", default=False)
     organization = models.ForeignKey(
         'orgs.Organization', 
-        on_delete=models.CASCADE, 
+        on_delete=models.SET_NULL, 
         related_name='users',
         verbose_name="Organización",
         null=True, 

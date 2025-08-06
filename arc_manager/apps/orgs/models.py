@@ -1,13 +1,14 @@
 # apps/orgs/models.py - Versión simplificada
 from django.db import models
 from django.utils import timezone
+from django.utils.functional import cached_property
 
 class Organization(models.Model):
     """Modelo simplificado de organización"""
     
-    name = models.CharField("Nombre de la organización", max_length=200)
+    name = models.CharField("Nombre de la organización", max_length=200, db_index=True)
     description = models.TextField("Descripción", blank=True, null=True)
-    is_active = models.BooleanField("Activa", default=True)
+    is_active = models.BooleanField("Activa", default=True, db_index=True)
     created_at = models.DateTimeField("Fecha de creación", auto_now_add=True)
     updated_at = models.DateTimeField("Última actualización", auto_now=True)
     
@@ -19,13 +20,19 @@ class Organization(models.Model):
     def __str__(self):
         return self.name
     
-    def get_subscription(self):
-        """Retorna la suscripción actual de la organización"""
+    @cached_property
+    def subscription_cached(self):
+        """Retorna la suscripción actual de la organización, cacheada por instancia."""
         try:
+            # La relación OneToOne desde Subscription nos da acceso a 'subscription'
             return self.subscription
-        except:
-            # Si no tiene suscripción, crear trial por defecto
+        except self.subscription.RelatedObjectDoesNotExist:
+            # Si no existe, creamos una de prueba.
             return self._create_default_subscription()
+
+    def get_subscription(self):
+        """Método de conveniencia para acceder a la propiedad cacheada."""
+        return self.subscription_cached
     
     def _create_default_subscription(self):
         """Crea suscripción trial por defecto para nuevas organizaciones"""

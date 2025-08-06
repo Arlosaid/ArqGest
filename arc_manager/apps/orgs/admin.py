@@ -6,12 +6,11 @@ from .models import Organization, Client
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
-    list_display = ['name', 'is_active', 'get_user_count', 'get_subscription_status', 'get_subscription_link', 'created_at']
-    list_filter = ['is_active', 'created_at', 'subscription__plan', 'subscription__subscription_status']
+    list_display = ['name', 'is_active', 'user_count', 'get_subscription_status', 'get_subscription_link', 'created_at']
+    list_filter = ['is_active', 'created_at', 'subscription__plan__display_name', 'subscription__subscription_status']
     search_fields = ['name', 'description']
-    readonly_fields = ['created_at', 'updated_at', 'get_user_count', 'get_subscription_status', 'get_subscription_link']
+    readonly_fields = ['created_at', 'updated_at', 'user_count', 'get_subscription_status', 'get_subscription_link']
     
-    # Solo 2 acciones esenciales
     actions = ['activate_organizations', 'deactivate_organizations']
     
     fieldsets = (
@@ -24,7 +23,7 @@ class OrganizationAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
         ('Estadísticas', {
-            'fields': ('get_user_count',),
+            'fields': ('user_count',),
             'classes': ('collapse',)
         }),
         ('Información del sistema', {
@@ -32,28 +31,37 @@ class OrganizationAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-    
-    def get_user_count(self, obj):
-        """Muestra el total de usuarios"""
-        return f"{obj.get_user_count()} usuarios"
-    get_user_count.short_description = 'Usuarios'
-    
+
+    def get_queryset(self, request):
+        """Optimizar la carga de datos con prefetch y anotaciones."""
+        queryset = super().get_queryset(request)
+        queryset = queryset.prefetch_related('subscription__plan')
+        queryset = queryset.annotate(user_count_admin=models.Count('users'))
+        return queryset
+
+    def user_count(self, obj):
+        """Muestra el total de usuarios desde la anotación."""
+        return f"{obj.user_count_admin} usuarios"
+    user_count.short_description = 'Usuarios'
+    user_count.admin_order_field = 'user_count_admin' # Permite ordenar por esta columna
+
     def get_subscription_status(self, obj):
         """Muestra el estado de la suscripción de forma simple y visual."""
+        # 'subscription' y 'plan' ya están precargados gracias a prefetch_related
         if hasattr(obj, 'subscription') and obj.subscription:
             subscription = obj.subscription
             plan = subscription.plan
             status_text = subscription.get_subscription_status_display()
             
-            color = 'black'  # Color por defecto
+            color = 'black'
             if subscription.is_active:
                 color = 'green'
                 if 'trial' in subscription.subscription_status:
-                    color = '#E67E22'  # Naranja para trial
+                    color = '#E67E22'
             elif subscription.is_in_grace_period:
-                color = '#F39C12'  # Naranja más claro para periodo de gracia
+                color = '#F39C12'
             elif subscription.is_expired:
-                color = '#E74C3C'  # Rojo para expirado
+                color = '#E74C3C'
 
             return format_html(
                 '<span style="color: {}; font-weight: bold;">{}</span><br>'
@@ -67,47 +75,34 @@ class OrganizationAdmin(admin.ModelAdmin):
     get_subscription_status.short_description = 'Estado de Suscripción'
     
     def get_subscription_link(self, obj):
-        """
-        Proporciona un enlace para gestionar la suscripción existente o
-        para crear una nueva si no existe.
-        """
+        """Proporciona un enlace para gestionar la suscripción."""
         if hasattr(obj, 'subscription') and obj.subscription:
-            # Si la suscripción existe, enlace para editarla
             subscription_url = reverse('admin:plans_subscription_change', args=[obj.subscription.pk])
             return format_html('<a href="{}" class="button">📝 Gestionar suscripción</a>', subscription_url)
         else:
-            # Si no hay suscripción, enlace para crear una nueva, pre-rellenando la organización
             add_subscription_url = reverse('admin:plans_subscription_add') + f'?organization={obj.pk}'
             return format_html('<a href="{}" class="button">➕ Crear suscripción</a>', add_subscription_url)
     get_subscription_link.short_description = 'Gestión'
     
-    # Solo acciones esenciales para activar/desactivar
     def activate_organizations(self, request, queryset):
         """Activar organizaciones seleccionadas"""
         updated = queryset.update(is_active=True)
-        self.message_user(
-            request,
-            f"✅ Se activaron {updated} organizaciones correctamente.",
-            messages.SUCCESS
-        )
+        self.message_user(request, f"✅ Se activaron {updated} organizaciones correctamente.", messages.SUCCESS)
     activate_organizations.short_description = "✅ Activar organizaciones"
     
     def deactivate_organizations(self, request, queryset):
         """Desactivar organizaciones seleccionadas"""
         updated = queryset.update(is_active=False)
-        self.message_user(
-            request,
-            f"❌ Se desactivaron {updated} organizaciones correctamente.",
-            messages.SUCCESS
-        )
+        self.message_user(request, f"❌ Se desactivaron {updated} organizaciones correctamente.", messages.SUCCESS)
     deactivate_organizations.short_description = "❌ Desactivar organizaciones"
 
 @admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):
     list_display = ('name', 'organization', 'email', 'phone_number', 'is_active', 'created_at')
-    list_filter = ('is_active', 'organization')
+    list_filter = ('is_active', 'organization__name')
     search_fields = ('name', 'email', 'organization__name')
     readonly_fields = ('created_at', 'updated_at')
+    autocomplete_fields = ['organization'] # Mejora de UX
 
     fieldsets = (
         ('Información del Cliente', {
@@ -118,3 +113,8 @@ class ClientAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+    def get_queryset(self, request):
+        """Optimizar la carga de la organización."""
+        queryset = super().get_queryset(request)
+        return queryset.select_related('organization')

@@ -171,6 +171,11 @@ class UpgradeRequestAdmin(admin.ModelAdmin):
     ordering = ['-created_at']
     actions = ['approve_selected_requests']
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'organization', 'current_plan', 'requested_plan'
+        )
+
     def status_display(self, obj):
         status_map = {
             'pending': ('orange', 'Pendiente'),
