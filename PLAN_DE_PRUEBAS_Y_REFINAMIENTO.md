@@ -33,11 +33,43 @@
 
 ---
 
+## Fase 2.5: Pruebas de Integridad de Datos (Post-Refactorización)
+
+*Esta fase se enfoca en validar las nuevas reglas de negocio y optimizaciones aplicadas directamente en los modelos de la base de datos.*
+
+- **[ ]** **2.5.1. Verificación de Índices de Base de Datos:**
+    - **[ ]** Conectar a la base de datos del entorno de staging y usar comandos SQL (`\d nombre_tabla` en psql) para confirmar que los nuevos índices en `Organization`, `Plan`, `Subscription`, `Project`, `Phase` y `Task` fueron creados correctamente por la migración.
+- **[ ]** **2.5.2. Pruebas de la Lógica `on_delete`:**
+    - **[ ]** **Prueba `User.organization` (`SET_NULL`):**
+        - **[ ]** Crear una Organización `OrgTest` y un Usuario `UserTest` asignado a ella.
+        - **[ ]** Eliminar `OrgTest`.
+        - **[ ]** **Verificar:** El `UserTest` **no** debe haber sido eliminado. Su campo `organization` debe ser `NULL`. El usuario debe poder seguir iniciando sesión.
+    - **[ ]** **Prueba `Project.owner` (`SET_NULL`):**
+        - **[ ]** Crear un Usuario `OwnerTest` y un Proyecto `ProjectTest` cuyo `owner` sea `OwnerTest`.
+        - **[ ]** Eliminar al usuario `OwnerTest`.
+        - **[ ]** **Verificar:** El `ProjectTest` **no** debe haber sido eliminado. Su campo `owner` debe ser `NULL`.
+    - **[ ]** **Prueba `UpgradeRequest.plan` (`PROTECT`):**
+        - **[ ]** Crear un `PlanTest`.
+        - **[ ]** Crear una `UpgradeRequest` que referencie a `PlanTest`.
+        - **[ ]** Intentar eliminar `PlanTest`.
+        - **[ ]** **Verificar:** La operación debe fallar con un error `ProtectedError`.
+
+    - **[ ]** **Prueba de Configuración de Caché (Redis):**
+        - **[ ]** Crear una prueba unitaria o de integración que intente escribir y leer un valor simple del caché de `default` y `sessions`.
+        - **[ ]** **Verificar:** La prueba debe pasar sin errores de conexión o `TypeError`, validando que `settings.py` y `requirements.txt` están alineados.
+
+---
+
 ## Fase 3: Pruebas de Rendimiento y Optimización (Repetir)
 
 - **[ ]** **3.1. Análisis con Django Debug Toolbar** (con datos de prueba).
-- **[ ]** **3.2. Verificación de la Caché** de Redis.
-- **[ ]** **3.3. Optimización de Frontend** con Lighthouse.
+    - **[ ]** Navegar a las vistas de listas (`/projects/`, `/users/`, `/organizations/`) y al detalle de un proyecto.
+    - **[ ]** **Verificar:** El número de consultas SQL debe ser bajo (idealmente < 15-20 para listas y < 10 para detalles). No debe haber consultas duplicadas.
+- **[ ]** **3.2. Verificación de la Caché de Suscripción:**
+    - **[ ]** Activar el logging de consultas SQL.
+    - **[ ]** En la shell de Django, obtener una organización y acceder a `.subscription` varias veces.
+    - **[ ]** **Verificar:** La consulta a la tabla `plans_subscription` para esa organización solo debe ejecutarse una vez.
+- **[ ]** **3.3. Optimización de Frontend** con Lighthouse (auditoría de rendimiento, SEO, mejores prácticas).
 
 ---
 
@@ -45,65 +77,54 @@
 
 ### **4.1. Módulo de Cuentas, Usuarios y Organización**
 - **[ ]** **Happy Paths:**
-    - **[ ]** Flujo de registro de organización.
-    - **[ ]** Flujo de Login / Logout.
-    - **[ ]** Flujo de recuperación de contraseña exitoso (email recibido y link funcional).
+    - **[ ]** Flujo de registro, Login/Logout, recuperación de contraseña.
 - **[ ]** **Unhappy Paths & Casos Límite:**
-    - **[ ]** **Registro:**
-        - **[ ]** Intentar registrarse con un email ya existente.
-        - **[ ]** Intentar registrarse con una contraseña que no cumple los validadores de Django (muy corta, muy común, etc.). Validar mensajes de error específicos.
-    - **[ ]** **Login:**
-        - **[ ]** Intentar iniciar sesión con un email no registrado.
-        - **[ ]** Intentar iniciar sesión con contraseña incorrecta (verificar que `django-axes` funciona).
-    - **[ ]** **Recuperación de Contraseña:**
-        - **[ ]** Intentar recuperar contraseña para un email no registrado. La aplicación no debe confirmar si el email existe o no (medida de seguridad).
-        - **[ ]** Usar un link de recuperación de contraseña por segunda vez después de haber sido utilizado. Debe mostrar un error.
-        - **[ ]** Usar un link de recuperación de contraseña expirado (si aplica).
+    - **[ ]** Intentar registrarse con email existente, contraseña débil, etc.
+    - **[ ]** Intentar login con credenciales incorrectas (verificar `django-axes`).
+    - **[ ]** Usar link de recuperación de contraseña por segunda vez.
 - **[ ]** **Plan B (Procedimientos Administrativos):**
-    - **[ ]** **Cambio de Contraseña Forzado:** Un usuario no puede acceder. Acceder al Admin de Django, buscar al usuario y cambiar su contraseña manualmente. Documentar el procedimiento de comunicación con el usuario.
-    - **[ ]** **Reenvío de Invitación / Activación:** Si un usuario no recibe su correo de bienvenida/activación, tener un botón en el Admin para "Reenviar email de bienvenida".
+    - **[ ]** **Forzar Cambio de Contraseña:**
+        - **[ ]** Desde el Admin, seleccionar un usuario y usar la acción "Forzar cambio de contraseña".
+        - **[ ]** **Verificar:** Se debe mostrar un mensaje con un enlace de reseteo único y funcional.
+    - **[ ]** **Reenviar Correo de Bienvenida:**
+        - **[ ]** Desde el Admin, seleccionar un usuario y usar la acción "Reenviar correo de bienvenida".
+        - **[ ]** **Verificar:** El usuario debe recibir un correo de bienvenida/recordatorio (sin credenciales).
 
-### **4.2. Módulo de Plantillas de Fases**
+### **4.2. Módulo de Comandos de Gestión**
+- **[ ]** **Prueba de Idempotencia:**
+    - **[ ]** Ejecutar `python manage.py setup_database` dos veces seguidas.
+    - **[ ]** **Verificar:** La segunda ejecución no debe crear un superusuario duplicado ni fallar.
+- **[ ]** **Prueba de Seguridad de Credenciales:**
+    - **[ ]** Ejecutar `setup_database` sin las variables de entorno `DJANGO_SUPERUSER_EMAIL` y `DJANGO_SUPERUSER_PASSWORD`.
+    - **[ ]** **Verificar:** El comando debe advertir que no se creará el superusuario, pero no debe fallar.
+- **[ ]** **Prueba de Confirmación Interactiva:**
+    - **[ ]** Ejecutar `python manage.py clean_data`.
+    - **[ ]** **Verificar:** El comando debe detenerse y pedir confirmación. Probar cancelar la operación.
+    - **[ ]** Repetir para `clean_tenant_data` y `clean_upgrade_requests`.
+
+### **4.3. Módulo de Plantillas de Fases**
 - **[ ]** **Happy Path:** CRUD completo.
-- **[ ]** **Unhappy Paths & Casos Límite:**
-    - **[ ]** Intentar crear una plantilla con el mismo nombre que otra ya existente en la misma organización.
-    - **[ ]** Intentar crear una plantilla sin fases. El sistema debe permitirlo o mostrar un aviso claro.
-    - **[ ]** Intentar guardar el formulario de edición de plantillas mientras se está procesando (doble click). El sistema debe manejarlo sin crear duplicados.
-    - **[ ]** Crear una plantilla con un nombre muy largo o con caracteres especiales.
+- **[ ]** **Unhappy Paths:** Crear plantillas con nombres duplicados o sin fases.
 
-### **4.3. Módulo de Proyectos**
+### **4.4. Módulo de Proyectos**
 - **[ ]** **Happy Path:** Creación manual y desde plantilla, edición, eliminación.
-- **[ ]** **Unhappy Paths & Casos Límite:**
-    - **[ ]** Intentar crear un proyecto con un nombre duplicado dentro de la misma organización.
-    - **[ ]** **Eliminación de dependencias:**
-        - **[ ]** Eliminar un `Cliente` que tiene proyectos asociados. ¿Qué ocurre? El sistema debería impedirlo (`PROTECT`) o anonimizar el cliente en el proyecto (depende de la lógica de negocio definida en `on_delete`). Validar este comportamiento.
-        - **[ ]** Eliminar una `Plantilla de Fases` ya utilizada. Los proyectos creados a partir de ella **no deben** ser afectados.
-    - **[ ]** Intentar modificar la URL para acceder a la vista de creación de proyectos de otra organización.
-- **[ ]** **Plan B (Procedimientos Administrativos):**
-    - **[ ]** **Reasignación de Proyecto:** Un empleado deja la empresa. Desde el Admin de Django, poder cambiar el "propietario" o "responsable" de un proyecto a otro usuario de la misma organización.
-    - **[ ]** **Recuperación de Proyecto:** Un usuario elimina un proyecto por error. Definir el procedimiento de recuperación (desde backup de BBDD, o si se usa `django-safedelete`, "des-eliminar" desde el Admin).
+- **[ ]** **Unhappy Paths:**
+    - **[ ]** Crear proyecto con nombre duplicado.
+    - **[ ]** Eliminar un `Cliente` con proyectos asociados (validar `on_delete`).
 
-### **4.4. Módulo de Tareas y Kanban**
+### **4.5. Módulo de Tareas y Kanban**
 - **[ ]** **Happy Path:** CRUD de tareas, moverlas entre columnas.
-- **[ ]** **Unhappy Paths & Casos Límite:**
-    - **[ ]** **Acceso a Fases/Tareas de otro proyecto:** Desde la URL del Kanban (`/project/1/phase/3/kanban/`), intentar cambiar los IDs para acceder a fases de otros proyectos a los que no se tiene acceso. Validar error 404.
-    - **[ ]** Intentar crear una tarea sin nombre o título.
-    - **[ ]** Asignar una tarea a un usuario y luego eliminar a ese usuario de la organización. ¿Qué pasa con la tarea? ¿Queda sin asignar? ¿Se reasigna? Validar el comportamiento (`on_delete=SET_NULL`).
-    - **[ ]** Probar el Kanban con una gran cantidad de tareas (~100) en una sola fase para detectar problemas de rendimiento en el renderizado.
+- **[ ]** **Unhappy Paths:**
+    - **[ ]** Acceder a fases/tareas de otro proyecto por URL.
+    - **[ ]** Probar el Kanban con ~100 tareas para detectar problemas de rendimiento.
 
-### **4.5. Módulo de Archivos**
+### **4.6. Módulo de Archivos**
 - **[ ]** **Happy Path:** Subir, descargar, eliminar.
-- **[ ]** **Unhappy Paths & Casos Límite:**
-    - **[ ]** Intentar subir un archivo con un nombre extremadamente largo o con caracteres que puedan ser problemáticos para el sistema de archivos (`/`, `\`, `*`). El sistema debe sanitizar el nombre.
-    - **[ ]** Subir un archivo, y mientras se sube, cancelar la petición o perder la conexión. El sistema no debe dejar archivos corruptos o a medio subir.
-    - **[ ]** Intentar eliminar un archivo mientras otro usuario lo está descargando.
+- **[ ]** **Unhappy Paths:** Subir archivos con nombres problemáticos, cancelar subida.
 
-### **4.6. Módulo "Mis Tareas" y Dashboard**
+### **4.7. Módulo "Mis Tareas" y Dashboard**
 - **[ ]** **Happy Path:** Ver todas las tareas asignadas.
-- **[ ]** **Casos Límite:**
-    - **[ ]** Vista "Mis Tareas" para un usuario sin tareas asignadas (debe mostrar un mensaje amigable).
-    - **[ ]** Vista del Dashboard para un usuario que acaba de unirse y no tiene proyectos ni actividad. La página debe presentarse de forma limpia, sin errores, y quizás con una guía de "primeros pasos".
-    - **[ ]** Probar la paginación (si existe) en la lista de proyectos, tareas, etc., navegando a la primera, última y una página intermedia. Intentar acceder a una página que no existe (ej. `?page=999`).
+- **[ ]** **Casos Límite:** Vista para usuario sin tareas o sin proyectos.
 
 ---
 

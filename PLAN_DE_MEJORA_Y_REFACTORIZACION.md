@@ -8,19 +8,19 @@
 
 *El objetivo es asegurar que el núcleo de la aplicación sea lo más eficiente y limpio posible, optimizando flujos de datos y configuraciones.*
 
-- **[ ]** **1.1. Auditoría de `settings.py`:**
-    - **[ ]** Limpieza de variables y configuraciones no utilizadas.
-    - **[ ]** Validación del orden y necesidad de todas las `INSTALLED_APPS` y `MIDDLEWARE`.
-    - **[ ]** Asegurar que la configuración de `LOGGING` es robusta para producción.
+- **[X]** **1.1. Auditoría de `settings.py`:**
+    - **[X]** Limpieza de variables y configuraciones no utilizadas.
+    - **[X]** Validación del orden y necesidad de todas las `INSTALLED_APPS` y `MIDDLEWARE`.
+    - **[X]** Asegurar que la configuración de `LOGGING` es robusta para producción.
 
-- **[ ]** **1.2. Optimización de Flujos y Base de Datos:**
-    - **[ ]** **Análisis de Modelos (`models.py`):**
-        - **[ ]** Revisar todos los modelos y sus campos. ¿Hay campos que no se usan? ¿Los `on_delete` tienen la estrategia correcta (`PROTECT`, `SET_NULL`, etc.)?
-        - **[ ]** Añadir índices de base de datos (`db_index=True`) a los campos que se usan frecuentemente en filtros (`filter()`) o búsquedas, como fechas, estados o claves foráneas.
-    - **[ ]** **Prevención de Consultas N+1:**
-        - **[ ]** Usar `django-debug-toolbar` para identificar y eliminar consultas duplicadas en las vistas más importantes (Kanban, Listas, etc.) mediante `select_related` y `prefetch_related`.
-    - **[ ]** **Revisión de Lógica de Negocio en Vistas:**
-        - **[ ]** Identificar si hay lógica de negocio compleja dentro de las vistas (`views.py`). Considerar moverla a "managers" de modelos personalizados o a archivos de servicios (ej. `services.py`) para hacer las vistas más limpias y reutilizar el código.
+- **[X]** **1.2. Optimización de Flujos y Base de Datos:**
+    - **[X]** **Análisis de Modelos (`models.py`):**
+        - **[X]** Revisar todos los modelos y sus campos. ¿Hay campos que no se usan? ¿Los `on_delete` tienen la estrategia correcta (`PROTECT`, `SET_NULL`, etc.)?
+        - **[X]** Añadir índices de base de datos (`db_index=True`) a los campos que se usan frecuentemente en filtros (`filter()`) o búsquedas, como fechas, estados o claves foráneas.
+    - **[X]** **Prevención de Consultas N+1:**
+        - **[X]** Usar `django-debug-toolbar` para identificar y eliminar consultas duplicadas en las vistas más importantes (Kanban, Listas, etc.) mediante `select_related` y `prefetch_related`.
+    - **[X]** **Revisión de Lógica de Negocio en Vistas:**
+        - **[X]** Identificar si hay lógica de negocio compleja dentro de las vistas (`views.py`). Considerar moverla a "managers" de modelos personalizados o a archivos de servicios (ej. `services.py`) para hacer las vistas más limpias y reutilizar el código.
 
 ---
 
@@ -28,21 +28,21 @@
 
 *El objetivo es asegurar que los componentes de lógica transversal (middlewares) y las tareas de automatización (comandos) sean robustos, seguros y sigan las mejores prácticas para un entorno de producción.*
 
-- **[ ]** **2.1. Auditoría y Refactorización de Middlewares:**
-    - **[ ]** Revisar todos los middlewares personalizados (`accounts`, `orgs`, `plans`).
-    - **[ ]** Confirmar que su lógica es eficiente y no introduce cuellos de botella.
-    - **[ ]** Verificar que el orden de los middlewares en `settings.py` es el correcto y está justificado.
-    - **[ ]** Simplificar o combinar middlewares si es posible para reducir la sobrecarga en cada petición.
+- **[X]** **2.1. Auditoría y Refactorización de Middlewares:**
+    - **[X]** Revisar todos los middlewares personalizados (`accounts`, `orgs`, `plans`).
+    - **[X]** Confirmar que su lógica es eficiente y no introduce cuellos de botella.
+    - **[X]** Verificar que el orden de los middlewares en `settings.py` es el correcto y está justificado.
+    - **[X]** Simplificar o combinar middlewares si es posible para reducir la sobrecarga en cada petición.
 
-- **[ ]** **2.2. Optimización de Comandos de Gestión para Producción:**
-    - **[ ]** **Comando `setup_database`:**
-        - **[ ]** Modificar el comando para que sea **idempotente**: si se ejecuta varias veces, no debe crear duplicados ni fallar. Debe verificar si el superusuario ya existe antes de intentar crearlo.
-        - **[ ]** Integrar la ejecución de este comando en el script de entrada del contenedor Docker (`entrypoint.sh` o similar) para que se ejecute automáticamente al iniciar el servicio, asegurando que la base de datos siempre tenga los datos iniciales necesarios (como el admin).
-        - **[ ]** Asegurarse de que las credenciales del admin se tomen de variables de entorno (`os.environ.get()`) en lugar de estar hardcodeadas, por seguridad.
-    - **[ ]** **Revisión General de Comandos:**
-        - **[ ]** Auditar todos los comandos de gestión (`clean_data`, `create_organization`, etc.).
-        - **[ ]** Asegurarse de que emiten salidas claras y útiles (usando `self.stdout.write`).
-        - **[ ]** Añadir confirmaciones para operaciones destructivas (ej. "¿Estás seguro de que quieres borrar todos los datos de prueba?").
+- **[X]** **2.2. Optimización de Comandos de Gestión para Producción:**
+    - **[X]** **Comando `setup_database`:**
+        - **[X]** Modificar el comando para que sea **idempotente**: si se ejecuta varias veces, no debe crear duplicados ni fallar. Debe verificar si el superusuario ya existe antes de intentar crearlo.
+        - **[X]** Integrar la ejecución de este comando en el script de entrada del contenedor Docker (`entrypoint.sh` o similar) para que se ejecute automáticamente al iniciar el servicio, asegurando que la base de datos siempre tenga los datos iniciales necesarios (como el admin).
+        - **[X]** Asegurarse de que las credenciales del admin se tomen de variables de entorno (`os.environ.get()`) en lugar de estar hardcodeadas, por seguridad.
+    - **[X]** **Revisión General de Comandos:**
+        - **[X]** Auditar todos los comandos de gestión (`clean_data`, `create_organization`, etc.).
+        - **[X]** Asegurarse de que emiten salidas claras y útiles (usando `self.stdout.write`).
+        - **[X]** Añadir confirmaciones para operaciones destructivas (ej. "¿Estás seguro de que quieres borrar todos los datos de prueba?").
 
 ---
 
@@ -50,18 +50,18 @@
 
 *Transformar el panel de admin en un Centro de Control Administrativo completo, intuitivo y potente.*
 
-- **[ ]** **3.1. Mejora de la Visualización y Usabilidad (UI/UX):**
-    - **[ ]** Para **todos** los modelos importantes (`User`, `Organization`, `Project`, `Task`, `PlanSubscription`, etc.):
-        - **[ ]** Usar `list_display` para mostrar las columnas más relevantes.
-        - **[ ]** Usar `list_filter` para añadir filtros intuitivos (ej. filtrar usuarios por organización, proyectos por estado).
-        - **[ ]** Usar `search_fields` para permitir búsquedas eficientes (ej. buscar usuario por email, proyecto por nombre).
-        - **[ ]** Usar `readonly_fields` para mostrar información no editable (ej. `created_at`, `updated_at`).
-        - **[ ]** Usar `inlines` para gestionar modelos relacionados en la misma página (ej. ver y editar las tareas de un proyecto directamente desde la página del proyecto en el admin).
+- **[X]** **3.1. Mejora de la Visualización y Usabilidad (UI/UX):**
+    - **[X]** Para **todos** los modelos importantes (`User`, `Organization`, `Project`, `Task`, `PlanSubscription`, etc.):
+        - **[X]** Usar `list_display` para mostrar las columnas más relevantes.
+        - **[X]** Usar `list_filter` para añadir filtros intuitivos (ej. filtrar usuarios por organización, proyectos por estado).
+        - **[X]** Usar `search_fields` para permitir búsquedas eficientes (ej. buscar usuario por email, proyecto por nombre).
+        - **[X]** Usar `readonly_fields` para mostrar información no editable (ej. `created_at`, `updated_at`).
+        - **[X]** Usar `inlines` para gestionar modelos relacionados en la misma página (ej. ver y editar las tareas de un proyecto directamente desde la página del proyecto en el admin).
 
 - **[ ]** **3.2. Implementación de Acciones Administrativas (Plan B):**
-    - **[ ]** **Gestión de Usuarios:**
-        - **[ ]** Crear una **acción de administrador** para "Forzar cambio de contraseña". Esta acción debería generar un enlace de reseteo de un solo uso y mostrarlo al admin para que pueda enviarlo manualmente al usuario.
-        - **[ ]** Crear una acción para "Reenviar correo de bienvenida/verificación".
+    - **[X]** **Gestión de Usuarios:**
+        - **[X]** Crear una **acción de administrador** para "Forzar cambio de contraseña". Esta acción debería generar un enlace de reseteo de un solo uso y mostrarlo al admin para que pueda enviarlo manualmente al usuario.
+        - **[X]** Crear una acción para "Reenviar correo de bienvenida/verificación".
     - **[ ]** **Gestión de Suscripciones (Planes):**
         - **[ ]** Crear una acción para "Extender suscripción", que permita a un admin añadir días a la fecha de expiración de un plan para una organización específica.
         - **[ ]** Crear una acción para "Cambiar plan manualmente" a una organización.
