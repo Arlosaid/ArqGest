@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Recordatorio de Bienvenida a {{ site_name }}</title>
+</head>
+<body>
+    <p>Hola {{ user.full_name }},</p>
+    <p>Este es un recordatorio de que tienes una cuenta en {{ site_name }}.</p>
+    <p>Puedes acceder a la plataforma utilizando tu correo electrónico y la contraseña que se te proporcionó o la última que hayas establecido.</p>
+    <p><a href="{{ login_url }}">Iniciar sesión en {{ site_name }}</a></p>
+    <p>Si has olvidado tu contraseña, puedes restablecerla desde la página de inicio de sesión.</p>
+    <p>¡Esperamos verte pronto!</p>
+    <p>El equipo de {{ site_name }}</p>
+</body>
+</html>

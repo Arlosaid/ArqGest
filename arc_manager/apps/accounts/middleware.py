@@ -1,7 +1,7 @@
 # middleware.py
 from django.shortcuts import redirect
-from django.urls import reverse
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.utils.deprecation import MiddlewareMixin
 from django.contrib import messages
 from django.http import HttpResponseServerError
@@ -10,45 +10,41 @@ import logging
 import re
 
 logger = logging.getLogger(__name__)
+User = get_user_model()
 
 class LoginRequiredMiddleware:
     """
-    Middleware que requiere autenticación para todas las vistas excepto las especificadas.
-    
-    Si un usuario no autenticado intenta acceder a una vista protegida,
-    será redirigido a la página de login.
+    Middleware que requiere autenticación y precarga datos del usuario.
+    - Redirige si el usuario no está autenticado y la URL no es pública.
+    - Si el usuario está autenticado, precarga su organización para optimizar
+      el acceso en middlewares y vistas posteriores.
     """
     
     def __init__(self, get_response):
         self.get_response = get_response
-        # URLs que son accesibles sin autenticación
         self.exempt_urls = [re.compile(url) for url in getattr(settings, 'LOGIN_EXEMPT_URLS', [])]
-        # URL de login
         self.login_url = getattr(settings, 'LOGIN_URL', '/accounts/login/')
 
     def __call__(self, request):
-        response = self.get_response(request)
-        return response
-
-    def process_view(self, request, view_func, view_args, view_kwargs):
-        """
-        Verificar si la vista requiere autenticación.
-        Si el usuario no está autenticado y la URL no está en la lista de excepciones,
-        redirigir al login.
-        """
-        
-        # Si el usuario ya está autenticado, continuar
-        if request.user.is_authenticated:
-            return None
-        
         path = request.path_info.lstrip('/')
         
-        # Verificar si la URL actual está en la lista de URLs exentas
-        if path == self.login_url.lstrip('/') or any(pattern.match(path) for pattern in self.exempt_urls):
-            return None  # Permitir acceso sin autenticación
-        
-        # Si llegamos aquí, redirigir al login
-        return redirect(f'{self.login_url}?next={path}')
+        if not request.user.is_authenticated:
+            # Si no está autenticado, verificar si la URL es pública
+            if not any(pattern.match(path) for pattern in self.exempt_urls):
+                return redirect(f'{self.login_url}?next=/{path}')
+        else:
+            # Si está autenticado, optimizar el objeto user
+            # Usamos una property para evitar una consulta si no se accede a la organización
+            # Pero para asegurar que esté disponible en todo el request, la cargamos aquí.
+            try:
+                request.user = User.objects.select_related('organization').get(pk=request.user.pk)
+            except User.DoesNotExist:
+                # Caso muy raro: el usuario fue borrado durante su sesión.
+                # Dejamos que el flujo normal de Django lo desautentique.
+                pass
+
+        response = self.get_response(request)
+        return response
 
 
 class SuperuserRestrictMiddleware:
@@ -58,71 +54,40 @@ class SuperuserRestrictMiddleware:
     
     def __init__(self, get_response):
         self.get_response = get_response
-        # URLs exentas del bloqueo de superuser (admin, logout, etc.)
         self.exempt_urls = [
             re.compile(r'^admin/.*$'),
             re.compile(r'^accounts/logout/?$'),
-            re.compile(r'^accounts/login/?$'),  # Permitir acceso al login también
+            re.compile(r'^accounts/login/?$'),
             re.compile(r'^static/.*$'),
             re.compile(r'^media/.*$'),
         ]
 
     def __call__(self, request):
-        # Verificar acceso al admin
-        if request.path.startswith('/admin/'):
-            if not request.user.is_authenticated:
-                return redirect(settings.LOGIN_URL)
-            
-            if not request.user.is_superuser:
-                messages.error(request, "No tienes permisos para acceder al panel de administración.")
-                return redirect('main:dashboard')
-            
-            # Si es un superusuario accediendo al admin por primera vez en esta sesión
-            # mostrar el mensaje informativo SOLO una vez por sesión
-            if (request.user.is_superuser and 
-                request.path == '/admin/' and 
-                request.method == 'GET' and
-                'admin_welcome_shown' not in request.session):
-                
-                messages.info(
-                    request, 
-                    "Bienvenido al panel administrativo. Desde aquí puedes gestionar todo el sistema."
-                )
-                # Marcar como mostrado para esta sesión específica
-                request.session['admin_welcome_shown'] = True
-                # Forzar guardar la sesión
-                request.session.save()
-        
-        # IMPORTANTE: Evitar que los superusuarios accedan a la aplicación principal
-        # Solo deben usar el admin panel
-        elif request.user.is_authenticated and request.user.is_superuser:
-            # Permitir acceso a logout y URLs estáticas
+        if request.user.is_authenticated and request.user.is_superuser:
             path = request.path.lstrip('/')
+            
+            # Permitir acceso al panel de admin
+            if path.startswith('admin/'):
+                if 'admin_welcome_shown' not in request.session and request.path == '/admin/' and request.method == 'GET':
+                    messages.info(request, "Bienvenido al panel administrativo. Desde aquí puedes gestionar todo el sistema.")
+                    request.session['admin_welcome_shown'] = True
+                return self.get_response(request)
+
+            # Bloquear acceso al resto de la app
             if not any(pattern.match(path) for pattern in self.exempt_urls):
-                # Si un superusuario intenta acceder a cualquier parte de la app que no sea admin
-                # redirigirlo al admin sin mostrar mensaje adicional
                 return redirect('/admin/')
         
         response = self.get_response(request)
         return response
+
     
-    def _is_exempt_url(self, path):
-        """Verifica si la URL está exenta del bloqueo de superuser"""
-        return any(pattern.match(path) for pattern in self.exempt_urls)
-
-
 class ErrorHandlingMiddleware(MiddlewareMixin):
     """
     Middleware para manejo de errores en producción.
-    Evita que se muestren errores técnicos a los usuarios finales.
     """
     
     def process_exception(self, request, exception):
-        """
-        Procesar excepciones no capturadas
-        """
         if not settings.DEBUG:
-            # En producción, loggear el error y mostrar página amigable
             logger.error(
                 f"Error no manejado en {request.path}: {str(exception)}",
                 exc_info=True,
@@ -132,15 +97,10 @@ class ErrorHandlingMiddleware(MiddlewareMixin):
                 }
             )
             
-            # Intentar cargar template personalizado de error
             try:
                 template = loader.get_template('500.html')
                 return HttpResponseServerError(template.render({}))
             except Exception:
-                # Si falla el template, devolver respuesta básica
-                return HttpResponseServerError(
-                    "<h1>Error del Servidor</h1><p>Ha ocurrido un error interno. Por favor, contacta con soporte técnico.</p>"
-                )
+                return HttpResponseServerError("<h1>Error del Servidor</h1><p>Ha ocurrido un error interno.</p>")
         
-        # En desarrollo, dejar que Django maneje el error normalmente
         return None

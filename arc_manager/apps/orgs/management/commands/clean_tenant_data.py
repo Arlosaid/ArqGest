@@ -36,6 +36,11 @@ class Command(BaseCommand):
             help='Remover flags de admin de usuarios sin organización',
         )
         parser.add_argument(
+            '--yes',
+            action='store_true',
+            help='Skip interactive confirmation when not in dry-run mode.',
+        )
+        parser.add_argument(
             '--all',
             action='store_true',
             help='Ejecutar todas las limpiezas',
@@ -43,11 +48,19 @@ class Command(BaseCommand):
     
     def handle(self, *args, **options):
         is_dry_run = options['dry_run']
+        skip_confirmation = options['yes']
         
         if is_dry_run:
             self.stdout.write(self.style.WARNING('🧪 MODO DRY RUN - No se realizarán cambios\n'))
         else:
             self.stdout.write(self.style.HTTP_INFO('🔧 Iniciando limpieza de datos...\n'))
+            if not skip_confirmation:
+                self.stdout.write(self.style.WARNING("This command will modify the database."))
+                confirm = input("Are you sure you want to continue? Type 'yes' to confirm: ")
+                if confirm != 'yes':
+                    self.stdout.write(self.style.ERROR('Cleanup cancelled.'))
+                    return
+
         
         changes_made = 0
         

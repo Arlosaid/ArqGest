@@ -38,19 +38,28 @@ class Command(BaseCommand):
             call_command('migrate', verbosity=2, interactive=False)
             self.stdout.write(self.style.SUCCESS("✅ Migraciones completadas"))
             
-            # Crear superusuario
+            # Crear superusuario desde variables de entorno
             self.stdout.write("👤 Configurando superusuario...")
             User = get_user_model()
-            if not User.objects.filter(is_superuser=True).exists():
-                User.objects.create_superuser(
-                    email='admin@example.com',
-                    password='admin123',
-                    first_name='Admin',
-                    last_name='System'
-                )
-                self.stdout.write(self.style.SUCCESS("✅ Superusuario creado"))
+            
+            ADMIN_EMAIL = os.environ.get('DJANGO_SUPERUSER_EMAIL')
+            ADMIN_PASSWORD = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
+            ADMIN_FIRST_NAME = os.environ.get('DJANGO_SUPERUSER_FIRST_NAME', 'Admin')
+            ADMIN_LAST_NAME = os.environ.get('DJANGO_SUPERUSER_LAST_NAME', 'User')
+
+            if not User.objects.filter(email=ADMIN_EMAIL).exists():
+                if ADMIN_EMAIL and ADMIN_PASSWORD:
+                    User.objects.create_superuser(
+                        email=ADMIN_EMAIL,
+                        password=ADMIN_PASSWORD,
+                        first_name=ADMIN_FIRST_NAME,
+                        last_name=ADMIN_LAST_NAME
+                    )
+                    self.stdout.write(self.style.SUCCESS(f"✅ Superusuario '{ADMIN_EMAIL}' creado."))
+                else:
+                    self.stdout.write(self.style.WARNING("⚠️ No se creará superusuario. Faltan las variables de entorno DJANGO_SUPERUSER_EMAIL o DJANGO_SUPERUSER_PASSWORD."))
             else:
-                self.stdout.write(self.style.WARNING("⚠️ Superusuario ya existe"))
+                self.stdout.write(self.style.WARNING(f"⚠️ Superusuario '{ADMIN_EMAIL}' ya existe."))
             
             # Configurar planes
             self.stdout.write("📋 Configurando planes...")
