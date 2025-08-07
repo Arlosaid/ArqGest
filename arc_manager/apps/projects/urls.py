@@ -6,6 +6,8 @@ from .views import (
     ProjectUpdateView,
     ProjectDeleteView,
     PhaseDetailView,
+    project_kanban,
+    phase_create,
     task_create,
     TaskListView,
     MyTaskListView,
@@ -25,6 +27,7 @@ urlpatterns = [
     path('', ProjectListView.as_view(), name='project-list'),
     path('new/', ProjectCreateView.as_view(), name='project-create'),
     path('<int:pk>/', ProjectDetailView.as_view(), name='project-detail'),
+    path('<int:pk>/kanban/', project_kanban, name='project-kanban'),
 
     path('<int:pk>/edit/', ProjectUpdateView.as_view(), name='project-update'),
     path('<int:pk>/delete/', ProjectDeleteView.as_view(), name='project-delete'),
@@ -36,6 +39,7 @@ urlpatterns = [
     path('tasks/<int:task_pk>/move/', move_task, name='task-move'),
     
     path('<int:project_pk>/phases/<int:pk>/', PhaseDetailView.as_view(), name='phase-detail'),
+    path('<int:project_pk>/phases/create/', phase_create, name='phase-create'),
 
     path('<int:project_pk>/tasks/create/', task_create, name='task-create'),
 

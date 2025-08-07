@@ -2,35 +2,54 @@
 <form hx-post="{% url 'projects:task-edit' task.pk %}" hx-target="body" hx-swap="none">
     {% csrf_token %}
     <div class="modal-header">
-        <h5 class="modal-title">{% trans "Edit Task" %}</h5>
+        <h5 class="modal-title">{% trans "Editar Tarea" %}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body">
         <div class="mb-3">
-            {{ form.title.label_tag }}
-            {{ form.title }}
+            <label for="id_title" class="form-label">{% trans "Título de la Tarea" %}</label>
+            <input type="text" name="title" id="id_title" class="form-control" value="{{ task.title }}" required>
         </div>
         <div class="mb-3">
-            {{ form.description.label_tag }}
-            {{ form.description }}
+            <label for="id_description" class="form-label">{% trans "Descripción" %}</label>
+            <textarea name="description" id="id_description" class="form-control" rows="3">{{ task.description }}</textarea>
         </div>
         <div class="row">
             <div class="col-md-6 mb-3">
-                {{ form.assigned_to.label_tag }}
-                {{ form.assigned_to }}
+                <label for="id_status" class="form-label">{% trans "Estado" %}</label>
+                <select name="status" id="id_status" class="form-select">
+                    {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if task.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
             </div>
             <div class="col-md-6 mb-3">
-                {{ form.priority.label_tag }}
-                {{ form.priority }}
+                <label for="id_priority" class="form-label">{% trans "Prioridad" %}</label>
+                <select name="priority" id="id_priority" class="form-select">
+                    {% for value, label in priority_choices %}
+                        <option value="{{ value }}" {% if task.priority == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
             </div>
         </div>
-        <div class="mb-3">
-            {{ form.due_date.label_tag }}
-            {{ form.due_date }}
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="id_phase" class="form-label">{% trans "Fase" %}</label>
+                <select name="phase" id="id_phase" class="form-select">
+                    {% for phase in phases %}
+                        <option value="{{ phase.id }}" {% if task.phase.id == phase.id %}selected{% endif %}>{{ phase.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="id_due_date" class="form-label">{% trans "Fecha de Vencimiento" %}</label>
+                <input type="date" name="due_date" id="id_due_date" class="form-control" value="{{ task.due_date|date:'Y-m-d'|default:'' }}">
+            </div>
         </div>
     </div>
     <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button>
-        <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancelar" %}</button>
+        <button type="submit" class="btn btn-primary">{% trans "Guardar Cambios" %}</button>
     </div>
 </form>
+

@@ -1,17 +1,43 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% load static %}
 
 {% block title %}{% trans "Confirmar Eliminación" %}{% endblock %}
 
+{% block extra_css %}
+<link href="{% static 'css/projects.css' %}?v=1.2" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-    <h2>{% trans "¿Estás seguro?" %}</h2>
-    <p>{% blocktrans with project_name=object.name %}Estás a punto de eliminar el proyecto "<strong>{{ project_name }}</strong>". Esta acción no se puede deshacer.{% endblocktrans %}</p>
-    
-    <form method="post">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-danger">{% trans "Sí, eliminarlo" %}</button>
-        <a href="{% url 'projects:project-detail' object.pk %}" class="btn btn-secondary">{% trans "Cancelar" %}</a>
-    </form>
+<!-- Usar el container estándar de base.css -->
+<div class="page-container">
+    <!-- Header Section (viene de base.css) -->
+    <div class="header-section">
+        <div class="header-content">
+            <div class="header-title">
+                <div class="header-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h1>{% trans "Confirmar Eliminación" %}</h1>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body">
+            <h2>{% trans "¿Estás seguro?" %}</h2>
+            <p>{% blocktrans with project_name=object.name %}Estás a punto de eliminar el proyecto "<strong>{{ project_name }}</strong>". Esta acción no se puede deshacer.{% endblocktrans %}</p>
+            
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">{% trans "Sí, eliminarlo" %}</button>
+                <a href="{% url 'projects:project-detail' object.pk %}" class="btn btn-secondary">{% trans "Cancelar" %}</a>
+            </form>
+        </div>
+    </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/projects.js' %}?v=1.0"></script>
 {% endblock %}

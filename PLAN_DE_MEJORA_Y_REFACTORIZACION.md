@@ -72,23 +72,23 @@
 
 ## Sección 4: Refactorización y Mejora del Frontend
 *Organizar, limpiar y mejorar la interfaz de usuario.*
-- **[ ]** **4.1. Auditoría de la Arquitectura de Plantillas:** Confirmar herencia de `base.html` y uso de bloques.
-- **[ ]** **4.2. Estructuración de CSS y JS:** Mover código específico de página a sus propios archivos.
-- **[ ]** **4.3. Corrección de Estilos:** Arreglar componentes rotos o sin estilo.
+- **[X]** **4.1. Auditoría de la Arquitectura de Plantillas:** Confirmar herencia de `base.html` y uso de bloques.
+- **[X]** **4.2. Estructuración de CSS y JS:** Mover código específico de página a sus propios archivos.
+- **[X]** **4.3. Corrección de Estilos:** Arreglar componentes rotos o sin estilo.
 
 ---
 
 ## Sección 5: Rediseño de la Experiencia de Usuario (UX) y Flujos Clave
 *Hacer la aplicación más intuitiva y agradable.*
-- **[ ]** **5.1. Rediseño del Sidebar (Barra Lateral Contextual):** Hacer que la barra lateral cambie su contenido cuando se está dentro de un proyecto.
-- **[ ]** **5.2. Mejora del Acceso al Kanban:** Acceso directo desde un dashboard mejorado y creación de una vista de "Kanban General" del proyecto.
+- **[X]** **5.1. Rediseño del Sidebar (Barra Lateral Contextual):** Hacer que la barra lateral cambie su contenido cuando se está dentro de un proyecto.
+- **[X]** **5.2. Mejora del Acceso al Kanban:** Acceso directo desde un dashboard mejorado y creación de una vista de "Kanban General" del proyecto.
 
 ---
 
 ## Sección 6: Sistema de Notificaciones
 *Implementar un sistema de notificaciones moderno y funcional.*
-- **[ ]** **6.1. Rediseño Estético y Funcional:** Integrar una librería como `Toastify.js` y estilizarla.
-- **[ ]** **6.2. Revisión de la Lógica de Disparo (Triggers):** Configurar notificaciones para eventos clave.
+- **[X]** **6.1. Rediseño Estético y Funcional:** Integrar una librería como `Toastify.js` y estilizarla.
+- **[X]** **6.2. Revisión de la Lógica de Disparo (Triggers):** Configurar notificaciones para eventos clave.
 
 ---
 

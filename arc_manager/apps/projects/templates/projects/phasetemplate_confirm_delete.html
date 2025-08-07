@@ -1,13 +1,29 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% load static %}
 
 {% block title %}{% trans "Confirmar Eliminación" %}{% endblock %}
 
-{% block content %}
-<div class="container-fluid px-4">
-    <h1 class="h3 mb-4 text-gray-800">{% trans "Eliminar Plantilla de Fase" %}</h1>
+{% block extra_css %}
+<link href="{% static 'css/projects.css' %}?v=1.2" rel="stylesheet">
+{% endblock %}
 
-    <div class="card shadow mb-4">
+{% block content %}
+<!-- Usar el container estándar de base.css -->
+<div class="page-container">
+    <!-- Header Section (viene de base.css) -->
+    <div class="header-section">
+        <div class="header-content">
+            <div class="header-title">
+                <div class="header-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h1>{% trans "Eliminar Plantilla de Fase" %}</h1>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow">
         <div class="card-body">
             <p>{% blocktrans with name=object.name %}¿Estás seguro de que quieres eliminar la plantilla "<strong>{{ name }}</strong>"?{% endblocktrans %}</p>
             <p class="text-danger">{% trans "Esta acción no se puede deshacer." %}</p>
@@ -20,4 +36,8 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/projects.js' %}?v=1.0"></script>
 {% endblock %}
