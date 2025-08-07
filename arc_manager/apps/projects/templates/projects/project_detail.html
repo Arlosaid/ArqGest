@@ -1,58 +1,232 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% load static %}
 
 {% block title %}{{ project.name }} - {% trans "Detalles del Proyecto" %}{% endblock %}
 
+{% block extra_css %}
+<link href="{% static 'css/projects.css' %}?v=1.2" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid">
-    <h1 class="h3 mb-4 text-gray-800">{{ project.name }}</h1>
-
-    <!-- Nav tabs -->
-    <ul class="nav nav-tabs" id="projectTab" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab" aria-controls="details" aria-selected="true">{% trans "Detalles" %}</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="phases-tab" data-bs-toggle="tab" data-bs-target="#phases" type="button" role="tab" aria-controls="phases" aria-selected="false">{% trans "Fases" %}</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks" type="button" role="tab" aria-controls="tasks" aria-selected="false">{% trans "Tareas" %}</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="files-tab" data-bs-toggle="tab" data-bs-target="#files" type="button" role="tab" aria-controls="files" aria-selected="false">{% trans "Archivos" %}</button>
-        </li>
-    </ul>
-
-    <!-- Tab content -->
-    <div class="tab-content" id="projectTabContent">
-        <div class="tab-pane fade show active" id="details" role="tabpanel" aria-labelledby="details-tab">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">{% trans "Detalles del Proyecto" %}</h6>
+<!-- Usar el container estándar de base.css -->
+<div class="page-container">
+    <!-- Header del proyecto -->
+    <div class="project-detail-header">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1 class="project-detail-title">{{ project.name }}</h1>
+                <p class="project-detail-subtitle">{{ project.client.name|default:"Sin cliente asignado" }}</p>
+                <div class="project-detail-meta">
+                    <div class="project-detail-meta-item">
+                        <i class="fas fa-calendar"></i>
+                        <span>{% trans "Creado" %} {{ project.created_at|date:"d/m/Y" }}</span>
+                    </div>
+                    <div class="project-detail-meta-item">
+                        <i class="fas fa-user"></i>
+                        <span>{% trans "Propietario" %}: {{ project.owner.get_full_name|default:"No asignado" }}</span>
+                    </div>
+                    <div class="project-detail-meta-item">
+                        <i class="fas fa-chart-line"></i>
+                        <span>{% trans "Progreso" %}: {{ project.progress|default:"0" }}%</span>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <p><strong>{% trans "Cliente" %}:</strong> {{ project.client.name }}</p>
-                    <p><strong>{% trans "Propietario" %}:</strong> 
-                        {% if project.owner %}
-                            {{ project.owner.get_full_name }}
-                        {% else %}
-                            <span class="text-muted">{% trans "No asignado" %}</span>
-                        {% endif %}
-                    </p>
-                    <p><strong>{% trans "Creado el" %}:</strong> {{ project.created_at|date:"d M Y" }}</p>
-                    <a href="{% url 'projects:project-update' project.pk %}" class="btn btn-primary">{% trans "Editar Proyecto" %}</a>
+            </div>
+            <div class="project-header-actions">
+                <a href="{% url 'projects:project-update' project.pk %}" class="btn btn-light">
+                    <i class="fas fa-edit"></i> {% trans "Editar" %}
+                </a>
+                <a href="{% url 'projects:project-kanban' project.pk %}" class="btn btn-light">
+                    <i class="fas fa-columns"></i> {% trans "Kanban" %}
+                </a>
+                {% if user.is_org_admin %}
+                <a href="{% url 'projects:project-delete' project.pk %}" class="btn btn-outline-light">
+                    <i class="fas fa-trash"></i> {% trans "Eliminar" %}
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="project-detail-content">
+        <!-- Contenido principal -->
+        <div class="project-detail-main">
+            <!-- Nav tabs -->
+            <ul class="nav nav-tabs" id="projectTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab" aria-controls="details" aria-selected="true">
+                        <i class="fas fa-info-circle"></i> {% trans "Detalles" %}
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="phases-tab" data-bs-toggle="tab" data-bs-target="#phases" type="button" role="tab" aria-controls="phases" aria-selected="false">
+                        <i class="fas fa-layer-group"></i> {% trans "Fases" %}
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks" type="button" role="tab" aria-controls="tasks" aria-selected="false">
+                        <i class="fas fa-tasks"></i> {% trans "Tareas" %}
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="files-tab" data-bs-toggle="tab" data-bs-target="#files" type="button" role="tab" aria-controls="files" aria-selected="false">
+                        <i class="fas fa-file"></i> {% trans "Archivos" %}
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab content -->
+            <div class="tab-content" id="projectTabContent">
+                <div class="tab-pane fade show active" id="details" role="tabpanel" aria-labelledby="details-tab">
+                    <div class="project-info-section">
+                        <h3 class="section-title">{% trans "Información del Proyecto" %}</h3>
+                        
+                        <!-- Barra de progreso principal -->
+                        <div class="project-progress mb-4">
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" data-progress="{{ project.progress|default:'0' }}" style="width: {{ project.progress|default:'0' }}%"></div>
+                            </div>
+                            <div class="progress-text">
+                                <span>{% trans "Progreso general del proyecto" %}</span>
+                                <span class="progress-percentage">{{ project.progress|default:"0" }}%</span>
+                            </div>
+                        </div>
+
+                        <!-- Información detallada -->
+                        <div class="project-info-grid">
+                            <div class="project-info-item">
+                                <span class="project-info-label">{% trans "Cliente" %}</span>
+                                <span class="project-info-value">{{ project.client.name|default:"No asignado" }}</span>
+                            </div>
+                            <div class="project-info-item">
+                                <span class="project-info-label">{% trans "Propietario" %}</span>
+                                <span class="project-info-value">{{ project.owner.get_full_name|default:"No asignado" }}</span>
+                            </div>
+                            <div class="project-info-item">
+                                <span class="project-info-label">{% trans "Estado" %}</span>
+                                <span class="project-status {{ project.get_phase_display|lower }}">
+                                    {{ project.get_phase_display }}
+                                </span>
+                            </div>
+                            <div class="project-info-item">
+                                <span class="project-info-label">{% trans "Fecha de inicio" %}</span>
+                                <span class="project-info-value">{{ project.created_at|date:"d/m/Y" }}</span>
+                            </div>
+                            <div class="project-info-item">
+                                <span class="project-info-label">{% trans "Última actualización" %}</span>
+                                <span class="project-info-value">{{ project.updated_at|date:"d/m/Y H:i" }}</span>
+                            </div>
+                            <div class="project-info-item">
+                                <span class="project-info-label">{% trans "Descripción" %}</span>
+                                <span class="project-info-value">{{ project.description|default:"Sin descripción" }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Acciones rápidas -->
+                        <div class="quick-actions mt-4">
+                            <h4>{% trans "Acciones Rápidas" %}</h4>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <a href="{% url 'projects:project-update' project.pk %}" class="btn btn-primary">
+                                    <i class="fas fa-edit"></i> {% trans "Editar Proyecto" %}
+                                </a>
+                                <a href="{% url 'projects:project-kanban' project.pk %}" class="btn btn-success">
+                                    <i class="fas fa-columns"></i> {% trans "Ver Tablero Kanban" %}
+                                </a>
+                                <a href="#" class="btn btn-info">
+                                    <i class="fas fa-chart-bar"></i> {% trans "Reportes" %}
+                                </a>
+                                <a href="#" class="btn btn-secondary">
+                                    <i class="fas fa-download"></i> {% trans "Exportar" %}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tab-pane fade" id="phases" role="tabpanel" aria-labelledby="phases-tab">
+                    {% include "projects/partials/_phases_tab.html" %}
+                </div>
+                
+                <div class="tab-pane fade" id="tasks" role="tabpanel" aria-labelledby="tasks-tab">
+                    {% include "projects/partials/_tasks_tab.html" %}
+                </div>
+                
+                <div class="tab-pane fade" id="files" role="tabpanel" aria-labelledby="files-tab">
+                    {% include "projects/partials/_files_tab.html" %}
                 </div>
             </div>
         </div>
-        <div class="tab-pane fade" id="phases" role="tabpanel" aria-labelledby="phases-tab">
-            {% include "projects/partials/_phases_tab.html" %}
-        </div>
-        <div class="tab-pane fade" id="tasks" role="tabpanel" aria-labelledby="tasks-tab">
-            {% include "projects/partials/_tasks_tab.html" %}
-        </div>
-        <div class="tab-pane fade" id="files" role="tabpanel" aria-labelledby="files-tab">
-            {% include "projects/partials/_files_tab.html" %}
+
+        <!-- Sidebar -->
+        <div class="project-detail-sidebar">
+            <!-- Estadísticas rápidas -->
+            <div class="sidebar-section">
+                <h4>{% trans "Estadísticas" %}</h4>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number">{{ project.phases.count|default:"0" }}</div>
+                        <div class="stat-label">{% trans "Fases" %}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ project.tasks.count|default:"0" }}</div>
+                        <div class="stat-label">{% trans "Tareas" %}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ project.files.count|default:"0" }}</div>
+                        <div class="stat-label">{% trans "Archivos" %}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Equipo del proyecto -->
+            <div class="sidebar-section">
+                <h4>{% trans "Equipo" %}</h4>
+                <div class="team-members">
+                    {% if project.owner %}
+                    <div class="team-member">
+                        <div class="member-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="member-info">
+                            <div class="member-name">{{ project.owner.get_full_name }}</div>
+                            <div class="member-role">{% trans "Propietario" %}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <!-- Aquí se pueden agregar más miembros del equipo -->
+                </div>
+            </div>
+
+            <!-- Actividad reciente -->
+            <div class="sidebar-section">
+                <h4>{% trans "Actividad Reciente" %}</h4>
+                <div class="activity-list">
+                    <div class="activity-item">
+                        <div class="activity-icon">
+                            <i class="fas fa-edit"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-text">{% trans "Proyecto actualizado" %}</div>
+                            <div class="activity-time">{{ project.updated_at|timesince }}</div>
+                        </div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-icon">
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-text">{% trans "Proyecto creado" %}</div>
+                            <div class="activity-time">{{ project.created_at|timesince }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/projects.js' %}?v=1.0"></script>
 {% endblock %}

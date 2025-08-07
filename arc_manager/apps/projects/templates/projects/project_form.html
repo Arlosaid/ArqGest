@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% load static %}
 
 {% block title %}
     {% if form.instance.pk %}
@@ -9,80 +10,153 @@
     {% endif %}
 {% endblock title %}
 
+{% block extra_css %}
+<link href="{% static 'css/projects.css' %}?v=1.2" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-    <div class="card shadow">
-        <div class="card-header">
-            <h3>
+<!-- Usar el container estándar de base.css -->
+<div class="page-container">
+    <!-- Header Section (viene de base.css) -->
+    <div class="header-section">
+        <div class="header-content">
+            <div class="header-title">
+                <div class="header-icon">
+                    <i class="fas fa-project-diagram"></i>
+                </div>
+                <h1>
+                    {% if form.instance.pk %}
+                        {% trans "Editar Proyecto" %}
+                    {% else %}
+                        {% trans "Crear Proyecto" %}
+                    {% endif %}
+                </h1>
+            </div>
+            <a href="{% url 'projects:project-list' %}" class="btn-primary-prominent">
+                <i class="fas fa-arrow-left"></i>
+                {% trans "Volver a Proyectos" %}
+            </a>
+        </div>
+    </div>
+
+    <div class="project-form">
+        <div class="project-form-header">
+            <h2 class="project-form-title">
                 {% if form.instance.pk %}
                     {% trans "Editar Proyecto" %}
                 {% else %}
-                    {% trans "Crear Proyecto" %}
+                    {% trans "Crear Nuevo Proyecto" %}
                 {% endif %}
-            </h3>
+            </h2>
+            <p class="project-form-subtitle">
+                {% if form.instance.pk %}
+                    {% trans "Modifica la información del proyecto" %}
+                {% else %}
+                    {% trans "Completa la información para crear un nuevo proyecto" %}
+                {% endif %}
+            </p>
         </div>
-        <div class="card-body">
-            <form method="post" id="project-form">
-                {% csrf_token %}
-                
-                {{ form.non_field_errors }}
 
-                <div class="mb-3">
-                    <label for="{{ form.name.id_for_label }}" class="form-label">{{ form.name.label }}</label>
+        <form method="post" id="project-form">
+            {% csrf_token %}
+            
+            {{ form.non_field_errors }}
+
+            <!-- Información básica del proyecto -->
+            <div class="form-section">
+                <h3 class="section-title">{% trans "Información Básica" %}</h3>
+                
+                <div class="form-group">
+                    <label for="{{ form.name.id_for_label }}" class="form-label">
+                        <i class="fas fa-project-diagram"></i> {{ form.name.label }}
+                    </label>
                     {{ form.name }}
                     {{ form.name.errors }}
+                    <div class="form-text">{% trans "Nombre descriptivo del proyecto" %}</div>
                 </div>
 
-                <div class="mb-3">
-                    <label for="{{ form.client.id_for_label }}" class="form-label">{{ form.client.label }}</label>
+                <div class="form-group">
+                    <label for="{{ form.client.id_for_label }}" class="form-label">
+                        <i class="fas fa-user-tie"></i> {{ form.client.label }}
+                    </label>
                     {{ form.client }}
                     {{ form.client.errors }}
+                    <div class="form-text">{% trans "Cliente asociado al proyecto" %}</div>
                 </div>
-                
-                <hr>
 
-                <div class="mb-3">
-                    <label class="form-label">{{ form.phase_creation_method.label }}</label>
-                    <div id="phase_creation_method_options">
+                {% if form.description %}
+                <div class="form-group">
+                    <label for="{{ form.description.id_for_label }}" class="form-label">
+                        <i class="fas fa-align-left"></i> {{ form.description.label }}
+                    </label>
+                    {{ form.description }}
+                    {{ form.description.errors }}
+                    <div class="form-text">{% trans "Descripción detallada del proyecto" %}</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Configuración de fases -->
+            <div class="form-section">
+                <h3 class="section-title">{% trans "Configuración de Fases" %}</h3>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-layer-group"></i> {{ form.phase_creation_method.label }}
+                    </label>
+                    <div id="phase_creation_method_options" class="radio-group">
                         {% for radio in form.phase_creation_method %}
                             <div class="form-check">
                                 {{ radio.tag }}
-                                <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+                                <label class="form-check-label" for="{{ radio.id_for_label }}">
+                                    {{ radio.choice_label }}
+                                </label>
                             </div>
                         {% endfor %}
                     </div>
+                    {{ form.phase_creation_method.errors }}
                 </div>
 
-                <div id="phase-template-container" class="mb-3">
-                    <label for="{{ form.phase_template.id_for_label }}" class="form-label">{{ form.phase_template.label }}</label>
+                <div id="phase-template-container" class="form-group">
+                    <label for="{{ form.phase_template.id_for_label }}" class="form-label">
+                        <i class="fas fa-copy"></i> {{ form.phase_template.label }}
+                    </label>
                     {{ form.phase_template }}
                     {{ form.phase_template.errors }}
+                    <div class="form-text">{% trans "Selecciona una plantilla de fases predefinida" %}</div>
                 </div>
 
                 <div id="manual-phases-container" style="display: none;">
-                    <h4>{% trans "Definir Fases" %}</h4>
+                    <div class="manual-phases-header">
+                        <h4>{% trans "Definir Fases Manualmente" %}</h4>
+                        <p class="text-muted">{% trans "Arrastra las fases para reordenarlas" %}</p>
+                    </div>
+                    
                     <div id="phase-formset">
                         {{ phase_formset.management_form }}
                         <div id="phase-forms-container">
                             {% for form in phase_formset %}
-                                <div class="phase-form mb-2 p-2 border rounded" data-form-index="{{ forloop.counter0 }}">
-                                    <div class="row align-items-center">
-                                        <div class="col-auto">
-                                            <i class="fas fa-bars drag-handle" style="cursor: move;"></i>
-                                        </div>
-                                        <div class="col">
+                                <div class="phase-form" data-form-index="{{ forloop.counter0 }}">
+                                    <div class="phase-form-header">
+                                        <i class="fas fa-bars drag-handle"></i>
+                                        <span class="phase-number">Fase {{ forloop.counter }}</span>
+                                        {% if phase_formset.can_delete %}
+                                            <div class="form-check">
+                                                {{ form.DELETE }}
+                                                <label class="form-check-label" for="{{ form.DELETE.id_for_label }}">
+                                                    <i class="fas fa-trash"></i> {% trans "Eliminar" %}
+                                                </label>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="phase-form-body">
+                                        <div class="form-group">
+                                            <label class="form-label">{% trans "Nombre de la fase" %}</label>
                                             {{ form.name }}
-                                            {{ form.order }}
-                                            {% if form.instance.pk %}{{ form.id }}{% endif %}
+                                            {{ form.name.errors }}
                                         </div>
-                                        <div class="col-auto">
-                                            {% if phase_formset.can_delete %}
-                                                <div class="form-check">
-                                                    {{ form.DELETE }}
-                                                    <label class="form-check-label" for="{{ form.DELETE.id_for_label }}">{% trans "Eliminar" %}</label>
-                                                </div>
-                                            {% endif %}
-                                        </div>
+                                        {{ form.order }}
+                                        {% if form.instance.pk %}{{ form.id }}{% endif %}
                                     </div>
                                 </div>
                             {% endfor %}
@@ -90,41 +164,57 @@
                     </div>
 
                     <div id="empty-form" class="d-none">
-                        <div class="phase-form mb-2 p-2 border rounded" data-form-index="__prefix__">
-                            <div class="row align-items-center">
-                                 <div class="col-auto">
-                                    <i class="fas fa-bars drag-handle" style="cursor: move;"></i>
-                                </div>
-                                <div class="col">
+                        <div class="phase-form" data-form-index="__prefix__">
+                            <div class="phase-form-header">
+                                <i class="fas fa-bars drag-handle"></i>
+                                <span class="phase-number">Nueva Fase</span>
+                                {% if phase_formset.can_delete %}
+                                    <div class="form-check">
+                                        {{ phase_formset.empty_form.DELETE }}
+                                        <label class="form-check-label" for="{{ phase_formset.empty_form.DELETE.id_for_label }}">
+                                            <i class="fas fa-trash"></i> {% trans "Eliminar" %}
+                                        </label>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="phase-form-body">
+                                <div class="form-group">
+                                    <label class="form-label">{% trans "Nombre de la fase" %}</label>
                                     {{ phase_formset.empty_form.name }}
-                                    {{ phase_formset.empty_form.order }}
                                 </div>
-                                <div class="col-auto">
-                                    {% if phase_formset.can_delete %}
-                                        <div class="form-check">
-                                            {{ phase_formset.empty_form.DELETE }}
-                                            <label class="form-check-label" for="{{ phase_formset.empty_form.DELETE.id_for_label }}">{% trans "Eliminar" %}</label>
-                                        </div>
-                                    {% endif %}
-                                </div>
+                                {{ phase_formset.empty_form.order }}
                             </div>
                         </div>
                     </div>
 
-                    <button type="button" id="add-form" class="btn btn-outline-primary btn-sm mt-2">{% trans "Añadir Fase" %}</button>
+                    <button type="button" id="add-form" class="btn btn-outline-primary">
+                        <i class="fas fa-plus"></i> {% trans "Añadir Fase" %}
+                    </button>
                 </div>
+            </div>
 
-                <hr>
-                <button type="submit" class="btn btn-primary">{% trans "Guardar Proyecto" %}</button>
-                <a href="{% url 'projects:project-list' %}" class="btn btn-secondary">{% trans "Cancelar" %}</a>
-            </form>
-        </div>
+            <!-- Acciones del formulario -->
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> 
+                    {% if form.instance.pk %}
+                        {% trans "Actualizar Proyecto" %}
+                    {% else %}
+                        {% trans "Crear Proyecto" %}
+                    {% endif %}
+                </button>
+                <a href="{% url 'projects:project-list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> {% trans "Cancelar" %}
+                </a>
+            </div>
+        </form>
     </div>
 </div>
 {% endblock content %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+<script src="{% static 'js/projects.js' %}?v=1.0"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Phase Creation Method toggle
@@ -162,6 +252,7 @@ document.addEventListener('DOMContentLoaded', function() {
         formsetContainer.appendChild(newForm.firstElementChild);
         
         updateOrder();
+        updatePhaseNumbers();
         
         totalForms.value = ++formNum;
     });
@@ -170,21 +261,31 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target && e.target.matches('input[type="checkbox"][name$="-DELETE"]')) {
             const form = e.target.closest('.phase-form');
             if (e.target.checked) {
-                form.style.backgroundColor = '#f8d7da';
+                form.classList.add('deleted');
                 form.querySelector('input[name$="-name"]').required = false;
             } else {
-                form.style.backgroundColor = '';
+                form.classList.remove('deleted');
                 form.querySelector('input[name$="-name"]').required = true;
             }
         }
     });
 
     function updateOrder() {
-        const forms = formsetContainer.querySelectorAll('.phase-form');
+        const forms = formsetContainer.querySelectorAll('.phase-form:not(.deleted)');
         forms.forEach((form, index) => {
             const orderInput = form.querySelector('input[name$="-order"]');
             if (orderInput) {
                 orderInput.value = index;
+            }
+        });
+    }
+
+    function updatePhaseNumbers() {
+        const forms = formsetContainer.querySelectorAll('.phase-form:not(.deleted)');
+        forms.forEach((form, index) => {
+            const numberSpan = form.querySelector('.phase-number');
+            if (numberSpan) {
+                numberSpan.textContent = `Fase ${index + 1}`;
             }
         });
     }
@@ -194,12 +295,14 @@ document.addEventListener('DOMContentLoaded', function() {
         animation: 150,
         onEnd: function() {
             updateOrder();
+            updatePhaseNumbers();
         }
     });
 
     // Initial state
     togglePhaseCreationVisibility();
     updateOrder();
+    updatePhaseNumbers();
 });
 </script>
 {% endblock extra_js %}

@@ -1,35 +1,141 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% load static %}
 
 {% block title %}{% trans "Mis Proyectos" %}{% endblock %}
 
-{% block content %}
-<div class="container mt-4">
-    <h1>{% trans "Mis Proyectos" %}</h1>
-    <a href="{% url 'projects:project-create' %}" class="btn btn-primary mb-3">{% trans "Crear Nuevo Proyecto" %}</a>
+{% block extra_css %}
+<link href="{% static 'css/projects.css' %}?v=1.2" rel="stylesheet">
+{% endblock %}
 
-    <div class="row">
+{% block content %}
+<!-- Usar el container estándar de base.css -->
+<div class="page-container">
+    <!-- Header Section (viene de base.css) -->
+    <div class="header-section">
+        <div class="header-content">
+            <div class="header-title">
+                <div class="header-icon">
+                    <i class="fas fa-project-diagram"></i>
+                </div>
+                <h1>{% trans "Mis Proyectos" %}</h1>
+            </div>
+            <a href="{% url 'projects:project-create' %}" class="btn-primary-prominent">
+                <i class="fas fa-plus"></i>
+                {% trans "Crear Nuevo Proyecto" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros y búsqueda -->
+    <div class="projects-filters">
+        <div class="filters-header">
+            <h3 class="filters-title">{% trans "Filtros" %}</h3>
+            <span class="search-results-counter" style="display: none;"></span>
+        </div>
+        <form class="filters-form">
+            <div class="search-box">
+                <input type="text" class="form-control search-input" placeholder="{% trans 'Buscar proyectos...' %}" name="search">
+            </div>
+            <select class="form-control form-select" name="status">
+                <option value="">{% trans "Todos los estados" %}</option>
+                <option value="active">{% trans "Activo" %}</option>
+                <option value="paused">{% trans "Pausado" %}</option>
+                <option value="completed">{% trans "Completado" %}</option>
+                <option value="cancelled">{% trans "Cancelado" %}</option>
+            </select>
+            <input type="date" class="form-control" name="date" placeholder="{% trans 'Fecha de inicio' %}">
+            <button type="button" class="btn btn-secondary clear-filters">
+                <i class="fas fa-times"></i> {% trans "Limpiar" %}
+            </button>
+        </form>
+    </div>
+
+    <!-- Grid de proyectos -->
+    <div class="projects-grid">
         {% for project in projects %}
-        <div class="col-md-4 mb-4">
-            <div class="card h-100">
-                <div class="card-body d-flex flex-column">
-                    <h5 class="card-title">{{ project.name }}</h5>
-                    <h6 class="card-subtitle mb-2 text-muted">{{ project.client|default:"Sin cliente" }}</h6>
-                    <p class="card-text mt-auto">
-                        <strong>{% trans "Fase" %}:</strong> {{ project.get_phase_display }}
-                    </p>
-                    <div class="mt-2">
-                        <a href="{% url 'projects:project-detail' project.pk %}" class="btn btn-info btn-sm">{% trans "Detalles" %}</a>
-                        <a href="{% url 'projects:project-update' project.pk %}" class="btn btn-secondary btn-sm">{% trans "Editar" %}</a>
+        <div class="project-card" data-project-date="{{ project.created_at|date:'Y-m-d' }}">
+            <div class="project-card-header">
+                <h3 class="project-card-title text-truncate">{{ project.name }}</h3>
+                <p class="project-card-subtitle text-truncate-2">{{ project.client|default:"Sin cliente asignado" }}</p>
+            </div>
+            
+            <div class="project-card-body">
+                <!-- Información del proyecto -->
+                <div class="project-info">
+                    <div class="project-info-item">
+                        <span class="project-info-label">{% trans "Estado" %}</span>
+                        <span class="project-status {{ project.get_phase_display|lower }}">
+                            {{ project.get_phase_display }}
+                        </span>
                     </div>
+                    <div class="project-info-item">
+                        <span class="project-info-label">{% trans "Fecha de inicio" %}</span>
+                        <span class="project-info-value">{{ project.created_at|date:"d/m/Y" }}</span>
+                    </div>
+                    <div class="project-info-item">
+                        <span class="project-info-label">{% trans "Progreso" %}</span>
+                        <span class="project-info-value">{{ project.progress|default:"0" }}%</span>
+                    </div>
+                </div>
+
+                <!-- Barra de progreso -->
+                <div class="project-progress">
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" data-progress="{{ project.progress|default:'0' }}" style="width: {{ project.progress|default:'0' }}%"></div>
+                    </div>
+                    <div class="progress-text">
+                        <span>{% trans "Progreso general" %}</span>
+                        <span class="progress-percentage">{{ project.progress|default:"0" }}%</span>
+                    </div>
+                </div>
+
+                <!-- Descripción -->
+                {% if project.description %}
+                <p class="text-truncate-2 text-muted mt-3 mb-0">
+                    {{ project.description|truncatewords:20 }}
+                </p>
+                {% endif %}
+            </div>
+            
+            <div class="project-card-footer">
+                <div class="project-actions">
+                    <a href="{% url 'projects:project-detail' project.pk %}" class="btn-project-action btn-project-view" data-tooltip="{% trans 'Ver detalles del proyecto' %}">
+                        <i class="fas fa-eye"></i> {% trans "Ver" %}
+                    </a>
+                    <a href="{% url 'projects:project-update' project.pk %}" class="btn-project-action btn-project-edit" data-tooltip="{% trans 'Editar proyecto' %}">
+                        <i class="fas fa-edit"></i> {% trans "Editar" %}
+                    </a>
+                    {% if user.is_org_admin %}
+                    <a href="{% url 'projects:project-delete' project.pk %}" class="btn-project-action btn-project-delete" data-tooltip="{% trans 'Eliminar proyecto' %}">
+                        <i class="fas fa-trash"></i> {% trans "Eliminar" %}
+                    </a>
+                    {% endif %}
+                </div>
+                
+                <div class="project-meta">
+                    <small class="text-muted">
+                        <i class="fas fa-calendar"></i> {{ project.updated_at|timesince }}
+                    </small>
                 </div>
             </div>
         </div>
         {% empty %}
-        <div class="col">
-            <p>{% trans "Aún no tienes proyectos. ¡Crea uno para empezar!" %}</p>
+        <div class="empty-projects">
+            <div class="empty-projects-icon">
+                <i class="fas fa-folder-open"></i>
+            </div>
+            <h3 class="empty-projects-title">{% trans "No tienes proyectos aún" %}</h3>
+            <p class="empty-projects-text">{% trans "Comienza creando tu primer proyecto de construcción" %}</p>
+            <a href="{% url 'projects:project-create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> {% trans "Crear Proyecto" %}
+            </a>
         </div>
         {% endfor %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/projects.js' %}?v=1.0"></script>
 {% endblock %}

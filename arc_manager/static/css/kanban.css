@@ -1,0 +1,573 @@
+/* ========================================
+   KANBAN - ESTILOS ESPECÍFICOS
+   ======================================== */
+/* 
+   IMPORTANTE: Este archivo contiene estilos específicos para el tablero Kanban.
+   NO sobrescribe estilos generales de base.css, navbar.css, o sidebar.css.
+   Solo agrega estilos específicos para componentes del tablero Kanban.
+*/
+
+/* Variables específicas para Kanban */
+:root {
+    --kanban-column-width: 320px;
+    --kanban-column-bg: #f8fafc;
+    --kanban-card-bg: #ffffff;
+    --kanban-border-radius: 12px;
+    --kanban-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --kanban-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --kanban-transition: all 0.2s ease-in-out;
+}
+
+/* ========================================
+   HEADER DEL KANBAN
+   ======================================== */
+
+.kanban-header {
+    background: var(--arc-bg-primary);
+    border-radius: var(--kanban-border-radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--arc-border-color);
+    box-shadow: var(--kanban-shadow);
+}
+
+.kanban-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--arc-text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.kanban-subtitle {
+    color: var(--arc-text-secondary);
+    margin-bottom: 0;
+    font-size: 0.875rem;
+}
+
+.kanban-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+/* ========================================
+   ESTADÍSTICAS DEL PROYECTO
+   ======================================== */
+
+.project-stats {
+    margin-bottom: 2rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.stat-card {
+    background: var(--arc-bg-primary);
+    border-radius: var(--kanban-border-radius);
+    padding: 1.5rem;
+    border: 1px solid var(--arc-border-color);
+    box-shadow: var(--kanban-shadow);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: var(--kanban-transition);
+}
+
+.stat-card:hover {
+    box-shadow: var(--kanban-shadow-hover);
+    transform: translateY(-2px);
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: white;
+    background: linear-gradient(135deg, var(--arc-color-primary) 0%, var(--arc-color-primary-hover) 100%);
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--arc-text-primary);
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--arc-text-secondary);
+    margin-top: 0.25rem;
+}
+
+/* ========================================
+   CONTENEDOR DEL TABLERO
+   ======================================== */
+
+.kanban-board-container {
+    overflow-x: auto;
+    padding-bottom: 1rem;
+    background: var(--arc-bg-secondary);
+    border-radius: var(--kanban-border-radius);
+    padding: 1rem;
+}
+
+.kanban-board {
+    display: flex;
+    gap: 1.5rem;
+    min-width: fit-content;
+    min-height: 70vh;
+}
+
+/* ========================================
+   COLUMNAS DEL KANBAN
+   ======================================== */
+
+.kanban-column {
+    width: var(--kanban-column-width);
+    flex-shrink: 0;
+    background: var(--kanban-column-bg);
+    border-radius: var(--kanban-border-radius);
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--arc-border-color);
+    box-shadow: var(--kanban-shadow);
+}
+
+.kanban-column-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--arc-border-color);
+    background: var(--arc-bg-primary);
+    border-radius: var(--kanban-border-radius) var(--kanban-border-radius) 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.column-title h5 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--arc-text-primary);
+    margin: 0;
+}
+
+.task-count {
+    font-size: 0.75rem;
+    color: var(--arc-text-muted);
+    background: var(--arc-bg-secondary);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    margin-top: 0.25rem;
+    display: inline-block;
+}
+
+.column-actions {
+    display: flex;
+    align-items: center;
+}
+
+.kanban-column-body {
+    flex-grow: 1;
+    padding: 1rem;
+    overflow-y: auto;
+    max-height: 60vh;
+    background: var(--kanban-column-bg);
+}
+
+.kanban-column-footer {
+    padding: 1rem;
+    border-top: 1px solid var(--arc-border-color);
+    background: var(--arc-bg-primary);
+    border-radius: 0 0 var(--kanban-border-radius) var(--kanban-border-radius);
+}
+
+/* ========================================
+   TARJETAS DEL KANBAN
+   ======================================== */
+
+.kanban-card {
+    background: var(--kanban-card-bg);
+    border: 1px solid var(--arc-border-color);
+    border-radius: var(--kanban-border-radius);
+    margin-bottom: 0.75rem;
+    box-shadow: var(--kanban-shadow);
+    cursor: grab;
+    transition: var(--kanban-transition);
+    overflow: hidden;
+}
+
+.kanban-card:hover {
+    box-shadow: var(--kanban-shadow-hover);
+    transform: translateY(-2px);
+}
+
+.kanban-card:active {
+    cursor: grabbing;
+}
+
+.kanban-card .card-header {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--arc-border-color);
+    background: var(--arc-bg-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.kanban-card .card-body {
+    padding: 1rem;
+}
+
+.task-priority {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: white;
+}
+
+.priority-high {
+    background: var(--arc-color-danger);
+}
+
+.priority-medium {
+    background: var(--arc-color-warning);
+}
+
+.priority-low {
+    background: var(--arc-color-success);
+}
+
+.task-actions {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.task-actions .btn-link {
+    padding: 0.25rem;
+    color: var(--arc-text-secondary);
+    text-decoration: none;
+    border-radius: 0.25rem;
+    transition: var(--kanban-transition);
+}
+
+.task-actions .btn-link:hover {
+    color: var(--arc-color-primary);
+    background: var(--arc-bg-tertiary);
+}
+
+.task-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--arc-text-primary);
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+}
+
+.task-description {
+    font-size: 0.75rem;
+    color: var(--arc-text-secondary);
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+}
+
+.task-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.task-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.status-todo {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.status-in_progress {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.status-paused {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-done {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.task-assignee,
+.task-due-date {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--arc-text-secondary);
+}
+
+.task-assignee i,
+.task-due-date i {
+    font-size: 0.625rem;
+}
+
+/* ========================================
+   ESTADOS VACÍOS
+   ======================================== */
+
+.empty-column {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--arc-text-muted);
+}
+
+.empty-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.5;
+}
+
+.empty-text {
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+/* ========================================
+    FORMULARIOS ESPECÍFICOS PARA KANBAN
+    ======================================== */
+
+.add-task-form {
+    margin-top: 0.5rem;
+}
+
+.add-task-form .input-group {
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.add-task-form .form-control {
+    border: 1px solid var(--arc-border-color);
+    border-right: none;
+    font-size: 0.875rem;
+}
+
+.add-task-form .btn {
+    border: 1px solid var(--arc-color-primary);
+    background: var(--arc-color-primary);
+    color: white;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    transition: var(--kanban-transition);
+}
+
+.add-task-form .btn:hover {
+    background: var(--arc-color-primary-hover);
+    border-color: var(--arc-color-primary-hover);
+}
+
+/* ========================================
+   DRAG AND DROP
+   ======================================== */
+
+.kanban-card-ghost {
+    opacity: 0.5;
+    background: var(--arc-bg-tertiary);
+    border: 2px dashed var(--arc-color-primary);
+}
+
+.kanban-card-chosen {
+    transform: rotate(5deg);
+    box-shadow: var(--kanban-shadow-hover);
+}
+
+.kanban-card-drag {
+    opacity: 0.8;
+    transform: rotate(5deg);
+}
+
+.kanban-card.dragging {
+    transform: rotate(5deg) scale(1.05);
+    box-shadow: var(--kanban-shadow-hover);
+    z-index: 1000;
+}
+
+/* ========================================
+   MODALES
+   ======================================== */
+
+.modal-content {
+    border-radius: var(--kanban-border-radius);
+    border: none;
+    box-shadow: var(--kanban-shadow-hover);
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--arc-border-color);
+    background: var(--arc-bg-secondary);
+    border-radius: var(--kanban-border-radius) var(--kanban-border-radius) 0 0;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--arc-border-color);
+    background: var(--arc-bg-secondary);
+    border-radius: 0 0 var(--kanban-border-radius) var(--kanban-border-radius);
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+    .kanban-board {
+        gap: 1rem;
+    }
+    
+    .kanban-column {
+        width: 280px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .kanban-header {
+        padding: 1rem;
+    }
+    
+    .kanban-title {
+        font-size: 1.5rem;
+    }
+    
+    .kanban-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .kanban-column {
+        width: 260px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stat-card {
+        padding: 1rem;
+    }
+    
+    .kanban-column-header {
+        padding: 0.75rem;
+    }
+    
+    .kanban-column-body {
+        padding: 0.75rem;
+    }
+    
+    .kanban-card .card-body {
+        padding: 0.75rem;
+    }
+}
+
+/* ========================================
+   ANIMACIONES
+   ======================================== */
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.kanban-card {
+    animation: slideIn 0.3s ease-out;
+}
+
+.kanban-card:nth-child(1) { animation-delay: 0.1s; }
+.kanban-card:nth-child(2) { animation-delay: 0.2s; }
+.kanban-card:nth-child(3) { animation-delay: 0.3s; }
+.kanban-card:nth-child(4) { animation-delay: 0.4s; }
+.kanban-card:nth-child(5) { animation-delay: 0.5s; }
+
+/* ========================================
+    UTILIDADES ESPECÍFICAS PARA KANBAN
+    ======================================== */
+
+.kanban-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--arc-border-color) transparent;
+}
+
+.kanban-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.kanban-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.kanban-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--arc-border-color);
+    border-radius: 3px;
+}
+
+.kanban-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--arc-text-muted);
+}
+
+/* Aplicar scrollbar personalizado a las columnas */
+.kanban-column-body {
+    scrollbar-width: thin;
+    scrollbar-color: var(--arc-border-color) transparent;
+}
+
+.kanban-column-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.kanban-column-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.kanban-column-body::-webkit-scrollbar-thumb {
+    background: var(--arc-border-color);
+    border-radius: 3px;
+}
+
+.kanban-column-body::-webkit-scrollbar-thumb:hover {
+    background: var(--arc-text-muted);
+}
