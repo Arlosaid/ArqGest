@@ -36,16 +36,18 @@ def dashboard(request):
 
     # 1. Widget "Mis Tareas"
     # Tareas asignadas al usuario que no están completadas.
+    # Reducido a 3 para que se vean todas en el sidebar
     my_tasks = Task.objects.filter(
         assigned_to=current_user
-    ).exclude(status='DONE').order_by('due_date')[:10]  # Limitar a las 10 más próximas
+    ).exclude(status='DONE').order_by('due_date')[:3]  # Reducido de 10 a 3
 
     # 2. Widget "Proyectos Activos"
     # Proyectos de la organización que están en curso.
+    # Mostrar los 6 proyectos más importantes (más recientes y con más actividad)
     active_projects = Project.objects.filter(
         organization=organization,
         status='ACTIVE'
-    ).order_by('-created_at')[:5] # 5 proyectos con actividad más reciente
+    ).select_related('client').prefetch_related('phases__tasks').order_by('-created_at')[:6]
 
     # 3. Widget "Resumen de Clientes"
     total_clients = Client.objects.filter(organization=organization).count()

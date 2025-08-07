@@ -5,7 +5,7 @@
 {% block title %}Dashboard - Arc Manager{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/dashboard.css' %}?v=28" rel="stylesheet">
+<link href="{% static 'css/dashboard.css' %}?v=34" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 {% endblock %}
 
@@ -40,40 +40,6 @@
             </div>
         </header>
 
-        <!-- Widgets Principales -->
-        <section class="metrics-section">
-            <div class="metrics-grid">
-                <div class="metric-card">
-                    <div class="metric-icon"><i class="fas fa-tasks"></i></div>
-                    <div class="metric-content">
-                        <div class="metric-value">{{ my_tasks.count }}</div>
-                        <div class="metric-label">Mis Tareas Pendientes</div>
-                    </div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-icon"><i class="fas fa-building"></i></div>
-                    <div class="metric-content">
-                        <div class="metric-value">{{ active_projects.count }}</div>
-                        <div class="metric-label">Proyectos Activos</div>
-                    </div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-icon"><i class="fas fa-users"></i></div>
-                    <div class="metric-content">
-                        <div class="metric-value">{{ total_clients }}</div>
-                        <div class="metric-label">Total de Clientes</div>
-                    </div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-icon"><i class="fas fa-handshake"></i></div>
-                    <div class="metric-content">
-                        <div class="metric-value">{{ recent_clients.count }}</div>
-                        <div class="metric-label">Nuevos Clientes</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
         <!-- Proyectos y Tareas -->
         <div class="dashboard-main-grid">
             <!-- Columna de Proyectos Activos -->
@@ -90,7 +56,19 @@
                     {% for project in active_projects %}
                     <div class="project-card-mini">
                         <div class="project-image-mini">
-                            <img src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=200&h=60&fit=crop" alt="{{ project.name }}">
+                            {% if forloop.counter0 == 0 %}
+                            <img src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=400&h=200&fit=crop&q=80" alt="{{ project.name }}" loading="lazy">
+                            {% elif forloop.counter0 == 1 %}
+                            <img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&h=200&fit=crop&q=80" alt="{{ project.name }}" loading="lazy">
+                            {% elif forloop.counter0 == 2 %}
+                            <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&h=200&fit=crop&q=80" alt="{{ project.name }}" loading="lazy">
+                            {% elif forloop.counter0 == 3 %}
+                            <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=200&fit=crop&q=80" alt="{{ project.name }}" loading="lazy">
+                            {% elif forloop.counter0 == 4 %}
+                            <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&h=200&fit=crop&q=80" alt="{{ project.name }}" loading="lazy">
+                            {% else %}
+                            <img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&h=200&fit=crop&q=80" alt="{{ project.name }}" loading="lazy">
+                            {% endif %}
                             <div class="project-status-mini {{ project.status }}">{{ project.get_status_display }}</div>
                         </div>
                         <div class="project-info-mini">
@@ -98,9 +76,9 @@
                             <p>{{ project.client.name|default:"Sin cliente" }}</p>
                             <div class="project-progress-mini">
                                 <div class="progress-bar-mini">
-                                    <div class="progress-fill-mini" style="width: 50%;"></div> {# Placeholder for progress %}
+                                    <div class="progress-fill-mini" style="width: {{ project.progress_percentage|default:0 }}%;"></div>
                                 </div>
-                                <span class="progress-text-mini">50%</span>
+                                <span class="progress-text-mini">{{ project.progress_percentage|default:0 }}%</span>
                             </div>
                             <div class="project-meta-mini">
                                 <span><i class="fas fa-calendar-alt"></i> Finaliza: {{ project.end_date|date:"d M, Y"|default:"N/A" }}</span>
@@ -119,7 +97,7 @@
                 </div>
             </section>
 
-            <!-- Columna de Tareas y Clientes -->
+            <!-- Columna de Tareas y Documentos -->
             <div class="dashboard-side-grid">
                 <!-- Mis Tareas -->
                 <section class="summary-section-mini">
@@ -130,7 +108,7 @@
                     <div class="summary-list-mini">
                         {% for task in my_tasks %}
                         <div class="summary-item-mini">
-                            <div class="priority-dot high"></div> <!-- Placeholder -->
+                            <div class="priority-dot {{ task.priority }}"></div>
                             <div class="item-content-mini">
                                 <h5>{{ task.title }}</h5>
                                 <p>{{ task.phase.project.name }} • Vence {{ task.due_date|naturalday }}</p>
@@ -151,27 +129,27 @@
                     </div>
                 </section>
 
-                <!-- Clientes Recientes -->
+                <!-- Documentos Recientes -->
                 <section class="summary-section-mini">
                     <div class="section-header-mini">
-                        <h3><i class="fas fa-handshake"></i> Clientes Recientes</h3>
-                        <a href="{% url 'orgs:client_list' %}" class="btn-mini-link">Ver todos</a>
+                        <h3><i class="fas fa-file-alt"></i> Documentos Recientes</h3>
+                        <a href="#" class="btn-mini-link">Ver todos</a>
                     </div>
                     <div class="summary-list-mini">
-                        {% for client in recent_clients %}
+                        {% for file in recent_files %}
                         <div class="summary-item-mini">
-                            <div class="doc-icon-mini client-icon">
-                                <i class="fas fa-user-tie"></i>
+                            <div class="doc-icon-mini {{ file.file_extension }}">
+                                <i class="fas fa-{{ file.icon_class }}"></i>
                             </div>
                             <div class="item-content-mini">
-                                <h5>{{ client.name }}</h5>
-                                <p>Registrado {{ client.created_at|naturaltime }}</p>
+                                <h5>{{ file.filename }}</h5>
+                                <p>{{ file.phase.project.name }} • {{ file.uploaded_at|naturaltime }}</p>
                             </div>
-                            <a href="{% url 'orgs:client_detail' client.pk %}" class="btn-client-action"><i class="fas fa-eye"></i></a>
+                            <a href="{{ file.file.url }}" class="btn-client-action" download><i class="fas fa-download"></i></a>
                         </div>
                         {% empty %}
                         <div class="empty-state-card-small">
-                             <p>No se han añadido clientes recientemente.</p>
+                             <p>No se han subido documentos recientemente.</p>
                         </div>
                         {% endfor %}
                     </div>
@@ -183,5 +161,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/dashboard.js' %}?v=12"></script>
+<script src="{% static 'js/dashboard.js' %}?v=14"></script>
 {% endblock %}
