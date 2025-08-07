@@ -1,591 +1,582 @@
 /* ========================================
-   PROYECTOS - ESTILOS ESPECÍFICOS
+   PROYECTOS - ESTILOS PROFESIONALES v2.5
    ======================================== */
 /* 
-   IMPORTANTE: Este archivo contiene estilos específicos para proyectos.
-   NO sobrescribe estilos generales de base.css, navbar.css, o sidebar.css.
-   Solo agrega estilos específicos para componentes de proyectos.
+   IMPORTANTE: Diseño sobrio y profesional para arquitectos.
+   Enfoque en funcionalidad y elegancia minimalista.
 */
 
-/* Variables específicas para proyectos */
+/* Variables específicas para proyectos profesionales */
 :root {
-    --project-card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-    --project-card-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --project-border-radius: 12px;
-    --project-transition: all 0.2s ease-in-out;
+    --project-primary: #3b82f6;
+    --project-primary-dark: #2563eb;
+    --project-primary-light: #dbeafe;
+    --project-accent: #3498db;
+    --project-success: #27ae60;
+    --project-warning: #f39c12;
+    --project-error: #e74c3c;
+    --project-text: #2c3e50;
+    --project-text-secondary: #7f8c8d;
+    --project-text-muted: #95a5a6;
+    --project-surface: #ffffff;
+    --project-surface-secondary: #f8f9fa;
+    --project-border: #ecf0f1;
+    --project-border-light: #f8f9fa;
+    --project-radius: 0.5rem;
+    --project-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    --project-shadow-hover: 0 4px 8px rgba(0, 0, 0, 0.12);
+    --project-transition: all 0.2s ease;
 }
 
 /* ========================================
-   BOTÓN PRINCIPAL PROMINENTE (COMPATIBILIDAD CON BASE.CSS)
+   BOTÓN PRINCIPAL PROMINENTE
    ======================================== */
 
 .btn-primary-prominent {
-    background: var(--arc-color-primary);
+    background: var(--project-primary);
     color: white;
     border: none;
     padding: 0.75rem 1.5rem;
-    border-radius: var(--arc-border-radius);
+    border-radius: var(--project-radius);
     font-weight: 500;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    transition: var(--arc-transition);
+    transition: var(--project-transition);
     font-size: 0.875rem;
 }
 
 .btn-primary-prominent:hover {
-    background: var(--arc-color-primary-hover);
+    background: var(--project-primary-dark);
     color: white;
     text-decoration: none;
     transform: translateY(-1px);
-    box-shadow: var(--arc-shadow-md);
+    box-shadow: var(--project-shadow-hover);
 }
 
 .btn-primary-prominent:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 /* ========================================
-   CARDS DE PROYECTOS
+   FILTRO COMPACTO
    ======================================== */
 
-.project-card {
-    background: var(--arc-bg-primary);
-    border-radius: var(--project-border-radius);
-    box-shadow: var(--project-card-shadow);
-    transition: var(--project-transition);
-    border: 1px solid var(--arc-border-color);
-    overflow: hidden;
-    position: relative;
+.projects-filters-modern {
+    background: var(--project-surface);
+    border-radius: var(--project-radius);
+    padding: 0.5rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--project-border);
+    box-shadow: var(--project-shadow);
 }
 
-.project-card:hover {
-    box-shadow: var(--project-card-shadow-hover);
-    transform: translateY(-2px);
-    border-color: var(--arc-color-primary);
-}
-
-.project-card-header {
-    padding: 1.5rem 1.5rem 1rem;
-    border-bottom: 1px solid var(--arc-border-color);
-    background: linear-gradient(135deg, var(--arc-bg-secondary) 0%, var(--arc-bg-primary) 100%);
-}
-
-.project-card-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--arc-text-primary);
-    margin: 0 0 0.5rem 0;
-    line-height: 1.3;
-}
-
-.project-card-subtitle {
-    font-size: 0.875rem;
-    color: var(--arc-text-secondary);
-    margin: 0;
-    font-weight: 400;
-}
-
-.project-card-body {
-    padding: 1rem 1.5rem;
-}
-
-.project-card-footer {
-    padding: 1rem 1.5rem;
-    border-top: 1px solid var(--arc-border-color);
-    background: var(--arc-bg-secondary);
+.filters-header-modern {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.filters-title-modern {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--project-text);
+    margin: 0;
+}
+
+.search-results-counter {
+    background: var(--project-primary);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--project-radius);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.filters-form-modern {
+    display: flex;
+    align-items: center;
+}
+
+.search-box-modern {
+    flex: 1;
+    position: relative;
+    max-width: 240px;
+}
+
+.search-input-modern {
+    width: 100%;
+    padding: 0.375rem 0.75rem 0.375rem 2rem;
+    border: 1px solid var(--project-border);
+    border-radius: 0.375rem;
+    font-size: 0.8125rem;
+    transition: var(--project-transition);
+    background: var(--project-surface);
+    color: var(--project-text);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%237f8c8d'%3e%3cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m21 21-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: 0.5rem center;
+    background-size: 0.75rem;
+}
+
+.search-input-modern:focus {
+    outline: none;
+    border-color: var(--project-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.search-input-modern::placeholder {
+    color: var(--project-text-muted);
 }
 
 /* ========================================
-   ESTADOS DE PROYECTOS
+   GRID DE PROYECTOS
    ======================================== */
 
-.project-status {
+.projects-grid-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+/* ========================================
+   TARJETAS DE PROYECTO MEJORADAS
+   ======================================== */
+
+.project-card-modern {
+    background: linear-gradient(180deg, #ffffff 0%, #fcfdff 100%);
+    border-radius: var(--project-radius);
+    box-shadow: var(--project-shadow);
+    transition: var(--project-transition);
+    border: 1px solid var(--project-border);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 340px;
+}
+
+.project-card-modern:hover {
+    box-shadow: var(--project-shadow-hover);
+    transform: translateY(-2px);
+}
+
+.project-card-modern::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--project-primary), #60a5fa);
+}
+
+.project-card-header-modern {
+    padding: 0.75rem 1rem 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 1px solid var(--project-border-light);
+}
+
+.project-card-badge {
+    display: flex;
+    align-items: center;
+}
+
+.project-status-modern {
     display: inline-flex;
     align-items: center;
-    padding: 0.375rem 0.875rem;
-    border-radius: 1rem;
-    font-size: 0.875rem;
-    font-weight: 500;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--project-radius);
+    font-size: 0.75rem;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.025em;
 }
 
-.project-status.active {
-    background: #dcfce7;
-    color: #166534;
-    border: 1px solid #bbf7d0;
+.project-status-modern.active {
+    background: #d5f4e6;
+    color: #27ae60;
 }
 
-.project-status.paused {
-    background: #fef3c7;
-    color: #92400e;
-    border: 1px solid #fde68a;
+.project-status-modern.paused {
+    background: #fef9e7;
+    color: #f39c12;
 }
 
-.project-status.completed {
-    background: #dbeafe;
-    color: #1e40af;
-    border: 1px solid #bfdbfe;
+.project-status-modern.completed {
+    background: #ebf3fd;
+    color: #3498db;
 }
 
-.project-status.cancelled {
-    background: #fee2e2;
-    color: #991b1b;
-    border: 1px solid #fecaca;
+.project-status-modern.cancelled {
+    background: #fadbd8;
+    color: #e74c3c;
 }
 
-/* ========================================
-   GRID RESPONSIVE PARA LISTA DE PROYECTOS
-   ======================================== */
-
-.projects-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 1.5rem;
-    margin: 1.5rem 0;
-}
-
-@media (max-width: 768px) {
-    .projects-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-    }
-}
-
-@media (min-width: 1200px) {
-    .projects-grid {
-        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-    }
-}
-
-/* ========================================
-   BOTONES DE ACCIÓN
-   ======================================== */
-
-.project-actions {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.btn-project-action {
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: var(--project-transition);
-    border: 1px solid transparent;
-}
-
-.btn-project-view {
-    background: var(--arc-color-primary);
-    color: white;
-}
-
-.btn-project-view:hover {
-    background: var(--arc-color-primary-hover);
-    color: white;
-    transform: translateY(-1px);
-}
-
-.btn-project-edit {
-    background: var(--arc-color-warning);
-    color: white;
-}
-
-.btn-project-edit:hover {
-    background: #d97706;
-    color: white;
-    transform: translateY(-1px);
-}
-
-.btn-project-delete {
-    background: var(--arc-color-danger);
-    color: white;
-}
-
-.btn-project-delete:hover {
-    background: #dc2626;
-    color: white;
-    transform: translateY(-1px);
-}
-
-.btn-project-secondary {
-    background: var(--arc-bg-secondary);
-    color: var(--arc-text-secondary);
-    border-color: var(--arc-border-color);
-}
-
-.btn-project-secondary:hover {
-    background: var(--arc-bg-tertiary);
-    color: var(--arc-text-primary);
-    transform: translateY(-1px);
-}
-
-/* ========================================
-   INDICADORES DE PROGRESO
-   ======================================== */
-
-.project-progress {
-    margin: 1rem 0;
-}
-
-.progress-bar-container {
-    background: var(--arc-bg-tertiary);
-    border-radius: 1rem;
-    height: 0.5rem;
-    overflow: hidden;
-    margin-bottom: 0.5rem;
-}
-
-.progress-bar {
-    height: 100%;
-    border-radius: 1rem;
-    transition: width 0.3s ease;
-    background: linear-gradient(90deg, var(--arc-color-primary) 0%, var(--arc-color-success) 100%);
-}
-
-.progress-text {
-    font-size: 0.875rem;
-    color: var(--arc-text-secondary);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.progress-percentage {
-    font-weight: 600;
-    color: var(--arc-text-primary);
-}
-
-/* ========================================
-   INFORMACIÓN DE PROYECTO
-   ======================================== */
-
-.project-info {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin: 1rem 0;
-}
-
-.project-info-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.project-info-label {
-    font-size: 0.75rem;
-    color: var(--arc-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 600;
-}
-
-.project-info-value {
-    font-size: 0.875rem;
-    color: var(--arc-text-primary);
-    font-weight: 500;
-}
-
-/* ========================================
-   FORMULARIOS DE PROYECTO
-   ======================================== */
-
-.project-form {
-    background: var(--arc-bg-primary);
-    border-radius: var(--project-border-radius);
-    box-shadow: var(--project-card-shadow);
-    padding: 2rem;
-    border: 1px solid var(--arc-border-color);
-}
-
-.project-form-header {
-    margin-bottom: 2rem;
-    text-align: center;
-}
-
-.project-form-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--arc-text-primary);
-    margin-bottom: 0.5rem;
-}
-
-.project-form-subtitle {
-    color: var(--arc-text-secondary);
-    font-size: 0.875rem;
-}
-
-/* Formularios específicos para proyectos - no sobrescribir estilos generales */
-.project-form .form-group {
-    margin-bottom: 1.5rem;
-}
-
-.project-form .form-label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: var(--arc-text-primary);
-    font-size: 0.875rem;
-}
-
-.project-form .form-control {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--arc-border-color);
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    transition: var(--project-transition);
-    background: var(--arc-bg-primary);
-    color: var(--arc-text-primary);
-}
-
-.project-form .form-control:focus {
-    outline: none;
-    border-color: var(--arc-color-primary);
-    box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
-}
-
-.project-form .form-control:disabled {
-    background: var(--arc-bg-tertiary);
-    color: var(--arc-text-muted);
-    cursor: not-allowed;
-}
-
-.project-form .form-textarea {
-    min-height: 120px;
-    resize: vertical;
-}
-
-.project-form .form-select {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 0.5rem center;
-    background-repeat: no-repeat;
-    background-size: 1.5em 1.5em;
-    padding-right: 2.5rem;
-}
-
-/* ========================================
-   FILTROS Y BÚSQUEDA
-   ======================================== */
-
-.projects-filters {
-    background: var(--arc-bg-primary);
-    border-radius: var(--project-border-radius);
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    border: 1px solid var(--arc-border-color);
-    box-shadow: var(--project-card-shadow);
-}
-
-.filters-header {
-    display: flex;
-    justify-content: between;
-    align-items: center;
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
-.filters-title {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--arc-text-primary);
-    margin: 0;
-}
-
-.filters-form {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    align-items: end;
-}
-
-.search-box {
+.project-card-menu {
     position: relative;
 }
 
-.search-input {
-    padding-left: 2.5rem;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3e%3cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m21 21-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0z'/%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: 0.75rem center;
-    background-size: 1.25rem;
+.btn-card-menu {
+    background: var(--project-surface-secondary);
+    color: var(--project-text-secondary);
+    border: 1px solid var(--project-border);
+    padding: 0.375rem;
+    border-radius: var(--project-radius);
+    cursor: pointer;
+    transition: var(--project-transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
 }
 
-/* ========================================
-   DETALLES DE PROYECTO
-   ======================================== */
-
-.project-detail-header {
-    background: linear-gradient(135deg, var(--arc-color-primary) 0%, var(--arc-color-primary-hover) 100%);
-    color: white;
-    padding: 2rem;
-    border-radius: var(--project-border-radius);
-    margin-bottom: 2rem;
+.btn-card-menu:hover {
+    background: var(--project-border);
+    color: var(--project-text);
 }
 
-.project-detail-title {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
+.project-card-body-modern {
+    padding: 0.75rem 1rem 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
-.project-detail-subtitle {
+.project-card-title-modern {
     font-size: 1rem;
-    opacity: 0.9;
+    font-weight: 600;
+    color: var(--project-text);
+    margin: 0 0 0.75rem 0;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.project-card-info-modern {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    min-height: 120px;
+}
+
+.info-item-modern {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-height: 44px;
+}
+
+.info-label-modern {
+    font-size: 0.7rem;
+    color: var(--project-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    font-weight: 600;
+}
+
+.info-value-modern {
+    font-size: 0.8125rem;
+    color: var(--project-text);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.project-card-progress-modern {
     margin-bottom: 1rem;
 }
 
-.project-detail-meta {
+.progress-header-modern {
     display: flex;
-    gap: 2rem;
-    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.375rem;
 }
 
-.project-detail-meta-item {
+.progress-label {
+    font-size: 0.8125rem;
+    color: var(--project-text-secondary);
+    font-weight: 500;
+}
+
+.progress-value {
+    font-size: 0.8125rem;
+    color: var(--project-text);
+    font-weight: 600;
+}
+
+.progress-bar-modern {
+    background: var(--project-surface-secondary);
+    border-radius: var(--project-radius);
+    height: 0.35rem;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill-modern {
+    height: 100%;
+    border-radius: var(--project-radius);
+    transition: width 0.3s ease;
+    background: var(--project-primary);
+}
+
+.project-card-meta-modern {
+    display: flex;
+    gap: 1rem;
+    margin-top: auto;
+}
+
+.meta-item-modern {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     font-size: 0.875rem;
+    color: var(--project-text-secondary);
 }
 
-.project-detail-content {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 2rem;
+.meta-item-modern i {
+    color: var(--project-primary);
+    font-size: 0.75rem;
 }
 
-@media (max-width: 768px) {
-    .project-detail-content {
-        grid-template-columns: 1fr;
-    }
+.project-card-footer-modern {
+    padding: 0.75rem 1rem 1rem;
+    border-top: 1px solid var(--project-border-light);
+    background: var(--project-surface-secondary);
+    margin-top: auto;
 }
 
-.project-detail-main {
-    background: var(--arc-bg-primary);
-    border-radius: var(--project-border-radius);
-    padding: 1.5rem;
-    border: 1px solid var(--arc-border-color);
-    box-shadow: var(--project-card-shadow);
+.project-actions-modern {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
 }
 
-.project-detail-sidebar {
-    background: var(--arc-bg-primary);
-    border-radius: var(--project-border-radius);
-    padding: 1.5rem;
-    border: 1px solid var(--arc-border-color);
-    box-shadow: var(--project-card-shadow);
-    height: fit-content;
+/* Botones de acción iguales a los del módulo de usuarios */
+.btn-action-modern {
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--project-radius);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: var(--project-transition);
+    border: 1px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    cursor: pointer;
+}
+
+.btn-view-modern {
+    background: #dcfce7;
+    color: #166534;
+    border-color: #bbf7d0;
+}
+
+.btn-view-modern:hover {
+    background: #bbf7d0;
+    border-color: #86efac;
+    color: #166534;
+    transform: translateY(-1px);
+}
+
+.btn-edit-modern {
+    background: #dbeafe;
+    color: #1e40af;
+    border-color: #bfdbfe;
+}
+
+.btn-edit-modern:hover {
+    background: #bfdbfe;
+    border-color: #93c5fd;
+    color: #1e40af;
+    transform: translateY(-1px);
+}
+
+.btn-delete-modern {
+    background: #fee2e2;
+    color: #991b1b;
+    border-color: #fecaca;
+}
+
+.btn-delete-modern:hover {
+    background: #fecaca;
+    border-color: #fca5a5;
+    color: #991b1b;
+    transform: translateY(-1px);
 }
 
 /* ========================================
-   ANIMACIONES
+   ESTADO VACÍO PROFESIONAL
    ======================================== */
 
-@keyframes projectCardFadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.project-card {
-    animation: projectCardFadeIn 0.3s ease-out;
-}
-
-.project-card:nth-child(1) { animation-delay: 0.1s; }
-.project-card:nth-child(2) { animation-delay: 0.2s; }
-.project-card:nth-child(3) { animation-delay: 0.3s; }
-.project-card:nth-child(4) { animation-delay: 0.4s; }
-.project-card:nth-child(5) { animation-delay: 0.5s; }
-.project-card:nth-child(6) { animation-delay: 0.6s; }
-
-/* ========================================
-   ESTADOS VACÍOS
-   ======================================== */
-
-.empty-projects {
+.empty-projects-modern {
     text-align: center;
-    padding: 3rem 1rem;
-    background: var(--arc-bg-primary);
-    border-radius: var(--project-border-radius);
-    border: 2px dashed var(--arc-border-color);
+    padding: 3rem 2rem;
+    background: var(--project-surface);
+    border-radius: var(--project-radius);
+    border: 2px dashed var(--project-border);
+    grid-column: 1 / -1;
 }
 
-.empty-projects-icon {
+.empty-projects-icon-modern {
     font-size: 3rem;
-    color: var(--arc-text-muted);
-    margin-bottom: 1rem;
+    color: var(--project-text-muted);
+    margin-bottom: 1.25rem;
 }
 
-.empty-projects-title {
+.empty-projects-title-modern {
     font-size: 1.25rem;
     font-weight: 600;
-    color: var(--arc-text-primary);
-    margin-bottom: 0.5rem;
+    color: var(--project-text);
+    margin-bottom: 0.75rem;
 }
 
-.empty-projects-text {
-    color: var(--arc-text-secondary);
+.empty-projects-text-modern {
+    color: var(--project-text-secondary);
     margin-bottom: 1.5rem;
+    font-size: 0.875rem;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 /* ========================================
    RESPONSIVE DESIGN
    ======================================== */
 
-@media (max-width: 480px) {
-    .project-card-header,
-    .project-card-body,
-    .project-card-footer {
-        padding: 1rem;
+@media (max-width: 1200px) {
+    .projects-grid-modern {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
     }
-    
-    .project-card-title {
-        font-size: 1.125rem;
-    }
-    
-    .projects-filters {
-        padding: 1rem;
-    }
-    
-    .filters-form {
+}
+
+@media (max-width: 768px) {
+    .projects-grid-modern {
         grid-template-columns: 1fr;
+        gap: 1rem;
+        margin: 1.5rem 0;
     }
     
-    .project-actions {
-        flex-direction: column;
+    .projects-filters-modern {
+        padding: 0.5rem;
+        margin-bottom: 1rem;
     }
     
-    .btn-project-action {
+    .filters-header-modern {
+        margin-bottom: 0.5rem;
+    }
+    
+    .search-box-modern {
+        max-width: none;
+    }
+    
+    .project-card-modern {
+        margin: 0 0.5rem;
+    }
+    
+    .project-card-header-modern,
+    .project-card-body-modern,
+    .project-card-footer-modern {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    .project-actions-modern {
         justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .project-card-info-modern {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    .project-card-meta-modern {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .projects-filters-modern {
+        padding: 0.5rem;
+    }
+    
+    .project-card-modern {
+        margin: 0;
+    }
+    
+    .btn-action-modern {
+        padding: 0.375rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    .empty-projects-modern {
+        padding: 2rem 1rem;
+    }
+    
+    .empty-projects-icon-modern {
+        font-size: 2.5rem;
     }
 }
 
 /* ========================================
-    UTILIDADES ESPECÍFICAS PARA PROYECTOS
-    ======================================== */
+   UTILIDADES ESPECÍFICAS
+   ======================================== */
 
 .text-truncate-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
+
+/* ========================================
+   TOOLTIPS SIMPLES
+   ======================================== */
+
+[data-tooltip] {
+    position: relative;
+}
+
+[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--project-text);
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--project-radius);
+    font-size: 0.75rem;
+    white-space: nowrap;
+    z-index: 1000;
+    margin-bottom: 0.5rem;
+}
+
+[data-tooltip]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: var(--project-text);
+    margin-bottom: 0.25rem;
+    z-index: 1000;
 }
