@@ -16,6 +16,25 @@
     --kanban-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
     --kanban-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     --kanban-transition: all 0.2s ease-in-out;
+    --kanban-glass: rgba(255,255,255,0.6);
+    --kanban-blur: saturate(180%) blur(8px);
+
+    /* Paleta SaaS consistente con la app (azules y acentos limpios) */
+    --status-todo-50: #eef2ff;      /* indigo-50 */
+    --status-todo-200: #c7d2fe;     /* indigo-200 */
+    --status-todo-600: #4f46e5;     /* indigo-600 */
+
+    --status-progress-50: #eff6ff;  /* blue-50 */
+    --status-progress-200: #bfdbfe; /* blue-200 */
+    --status-progress-600: #2563eb; /* blue-600 */
+
+    --status-paused-50: #fff7ed;    /* orange-50 */
+    --status-paused-200: #fed7aa;   /* orange-200 */
+    --status-paused-600: #c2410c;   /* orange-700 aprox */
+
+    --status-done-50: #ecfdf5;      /* emerald-50 */
+    --status-done-200: #a7f3d0;     /* emerald-200 */
+    --status-done-600: #059669;     /* emerald-600 */
 }
 
 /* ========================================
@@ -55,7 +74,7 @@
    ======================================== */
 
 .project-stats {
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
 }
 
 .stats-grid {
@@ -117,7 +136,7 @@
 .kanban-board-container {
     overflow-x: auto;
     padding-bottom: 1rem;
-    background: var(--arc-bg-secondary);
+    background: linear-gradient(180deg, var(--arc-bg-secondary), var(--arc-bg-primary));
     border-radius: var(--kanban-border-radius);
     padding: 1rem;
 }
@@ -127,6 +146,8 @@
     gap: 1.5rem;
     min-width: fit-content;
     min-height: 70vh;
+    width: 100%;
+    justify-content: center; /* Centrar columnas dentro del contenedor */
 }
 
 /* ========================================
@@ -136,7 +157,7 @@
 .kanban-column {
     width: var(--kanban-column-width);
     flex-shrink: 0;
-    background: var(--kanban-column-bg);
+    background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
     border-radius: var(--kanban-border-radius);
     display: flex;
     flex-direction: column;
@@ -147,11 +168,24 @@
 .kanban-column-header {
     padding: 1rem;
     border-bottom: 1px solid var(--arc-border-color);
-    background: var(--arc-bg-primary);
+    background: linear-gradient(180deg, #f9fbff 0%, #f0f4ff 100%);
     border-radius: var(--kanban-border-radius) var(--kanban-border-radius) 0 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: relative;
+}
+
+/* Acento lateral según estado */
+.kanban-column-header::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    border-top-left-radius: var(--kanban-border-radius);
+    border-bottom-left-radius: 0;
 }
 
 .column-title h5 {
@@ -162,13 +196,19 @@
 }
 
 .task-count {
-    font-size: 0.75rem;
-    color: var(--arc-text-muted);
-    background: var(--arc-bg-secondary);
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.5rem;
-    margin-top: 0.25rem;
-    display: inline-block;
+    position: relative;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    padding: 0.35rem 0.6rem; /* compacto, sin espacio para pseudo-icono */
+    border-radius: 999px;
+    border: 1px solid transparent;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06), inset 0 1px 0 hsla(0,0%,100%,0.6);
+    background: #eef2ff;
+    color: #1e3a8a;
+}
+.task-count::before {
+    display: none; /* quitar pelota blanca decorativa */
 }
 
 .column-actions {
@@ -181,7 +221,7 @@
     padding: 1rem;
     overflow-y: auto;
     max-height: 60vh;
-    background: var(--kanban-column-bg);
+    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
 }
 
 .kanban-column-footer {
@@ -204,6 +244,7 @@
     cursor: grab;
     transition: var(--kanban-transition);
     overflow: hidden;
+    position: relative;
 }
 
 .kanban-card:hover {
@@ -215,13 +256,10 @@
     cursor: grabbing;
 }
 
-.kanban-card .card-header {
-    padding: 0.75rem;
-    border-bottom: 1px solid var(--arc-border-color);
-    background: var(--arc-bg-secondary);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+/* Simplificar tarjeta: solo cuerpo, fondo blanco limpio */
+.kanban-card .card-header { display:none; }
+.kanban-card {
+    background: #ffffff;
 }
 
 .kanban-card .card-body {
@@ -275,6 +313,10 @@
     color: var(--arc-text-primary);
     margin-bottom: 0.5rem;
     line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .task-description {
@@ -282,6 +324,10 @@
     color: var(--arc-text-secondary);
     margin-bottom: 0.75rem;
     line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .task-meta {
@@ -305,24 +351,120 @@
     letter-spacing: 0.025em;
 }
 
+/* Estados (badges) con paleta más cuidada */
 .status-todo {
-    background: #e0e7ff;
-    color: #3730a3;
+    background: var(--status-todo-50);
+    color: var(--status-todo-600);
+    border: 1px solid var(--status-todo-200);
 }
 
 .status-in_progress {
-    background: #dbeafe;
-    color: #1e40af;
+    background: var(--status-progress-50);
+    color: var(--status-progress-600);
+    border: 1px solid var(--status-progress-200);
 }
 
 .status-paused {
-    background: #fef3c7;
-    color: #92400e;
+    background: var(--status-paused-50);
+    color: var(--status-paused-600);
+    border: 1px solid var(--status-paused-200);
 }
 
 .status-done {
-    background: #dcfce7;
-    color: #166534;
+    background: var(--status-done-50);
+    color: var(--status-done-600);
+    border: 1px solid var(--status-done-200);
+}
+
+/* Etiqueta de fase dentro de la tarjeta */
+.task-phase {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+.task-phase .phase-label {
+    color: var(--arc-text-muted);
+    font-size: 0.72rem;
+}
+.task-phase .phase-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    background: #F1F5F9;      /* slate-100 */
+    color: #334155;           /* slate-700 */
+    border: 1px solid #E2E8F0;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+/* (sin cambios para due-date/attachments, se mantienen estilos base) */
+
+/* Filtro de fases (dropdown) estilizado */
+.phase-filter .phase-filter-label {
+    color: var(--arc-text-secondary);
+    font-weight: 600;
+}
+.phase-filter-select.form-select {
+    min-width: 180px;
+    background-color: #fff;
+    border: 1px solid var(--arc-border-color);
+    border-radius: 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    color: var(--arc-text-primary);
+    transition: box-shadow .15s ease, border-color .15s ease;
+    padding-right: 2rem;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2364748b' viewBox='0 0 16 16'%3E%3Cpath d='M3.204 5.5a.5.5 0 01.707 0L8 9.086l4.09-3.586a.5.5 0 11.66.748l-4.42 3.877a.75.75 0 01-.999 0L3.204 6.248a.5.5 0 010-.748z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.6rem center;
+}
+.phase-filter-select.form-select:focus {
+    border-color: var(--arc-color-primary);
+    box-shadow: 0 0 0 3px rgba(66,133,244,.12);
+}
+.phase-filter-select.form-select:hover {
+    border-color: #cbd5e1;
+}
+
+/* Colores de columnas y contadores por estado (valores en minúscula) */
+.kanban-column[data-status="todo"] { border-color: var(--status-todo-200); }
+.kanban-column[data-status="in_progress"] { border-color: var(--status-progress-200); }
+.kanban-column[data-status="paused"] { border-color: var(--status-paused-200); }
+.kanban-column[data-status="done"] { border-color: var(--status-done-200); }
+
+.kanban-column[data-status="todo"] .kanban-column-header { background: linear-gradient(180deg, var(--status-todo-50) 0%, #e0e7ff 100%); }
+.kanban-column[data-status="in_progress"] .kanban-column-header { background: linear-gradient(180deg, var(--status-progress-50) 0%, #dbeafe 100%); }
+.kanban-column[data-status="paused"] .kanban-column-header { background: linear-gradient(180deg, var(--status-paused-50) 0%, #fef3c7 100%); }
+.kanban-column[data-status="done"] .kanban-column-header { background: linear-gradient(180deg, var(--status-done-50) 0%, #dcfce7 100%); }
+
+.kanban-column[data-status="todo"] .kanban-column-header::before { background: linear-gradient(180deg, var(--status-todo-600), #6366f1); }
+.kanban-column[data-status="in_progress"] .kanban-column-header::before { background: linear-gradient(180deg, var(--status-progress-600), #3b82f6); }
+.kanban-column[data-status="paused"] .kanban-column-header::before { background: linear-gradient(180deg, #ea580c, var(--status-paused-600)); }
+.kanban-column[data-status="done"] .kanban-column-header::before { background: linear-gradient(180deg, #10b981, var(--status-done-600)); }
+
+.kanban-column[data-status="todo"] .task-count {
+    background: var(--status-todo-50);
+    border-color: var(--status-todo-200);
+    color: var(--status-todo-600);
+}
+.kanban-column[data-status="in_progress"] .task-count {
+    background: var(--status-progress-50);
+    border-color: var(--status-progress-200);
+    color: var(--status-progress-600);
+}
+.kanban-column[data-status="paused"] .task-count {
+    background: var(--status-paused-50);
+    border-color: var(--status-paused-200);
+    color: var(--status-paused-600);
+}
+.kanban-column[data-status="done"] .task-count {
+    background: var(--status-done-50);
+    border-color: var(--status-done-200);
+    color: var(--status-done-600);
 }
 
 .task-assignee,
@@ -427,6 +569,7 @@
     border-radius: var(--kanban-border-radius);
     border: none;
     box-shadow: var(--kanban-shadow-hover);
+    background: var(--arc-bg-primary);
 }
 
 .modal-header {
@@ -440,6 +583,22 @@
     background: var(--arc-bg-secondary);
     border-radius: 0 0 var(--kanban-border-radius) var(--kanban-border-radius);
 }
+
+/* Usar los z-index por defecto de Bootstrap para evitar que el backdrop
+   cubra el modal o bloquee los campos. Si se necesita ajustar la
+   opacidad, hágase sin alterar el stacking context. */
+/* .modal-backdrop.show { opacity: 0.5; }  Valor por defecto */
+
+/* Botones primarios con gradiente consistente */
+.btn-primary, .btn-primary-prominent {
+    background: linear-gradient(135deg, var(--arc-color-primary) 0%, var(--arc-color-primary-hover) 100%);
+    border-color: var(--arc-color-primary);
+}
+.btn-primary:hover, .btn-primary-prominent:hover {
+    filter: brightness(0.95);
+}
+
+/* Se elimina FAB añadido recientemente */
 
 /* ========================================
    RESPONSIVE DESIGN

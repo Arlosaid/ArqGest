@@ -29,6 +29,412 @@
 }
 
 /* ========================================
+   FORMULARIO DE PROYECTO (CREAR/EDITAR)
+   ======================================== */
+
+.project-form {
+    max-width: 900px;
+}
+
+.project-form-header {
+    margin-bottom: 1rem;
+}
+
+.project-form-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--project-text);
+    margin: 0 0 .25rem 0;
+}
+
+.project-form-subtitle {
+    color: var(--project-text-secondary);
+    margin: 0;
+}
+
+.form-section.card-like {
+    background: var(--project-surface);
+    border: 1px solid var(--project-border);
+    border-radius: var(--project-radius);
+    box-shadow: var(--project-shadow);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--project-text);
+    margin: 0 0 .75rem 0;
+}
+
+.basic-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.basic-full {
+    grid-column: 1 / -1;
+}
+
+/* Errores Django */
+.project-form .errorlist {
+    list-style: none;
+    margin: .375rem 0 0 0;
+    padding: 0;
+    color: var(--project-error);
+    font-size: .85rem;
+}
+
+.project-form .form-text {
+    color: var(--project-text-muted);
+    font-size: .8rem;
+}
+
+/* Radio segmentado (método de creación de fases) */
+.radio-group.segmented {
+    display: inline-flex;
+    gap: .5rem;
+    background: var(--project-surface-secondary);
+    border: 1px solid var(--project-border);
+    border-radius: .5rem;
+    padding: .25rem;
+}
+
+.segmented-option {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .5rem .75rem;
+    border-radius: .4rem;
+    border: 1px solid transparent;
+}
+
+.segmented-option input[type="radio"] {
+    margin-right: .25rem;
+}
+
+.segmented-option:hover {
+    background: #f8fbff;
+}
+
+.segmented-option input[type="radio"]:checked + label,
+.segmented-option .form-check-input:checked ~ label {
+    color: var(--project-primary-dark);
+}
+
+/* Opciones modernas en tarjetas para el selector template/manual */
+.modern-cards .segmented-option {
+    padding: 0;
+}
+
+.option-card {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    gap: .75rem;
+    align-items: center;
+    padding: .6rem .75rem;
+    border: 1px solid transparent;
+    border-radius: .4rem;
+}
+
+.option-card:hover {
+    background: #f8fbff;
+}
+
+.segmented-option input[type="radio"]:checked + .option-card {
+    background: #eef5ff;
+    border-color: #d9e7ff;
+    box-shadow: inset 0 0 0 2px #cfe2ff;
+}
+
+.option-icon {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #eaf2ff;
+    color: var(--project-primary-dark);
+    border-radius: .5rem;
+}
+
+.option-title {
+    font-weight: 700;
+    color: var(--project-text);
+    line-height: 1.2;
+}
+
+.option-desc {
+    font-size: .8rem;
+    color: var(--project-text-secondary);
+}
+
+/* Contenedores con transición suave (mostrar/ocultar) */
+.animated-toggle {
+    transition: opacity .2s ease, transform .2s ease;
+}
+
+/* Fases (formset) */
+.manual-phases-header h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--project-text);
+    margin: 0;
+}
+
+.manual-phases-header p {
+    margin: .25rem 0 1rem 0;
+}
+
+#phase-forms-container {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+}
+
+.phase-form {
+    border: 1px solid var(--project-border);
+    border-radius: .5rem;
+    background: var(--project-surface);
+    box-shadow: var(--project-shadow);
+    overflow: hidden;
+}
+
+.phase-form.deleted {
+    opacity: .6;
+}
+
+.phase-form.removed {
+    display: none !important;
+}
+
+.phase-form-header {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: .75rem;
+    padding: .5rem .75rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+    border-bottom: 1px solid var(--project-border);
+}
+
+.drag-handle {
+    cursor: grab;
+    color: var(--project-text-muted);
+}
+
+.phase-name-wrap input[type="text"] {
+    border: 1px solid var(--project-border);
+    border-radius: .4rem;
+    padding: .4rem .6rem;
+    height: 36px;
+}
+
+.phase-form-body {
+    padding: .5rem .75rem .75rem;
+}
+
+.add-phase-btn {
+    margin-top: .5rem;
+}
+
+/* Botón de icono para acciones en fase */
+.icon-btn {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--project-border);
+    border-radius: .4rem;
+    background: var(--project-surface-secondary);
+    color: var(--project-text-secondary);
+    transition: var(--project-transition);
+}
+
+.icon-btn:hover {
+    background: #fff3f3;
+    color: var(--project-error);
+    border-color: #ffd2d2;
+}
+
+.phase-badge-deleted {
+    display: none;
+    font-size: .75rem;
+    color: var(--project-error);
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    border-radius: 999px;
+    padding: .15rem .5rem;
+    margin-right: .25rem;
+}
+
+/* Quick add */
+/* Eliminado por simplificación de UX */
+
+/* Acciones pegajosas */
+.sticky-actions {
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(180deg, transparent 0%, #ffffff 40%);
+    padding-top: .5rem;
+    margin-top: 1rem;
+    border-top: 1px solid var(--project-border);
+}
+
+@media (max-width: 768px) {
+    .basic-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ========================================
+   PESTAÑAS (TABS) MODERNAS
+   ======================================== */
+
+.nav-tabs {
+    border-bottom: 1px solid var(--project-border);
+    gap: .25rem;
+}
+
+.nav-tabs .nav-link {
+    border: 1px solid transparent;
+    color: var(--project-text-secondary);
+    background: transparent;
+    border-radius: .5rem .5rem 0 0;
+    font-weight: 500;
+    padding: .5rem .85rem;
+    transition: var(--project-transition);
+}
+
+.nav-tabs .nav-link:hover {
+    color: var(--project-text);
+    background: var(--project-surface-secondary);
+    border-color: var(--project-border);
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--project-primary-dark);
+    background: linear-gradient(180deg, #fff 0%, #fafcff 100%);
+    border-color: var(--project-border) var(--project-border) transparent;
+    box-shadow: 0 -2px 0 var(--project-primary) inset;
+}
+
+.tab-content {
+    background: var(--project-surface);
+    border: 1px solid var(--project-border);
+    border-top: none;
+    border-radius: 0 0 var(--project-radius) var(--project-radius);
+    box-shadow: var(--project-shadow);
+}
+
+.tab-content > .tab-pane {
+    padding: 1rem;
+}
+
+/* Asegurar que solo una pestaña sea visible (fallback si BS no aplica) */
+.tab-content > .tab-pane { display: none !important; }
+.tab-content > .tab-pane.active { display: block !important; }
+
+/* ==========================
+   ARCHIVOS - ACORDEÓN NUEVO ESTILO
+   ========================== */
+.file-phase-item {
+    border: 1px solid var(--project-border);
+    border-radius: calc(var(--project-radius) + 2px);
+    overflow: hidden;
+    box-shadow: var(--project-shadow);
+    background: var(--project-surface);
+    margin-bottom: .5rem;
+}
+
+.accordion-button.file-phase-header {
+    background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+    padding: .85rem 1rem;
+    border-bottom: 1px solid var(--project-border);
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.accordion-button.file-phase-header:focus {
+    box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+}
+
+.accordion-button.file-phase-header::after {
+    background-image: none;
+    content: "\f107"; /* chevron-down */
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    color: var(--project-text-muted);
+    transform: rotate(0deg);
+    transition: transform .2s ease;
+}
+
+.accordion-button.file-phase-header:not(.collapsed) {
+    box-shadow: inset 0 -2px 0 var(--project-primary);
+}
+
+.accordion-button.file-phase-header:not(.collapsed)::after {
+    transform: rotate(180deg);
+    color: var(--project-primary);
+}
+
+.file-phase-title {
+    font-weight: 600;
+    color: var(--project-text);
+}
+
+.file-phase-meta .badge {
+    border-radius: 9999px;
+    font-weight: 600;
+    padding: .35rem .6rem;
+}
+
+.bg-primary-soft {
+    background: #eaf2ff;
+}
+
+/* Tabla moderna de archivos */
+.file-list-table.modern-table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.file-list-table thead th {
+    background: linear-gradient(180deg, #f7f9fc 0%, #f2f5fa 100%);
+    color: var(--project-text-secondary);
+    font-weight: 600;
+    border-bottom: 1px solid var(--project-border);
+}
+
+.file-list-table tbody tr + tr td {
+    border-top: 1px solid var(--project-border);
+}
+
+.file-row:hover {
+    background: #f6faff;
+}
+
+.file-delete-btn {
+    border-color: #fecaca;
+}
+.file-delete-btn:hover {
+    background: #fee2e2;
+}
+
+/* Carga de archivos */
+.accordion-body .input-group .form-control[type="file"] {
+    border-color: var(--project-border);
+}
+.accordion-body .input-group .btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+/* ========================================
    BOTÓN PRINCIPAL PROMINENTE
    ======================================== */
 

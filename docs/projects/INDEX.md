@@ -5,27 +5,27 @@
 - **[README.md](./README.md)** - Descripción general del módulo
 - **[ESTRUCTURA.md](./ESTRUCTURA.md)** - Arquitectura y componentes
 - **[DESARROLLO.md](./DESARROLLO.md)** - Guía de desarrollo (pendiente)
-- **[API.md](./API.md)** - Referencia de API (pendiente)
-- **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - Solución de problemas (pendiente)
+- **[API.md](./API.md)** - Referencia de API
+- **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - Solución de problemas
 
 ## 🎯 Componentes Principales
 
 ### **Templates**
 - `project_list.html` - Lista principal de proyectos (v2.4)
-- `project_detail.html` - Vista detallada de proyecto (v2.5 - Refactorizada)
+- `project_detail.html` - Vista detallada de proyecto (v2.5 - Tabs + Archivos por Fase)
 - `project_form.html` - Formulario de creación/edición
 - `kanban_board.html` - Tablero Kanban
 - `task_list.html` - Lista de tareas
 - `my_tasks.html` - Mis tareas
 
 ### **Estilos**
-- `projects.css` - Estilos específicos del módulo (v2.4)
+- `projects.css` - Estilos específicos del módulo (v1.5)
 - Variables CSS profesionales
 - Componentes ultra compactos
 - Responsive design optimizado
 
 ### **JavaScript**
-- `projects.js` - Funcionalidades interactivas (v2.4)
+- `projects.js` - Funcionalidades interactivas (v1.2)
 - Búsqueda instantánea en tiempo real
 - Debounce inteligente
 - Animaciones suaves
@@ -45,6 +45,8 @@
 - ✅ Performance ultra rápida
 
 ### **Funcionalidades Avanzadas**
+- ✅ Pestaña “Archivos” con conmutador Tabla/Galería por fase
+- ✅ Subida de archivos por fase (múltiples)
 - ✅ Búsqueda en tiempo real con debounce
 - ✅ Contador automático de resultados
 - ✅ Progreso visual con barras Bootstrap
@@ -122,12 +124,12 @@
 
 ## 📈 Versiones
 
-### **v2.4 (Actual)**
+### **v2.5 (Actual)**
 - ✅ Filtro ultra compacto
 - ✅ Botones con colores específicos
 - ✅ Información estructurada
 - ✅ Búsqueda instantánea
-- ✅ Documentación completa
+- ✅ Tabs en detalle de proyecto + Archivos por Fase
 
 ### **v2.5 (Próxima)**
 - [ ] Drag & drop para reordenar

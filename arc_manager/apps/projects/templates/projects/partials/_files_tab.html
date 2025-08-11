@@ -6,37 +6,100 @@
         <h6 class="m-0 font-weight-bold text-primary">{% trans "Archivos del Proyecto" %}</h6>
     </div>
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-bordered" width="100%" cellspacing="0">
-                <thead>
-                    <tr>
-                        <th>{% trans "Nombre del Archivo" %}</th>
-                        <th>{% trans "Fase" %}</th>
-                        <th>{% trans "Subido por" %}</th>
-                        <th>{% trans "Subido el" %}</th>
-                        <th>{% trans "Tamaño" %}</th>
-                        <th>{% trans "Acciones" %}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for file in files %}
-                    <tr>
-                        <td><a href="{{ file.file.url }}" target="_blank">{{ file.file.name|cut:"organizations/"|cut:request.user.organization.id|cut:"/projects/"|cut:project.id|cut:"/phases/"|cut:file.phase.id|cut:"/" }}</a></td>
-                        <td>{{ file.phase.name }}</td>
-                        <td>{{ file.uploaded_by.get_full_name|default:"N/A" }}</td>
-                        <td>{{ file.uploaded_at|date:"d M Y, H:i" }}</td>
-                        <td>{{ file.size|filesizeformat }}</td>
-                        <td>
-                            <a href="{{ file.file.url }}" class="btn btn-sm btn-primary" download>{% trans "Descargar" %}</a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6">{% trans "Aún no se han subido archivos para este proyecto." %}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        {% if phases %}
+        <div class="accordion" id="filesAccordion">
+            {% for phase in phases %}
+            <div class="accordion-item mb-3 file-phase-item">
+                <h2 class="accordion-header" id="heading-{{ phase.id }}">
+                    <button class="accordion-button file-phase-header collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ phase.id }}" aria-expanded="false" aria-controls="collapse-{{ phase.id }}">
+                        <span class="file-phase-title d-flex align-items-center">
+                            <i class="fas fa-layer-group me-2"></i>{{ phase.name }}
+                        </span>
+                        <span class="file-phase-meta ms-auto d-flex align-items-center gap-2">
+                            <span class="badge bg-primary-soft text-primary">{{ phase.files.count }} {% trans "archivos" %}</span>
+                        </span>
+                    </button>
+                </h2>
+                <div id="collapse-{{ phase.id }}" class="accordion-collapse collapse" aria-labelledby="heading-{{ phase.id }}" data-bs-parent="#filesAccordion">
+                    <div class="accordion-body">
+                        <form class="mb-3" action="{% url 'files:upload_file' project_id=project.pk phase_id=phase.pk %}" method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <div class="input-group">
+                                <input type="file" name="files" class="form-control" multiple required>
+                                <button class="btn btn-primary" type="submit"><i class="fas fa-upload"></i> {% trans "Subir archivo" %}</button>
+                            </div>
+                        </form>
+
+                        {% with phase.files.all as phase_files %}
+                        {% if phase_files %}
+                        <div id="files-table-{{ phase.id }}" class="table-responsive">
+                            <table class="modern-table file-list-table" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th style="min-width:260px;">{% trans "Archivo" %}</th>
+                                        <th class="text-center" style="width:120px;">{% trans "Tipo" %}</th>
+                                        <th class="text-center" style="width:160px;">{% trans "Subido por" %}</th>
+                                        <th class="text-center" style="width:140px;">{% trans "Fecha" %}</th>
+                                        <th class="text-center" style="width:120px;">{% trans "Tamaño" %}</th>
+                                        <th class="text-right">{% trans "Acciones" %}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                {% for file in phase_files %}
+                                    <tr id="file-{{ file.id }}" class="file-row">
+                                        <td>
+                                            <a href="{{ file.file.url }}" target="_blank" class="d-flex align-items-center gap-2 text-decoration-none">
+                                                {% if file.extension == 'JPG' or file.extension == 'JPEG' or file.extension == 'PNG' or file.extension == 'GIF' %}
+                                                    <i class="fas fa-file-image text-primary"></i>
+                                                {% elif file.extension == 'PDF' %}
+                                                    <i class="fas fa-file-pdf text-danger"></i>
+                                                {% elif file.extension == 'DWG' or file.extension == 'DXF' %}
+                                                    <i class="fas fa-drafting-compass text-info"></i>
+                                                {% elif file.extension == 'DOC' or file.extension == 'DOCX' %}
+                                                    <i class="fas fa-file-word text-primary"></i>
+                                                {% elif file.extension == 'XLS' or file.extension == 'XLSX' %}
+                                                    <i class="fas fa-file-excel text-success"></i>
+                                                {% else %}
+                                                    <i class="fas fa-file text-secondary"></i>
+                                                {% endif %}
+                                                <span class="fw-semibold text-truncate" style="max-width:420px;">{{ file.filename }}</span>
+                                            </a>
+                                        </td>
+                                        <td class="text-center text-muted">{{ file.extension }}</td>
+                                        <td class="text-center">{{ file.uploaded_by.get_full_name|default:"N/A" }}</td>
+                                        <td class="text-center">{{ file.uploaded_at|date:"d/m/Y H:i" }}</td>
+                                        <td class="text-center">{{ file.size|filesizeformat }}</td>
+                                        <td class="text-right d-flex gap-2 justify-content-end">
+                                            <a href="{{ file.file.url }}" class="btn btn-sm btn-primary" download>{% trans "Descargar" %}</a>
+                                            <button class="btn btn-sm btn-outline-danger file-delete-btn"
+                                                    hx-post="{% url 'files:delete_file' file.id %}"
+                                                    hx-confirm="{% trans '¿Seguro que deseas eliminar este archivo?' %}"
+                                                    hx-target="#file-{{ file.id }}"
+                                                    hx-swap="outerHTML">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="5">{% trans "Aún no se han subido archivos para esta fase." %}</td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                            <div class="text-muted">{% trans "Aún no se han subido archivos para esta fase." %}</div>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
         </div>
+        {% else %}
+            <div class="text-center text-muted">{% trans "Primero crea una fase para poder subir archivos." %}</div>
+        {% endif %}
     </div>
 </div>
+

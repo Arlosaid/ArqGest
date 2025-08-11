@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
@@ -29,15 +30,24 @@ def upload_file(request, project_id, phase_id):
         )
     
     messages.success(request, _("File(s) uploaded successfully."))
-    
-    # Render the partial template with the updated file list
-    files = phase.files.all()
-    return render(request, 'projects/partials/file_list.html', {'files': files})
+
+    # Si es una petición HTMX, devolvemos solo la lista actualizada
+    if request.headers.get('HX-Request') == 'true':
+        files = phase.files.all()
+        return render(request, 'projects/partials/file_list.html', {'files': files})
+
+    # En formularios normales, redirigir al detalle del proyecto (pestaña Archivos)
+    project_url = reverse('projects:project-detail', kwargs={'pk': phase.project_id})
+    return redirect(f"{project_url}?tab=files#files")
 
 @login_required
 @require_POST
 def delete_file(request, file_id):
-    """Handles the deletion of a project file and returns an empty response for HTMX."""
+    """Handles the deletion of a project file.
+
+    - Si es HTMX, responde vacío (204) para que el frontend remueva el elemento.
+    - Si es una llamada normal/fetch, responde JSON con success.
+    """
     project_file = get_object_or_404(ProjectFile, id=file_id)
     
     if request.user.organization != project_file.phase.project.organization:
@@ -46,5 +56,9 @@ def delete_file(request, file_id):
     project_file.file.delete(save=False)
     project_file.delete()
     
-    # Return an empty response, HTMX will remove the element from the DOM.
-    return HttpResponse(status=200)
+    # HTMX: devolver 200 con cuerpo vacío para que outerHTML se reemplace por nada
+    if request.headers.get('HX-Request') == 'true':
+        return HttpResponse("")
+
+    # Fetch/normal: JSON
+    return JsonResponse({"success": True, "id": file_id})
