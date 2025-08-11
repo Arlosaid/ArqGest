@@ -12,6 +12,9 @@ class ProjectsManager {
         this.setupEventListeners();
         this.setupSearchAndFilters();
         this.setupTooltips();
+        this.ensureSingleActiveTab();
+        this.normalizeInitialActiveTab();
+        this.activateTabFromUrl();
     }
 
     setupEventListeners() {
@@ -181,6 +184,86 @@ class ProjectsManager {
         tooltips.forEach(tooltip => {
             tooltip.remove();
         });
+    }
+
+    // Evitar que dos pestañas queden visibles a la vez
+    ensureSingleActiveTab() {
+        const tabContainer = document.getElementById('projectTab');
+        if (!tabContainer) return;
+
+        const enforce = (btn) => {
+            const targetSelector = btn?.getAttribute('data-bs-target');
+            const targetPane = targetSelector ? document.querySelector(targetSelector) : null;
+            const panes = document.querySelectorAll('#projectTabContent .tab-pane');
+            panes.forEach(pane => pane.classList.remove('show', 'active'));
+            if (targetPane) targetPane.classList.add('show', 'active');
+        };
+
+        tabContainer.addEventListener('shown.bs.tab', (event) => {
+            enforce(event.target);
+        });
+
+        // Hacer toggle por click SIEMPRE para garantizar consistencia
+        tabContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-bs-target]');
+            if (!btn) return;
+            enforce(btn);
+            // Estado active del botón
+            tabContainer.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    }
+
+    // Asegura que al cargar solo una pestaña esté visible
+    normalizeInitialActiveTab() {
+        const tabContainer = document.getElementById('projectTab');
+        if (!tabContainer) return;
+        let activeBtn = tabContainer.querySelector('.nav-link.active');
+        // Si ninguna pestaña está marcada activa, forzar Detalles por defecto
+        if (!activeBtn) {
+            activeBtn = tabContainer.querySelector('#details-tab') || tabContainer.querySelector('.nav-link');
+            if (activeBtn) activeBtn.classList.add('active');
+        }
+        if (!activeBtn) return;
+        const targetSelector = activeBtn.getAttribute('data-bs-target');
+        const targetPane = targetSelector ? document.querySelector(targetSelector) : null;
+        const panes = document.querySelectorAll('#projectTabContent .tab-pane');
+        panes.forEach(pane => pane.classList.remove('show', 'active'));
+        if (targetPane) targetPane.classList.add('show', 'active');
+        // Reforzar tras breve retraso por si otros scripts alteran el DOM
+        setTimeout(() => {
+            const currentActiveBtn = tabContainer.querySelector('.nav-link.active') || tabContainer.querySelector('#details-tab');
+            const currentTarget = currentActiveBtn?.getAttribute('data-bs-target');
+            const currentPane = currentTarget ? document.querySelector(currentTarget) : null;
+            if (currentPane && !currentPane.classList.contains('active')) {
+                document.querySelectorAll('#projectTabContent .tab-pane').forEach(p => p.classList.remove('show','active'));
+                currentPane.classList.add('show','active');
+            }
+        }, 50);
+    }
+
+    // Activa una pestaña si hay ?tab= o #hash en la URL
+    activateTabFromUrl() {
+        const tabContainer = document.getElementById('projectTab');
+        if (!tabContainer) return;
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const tabParam = (params.get('tab') || '').toLowerCase();
+            const hash = (window.location.hash || '').replace('#','').toLowerCase();
+            const desired = tabParam || hash;
+            const idMap = { details: 'details-tab', phases: 'phases-tab', tasks: 'tasks-tab', files: 'files-tab' };
+            if (desired && idMap[desired]) {
+                const btn = document.getElementById(idMap[desired]);
+                if (btn) {
+                    if (window.bootstrap && window.bootstrap.Tab) {
+                        const tab = new bootstrap.Tab(btn);
+                        tab.show();
+                    } else {
+                        btn.click();
+                    }
+                }
+            }
+        } catch (_) { /* noop */ }
     }
 }
 

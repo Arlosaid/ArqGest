@@ -16,6 +16,20 @@ class PhaseForm(forms.Form):
     )
 
 class BasePhaseFormSet(forms.BaseFormSet):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Si está ligado, desactivar la obligatoriedad de 'name' en formularios marcados para borrar
+        if self.is_bound:
+            for form in self.forms:
+                field_name = form.add_prefix('DELETE')
+                try:
+                    marked_delete = form.data.get(field_name)
+                except AttributeError:
+                    marked_delete = None
+                if str(marked_delete).lower() in {'on', 'true', '1'}:
+                    if 'name' in form.fields:
+                        form.fields['name'].required = False
+
     def clean(self):
         if any(self.errors):
             return

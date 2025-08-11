@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from apps.projects.models import Phase
+import os
 
 def project_file_path(instance, filename):
     """
@@ -47,3 +48,20 @@ class ProjectFile(models.Model):
         if self.file and hasattr(self.file, 'size'):
             return self.file.size
         return 0
+
+    @property
+    def filename(self) -> str:
+        """Nombre base del archivo sin la ruta."""
+        try:
+            return os.path.basename(self.file.name)
+        except Exception:
+            return self.file.name
+
+    @property
+    def extension(self) -> str:
+        """Extensión del archivo, en mayúsculas, sin el punto (ej. PDF)."""
+        try:
+            _, ext = os.path.splitext(self.file.name)
+            return ext.replace('.', '').upper()
+        except Exception:
+            return ""

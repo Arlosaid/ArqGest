@@ -79,7 +79,6 @@ body {
     padding: 0;
     background: #ffffff;
     position: relative;
-    z-index: 1;
     min-height: calc(100vh - var(--arc-layout-navbar-height));
     margin-top: 0;
 }

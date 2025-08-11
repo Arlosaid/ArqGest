@@ -8,6 +8,7 @@
 
 class KanbanManager {
     constructor() {
+        this.groupMode = document.querySelector('.kanban-board')?.dataset.groupBy || 'phase';
         this.init();
     }
 
@@ -21,6 +22,10 @@ class KanbanManager {
         this.initStatistics();
         this.initResponsiveBehavior();
         this.initAnimations();
+
+        // Estado inicial de contadores y placeholders
+        this.updateColumnCounters();
+        this.syncEmptyStates();
     }
 
     /**
@@ -93,9 +98,15 @@ class KanbanManager {
         // Actualizar contadores
         this.updateColumnCounters();
         
-        // Si la tarea cambió de columna, actualizar en el servidor
-        if (evt.from.dataset.phaseId !== evt.to.dataset.phaseId) {
-            this.updateTaskPhase(evt);
+        // Si la tarea cambió de columna, actualizar en el servidor según modo
+        const fromAttr = this.groupMode === 'status' ? 'statusCode' : 'phaseId';
+        const toAttr = this.groupMode === 'status' ? 'statusCode' : 'phaseId';
+        if (evt.from.dataset[fromAttr] !== evt.to.dataset[toAttr]) {
+            if (this.groupMode === 'status') {
+                this.updateTaskStatus(evt);
+            } else {
+                this.updateTaskPhase(evt);
+            }
         }
     }
 
@@ -108,6 +119,7 @@ class KanbanManager {
         
         // Actualizar contadores
         this.updateColumnCounters();
+        this.syncEmptyStates();
     }
 
     /**
@@ -116,6 +128,7 @@ class KanbanManager {
     onCardRemoved(evt) {
         // Actualizar contadores
         this.updateColumnCounters();
+        this.syncEmptyStates();
     }
 
     /**
@@ -128,14 +141,16 @@ class KanbanManager {
         
         if (!taskId || !toPhaseId) return;
         
-        const moveUrl = `/projects/task/${taskId}/move/`;
+        const moveUrl = `/projects/tasks/${taskId}/move/`;
         
         fetch(moveUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': this.getCSRFToken()
+                'X-CSRFToken': this.getCSRFToken(),
+                'Accept': 'application/json'
             },
+            credentials: 'same-origin',
             body: JSON.stringify({ 'phase_id': toPhaseId })
         })
         .then(response => response.json())
@@ -143,11 +158,13 @@ class KanbanManager {
             if (data.success) {
                 this.showNotification('Tarea movida correctamente', 'success');
                 this.updateStatistics();
+                this.syncEmptyStates();
             } else {
                 this.showNotification('Error al mover la tarea', 'error');
                 // Revertir el movimiento
                 evt.from.appendChild(taskCard);
                 this.updateColumnCounters();
+                this.syncEmptyStates();
             }
         })
         .catch(error => {
@@ -156,6 +173,52 @@ class KanbanManager {
             // Revertir el movimiento
             evt.from.appendChild(taskCard);
             this.updateColumnCounters();
+            this.syncEmptyStates();
+        });
+    }
+
+    /**
+     * Actualiza el estado de una tarea en el servidor (modo group_by = status)
+     */
+    updateTaskStatus(evt) {
+        const taskCard = evt.item;
+        const taskId = taskCard.dataset.taskId;
+        const toStatus = evt.to.dataset.statusCode;
+
+        if (!taskId || !toStatus) return;
+
+        const url = `/projects/tasks/${taskId}/update_status/`;
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': this.getCSRFToken(),
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ status: toStatus })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                this.showNotification('Estado actualizado', 'success');
+                this.updateStatistics();
+                this.syncEmptyStates();
+            } else {
+                this.showNotification('Error al actualizar estado', 'error');
+                // Revertir movimiento
+                evt.from.appendChild(taskCard);
+                this.updateColumnCounters();
+                this.syncEmptyStates();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            this.showNotification('Error al actualizar estado', 'error');
+            // Revertir movimiento
+            evt.from.appendChild(taskCard);
+            this.updateColumnCounters();
+            this.syncEmptyStates();
         });
     }
 
@@ -184,12 +247,50 @@ class KanbanManager {
         // Event listener para cuando se carga contenido en el modal
         taskModal.addEventListener('show.bs.modal', (event) => {
             const button = event.relatedTarget;
-            const taskId = button.closest('.kanban-card')?.dataset.taskId;
+            // Si viene desde un botón o desde apertura programática, detectar el taskId
+            let taskId = null;
+            if (button) {
+                taskId = button.closest('.kanban-card')?.dataset.taskId || button?.dataset?.taskId;
+            }
+            if (!taskId && taskModal.dataset.taskId) {
+                taskId = taskModal.dataset.taskId;
+            }
             
             if (taskId) {
-                const editUrl = `/projects/task/${taskId}/edit/`;
+                const editUrl = `/projects/tasks/${taskId}/edit/`;
                 this.loadModalContent(taskModal, editUrl);
             }
+        });
+
+        // Delegación: eliminar tarea desde el modal
+        document.addEventListener('click', (e) => {
+            const deleteBtn = e.target.closest('#deleteTaskBtn');
+            if (!deleteBtn) return;
+            const taskId = deleteBtn.getAttribute('data-task-id');
+            if (!taskId) return;
+            this.handleDeleteTask(taskId);
+        });
+    }
+
+    /**
+     * Hacer las tarjetas clicables para editar
+     */
+    initCardClickEdit() {
+        const cards = document.querySelectorAll('.kanban-card');
+        const taskModal = document.getElementById('taskModal');
+        if (!taskModal) return;
+
+        cards.forEach(card => {
+            card.addEventListener('click', (e) => {
+                // Evitar conflicto si en el futuro hay botones internos
+                if (e.target.closest('button, a, .btn')) return;
+                const taskId = card.dataset.taskId;
+                if (!taskId) return;
+                // Guardar taskId en el modal para que show.bs.modal lo detecte
+                taskModal.dataset.taskId = taskId;
+                const modal = new bootstrap.Modal(taskModal);
+                modal.show();
+            });
         });
     }
 
@@ -202,23 +303,23 @@ class KanbanManager {
 
         addTaskModal.addEventListener('show.bs.modal', (event) => {
             const button = event.relatedTarget;
-            const phaseId = button.getAttribute('data-phase');
+            const phaseId = button ? button.getAttribute('data-phase') : null;
             
             if (phaseId) {
                 const phaseSelect = addTaskModal.querySelector('#task-phase');
                 if (phaseSelect) {
                     phaseSelect.value = phaseId;
                 }
+            } else {
+                // Si no viene phaseId, preseleccionar la primera opción disponible
+                const phaseSelect = addTaskModal.querySelector('#task-phase');
+                if (phaseSelect && !phaseSelect.value && phaseSelect.options.length > 0) {
+                    phaseSelect.selectedIndex = 0;
+                }
             }
         });
 
-        // Formulario de agregar tarea
-        const form = addTaskModal.querySelector('form');
-        if (form) {
-            form.addEventListener('submit', (e) => {
-                this.handleAddTask(e, form);
-            });
-        }
+        // El envío del formulario lo maneja tasks.js de forma unificada
     }
 
     /**
@@ -292,12 +393,24 @@ class KanbanManager {
             method: 'POST',
             body: formData,
             headers: {
-                'X-CSRFToken': this.getCSRFToken()
-            }
+                'X-CSRFToken': this.getCSRFToken(),
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin'
         })
-        .then(response => response.json())
+        .then(response => {
+            // Permitir fallback a texto/redirect si el backend aun no devuelve JSON
+            const contentType = response.headers.get('Content-Type') || '';
+            if (contentType.includes('application/json')) {
+                return response.json();
+            }
+            if (response.ok) {
+                return { success: true };
+            }
+            throw new Error('Bad response');
+        })
         .then(data => {
-            if (data.success) {
+            if (data && data.success) {
                 this.showNotification('Tarea creada correctamente', 'success');
                 
                 // Cerrar modal
@@ -363,12 +476,22 @@ class KanbanManager {
             method: 'POST',
             body: formData,
             headers: {
-                'X-CSRFToken': this.getCSRFToken()
+                'X-CSRFToken': this.getCSRFToken(),
+                'Accept': 'application/json'
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            const contentType = response.headers.get('Content-Type') || '';
+            if (contentType.includes('application/json')) {
+                return response.json();
+            }
+            if (response.ok) {
+                return { success: true };
+            }
+            throw new Error('Bad response');
+        })
         .then(data => {
-            if (data.success) {
+            if (data && data.success) {
                 // Limpiar input
                 input.value = '';
                 
@@ -560,7 +683,31 @@ class KanbanManager {
             
             if (body && counter) {
                 const taskCount = body.querySelectorAll('.kanban-card').length;
-                counter.textContent = `${taskCount} tareas`;
+                const label = taskCount === 1 ? '1 tarea' : `${taskCount} tareas`;
+                counter.textContent = label;
+            }
+        });
+    }
+
+    /**
+     * Sincroniza los placeholders vacíos (casco) por columna
+     */
+    syncEmptyStates() {
+        document.querySelectorAll('.kanban-column-body').forEach(body => {
+            const cards = body.querySelectorAll('.kanban-card');
+            const empty = body.querySelector('.empty-column');
+            if (cards.length === 0) {
+                if (!empty) {
+                    const emptyEl = document.createElement('div');
+                    emptyEl.className = 'empty-column';
+                    emptyEl.innerHTML = `
+                        <div class="empty-icon"><i class="fas fa-helmet-safety"></i></div>
+                        <p class="empty-text">Sin tareas</p>
+                    `;
+                    body.appendChild(emptyEl);
+                }
+            } else {
+                if (empty) empty.remove();
             }
         });
     }
@@ -626,6 +773,41 @@ class KanbanManager {
         notification.querySelector('.notification-close').addEventListener('click', () => {
             this.hideNotification(notification);
         });
+    }
+
+    /**
+     * Elimina una tarea por ID (desde el modal). Actualiza UI sin recargar.
+     */
+    handleDeleteTask(taskId) {
+        if (!confirm('¿Eliminar esta tarea? Esta acción no se puede deshacer.')) return;
+        fetch(`/projects/tasks/${taskId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': this.getCSRFToken(),
+                'Accept': 'application/json'
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data && data.success) {
+                // Cerrar modal
+                const taskModal = document.getElementById('taskModal');
+                if (taskModal) {
+                    const modal = bootstrap.Modal.getInstance(taskModal) || new bootstrap.Modal(taskModal);
+                    modal.hide();
+                }
+                // Quitar tarjeta
+                const card = document.querySelector(`.kanban-card[data-task-id="${taskId}"]`);
+                if (card) card.remove();
+                this.updateColumnCounters();
+                this.syncEmptyStates();
+                this.showNotification('Tarea eliminada', 'success');
+            } else {
+                this.showNotification('No se pudo eliminar la tarea', 'error');
+            }
+        })
+        .catch(() => this.showNotification('Error al eliminar la tarea', 'error'));
     }
 
     /**
@@ -698,4 +880,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Exportar para uso global si es necesario
+window.KanbanManager = KanbanManager;
+
 window.KanbanManager = KanbanManager;

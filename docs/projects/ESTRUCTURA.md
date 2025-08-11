@@ -24,7 +24,7 @@ arc_manager/
 │   ├── models.py                      # Modelos de datos
 │   └── urls.py                        # Rutas
 ├── static/css/projects.css            # Estilos (v2.4)
-└── static/js/projects.js              # JavaScript (v2.4)
+└── static/js/projects.js              # JavaScript (v1.2)
 ```
 
 ## 🎨 Componentes del Template Principal
@@ -79,25 +79,27 @@ arc_manager/
         </nav>
     </div>
 
-    <!-- Layout con sidebar estándar -->
-    <div class="main-content-grid">
-        <div class="left-content">
-            <!-- Tabs y contenido principal -->
-        </div>
-        <div class="right-sidebar">
-            <!-- Sidebar con estadísticas, equipo y actividad -->
+    <!-- Layout con Tabs (sin sidebar) -->
+    <div class="left-content">
+        <ul class="nav nav-tabs" id="projectTab" role="tablist">
+            <li class="nav-item"><button class="nav-link active" data-bs-target="#details" data-bs-toggle="tab">Detalles</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-target="#phases" data-bs-toggle="tab">Fases</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-target="#tasks" data-bs-toggle="tab">Tareas</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-target="#files" data-bs-toggle="tab">Archivos</button></li>
+        </ul>
+        <div class="tab-content" id="projectTabContent">
+            <!-- Contenido por pestaña -->
         </div>
     </div>
 </div>
 ```
 
 #### **Características de la Vista Refactorizada:**
-- ✅ **Header unificado**: Usa `header-section` estándar con icono, título y acciones
-- ✅ **Layout consistente**: Implementa `main-content-grid` con sidebar derecho
-- ✅ **Progreso Bootstrap**: Reemplaza barra custom por componente nativo
-- ✅ **Sidebar estandarizado**: Usa `info-card-sidebar` y `stats-grid-mini` globales
-- ✅ **Responsive**: Se adapta perfectamente a todos los dispositivos
-- ✅ **Accesibilidad**: Breadcrumbs y estructura semántica mejorada
+- ✅ **Header unificado**: Usa `header-section` con icono, título y acciones
+- ✅ **Tabs principales**: `Detalles`, `Fases`, `Tareas`, `Archivos`
+- ✅ **Sin sidebar**: foco total en el contenido funcional
+- ✅ **Progreso Bootstrap**: componente nativo
+- ✅ **Responsive**: se adapta a todos los dispositivos
 
 ### **3. Filtro Ultra Compacto**
 ```html
@@ -210,6 +212,16 @@ projects-module
         ├── project-card-header-modern
         ├── project-card-body-modern
         └── project-card-footer-modern
+
+kanban-board
+├── kanban-board (contenedor)
+└── kanban-column (x4: TODO, IN_PROGRESS, PAUSED, DONE)
+    ├── kanban-column-header
+    │   ├── column-title (título estado)
+    │   └── task-count (contador por columna)
+    └── kanban-column-body
+        ├── kanban-card (tarjeta de tarea)
+        └── empty-column (estado vacío con icono de casco)
 ```
 
 ## 🎨 Sistema de Diseño Profesional

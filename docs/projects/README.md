@@ -19,7 +19,7 @@ El módulo de proyectos es el núcleo central de ArcManager, permitiendo la gest
 - ✅ Botones de acción con colores específicos
 - ✅ Diseño responsive optimizado
 - ✅ Búsqueda en tiempo real
-- ✅ Vista de detalle unificada con componentes globales
+- ✅ Vista de detalle unificada con pestañas (sin sidebar)
 
 ### **Funcionalidades Avanzadas**
 - ✅ Búsqueda instantánea por nombre de proyecto
@@ -27,7 +27,7 @@ El módulo de proyectos es el núcleo central de ArcManager, permitiendo la gest
 - ✅ Progreso visual con barras Bootstrap
 - ✅ Metadatos contextuales
 - ✅ Acciones rápidas con colores distintivos
-- ✅ Layout con sidebar estándar y navegación mejorada
+- ✅ Navegación por pestañas: Detalles, Fases, Tareas, Archivos
 
 ## 🎨 Diseño y UX
 
@@ -67,15 +67,15 @@ El módulo de proyectos es el núcleo central de ArcManager, permitiendo la gest
 ### **Cambios Implementados**
 
 #### **Estructura Unificada**
-- **Layout estándar**: Implementa `main-content-grid` con sidebar derecho
-- **Header consistente**: Usa `header-section` global con breadcrumbs
-- **Componentes reutilizables**: Sidebar con `info-card-sidebar` y `stats-grid-mini`
+- **Tabs principales**: `Detalles`, `Fases`, `Tareas`, `Archivos`
+- **Sin sidebar**: se eliminó la columna derecha para maximizar el lienzo de trabajo
+- **Header consistente**: Usa `header-section` global (sin breadcrumbs)
 
 #### **Mejoras de UX**
-- **Navegación mejorada**: Breadcrumbs para orientación del usuario
-- **Progreso simplificado**: Barra de progreso Bootstrap nativa
-- **Información organizada**: Grid responsivo para datos del proyecto
-- **Acciones claras**: Botones con jerarquía visual estándar
+- **Navegación clara**: pestañas visibles y accesibles
+- **Progreso simplificado**: barra Bootstrap nativa
+- **Información organizada**: grid responsivo para datos clave
+- **Acciones claras**: botones con jerarquía visual estándar
 
 #### **Consistencia Visual**
 - **Colores unificados**: Variables CSS globales (`--arc-color-primary`)
@@ -89,11 +89,72 @@ El módulo de proyectos es el núcleo central de ArcManager, permitiendo la gest
 
 ### **Componentes Utilizados**
 - `header-section` - Encabezado estándar
-- `main-content-grid` - Layout principal con sidebar
-- `info-card-sidebar` - Tarjetas de información
-- `stats-grid-mini` - Estadísticas compactas
 - `nav nav-tabs` - Sistema de pestañas Bootstrap
+- `tab-content` - Contenedor de contenido por pestaña
 - `progress` - Barra de progreso Bootstrap
+
+---
+
+## 🗂️ Pestaña “Archivos” (para Arquitectos)
+
+### Diseño
+- **Agrupado por Fase**: acordeón por cada fase del proyecto.
+- **Subida por Fase**: formulario simple por fase (múltiples archivos) usando la ruta `files:upload_file`.
+- **Dos vistas**: conmutador Tabla/Galería por fase.
+  - Tabla: ícono por tipo (Imagen, PDF, DWG/DXF, Word, Excel, Genérico) y metadatos (subido por, fecha, tamaño).
+  - Galería: tarjetas con miniatura cuando es imagen, ícono grande para el resto.
+- **Sin previsualización**: enfoque ligero y rápido.
+
+### Backend
+- `ProjectDetailView` hace `prefetch_related('tasks__assigned_to', 'files', 'files__uploaded_by')` para rendimiento.
+- Modelo `ProjectFile` expone:
+  - `filename`: nombre sin ruta
+  - `extension`: extensión en mayúsculas (ej. PDF, DWG)
+
+### Endpoints relevantes
+- Subir: `files:upload_file` → `projects/<project_id>/phases/<phase_id>/files/upload/` (POST multipart)
+- Borrar: `files:delete_file` → `files/<file_id>/delete/` (POST)
+
+### Plantillas
+- `projects/partials/_files_tab.html` contiene el acordeón, formulario y el conmutador Tabla/Galería.
+
+---
+
+## 🧭 Comportamiento de pestañas (v2.5)
+
+- Siempre hay una única pestaña visible. El JS normaliza el DOM para evitar panes superpuestos.
+- Pestaña por defecto: **Detalles**.
+- Puedes abrir una pestaña específica con `?tab=<details|phases|tasks|files>` o `#<details|phases|tasks|files>`.
+  - Ejemplo: `.../projects/42/?tab=files`.
+- Archivo clave: `templates/projects/project_detail.html` y `static/js/projects.js` (v1.2).
+
+## 🗃️ Acordeón de Archivos (v2.5)
+
+- Ninguna sección se abre por defecto; todas las fases inician colapsadas.
+- Se usa Bootstrap Accordion. Estructura base en `projects/partials/_files_tab.html`.
+- Clases de estilo relevantes (definidas en `static/css/projects.css` v1.5):
+  - `.file-phase-item` (contenedor)
+  - `.accordion-button.file-phase-header` (cabecera con chevron animado)
+  - `.bg-primary-soft` (badge de conteo)
+  - `.file-list-table.modern-table` (tabla moderna)
+
+### Personalización rápida
+
+Para ajustar apariencia:
+
+```css
+/* Cambiar color del chevron activo */
+.accordion-button.file-phase-header:not(.collapsed)::after { color: #3b82f6; }
+
+/* Fondo del encabezado */
+.accordion-button.file-phase-header { background: linear-gradient(180deg, #fff, #f8fbff); }
+```
+
+## 🔢 Versionado de assets
+
+- `projects.css` → v1.5
+- `projects.js` → v1.2
+- El template `project_detail.html` incluye query `?v=` para bust de caché.
 
 ---
 
@@ -238,3 +299,56 @@ El módulo de proyectos es el núcleo central de ArcManager, permitiendo la gest
 ---
 
 *Módulo de proyectos ultra compacto y profesional para ArcManager - Optimizado para arquitectos*
+
+## 🧱 Kanban – Ajustes UI recientes (v2.5.x)
+
+### Cambios de UX
+
+- Tarjeta simplificada:
+  - Fondo único blanco (sin gradientes ni header de tarjeta).
+  - Muestra Título, Asignado a y etiqueta de Fase.
+  - Se ocultó el estado dentro de la tarjeta para evitar redundancia (el estado ya está representado por la columna).
+  - Archivos: `templates/projects/kanban_board.html` y `static/css/kanban.css`.
+
+- Contador por columna con pluralización:
+  - Muestra “1 tarea” o “N tareas”.
+  - Se actualiza en vivo con drag & drop, creación, edición y eliminación.
+  - Función: `updateColumnCounters()` en `static/js/kanban.js`.
+
+- Placeholder de columna (casco):
+  - Desaparece automáticamente cuando hay al menos una tarjeta.
+  - Vuelve a mostrarse cuando queda vacía la columna.
+  - Función: `syncEmptyStates()` en `static/js/kanban.js`.
+
+### Flujo de edición/creación/eliminación (modal)
+
+- Editar tarea (HTMX):
+  - El modal envía POST a `tasks/<id>/edit/`.
+  - Si es HTMX, el servidor retorna JSON `{ success, task: { id, title, assigned_to_name, phase_name } }`.
+  - El cliente cierra el modal y actualiza la tarjeta sin recargar (título, asignado, fase).
+  - Archivos: `views.py (task_edit)`, `templates/projects/partials/task_edit_modal.html`.
+
+- Crear tarea (modal):
+  - Añadido campo “Asignado a” con usuarios de la organización.
+  - Respuesta JSON cuando el `Accept` incluye `application/json`.
+  - Archivo: `views.py (task_create)` y `kanban_board.html` (form).
+
+- Eliminar tarea (desde modal):
+  - Botón “Eliminar” en el modal de edición.
+  - Endpoint: `POST /projects/tasks/<id>/delete/` → JSON `{ success: true }`.
+  - El cliente remueve la tarjeta del DOM, re-calcula contador y placeholder.
+  - Archivos: `views.py (task_delete)`, `urls.py`, `kanban.js (handleDeleteTask)`.
+
+### Drag & drop
+
+- Cambiar estado (agrupado por estado): `updateTaskStatus(evt)`.
+- Mover de columna (cuando agrupe por fase): `updateTaskPhase(evt)`.
+- Ambos flujos actualizan estadísticas, contador y placeholder en vivo.
+
+### Archivos y ubicaciones clave
+
+- Plantilla: `apps/projects/templates/projects/kanban_board.html`.
+- JS: `arc_manager/static/js/kanban.js` (clase `KanbanManager`).
+- CSS: `arc_manager/static/css/kanban.css`.
+- Vistas: `apps/projects/views.py` (`project_kanban`, `task_create`, `task_edit`, `task_delete`, `update_task_status`, `move_task`).
+- Rutas: `apps/projects/urls.py`.

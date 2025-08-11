@@ -10,8 +10,11 @@ from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from .models import Project, Task, Phase, PhaseTemplate
+from apps.files.models import ProjectFile
 from .forms import ProjectForm, TaskForm, PhaseTemplateForm, PhaseFormSet
 from .services import create_phases_for_project  # Importar el nuevo servicio
+from django.http import JsonResponse
+import json
 
 # Project Views
 class ProjectListView(LoginRequiredMixin, ListView):
@@ -38,15 +41,18 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         project = self.get_object()
         
-        # Obtener fases del proyecto con sus tareas
-        phases = project.phases.prefetch_related('tasks__assigned_to').order_by('order')
+        # Obtener fases del proyecto con sus tareas y archivos
+        phases = project.phases.prefetch_related('tasks__assigned_to', 'files', 'files__uploaded_by').order_by('order')
         
         # Obtener todas las tareas del proyecto
         tasks = Task.objects.filter(phase__project=project).select_related('phase', 'assigned_to').order_by('due_date', 'priority')
+        # Archivos del proyecto
+        files = ProjectFile.objects.filter(phase__project=project).select_related('phase', 'uploaded_by')
         
         from datetime import date
         context['phases'] = phases
         context['tasks'] = tasks
+        context['files'] = files
         context['today'] = date.today()
         
         return context
@@ -131,24 +137,59 @@ def project_kanban(request, pk):
     """Vista del tablero Kanban para un proyecto."""
     project = get_object_or_404(Project, pk=pk, organization=request.user.organization)
     
-    # Obtener fases con sus tareas
+    # Modo de agrupación del tablero: solo 'status' (por decisión de UX)
+    group_by = request.GET.get('group_by', 'status')
+
+    # Fases con tareas
     phases = project.phases.prefetch_related('tasks__assigned_to').order_by('order')
-    
-    # Obtener estadísticas de tareas
+
+    # Estadísticas básicas
     all_tasks = Task.objects.filter(phase__project=project)
     tasks_done = all_tasks.filter(status='DONE').count()
     tasks_in_progress = all_tasks.filter(status='IN_PROGRESS').count()
     tasks_paused = all_tasks.filter(status='PAUSED').count()
-    
+
+    # Soporte para agrupar por estado
+    status_choices = list(Task.Status.choices)
+    selected_phase_id = request.GET.get('phase_id')
+
+    tasks_by_status = {}
+    if group_by == 'status':
+        base_qs = all_tasks.select_related('phase', 'assigned_to')
+        if selected_phase_id:
+            base_qs = base_qs.filter(phase_id=selected_phase_id)
+        for code, _label in status_choices:
+            tasks_by_status[code] = base_qs.filter(status=code)
+
     context = {
         'project': project,
         'phases': phases,
+        'users': project.organization.users.all() if hasattr(project.organization, 'users') else [],
+        'group_by': group_by,
+        'status_choices': status_choices,
+        'selected_phase_id': int(selected_phase_id) if selected_phase_id else None,
+        'tasks_by_status': tasks_by_status,
+        'total_tasks': all_tasks.count(),
         'tasks_done': tasks_done,
         'tasks_in_progress': tasks_in_progress,
         'tasks_paused': tasks_paused,
     }
-    
+
     return render(request, 'projects/kanban_board.html', context)
+
+
+@login_required
+def project_statistics(request, pk):
+    """Devuelve estadísticas simples de tareas del proyecto en JSON."""
+    project = get_object_or_404(Project, pk=pk, organization=request.user.organization)
+    all_tasks = Task.objects.filter(phase__project=project)
+    data = {
+        'total_tasks': all_tasks.count(),
+        'completed_tasks': all_tasks.filter(status='DONE').count(),
+        'in_progress_tasks': all_tasks.filter(status='IN_PROGRESS').count(),
+        'paused_tasks': all_tasks.filter(status='PAUSED').count(),
+    }
+    return JsonResponse(data)
 
 # Phase Create View
 @login_required
@@ -189,6 +230,19 @@ def task_create(request, project_pk):
         priority = request.POST.get('priority', 'MEDIUM')
         due_date = request.POST.get('due_date')
         
+        # Fallback de fase: si no viene 'phase', usar la primera fase del proyecto;
+        # si no existen fases, crear una por defecto "Backlog".
+        if not phase_id:
+            first_phase = project.phases.order_by('order').first()
+            if not first_phase:
+                # Crear fase por defecto
+                first_phase = Phase.objects.create(
+                    project=project,
+                    name='Backlog',
+                    order=1
+                )
+            phase_id = str(first_phase.pk)
+
         if title and phase_id:
             try:
                 phase = Phase.objects.get(pk=phase_id, project=project)
@@ -206,16 +260,18 @@ def task_create(request, project_pk):
                     task.save()
                 
                 messages.success(request, f'Tarea "{title}" creada exitosamente.')
-                
-                # Redirigir según el origen
-                if request.headers.get('HX-Request'):
-                    return HttpResponse('Tarea creada exitosamente')
-                else:
-                    # Si viene del kanban, redirigir al kanban
-                    if 'kanban' in request.META.get('HTTP_REFERER', ''):
-                        return redirect('projects:project-kanban', pk=project_pk)
-                    else:
-                        return redirect('projects:project-detail', pk=project_pk)
+
+                # Si es una petición AJAX/JSON, devolver JSON
+                accepts_json = 'application/json' in request.headers.get('Accept', '')
+                is_htmx = request.headers.get('HX-Request')
+                is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+                if accepts_json or is_htmx or is_ajax:
+                    return JsonResponse({'success': True, 'task_id': task.id})
+
+                # Redirecciones para peticiones normales
+                if 'kanban' in request.META.get('HTTP_REFERER', ''):
+                    return redirect('projects:project-kanban', pk=project_pk)
+                return redirect('projects:project-detail', pk=project_pk)
                     
             except Phase.DoesNotExist:
                 messages.error(request, 'La fase seleccionada no existe.')
@@ -249,11 +305,18 @@ class MyTaskListView(LoginRequiredMixin, ListView):
 @require_POST
 def update_task_status(request, task_pk):
     """Actualizar el estado de una tarea."""
-    from django.http import JsonResponse
-    
     try:
         task = get_object_or_404(Task, pk=task_pk, phase__project__organization=request.user.organization)
-        status = request.POST.get('status')
+        # Soportar JSON y x-www-form-urlencoded
+        status = None
+        if request.content_type and 'application/json' in request.content_type:
+            try:
+                payload = json.loads(request.body or '{}')
+                status = payload.get('status')
+            except json.JSONDecodeError:
+                status = None
+        if status is None:
+            status = request.POST.get('status')
         
         if status in dict(Task.Status.choices):
             task.status = status
@@ -268,11 +331,18 @@ def update_task_status(request, task_pk):
 @require_POST
 def move_task(request, task_pk):
     """Mover una tarea a otra fase."""
-    from django.http import JsonResponse
-    
     try:
         task = get_object_or_404(Task, pk=task_pk, phase__project__organization=request.user.organization)
-        phase_id = request.POST.get('phase_id')
+        # Soportar JSON y x-www-form-urlencoded
+        phase_id = None
+        if request.content_type and 'application/json' in request.content_type:
+            try:
+                payload = json.loads(request.body or '{}')
+                phase_id = payload.get('phase_id')
+            except json.JSONDecodeError:
+                phase_id = None
+        if phase_id is None:
+            phase_id = request.POST.get('phase_id')
         
         if phase_id:
             try:
@@ -295,10 +365,11 @@ def task_edit(request, pk):
     if request.method == 'POST':
         title = request.POST.get('title')
         description = request.POST.get('description', '')
-        status = request.POST.get('status')
+        status = request.POST.get('status') or task.status
         priority = request.POST.get('priority')
         due_date = request.POST.get('due_date')
         assigned_to_id = request.POST.get('assigned_to')
+        phase_id = request.POST.get('phase')
         
         if title:
             task.title = title
@@ -307,13 +378,30 @@ def task_edit(request, pk):
             task.priority = priority
             task.due_date = due_date if due_date else None
             task.assigned_to_id = assigned_to_id if assigned_to_id else None
+            if phase_id and str(task.phase_id) != str(phase_id):
+                try:
+                    task.phase = Phase.objects.get(pk=phase_id, project=task.phase.project)
+                except Phase.DoesNotExist:
+                    pass
             task.save()
             
             messages.success(request, f'Tarea "{title}" actualizada exitosamente.')
             
-            # Redirigir según el origen
+            # Respuesta para htmx: devolver JSON para actualizar la tarjeta y cerrar modal
             if request.headers.get('HX-Request'):
-                return HttpResponse('Tarea actualizada exitosamente')
+                assigned_name = ''
+                if task.assigned_to:
+                    assigned_name = task.assigned_to.get_full_name() or task.assigned_to.username or str(task.assigned_to)
+                payload = {
+                    'success': True,
+                    'task': {
+                        'id': task.id,
+                        'title': task.title,
+                        'assigned_to_name': assigned_name,
+                        'phase_name': task.phase.name,
+                    }
+                }
+                return JsonResponse(payload)
             else:
                 return redirect('projects:project-detail', pk=task.phase.project.pk)
         else:
@@ -324,11 +412,20 @@ def task_edit(request, pk):
         'task': task,
         'project': task.phase.project,
         'phases': task.phase.project.phases.all(),
+        'users': task.phase.project.organization.users.all() if hasattr(task.phase.project.organization, 'users') else [],
         'status_choices': Task.Status.choices,
         'priority_choices': Task.Priority.choices,
     }
     
     return render(request, 'projects/partials/task_edit_modal.html', context)
+
+@login_required
+@require_POST
+def task_delete(request, pk):
+    """Eliminar una tarea (JSON)."""
+    task = get_object_or_404(Task, pk=pk, phase__project__organization=request.user.organization)
+    task.delete()
+    return JsonResponse({'success': True})
 
 # PhaseTemplate Views
 class PhaseTemplateListView(LoginRequiredMixin, ListView):
