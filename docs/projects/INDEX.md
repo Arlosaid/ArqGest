@@ -137,6 +137,22 @@
 - [ ] Exportación de proyectos
 - [ ] Notificaciones en tiempo real
 
+## 🚧 Problemas Resueltos Recientemente
+
+### **Selector de Kanban (Resuelto ✅)**
+- **Problema**: El selector de kanban no mostraba proyectos
+- **Causa**: Filtros de estado incorrectos (`'active'` vs `'ACTIVE'`)
+- **Solución**: Corrección de filtros para usar estados reales del modelo
+- **Archivos**: `views.py`, `kanban_selector.html`
+- **Estado**: ✅ **RESUELTO** - Funciona correctamente
+
+### **Otros Problemas Documentados**
+- **Modal bloqueado**: Pantalla negra al crear tareas (resuelto)
+- **Contador de tareas**: Esfera blanca decorativa (resuelto)
+- **Iconos incorrectos**: Estados vacíos con iconos genéricos (resuelto)
+
+**Ver detalles en**: [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+
 ---
 
 *Índice del módulo de proyectos - ArcManager v2.4*

@@ -3,50 +3,74 @@
 {% load static %}
 {% load project_extras %}
 
-{% block title %}{{ project.name }} - {% trans "Tablero Kanban" %}{% endblock %}
+{% block title %}{{ project.name }} - {% trans "Gestión de Tareas" %}{% endblock %}
 
 {% block extra_css %}
 <!-- Estilos específicos para proyectos y kanban -->
 <link href="{% static 'css/projects.css' %}?v=1.2" rel="stylesheet">
-<link href="{% static 'css/kanban.css' %}?v=1.2" rel="stylesheet">
+<link href="{% static 'css/kanban.css' %}?v=1.4" rel="stylesheet">
+<link href="{% static 'css/tasks.css' %}?v=1.0" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
 <!-- Usar el container estándar de base.css -->
+{% csrf_token %}
 <div class="page-container">
     <!-- Header Section (viene de base.css) -->
     <div class="header-section">
         <div class="header-content">
             <div class="header-title">
                 <div class="header-icon">
-                    <i class="fas fa-columns"></i>
+                    <i class="fas fa-drafting-compass"></i>
                 </div>
-                <h1>{{ project.name }} - {% trans "Tablero Kanban" %}</h1>
+                <h1>{{ project.name }} - {% trans "Gestión de Tareas" %}</h1>
+                <div class="text-muted">{% trans "Tablero Kanban para gestión visual de tareas" %}</div>
             </div>
             <div class="kanban-actions">
-                <a href="{% url 'projects:project-detail' project.pk %}" class="btn-primary-prominent">
+                <a href="{% url 'projects:project-detail' project.pk %}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> {% trans "Volver al Proyecto" %}
                 </a>
-                <button class="btn-primary-prominent" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTaskModal">
                     <i class="fas fa-plus"></i> {% trans "Nueva Tarea" %}
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Estadísticas del proyecto y controles de vista -->
-    <div class="project-stats mb-3">
-        <div class="d-flex justify-content-start align-items-center flex-wrap gap-2 mb-2 phase-filter-left">
-            <form method="get" class="d-flex align-items-center gap-2 phase-filter">
-                <input type="hidden" name="group_by" value="status">
-                <label class="form-label m-0 small phase-filter-label">{% trans "Filtrar por Fase" %}</label>
-                <select name="phase_id" class="form-select form-select-sm phase-filter-select" onchange="this.form.submit()">
-                    <option value="">{% trans "Todas" %}</option>
-                    {% for phase in phases %}
-                        <option value="{{ phase.id }}" {% if selected_phase_id == phase.id %}selected{% endif %}>{{ phase.name }}</option>
-                    {% endfor %}
-                </select>
-            </form>
+    <!-- Total de tareas y controles de vista -->
+    <div class="project-stats mb-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <!-- Total de tareas elegante -->
+            <div class="total-tasks-display">
+                <div class="total-tasks-badge">
+                    <i class="fas fa-drafting-compass"></i>
+                    <span class="total-number">{{ total_tasks }}</span>
+                    <span class="total-label">{% trans "Total Tareas" %}</span>
+                </div>
+            </div>
+            
+            <!-- Filtros y controles alineados a la derecha -->
+            <div class="d-flex align-items-center gap-3">
+                <form method="get" class="d-flex align-items-center gap-2">
+                    <input type="hidden" name="group_by" value="status">
+                    <label class="form-label m-0 small fw-semibold">{% trans "Filtrar por Fase:" %}</label>
+                    <select name="phase_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">{% trans "Todas las Fases" %}</option>
+                        {% for phase in phases %}
+                            <option value="{{ phase.id }}" {% if selected_phase_id == phase.id %}selected{% endif %}>{{ phase.name }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+                
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="clearFilters()">
+                        <i class="fas fa-filter"></i> {% trans "Limpiar Filtros" %}
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="refreshKanban()">
+                        <i class="fas fa-sync-alt"></i> {% trans "Actualizar" %}
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -55,125 +79,517 @@
         <div class="kanban-board" data-group-by="{{ group_by }}">
 
             {% if group_by == 'status' %}
-                {% for code, label in status_choices %}
-                <div class="kanban-column" data-status="{{ code|lower }}">
+                <!-- Columna: Por Hacer -->
+                <div class="kanban-column" data-status="todo">
                     <div class="kanban-column-header">
                         <div class="column-title">
-                            <h5 class="mb-0">{{ label }}</h5>
-                            {% with tasks_by_status|get_item:code|length as cnt %}
-                            <span class="task-count">{% if cnt == 1 %}1 tarea{% else %}{{ cnt }} tareas{% endif %}</span>
-                            {% endwith %}
+                            <h5><i class="fas fa-pencil-ruler"></i> {% trans "Por Hacer" %}</h5>
+                            <span class="task-count">{{ tasks_by_status.TODO.count }} {% if tasks_by_status.TODO.count == 1 %}{% trans "tarea" %}{% else %}{% trans "tareas" %}{% endif %}</span>
                         </div>
                     </div>
-
-                    <div class="kanban-column-body" data-status-code="{{ code }}">
-                        {% for task in tasks_by_status|get_item:code %}
-                        <div class="kanban-card" data-task-id="{{ task.id }}">
+                    <div class="kanban-column-body" data-status-code="TODO">
+                        {% for task in tasks_by_status.TODO %}
+                        <div class="kanban-card" data-task-id="{{ task.id }}" draggable="true">
                             <div class="card-body">
-                                <h6 class="task-title">{{ task.title }}</h6>
-                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                    <div class="task-assignee">
+                                <!-- Header ultra compacto con título y prioridad -->
+                                <div class="task-header">
+                                    <h6 class="task-title" title="{{ task.title }}">{{ task.title|truncatechars:25 }}</h6>
+                                    <div class="task-priority-badge priority-{{ task.priority|lower }}">
+                                        {{ task.get_priority_display|slice:":3" }}
+                                    </div>
+                                </div>
+                                
+                                <!-- Descripción ultra compacta (solo 1 línea) -->
+                                {% if task.description %}
+                                <p class="task-description" title="{{ task.description }}">{{ task.description|truncatechars:35 }}</p>
+                                {% endif %}
+                                
+                                <!-- Meta información ultra compacta en una sola línea -->
+                                <div class="task-meta">
+                                    <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}{% else %}Sin asignar{% endif %}">
                                         <i class="fas fa-user-circle"></i>
-                                        <span>
+                                        <span class="small">
                                             {% if task.assigned_to %}
-                                                {{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:task.assigned_to }}
+                                                {{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:task.assigned_to|truncatechars:12 }}
                                             {% else %}
                                                 {% trans "Sin asignar" %}
                                             {% endif %}
                                         </span>
                                     </div>
-                                        <div class="task-phase">
-                                            <span class="phase-badge">{{ task.phase.name }}</span>
-                                        </div>
-                                    <div class="task-actions">
-                                        <button class="btn btn-sm btn-link" data-bs-toggle="modal" data-bs-target="#taskModal"
-                                                hx-get="{% url 'projects:task-edit' task.pk %}"
-                                                hx-target="#taskModalContent"
-                                                hx-trigger="click">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
+                                    <div class="task-phase">
+                                        <span class="phase-badge" title="{{ task.phase.name }}">{{ task.phase.name|truncatechars:8 }}</span>
                                     </div>
+                                </div>
+                                
+                                <!-- Fecha de vencimiento ultra compacta -->
+                                {% if task.due_date %}
+                                <div class="task-due-date" title="Vence: {{ task.due_date|date:'d/m/Y' }}">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <span class="small {% if task.due_date < today %}text-danger{% endif %}">
+                                        {{ task.due_date|date:"d/m" }}
+                                    </span>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Acciones ultra compactas y bien alineadas -->
+                                <div class="task-actions">
+                                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#taskModal"
+                                            hx-get="{% url 'projects:task-edit' task.pk %}"
+                                            hx-target="#taskModalContent"
+                                            hx-trigger="click"
+                                            title="{% trans 'Editar tarea' %}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-secondary" onclick="showTaskDetails({{ task.id }})"
+                                            title="{% trans 'Ver detalles' %}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
                         {% empty %}
                         <div class="empty-column">
-                            <div class="empty-icon"><i class="fas fa-helmet-safety"></i></div>
-                            <p class="empty-text">{% trans "Sin tareas" %}</p>
+                            <div class="empty-state">
+                                <i class="fas fa-drafting-compass"></i>
+                                <p>{% trans "No hay tareas" %}</p>
+                            </div>
                         </div>
                         {% endfor %}
                     </div>
                 </div>
-                {% endfor %}
+
+                <!-- Columna: En Progreso -->
+                <div class="kanban-column" data-status="in_progress">
+                    <div class="kanban-column-header">
+                        <div class="column-title">
+                            <h5><i class="fas fa-hammer"></i> {% trans "En Progreso" %}</h5>
+                            <span class="task-count">{{ tasks_by_status.IN_PROGRESS.count }} {% if tasks_by_status.IN_PROGRESS.count == 1 %}{% trans "tarea" %}{% else %}{% trans "tareas" %}{% endif %}</span>
+                        </div>
+                    </div>
+                    <div class="kanban-column-body" data-status-code="IN_PROGRESS">
+                        {% for task in tasks_by_status.IN_PROGRESS %}
+                        <div class="kanban-card" data-task-id="{{ task.id }}" draggable="true">
+                            <div class="card-body">
+                                <!-- Header ultra compacto con título y prioridad -->
+                                <div class="task-header">
+                                    <h6 class="task-title" title="{{ task.title }}">{{ task.title|truncatechars:25 }}</h6>
+                                    <div class="task-priority-badge priority-{{ task.priority|lower }}">
+                                        {{ task.get_priority_display|slice:":3" }}
+                                    </div>
+                                </div>
+                                
+                                <!-- Descripción ultra compacta (solo 1 línea) -->
+                                {% if task.description %}
+                                <p class="task-description" title="{{ task.description }}">{{ task.description|truncatechars:35 }}</p>
+                                {% endif %}
+                                
+                                <!-- Meta información ultra compacta en una sola línea -->
+                                <div class="task-meta">
+                                    <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}{% else %}Sin asignar{% endif %}">
+                                        <i class="fas fa-user-circle"></i>
+                                        <span class="small">
+                                            {% if task.assigned_to %}
+                                                {{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:task.assigned_to|truncatechars:12 }}
+                                            {% else %}
+                                                {% trans "Sin asignar" %}
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="task-phase">
+                                        <span class="phase-badge" title="{{ task.phase.name }}">{{ task.phase.name|truncatechars:8 }}</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Fecha de vencimiento ultra compacta -->
+                                {% if task.due_date %}
+                                <div class="task-due-date" title="Vence: {{ task.due_date|date:'d/m/Y' }}">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <span class="small {% if task.due_date < today %}text-danger{% endif %}">
+                                        {{ task.due_date|date:"d/m" }}
+                                    </span>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Acciones ultra compactas y bien alineadas -->
+                                <div class="task-actions">
+                                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#taskModal"
+                                            hx-get="{% url 'projects:task-edit' task.pk %}"
+                                            hx-target="#taskModalContent"
+                                            hx-trigger="click"
+                                            title="{% trans 'Editar tarea' %}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-secondary" onclick="showTaskDetails({{ task.id }})"
+                                            title="{% trans 'Ver detalles' %}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="empty-column">
+                            <div class="empty-state">
+                                <i class="fas fa-drafting-compass"></i>
+                                <p>{% trans "No hay tareas" %}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Columna: En Pausa -->
+                <div class="kanban-column" data-status="paused">
+                    <div class="kanban-column-header">
+                        <div class="column-title">
+                            <h5><i class="fas fa-pause-circle"></i> {% trans "En Pausa" %}</h5>
+                            <span class="task-count">{{ tasks_by_status.PAUSED.count }} {% if tasks_by_status.PAUSED.count == 1 %}{% trans "tarea" %}{% else %}{% trans "tareas" %}{% endif %}</span>
+                        </div>
+                    </div>
+                    <div class="kanban-column-body" data-status-code="PAUSED">
+                        {% for task in tasks_by_status.PAUSED %}
+                        <div class="kanban-card" data-task-id="{{ task.id }}" draggable="true">
+                            <div class="card-body">
+                                <!-- Header ultra compacto con título y prioridad -->
+                                <div class="task-header">
+                                    <h6 class="task-title" title="{{ task.title }}">{{ task.title|truncatechars:25 }}</h6>
+                                    <div class="task-priority-badge priority-{{ task.priority|lower }}">
+                                        {{ task.get_priority_display|slice:":3" }}
+                                    </div>
+                                </div>
+                                
+                                <!-- Descripción ultra compacta (solo 1 línea) -->
+                                {% if task.description %}
+                                <p class="task-description" title="{{ task.description }}">{{ task.description|truncatechars:35 }}</p>
+                                {% endif %}
+                                
+                                <!-- Meta información ultra compacta en una sola línea -->
+                                <div class="task-meta">
+                                    <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}{% else %}Sin asignar{% endif %}">
+                                        <i class="fas fa-user-circle"></i>
+                                        <span class="small">
+                                            {% if task.assigned_to %}
+                                                {{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:task.assigned_to|truncatechars:12 }}
+                                            {% else %}
+                                                {% trans "Sin asignar" %}
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="task-phase">
+                                        <span class="phase-badge" title="{{ task.phase.name }}">{{ task.phase.name|truncatechars:8 }}</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Fecha de vencimiento ultra compacta -->
+                                {% if task.due_date %}
+                                <div class="task-due-date" title="Vence: {{ task.due_date|date:'d/m/Y' }}">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <span class="small {% if task.due_date < today %}text-danger{% endif %}">
+                                        {{ task.due_date|date:"d/m" }}
+                                    </span>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Acciones ultra compactas y bien alineadas -->
+                                <div class="task-actions">
+                                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#taskModal"
+                                            hx-get="{% url 'projects:task-edit' task.pk %}"
+                                            hx-target="#taskModalContent"
+                                            hx-trigger="click"
+                                            title="{% trans 'Editar tarea' %}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-secondary" onclick="showTaskDetails({{ task.id }})"
+                                            title="{% trans 'Ver detalles' %}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="empty-column">
+                            <div class="empty-state">
+                                <i class="fas fa-drafting-compass"></i>
+                                <p>{% trans "No hay tareas" %}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Columna: Hecho -->
+                <div class="kanban-column" data-status="done">
+                    <div class="kanban-column-header">
+                        <div class="column-title">
+                            <h5><i class="fas fa-check-double"></i> {% trans "Hecho" %}</h5>
+                            <span class="task-count">{{ tasks_by_status.DONE.count }} {% if tasks_by_status.DONE.count == 1 %}{% trans "tarea" %}{% else %}{% trans "tareas" %}{% endif %}</span>
+                        </div>
+                    </div>
+                    <div class="kanban-column-body" data-status-code="DONE">
+                        {% for task in tasks_by_status.DONE %}
+                        <div class="kanban-card" data-task-id="{{ task.id }}" draggable="true">
+                            <div class="card-body">
+                                <!-- Header ultra compacto con título y prioridad -->
+                                <div class="task-header">
+                                    <h6 class="task-title" title="{{ task.title }}">{{ task.title|truncatechars:25 }}</h6>
+                                    <div class="task-priority-badge priority-{{ task.priority|lower }}">
+                                        {{ task.get_priority_display|slice:":3" }}
+                                    </div>
+                                </div>
+                                
+                                <!-- Descripción ultra compacta (solo 1 línea) -->
+                                {% if task.description %}
+                                <p class="task-description" title="{{ task.description }}">{{ task.description|truncatechars:35 }}</p>
+                                {% endif %}
+                                
+                                <!-- Meta información ultra compacta en una sola línea -->
+                                <div class="task-meta">
+                                    <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}{% else %}Sin asignar{% endif %}">
+                                        <i class="fas fa-user-circle"></i>
+                                        <span class="small">
+                                            {% if task.assigned_to %}
+                                                {{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:task.assigned_to|truncatechars:12 }}
+                                            {% else %}
+                                                {% trans "Sin asignar" %}
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="task-phase">
+                                        <span class="phase-badge" title="{{ task.phase.name }}">{{ task.phase.name|truncatechars:8 }}</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Fecha de vencimiento ultra compacta -->
+                                {% if task.due_date %}
+                                <div class="task-due-date" title="Vence: {{ task.due_date|date:'d/m/Y' }}">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <span class="small {% if task.due_date < today %}text-danger{% endif %}">
+                                        {{ task.due_date|date:"d/m" }}
+                                    </span>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Acciones ultra compactas y bien alineadas -->
+                                <div class="task-actions">
+                                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#taskModal"
+                                            hx-get="{% url 'projects:task-edit' task.pk %}"
+                                            hx-target="#taskModalContent"
+                                            hx-trigger="click"
+                                            title="{% trans 'Editar tarea' %}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-secondary" onclick="showTaskDetails({{ task.id }})"
+                                            title="{% trans 'Ver detalles' %}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="empty-column">
+                            <div class="empty-state">
+                                <i class="fas fa-drafting-compass"></i>
+                                <p>{% trans "No hay tareas" %}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
             {% endif %}
         </div>
     </div>
 </div>
 
-<!-- Modal para editar tarea -->
-<div class="modal fade" id="taskModal" tabindex="-1" aria-labelledby="taskModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content" id="taskModalContent"></div>
-    </div>
-</div>
-
-<!-- Modal para agregar tarea -->
+<!-- Modal para crear/editar tareas -->
 <div class="modal fade" id="addTaskModal" tabindex="-1" aria-labelledby="addTaskModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="addTaskModalLabel">{% trans "Nueva Tarea" %}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{% url 'projects:task-create' project.pk %}" method="post">
-                {% csrf_token %}
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="task-title" class="form-label">{% trans "Título" %}</label>
-                        <input type="text" class="form-control" id="task-title" name="title" required>
+            <div class="modal-body">
+                <form method="post" action="{% url 'projects:task-create' project.pk %}" id="taskForm">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="title" class="form-label">{% trans "Título de la Tarea" %} *</label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                        <div class="col-12">
+                            <label for="description" class="form-label">{% trans "Descripción" %}</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="phase" class="form-label">{% trans "Fase" %} *</label>
+                            <select class="form-select" id="phase" name="phase" required>
+                                <option value="">{% trans "Seleccionar fase" %}</option>
+                                {% for phase in phases %}
+                                    <option value="{{ phase.id }}">{{ phase.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="assigned_to" class="form-label">{% trans "Asignar a" %}</label>
+                            <select class="form-select" id="assigned_to" name="assigned_to">
+                                <option value="">{% trans "Sin asignar" %}</option>
+                                {% for user in users %}
+                                    <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="priority" class="form-label">{% trans "Prioridad" %}</label>
+                            <select class="form-select" id="priority" name="priority">
+                                <option value="LOW">{% trans "Baja" %}</option>
+                                <option value="MEDIUM" selected>{% trans "Media" %}</option>
+                                <option value="HIGH">{% trans "Alta" %}</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="due_date" class="form-label">{% trans "Fecha de Vencimiento" %}</label>
+                            <input type="date" class="form-control" id="due_date" name="due_date">
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="task-description" class="form-label">{% trans "Descripción" %}</label>
-                        <textarea class="form-control" id="task-description" name="description" rows="3"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="task-phase" class="form-label">{% trans "Fase" %}</label>
-                        <select class="form-control" id="task-phase" name="phase" required>
-                            {% for phase in phases %}
-                            <option value="{{ phase.id }}">{{ phase.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="task-assigned" class="form-label">{% trans "Asignado a" %}</label>
-                        <select class="form-control" id="task-assigned" name="assigned_to">
-                            <option value="">{% trans "Sin asignar" %}</option>
-                            {% for u in users %}
-                            <option value="{{ u.id }}">{{ u.get_full_name|default:u.username }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="task-priority" class="form-label">{% trans "Prioridad" %}</label>
-                        <select class="form-control" id="task-priority" name="priority">
-                            <option value="LOW">{% trans "Baja" %}</option>
-                            <option value="MEDIUM" selected>{% trans "Media" %}</option>
-                            <option value="HIGH">{% trans "Alta" %}</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="cancelTaskBtn">{% trans "Cancelar" %}</button>
-                    <button type="submit" class="btn btn-primary">{% trans "Crear Tarea" %}</button>
-                </div>
-            </form>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancelar" %}</button>
+                <button type="submit" form="taskForm" class="btn btn-primary">{% trans "Crear Tarea" %}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar tareas -->
+<div class="modal fade" id="taskModal" tabindex="-1" aria-labelledby="taskModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="taskModalLabel">{% trans "Editar Tarea" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="taskModalContent">
+                <!-- El contenido se carga dinámicamente -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ver detalles de tareas -->
+<div class="modal fade" id="taskDetailsModal" tabindex="-1" aria-labelledby="taskDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="taskDetailsModalLabel">{% trans "Detalles de la Tarea" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="taskDetailsContent">
+                <!-- El contenido se carga dinámicamente -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cerrar" %}</button>
+            </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-<script src="{# cache-busting #}{% static 'js/projects.js' %}?v=1.1"></script>
-<script src="{# cache-busting #}{% static 'js/kanban.js' %}?v=1.1"></script>
+<script src="{% static 'js/kanban.js' %}?v=1.3"></script>
+<script>
+// Funciones de utilidad
+function clearFilters() {
+    window.location.href = "{% url 'projects:project-kanban' project.pk %}";
+}
+
+function refreshKanban() {
+    location.reload();
+}
+
+function showTaskDetails(taskId) {
+    // Mostrar modal con detalles de la tarea
+    const modal = new bootstrap.Modal(document.getElementById('taskDetailsModal'));
+    const modalContent = document.getElementById('taskDetailsContent');
+    
+    // Mostrar loading
+    modalContent.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Cargando detalles...</p></div>';
+    modal.show();
+    
+    // Cargar detalles de la tarea
+    fetch(`{% url 'projects:task-detail' 0 %}`.replace('0', taskId))
+        .then(response => response.text())
+        .then(html => {
+            modalContent.innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            modalContent.innerHTML = '<div class="text-center p-4 text-danger"><i class="fas fa-exclamation-triangle fa-2x"></i><p class="mt-2">Error al cargar los detalles</p></div>';
+        });
+}
+
+// Inicializar funcionalidades del kanban
+document.addEventListener('DOMContentLoaded', function() {
+    // Hacer las tarjetas arrastrables
+    const cards = document.querySelectorAll('.kanban-card');
+    cards.forEach(card => {
+        card.addEventListener('dragstart', handleDragStart);
+        card.addEventListener('dragend', handleDragEnd);
+    });
+
+    // Hacer las columnas receptores de drop
+    const columns = document.querySelectorAll('.kanban-column-body');
+    columns.forEach(column => {
+        column.addEventListener('dragover', handleDragOver);
+        column.addEventListener('drop', handleDrop);
+    });
+});
+
+// Funcionalidad de drag & drop
+function handleDragStart(e) {
+    e.target.classList.add('dragging');
+    e.dataTransfer.setData('text/plain', e.target.dataset.taskId);
+}
+
+function handleDragEnd(e) {
+    e.target.classList.remove('dragging');
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    const taskId = e.dataTransfer.getData('text/plain');
+    const newStatus = e.target.closest('.kanban-column-body').dataset.statusCode;
+    
+    // Actualizar estado de la tarea
+    updateTaskStatus(taskId, newStatus);
+}
+
+function updateTaskStatus(taskId, newStatus) {
+    fetch(`{% url 'projects:update-task-status' 0 %}`.replace('0', taskId), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            status: newStatus
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload(); // Recargar para mostrar cambios
+        } else {
+            alert('Error al actualizar la tarea');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al actualizar la tarea');
+    });
+}
+</script>
 {% endblock %}

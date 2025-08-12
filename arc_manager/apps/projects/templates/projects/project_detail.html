@@ -6,6 +6,7 @@
 
 {% block extra_css %}
 <link href="{% static 'css/projects.css' %}?v=1.5" rel="stylesheet">
+<link href="{% static 'css/tasks.css' %}?v=1.0" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -27,7 +28,7 @@
                     <i class="fas fa-edit"></i> {% trans "Editar" %}
                 </a>
                 <a href="{% url 'projects:project-kanban' project.pk %}" class="btn btn-primary">
-                    <i class="fas fa-columns"></i> {% trans "Kanban" %}
+                    <i class="fas fa-columns"></i> {% trans "Gestionar Tareas" %}
                 </a>
                 {% if user.is_org_admin %}
                 <a href="{% url 'projects:project-delete' project.pk %}" class="btn btn-secondary">
@@ -52,8 +53,8 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks" type="button" role="tab" aria-controls="tasks" aria-selected="false">
-                    <i class="fas fa-tasks"></i> {% trans "Tareas" %}
+                <button class="nav-link" id="kanban-tab" data-bs-toggle="tab" data-bs-target="#kanban" type="button" role="tab" aria-controls="kanban" aria-selected="false">
+                    <i class="fas fa-columns"></i> {% trans "Kanban" %}
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -103,7 +104,7 @@
                                 <i class="fas fa-edit"></i> {% trans "Editar Proyecto" %}
                             </a>
                             <a href="{% url 'projects:project-kanban' project.pk %}" class="btn btn-primary">
-                                <i class="fas fa-columns"></i> {% trans "Ver Tablero Kanban" %}
+                                <i class="fas fa-columns"></i> {% trans "Gestionar Tareas en Kanban" %}
                             </a>
                         </div>
                     </div>
@@ -115,9 +116,177 @@
                 {% include "projects/partials/_phases_tab.html" %}
             </div>
 
-            <!-- Tareas -->
-            <div class="tab-pane fade" id="tasks" role="tabpanel" aria-labelledby="tasks-tab" data-tab="tasks">
-                {% include "projects/partials/_tasks_tab.html" %}
+            <!-- Kanban - Resumen Visual -->
+            <div class="tab-pane fade" id="kanban" role="tabpanel" aria-labelledby="kanban-tab" data-tab="kanban">
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h3 class="mb-0" style="font-weight:700; font-size:1.125rem;">
+                                <i class="fas fa-columns text-primary me-2"></i>
+                                Resumen del Kanban
+                            </h3>
+                            <a href="{% url 'projects:project-kanban' project.pk %}" class="btn btn-primary">
+                                <i class="fas fa-external-link-alt me-1"></i>
+                                Ver Kanban Completo
+                            </a>
+                        </div>
+                        
+                        <!-- Estadísticas Rápidas -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-3">
+                                <div class="stat-card bg-light border-start border-warning border-4">
+                                    <div class="stat-content">
+                                        <div class="stat-number text-warning">{{ project.tasks.count|default:0 }}</div>
+                                        <div class="stat-label">Total Tareas</div>
+                                    </div>
+                                    <div class="stat-icon">
+                                        <i class="fas fa-tasks text-warning"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card bg-light border-start border-info border-4">
+                                    <div class="stat-content">
+                                        <div class="stat-number text-info">{{ project.tasks.count|default:0 }}</div>
+                                        <div class="stat-label">En Progreso</div>
+                                    </div>
+                                    <div class="stat-icon">
+                                        <i class="fas fa-play-circle text-info"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card bg-light border-start border-success border-4">
+                                    <div class="stat-content">
+                                        <div class="stat-number text-success">{{ project.tasks.count|default:0 }}</div>
+                                        <div class="stat-label">Completadas</div>
+                                    </div>
+                                    <div class="stat-icon">
+                                        <i class="fas fa-check-circle text-success"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card bg-light border-start border-danger border-4">
+                                    <div class="stat-content">
+                                        <div class="stat-number text-danger">{{ project.tasks.count|default:0 }}</div>
+                                        <div class="stat-label">Vencidas</div>
+                                    </div>
+                                    <div class="stat-icon">
+                                        <i class="fas fa-exclamation-triangle text-danger"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mini Kanban -->
+                        <div class="mini-kanban-container">
+                            <div class="mini-kanban-columns">
+                                <!-- Columna: Por Hacer -->
+                                <div class="mini-kanban-column">
+                                    <div class="column-header-mini">
+                                        <h6 class="column-title-mini">
+                                            <i class="fas fa-clock text-warning me-1"></i>
+                                            Por Hacer
+                                        </h6>
+                                        <span class="task-count-mini">{{ project.tasks.count|default:0 }}</span>
+                                    </div>
+                                    <div class="column-content-mini">
+                                        {% for task in project.tasks.all|slice:":3" %}
+                                        <div class="mini-task-card">
+                                            <div class="task-header-mini">
+                                                <span class="task-priority-mini priority-{{ task.priority|default:'medium' }}">
+                                                    {{ task.get_priority_display|default:"Media" }}
+                                                </span>
+                                            </div>
+                                            <h6 class="task-title-mini">{{ task.title|truncatechars:35 }}</h6>
+                                            <div class="task-meta-mini">
+                                                <span class="due-date-mini">
+                                                    <i class="fas fa-calendar-alt me-1"></i>
+                                                    {{ task.due_date|date:"d M"|default:"Sin fecha" }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        {% empty %}
+                                        <div class="empty-column-state-mini">
+                                            <i class="fas fa-check-circle text-success"></i>
+                                            <p>¡No hay tareas pendientes!</p>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+                                <!-- Columna: En Progreso -->
+                                <div class="mini-kanban-column">
+                                    <div class="column-header-mini">
+                                        <h6 class="column-title-mini">
+                                            <i class="fas fa-play-circle text-info me-1"></i>
+                                            En Progreso
+                                        </h6>
+                                        <span class="task-count-mini">{{ project.tasks.count|default:0 }}</span>
+                                    </div>
+                                    <div class="column-content-mini">
+                                        {% for task in project.tasks.all|slice:":3" %}
+                                        <div class="mini-task-card in-progress">
+                                            <div class="task-header-mini">
+                                                <span class="task-priority-mini priority-{{ task.priority|default:'medium' }}">
+                                                    {{ task.get_priority_display|default:"Media" }}
+                                                </span>
+                                            </div>
+                                            <h6 class="task-title-mini">{{ task.title|truncatechars:35 }}</h6>
+                                            <div class="task-meta-mini">
+                                                <span class="due-date-mini">
+                                                    <i class="fas fa-calendar-alt me-1"></i>
+                                                    {{ task.due_date|date:"d M"|default:"Sin fecha" }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        {% empty %}
+                                        <div class="empty-column-state-mini">
+                                            <i class="fas fa-info-circle text-info"></i>
+                                            <p>No hay tareas en progreso</p>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+                                <!-- Columna: Completado -->
+                                <div class="mini-kanban-column">
+                                    <div class="column-header-mini">
+                                        <h6 class="column-title-mini">
+                                            <i class="fas fa-check-circle text-success me-1"></i>
+                                            Completado
+                                        </h6>
+                                        <span class="task-count-mini">{{ project.tasks.count|default:0 }}</span>
+                                    </div>
+                                    <div class="column-content-mini">
+                                        {% for task in project.tasks.all|slice:":3" %}
+                                        <div class="mini-task-card completed">
+                                            <div class="task-header-mini">
+                                                <span class="task-priority-mini priority-{{ task.priority|default:'medium' }}">
+                                                    {{ task.get_priority_display|default:"Media" }}
+                                                </span>
+                                            </div>
+                                            <h6 class="task-title-mini">{{ task.title|truncatechars:35 }}</h6>
+                                            <div class="task-meta-mini">
+                                                <span class="due-date-mini">
+                                                    <i class="fas fa-calendar-alt me-1"></i>
+                                                    {{ task.due_date|date:"d M"|default:"Sin fecha" }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        {% empty %}
+                                        <div class="empty-column-state-mini">
+                                            <i class="fas fa-trophy text-warning"></i>
+                                            <p>¡Completa tu primera tarea!</p>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Archivos -->
@@ -158,7 +327,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const h = (window.location.hash || '').replace('#','').toLowerCase();
     initial = q || h || 'details';
   } catch (_) {}
-  if (!['details','phases','tasks','files'].includes(initial)) initial = 'details';
+  if (!['details','phases','kanban','files'].includes(initial)) initial = 'details';
   showTabById(initial);
 
   // Click manual (si BS no hace el toggle)
@@ -174,6 +343,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const id = e.target?.getAttribute('data-bs-target')?.replace('#','');
     if (id) showTabById(id);
   });
+
+  // Manejar click en pestaña Kanban (redirigir al kanban)
+  const kanbanTab = document.getElementById('kanban-tab');
+  if (kanbanTab) {
+    kanbanTab.addEventListener('click', function() {
+      // Ya no redirigimos, solo activamos la pestaña
+      showTabById('kanban');
+    });
+  }
 });
 </script>
 {% endblock %}

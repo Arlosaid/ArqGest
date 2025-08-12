@@ -5,79 +5,192 @@
 {% block title %}{% trans "Mis Tareas" %}{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/projects.css' %}?v=1.2" rel="stylesheet">
+<link href="{% static 'css/tasks.css' %}?v=1.0" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
 <!-- Usar el container estándar de base.css -->
 <div class="page-container">
-    <!-- Header Section (viene de base.css) -->
-    <div class="header-section">
-        <div class="header-content">
-            <div class="header-title">
-                <div class="header-icon">
+    <!-- Header Section con estadísticas -->
+    <div class="tasks-container">
+        <div class="tasks-header">
+            <div class="tasks-header-content">
+                <h1 class="tasks-title">
                     <i class="fas fa-tasks"></i>
+                    {% trans "Mis Tareas" %}
+                </h1>
+                <p class="tasks-subtitle">{% trans "Gestiona y organiza todas tus tareas de proyectos" %}</p>
+                
+                <!-- Estadísticas de tareas -->
+                <div class="tasks-stats">
+                    <div class="task-stat">
+                        <span class="task-stat-number">{{ total_tasks|default:"0" }}</span>
+                        <span class="task-stat-label">{% trans "Total" %}</span>
+                    </div>
+                    <div class="task-stat">
+                        <span class="task-stat-number">{{ tasks_todo|default:"0" }}</span>
+                        <span class="task-stat-label">{% trans "Pendientes" %}</span>
+                    </div>
+                    <div class="task-stat">
+                        <span class="task-stat-number">{{ tasks_in_progress|default:"0" }}</span>
+                        <span class="task-stat-label">{% trans "En Progreso" %}</span>
+                    </div>
+                    <div class="task-stat">
+                        <span class="task-stat-number">{{ tasks_done|default:"0" }}</span>
+                        <span class="task-stat-label">{% trans "Completadas" %}</span>
+                    </div>
                 </div>
-                <h1>{% trans "Mis Tareas" %}</h1>
             </div>
         </div>
-    </div>
 
-    <div class="card">
-        <div class="card-body">
-            <h5 class="card-title">{% trans "Todas las Tareas" %}</h5>
-            <p class="card-text">{% trans "Aquí hay una lista de todas tus tareas de todos tus proyectos." %}</p>
+        <!-- Filtros de tareas -->
+        <div class="tasks-filters">
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label class="filter-label">{% trans "Estado:" %}</label>
+                    <select class="filter-select" id="statusFilter">
+                        <option value="">{% trans "Todos" %}</option>
+                        <option value="TODO">{% trans "Pendiente" %}</option>
+                        <option value="IN_PROGRESS">{% trans "En Progreso" %}</option>
+                        <option value="PAUSED">{% trans "Pausada" %}</option>
+                        <option value="DONE">{% trans "Completada" %}</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label">{% trans "Prioridad:" %}</label>
+                    <select class="filter-select" id="priorityFilter">
+                        <option value="">{% trans "Todas" %}</option>
+                        <option value="LOW">{% trans "Baja" %}</option>
+                        <option value="MEDIUM">{% trans "Media" %}</option>
+                        <option value="HIGH">{% trans "Alta" %}</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group project-filter">
+                    <label class="filter-label">{% trans "Proyecto:" %}</label>
+                    <select class="filter-select" id="projectFilter">
+                        <option value="">{% trans "Todos los proyectos" %}</option>
+                        {% for project in user_projects %}
+                            <option value="{{ project.id }}">{{ project.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="search-box">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="search-input" id="searchInput" placeholder="{% trans 'Buscar tareas...' %}">
+                </div>
+                
+                <button type="button" class="task-action-btn primary" data-bs-toggle="modal" data-bs-target="#createTaskModal">
+                    <i class="fas fa-plus"></i> {% trans "Nueva Tarea" %}
+                </button>
+            </div>
+            
+            <div class="filters-actions">
+                <button type="button" class="clear-filters-btn">
+                    <i class="fas fa-times"></i> {% trans "Limpiar Filtros" %}
+                </button>
+                <div class="active-filters-indicator" style="display: none;">
+                    <i class="fas fa-filter"></i>
+                    <span>{% trans "Filtros activos" %}</span>
+                </div>
+            </div>
         </div>
-        <ul class="list-group list-group-flush">
-            {% for task in tasks %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>{{ task.title }}</strong>
-                        <br>
-                        <small class="text-muted">
-                            {% trans "Proyecto:" %} <a href="{% url 'projects:project-detail' task.phase.project.pk %}">{{ task.phase.project.name }}</a>
-                        </small>
-                    </div>
-                    <div class="d-flex align-items-center">
-                        <span class="badge 
-                            {% if task.status == 'DONE' %}bg-success
-                            {% elif task.status == 'IN_PROGRESS' %}bg-primary
-                            {% elif task.status == 'PAUSED' %}bg-secondary
-                            {% else %}bg-info{% endif %} me-3">
-                            {{ task.get_status_display }}
-                        </span>
-                        <div class="btn-group" role="group">
-                            <form action="{% url 'projects:update-task-status' task.pk %}" method="post" class="d-inline">
-                                {% csrf_token %}
+
+        <!-- Lista de tareas -->
+        {% if tasks %}
+            <ul class="tasks-list" id="tasksList">
+                {% for task in tasks %}
+                    <li class="task-item" data-status="{{ task.status }}" data-priority="{{ task.priority }}" data-project="{{ task.phase.project.name|lower }}" data-phase="{{ task.phase.name|lower }}">
+                        <div class="task-content">
+                            <div class="task-main">
+                                <h3 class="task-title">{{ task.title }}</h3>
+                                {% if task.description %}
+                                    <p class="task-description">{{ task.description }}</p>
+                                {% endif %}
+                                
+                                <div class="task-meta">
+                                    <div class="task-project">
+                                        <i class="fas fa-folder"></i>
+                                        <span>{{ task.phase.project.name }}</span>
+                                    </div>
+                                    <div class="task-phase">
+                                        <i class="fas fa-layer-group"></i>
+                                        <span>{{ task.phase.name }}</span>
+                                    </div>
+                                    {% if task.due_date %}
+                                        <div class="task-due-date">
+                                            <i class="fas fa-calendar-alt"></i>
+                                            <span class="{% if task.due_date < today %}text-danger{% endif %}">
+                                                {{ task.due_date|date:"d M Y" }}
+                                            </span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="task-status-section">
+                                <span class="task-status-badge 
+                                    {% if task.status == 'DONE' %}done
+                                    {% elif task.status == 'IN_PROGRESS' %}in-progress
+                                    {% elif task.status == 'PAUSED' %}paused
+                                    {% else %}todo{% endif %}">
+                                    {{ task.get_status_display }}
+                                </span>
+                                
+                                <span class="task-priority-badge 
+                                    {% if task.priority == 'HIGH' %}high
+                                    {% elif task.priority == 'MEDIUM' %}medium
+                                    {% else %}low{% endif %}">
+                                    {{ task.get_priority_display }}
+                                </span>
+                            </div>
+                            
+                            <div class="task-actions">
+                                <button type="button" class="task-action-btn secondary task-detail-btn" title="{% trans 'Ver detalles' %}">
+                                    <i class="fas fa-eye"></i> {% trans "Detalles" %}
+                                </button>
+                                
+                                <a href="{% url 'projects:task-edit' task.pk %}" class="task-action-btn secondary">
+                                    <i class="fas fa-edit"></i> {% trans "Editar" %}
+                                </a>
+                                
                                 {% if task.status == 'TODO' %}
-                                    <input type="hidden" name="status" value="IN_PROGRESS">
-                                    <button type="submit" class="btn btn-sm btn-primary">{% trans "Iniciar" %}</button>
+                                    <button type="button" class="task-action-btn primary" onclick="updateTaskStatus('{{ task.pk }}', 'IN_PROGRESS')">
+                                        <i class="fas fa-play"></i> {% trans "Iniciar" %}
+                                    </button>
                                 {% elif task.status == 'IN_PROGRESS' %}
-                                    <input type="hidden" name="status" value="PAUSED">
-                                    <button type="submit" class="btn btn-sm btn-warning me-1">{% trans "Pausar" %}</button>
-                                {% endif %}
-                            </form>
-                            <form action="{% url 'projects:update-task-status' task.pk %}" method="post" class="d-inline">
-                                {% csrf_token %}
-                                {% if task.status == 'IN_PROGRESS' %}
-                                    <input type="hidden" name="status" value="DONE">
-                                    <button type="submit" class="btn btn-sm btn-success">{% trans "Hecho" %}</button>
+                                    <button type="button" class="task-action-btn warning" onclick="updateTaskStatus('{{ task.pk }}', 'PAUSED')">
+                                        <i class="fas fa-pause"></i> {% trans "Pausar" %}
+                                    </button>
+                                    <button type="button" class="task-action-btn success" onclick="updateTaskStatus('{{ task.pk }}', 'DONE')">
+                                        <i class="fas fa-check"></i> {% trans "Completar" %}
+                                    </button>
                                 {% elif task.status == 'PAUSED' %}
-                                    <input type="hidden" name="status" value="IN_PROGRESS">
-                                    <button type="submit" class="btn btn-sm btn-primary">{% trans "Reanudar" %}</button>
+                                    <button type="button" class="task-action-btn primary" onclick="updateTaskStatus('{{ task.pk }}', 'IN_PROGRESS')">
+                                        <i class="fas fa-play"></i> {% trans "Reanudar" %}
+                                    </button>
                                 {% endif %}
-                            </form>
+                            </div>
                         </div>
-                    </div>
-                </li>
-            {% empty %}
-                <li class="list-group-item">{% trans "Aún no tienes tareas." %}</li>
-            {% endfor %}
-        </ul>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="tasks-empty">
+                <i class="fas fa-tasks tasks-empty-icon"></i>
+                <h3 class="tasks-empty-title">{% trans "No tienes tareas asignadas" %}</h3>
+                <p class="tasks-empty-text">{% trans "¡Disfruta de tu día o busca algo en qué trabajar! Las tareas aparecerán aquí cuando te sean asignadas." %}</p>
+                <a href="{% url 'projects:project-list' %}" class="task-action-btn primary">
+                    <i class="fas fa-plus"></i> {% trans "Explorar Proyectos" %}
+                </a>
+            </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/projects.js' %}?v=1.0"></script>
+<script src="{% static 'js/tasks.js' %}?v=1.0"></script>
 {% endblock %}

@@ -306,3 +306,220 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Exportar para uso global
 window.SidebarManager = SidebarManager;
+
+// sidebar.js - Funcionalidad para el modal de selección de proyectos
+document.addEventListener('DOMContentLoaded', function() {
+    const kanbanProjectsBtn = document.getElementById('kanbanProjectsBtn');
+    const kanbanProjectsModal = document.getElementById('kanbanProjectsModal');
+    const projectSearchInput = document.getElementById('projectSearchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    const clientFilter = document.getElementById('clientFilter');
+    const projectsGrid = document.getElementById('projectsGrid');
+
+    if (!kanbanProjectsBtn) return;
+
+    // Cargar proyectos cuando se abre el modal
+    kanbanProjectsModal.addEventListener('show.bs.modal', function() {
+        loadProjects();
+        loadClientOptions();
+    });
+
+    // Búsqueda en tiempo real
+    if (projectSearchInput) {
+        projectSearchInput.addEventListener('input', debounce(function() {
+            filterProjects();
+        }, 300));
+    }
+
+    // Filtros
+    if (statusFilter) {
+        statusFilter.addEventListener('change', filterProjects);
+    }
+    if (clientFilter) {
+        clientFilter.addEventListener('change', filterProjects);
+    }
+
+    // Cargar proyectos desde la API
+    async function loadProjects() {
+        try {
+            const response = await fetch('/api/projects/');
+            if (!response.ok) throw new Error('Error al cargar proyectos');
+            
+            const projects = await response.json();
+            displayProjects(projects);
+        } catch (error) {
+            console.error('Error:', error);
+            displayProjects([]);
+        }
+    }
+
+    // Cargar opciones de clientes
+    async function loadClientOptions() {
+        try {
+            const response = await fetch('/api/clients/');
+            if (!response.ok) throw new Error('Error al cargar clientes');
+            
+            const clients = await response.json();
+            populateClientFilter(clients);
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    // Mostrar proyectos en el grid
+    function displayProjects(projects) {
+        if (!projectsGrid) return;
+
+        projectsGrid.innerHTML = '';
+        
+        if (projects.length === 0) {
+            projectsGrid.innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No se encontraron proyectos</h5>
+                    <p class="text-muted">Intenta ajustar los filtros o crear un nuevo proyecto</p>
+                </div>
+            `;
+            return;
+        }
+
+        projects.forEach(project => {
+            const projectCard = createProjectCard(project);
+            projectsGrid.appendChild(projectCard);
+        });
+    }
+
+    // Crear tarjeta de proyecto
+    function createProjectCard(project) {
+        const col = document.createElement('div');
+        col.className = 'col-md-6 col-lg-4 mb-3';
+        
+        const statusClass = getStatusClass(project.status);
+        const progress = project.progress_percentage || 0;
+        
+        col.innerHTML = `
+            <div class="project-card-kanban h-100" data-project-id="${project.id}">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title mb-0 text-truncate" title="${project.name}">
+                                ${project.name}
+                            </h6>
+                            <span class="badge ${statusClass}">${getStatusText(project.status)}</span>
+                        </div>
+                        
+                        <p class="text-muted small mb-2">
+                            <i class="fas fa-user-tie me-1"></i>
+                            ${project.client?.name || 'Sin cliente'}
+                        </p>
+                        
+                        <div class="progress mb-2" style="height: 6px;">
+                            <div class="progress-bar bg-primary" style="width: ${progress}%"></div>
+                        </div>
+                        <small class="text-muted">${progress}% completado</small>
+                        
+                        <div class="mt-3">
+                            <button class="btn btn-primary btn-sm w-100 open-kanban-btn" 
+                                    data-project-id="${project.id}" 
+                                    data-project-name="${project.name}">
+                                <i class="fas fa-columns me-1"></i>
+                                Abrir Kanban
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Evento para abrir kanban
+        const openBtn = col.querySelector('.open-kanban-btn');
+        openBtn.addEventListener('click', function() {
+            const projectId = this.dataset.projectId;
+            const projectName = this.dataset.projectName;
+            openProjectKanban(projectId, projectName);
+        });
+
+        return col;
+    }
+
+    // Abrir kanban del proyecto
+    function openProjectKanban(projectId, projectName) {
+        // Cerrar modal
+        const modal = bootstrap.Modal.getInstance(kanbanProjectsModal);
+        if (modal) modal.hide();
+        
+        // Redirigir al kanban
+        window.location.href = `/projects/${projectId}/kanban/`;
+    }
+
+    // Filtrar proyectos
+    function filterProjects() {
+        const searchTerm = projectSearchInput?.value.toLowerCase() || '';
+        const statusFilterValue = statusFilter?.value || '';
+        const clientFilterValue = clientFilter?.value || '';
+
+        const projectCards = projectsGrid.querySelectorAll('.project-card-kanban');
+        
+        projectCards.forEach(card => {
+            const projectName = card.querySelector('.card-title').textContent.toLowerCase();
+            const projectStatus = card.querySelector('.badge').textContent.toLowerCase();
+            const projectClient = card.querySelector('.text-muted small')?.textContent.toLowerCase() || '';
+
+            const matchesSearch = projectName.includes(searchTerm);
+            const matchesStatus = !statusFilterValue || projectStatus.includes(statusFilterValue);
+            const matchesClient = !clientFilterValue || projectClient.includes(clientFilterValue);
+
+            if (matchesSearch && matchesStatus && matchesClient) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    // Poblar filtro de clientes
+    function populateClientFilter(clients) {
+        if (!clientFilter) return;
+        
+        clientFilter.innerHTML = '<option value="">Todos los clientes</option>';
+        clients.forEach(client => {
+            const option = document.createElement('option');
+            option.value = client.name.toLowerCase();
+            option.textContent = client.name;
+            clientFilter.appendChild(option);
+        });
+    }
+
+    // Utilidades
+    function getStatusClass(status) {
+        const statusMap = {
+            'active': 'bg-success',
+            'completed': 'bg-primary',
+            'on_hold': 'bg-warning',
+            'cancelled': 'bg-danger'
+        };
+        return statusMap[status] || 'bg-secondary';
+    }
+
+    function getStatusText(status) {
+        const statusMap = {
+            'active': 'Activo',
+            'completed': 'Completado',
+            'on_hold': 'En Pausa',
+            'cancelled': 'Cancelado'
+        };
+        return statusMap[status] || status;
+    }
+
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+});
