@@ -26,6 +26,14 @@
                     </a>
                 </li>
                 
+                <!-- Kanban de Proyectos - NUEVO -->
+                <li class="nav-item">
+                    <a href="{% url 'projects:kanban-selector' %}" class="nav-link">
+                        <i class="fas fa-columns"></i>
+                        <span class="nav-text">Kanban de Proyectos</span>
+                    </a>
+                </li>
+                
                 <!-- Proyectos -->
                 <li class="nav-item">
                     <a href="{% url 'projects:project-list' %}" class="nav-link {% if 'projects:' in request.resolver_match.namespace and 'phasetemplate' not in request.resolver_match.url_name %}active{% endif %}">

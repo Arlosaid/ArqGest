@@ -1,7 +1,7 @@
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import (
-    ListView, DetailView, CreateView, UpdateView, DeleteView
+    ListView, DetailView, CreateView, UpdateView, DeleteView, View
 )
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import get_object_or_404, redirect, render
@@ -15,6 +15,7 @@ from .forms import ProjectForm, TaskForm, PhaseTemplateForm, PhaseFormSet
 from .services import create_phases_for_project  # Importar el nuevo servicio
 from django.http import JsonResponse
 import json
+from django.utils import timezone
 
 # Project Views
 class ProjectListView(LoginRequiredMixin, ListView):
@@ -41,17 +42,14 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         project = self.get_object()
         
-        # Obtener fases del proyecto con sus tareas y archivos
-        phases = project.phases.prefetch_related('tasks__assigned_to', 'files', 'files__uploaded_by').order_by('order')
+        # Obtener fases del proyecto con sus archivos
+        phases = project.phases.prefetch_related('files', 'files__uploaded_by').order_by('order')
         
-        # Obtener todas las tareas del proyecto
-        tasks = Task.objects.filter(phase__project=project).select_related('phase', 'assigned_to').order_by('due_date', 'priority')
         # Archivos del proyecto
         files = ProjectFile.objects.filter(phase__project=project).select_related('phase', 'uploaded_by')
         
         from datetime import date
         context['phases'] = phases
-        context['tasks'] = tasks
         context['files'] = files
         context['today'] = date.today()
         
@@ -143,11 +141,19 @@ def project_kanban(request, pk):
     # Fases con tareas
     phases = project.phases.prefetch_related('tasks__assigned_to').order_by('order')
 
-    # Estadísticas básicas
+    # Estadísticas detalladas del proyecto
     all_tasks = Task.objects.filter(phase__project=project)
-    tasks_done = all_tasks.filter(status='DONE').count()
+    total_tasks = all_tasks.count()
+    tasks_todo = all_tasks.filter(status='TODO').count()
     tasks_in_progress = all_tasks.filter(status='IN_PROGRESS').count()
     tasks_paused = all_tasks.filter(status='PAUSED').count()
+    tasks_done = all_tasks.filter(status='DONE').count()
+    
+    # Calcular progreso del proyecto
+    if total_tasks > 0:
+        project_progress = int((tasks_done / total_tasks) * 100)
+    else:
+        project_progress = 0
 
     # Soporte para agrupar por estado
     status_choices = list(Task.Status.choices)
@@ -161,18 +167,28 @@ def project_kanban(request, pk):
         for code, _label in status_choices:
             tasks_by_status[code] = base_qs.filter(status=code)
 
+    # Obtener usuarios de la organización para asignación
+    users = []
+    if hasattr(project.organization, 'users'):
+        users = project.organization.users.all()
+    elif hasattr(project.organization, 'members'):
+        users = project.organization.members.all()
+
     context = {
         'project': project,
         'phases': phases,
-        'users': project.organization.users.all() if hasattr(project.organization, 'users') else [],
+        'users': users,
         'group_by': group_by,
         'status_choices': status_choices,
         'selected_phase_id': int(selected_phase_id) if selected_phase_id else None,
         'tasks_by_status': tasks_by_status,
-        'total_tasks': all_tasks.count(),
-        'tasks_done': tasks_done,
+        'total_tasks': total_tasks,
+        'tasks_todo': tasks_todo,
         'tasks_in_progress': tasks_in_progress,
         'tasks_paused': tasks_paused,
+        'tasks_done': tasks_done,
+        'project_progress': project_progress,
+        'today': timezone.now().date(),
     }
 
     return render(request, 'projects/kanban_board.html', context)
@@ -455,4 +471,48 @@ class PhaseTemplateDeleteView(LoginRequiredMixin, DeleteView):
     template_name = 'projects/phasetemplate_confirm_delete.html'
     success_url = reverse_lazy('projects:phasetemplate-list')
 
+    def get_queryset(self):
+        return super().get_queryset().filter(organization=self.request.user.organization)
+
+
+@login_required
+def task_detail(request, pk):
+    """Vista para mostrar los detalles de una tarea en formato modal"""
+    task = get_object_or_404(Task, pk=pk, phase__project__organization=request.user.organization)
+    
+    context = {
+        'task': task,
+        'project': task.phase.project,
+    }
+    
+    return render(request, 'projects/task_detail_modal.html', context)
+
+
 # Force reload
+
+class ProjectKanbanSelectorView(LoginRequiredMixin, View):
+    """Vista para seleccionar proyecto y ir al kanban"""
+    template_name = 'projects/kanban_selector.html'
+    
+    def get(self, request):
+        # Obtener proyectos del usuario
+        if request.user.is_org_admin:
+            projects = Project.objects.filter(organization=request.user.organization)
+        else:
+            projects = Project.objects.filter(
+                organization=request.user.organization,
+                assigned_users=request.user
+            ).distinct()
+        
+        # Agrupar por estado - CORREGIDO para usar los estados reales del modelo
+        active_projects = projects.filter(status='ACTIVE')
+        completed_projects = projects.filter(status='COMPLETED')
+        archived_projects = projects.filter(status='ARCHIVED')
+        
+        context = {
+            'active_projects': active_projects,
+            'completed_projects': completed_projects,
+            'archived_projects': archived_projects,  # Cambiado de on_hold_projects
+            'total_projects': projects.count(),
+        }
+        return render(request, self.template_name, context)

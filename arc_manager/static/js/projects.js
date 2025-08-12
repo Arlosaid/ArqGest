@@ -289,9 +289,21 @@ const styleSheet = document.createElement('style');
 styleSheet.textContent = additionalStyles;
 document.head.appendChild(styleSheet);
 
-// Inicializar cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', () => {
-    new ProjectsManager();
+// Función para actualizar círculos de progreso
+function updateProgressCircles() {
+    const progressCircles = document.querySelectorAll('.progress-circle');
+    
+    progressCircles.forEach(circle => {
+        const progress = parseInt(circle.dataset.progress) || 0;
+        const degrees = (progress / 100) * 360;
+        
+        circle.style.background = `conic-gradient(#007bff ${degrees}deg, #e9ecef ${degrees}deg)`;
+    });
+}
+
+// Ejecutar cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    updateProgressCircles();
 });
 
 // Exportar para uso global
