@@ -1,15 +1,13 @@
 {% extends 'base.html' %}
 {% load static plan_extras %}
 
-{% block title %}Actualizar Plan - Arc Manager{% endblock %}
+{% block title %}Mejorar Plan - Arc Manager{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/upgrade_plan.css' %}?v=5.1">
+<link rel="stylesheet" href="{% static 'css/upgrade_plan.css' %}?v=6.4">
 {% endblock %}
 
-{% block extra_js %}
-<script src="{% static 'js/upgrade_plan.js' %}?v=2.1"></script>
-{% endblock %}
+{# Bloque extra_js único al final #}
 
 {% block content %}
 <div class="page-container">
@@ -21,7 +19,7 @@
                     <i class="fas fa-rocket"></i>
                 </div>
                 <div>
-                    <h1>Actualizar mi Plan</h1>
+                    <h1>Mejorar mi Plan</h1>
                     <p class="upgrade-subtitle">
                         Mejora las capacidades de tu organización eligiendo un plan superior.
                     </p>
@@ -37,140 +35,200 @@
     </div>
 
     {% if has_pending_request %}
-        <!-- SOLICITUD PENDIENTE -->
-        <div class="pending-request-card" data-status="{{ pending_request.status }}">
-            <div class="pending-header">
-                <div class="pending-icon">
-                    <i class="fas fa-hourglass-half"></i>
-                </div>
-                <div class="pending-title-section">
-                    <h3>Solicitud de Upgrade Pendiente</h3>
-                    <p>Tu solicitud para el plan <strong>{{ pending_request.requested_plan.display_name }}</strong> está siendo procesada.</p>
-                </div>
-                <div class="pending-status-badge {{ pending_request.status }}">
-                    <i class="fas fa-clock"></i><span>En Proceso</span>
-                </div>
-            </div>
-            
-            <div class="pending-content">
-                <div class="pending-info-box">
-                    <div class="info-box-icon">
-                        <i class="fas fa-info-circle"></i>
-                    </div>
-                    <div>
-                        <h6>¿Qué sigue?</h6>
-                        <p>
-                            Nuestro equipo ha recibido tu solicitud y se pondrá en contacto contigo para completar el proceso de pago.
-                            Una vez confirmado el pago, activaremos tu nuevo plan.
-                        </p>
-                        <p><strong>Fecha de solicitud:</strong> {{ pending_request.created_at|date:"d/m/Y H:i" }}</p>
+        <div class="main-content-grid" style="max-width: 960px; margin: 0 auto;">
+            <div class="left-content">
+                <div class="request-status-card pending">
+                    <div class="status-icon"><i class="fas fa-clock"></i></div>
+                    <div class="status-content">
+                        <h3>Tu solicitud de actualización está en proceso</h3>
+                        <p>Hemos recibido tu solicitud y te contactaremos muy pronto.</p>
                     </div>
                 </div>
-            </div>
-            
-            <div class="pending-footer">
-                <a href="{% url 'plans:subscription_dashboard' %}" class="btn-dashboard">
+                <a href="{% url 'plans:subscription_dashboard' %}" class="quick-action-btn secondary" style="display:inline-flex;">
                     <i class="fas fa-arrow-left"></i>
                     <span>Volver al Dashboard</span>
                 </a>
-                <div class="pending-support">
-                    <span>¿Tienes preguntas?</span>
-                    <a href="mailto:soporte@tuempresa.com" class="support-link">
-                        <i class="fas fa-envelope"></i>
-                        Contactar Soporte
-                    </a>
-                </div>
             </div>
         </div>
     {% else %}
-        <!-- PLANES DISPONIBLES -->
-        <form method="post" class="upgrade-form" action="{% url 'plans:request_upgrade' %}">
+        <!-- SELECCIÓN DE PLANES -->
+        <form method="post" class="upgrade-form" action="{% url 'plans:request_upgrade' %}" data-disable-loading="true">
             {% csrf_token %}
-            <div class="pricing-section">
-                <div class="pricing-grid">
-                    <!-- PLAN ACTUAL -->
-                    <div class="pricing-card current-plan">
-                        <div class="card-header">
-                            <div class="plan-badge current">Actual</div>
-                            <h3>{{ subscription.plan.display_name }}</h3>
-                            <p>Este es tu plan actual.</p>
-                        </div>
-                        
-                        <div class="card-pricing">
-                            <div class="price-container">
-                                <span class="price">{{ subscription.plan.price|format_currency }}</span>
-                                <span class="period">/mes</span>
-                            </div>
+            
+            <div class="main-content-grid">
+                <div class="left-content">
+                    <!-- Comparación de Planes -->
+                    <div class="plans-comparison">
+                        <div class="comparison-header">
+                            <h2>Compara tu plan actual con las mejoras disponibles</h2>
+                            <p>Elige el plan que mejor se adapte a las necesidades de tu organización.</p>
                         </div>
 
-                        <div class="card-features">
-                            {% for feature in subscription.plan.get_feature_list %}
-                            <div class="feature-item">
-                                <i class="fas fa-check"></i>
-                                <span>{{ feature }}</span>
+                        <div class="plans-grid">
+                            <!-- PLAN ACTUAL -->
+                            <div class="plan-card current-plan">
+                                <div class="plan-header">
+                                    <div class="plan-badge current">Plan Actual</div>
+                                    <h3 class="plan-name">{{ subscription.plan.display_name }}</h3>
+                                    <div class="plan-price">
+                                        <span class="price-amount">{{ subscription.plan.price|format_currency }}</span>
+                                        <span class="price-period">/mes</span>
+                                    </div>
+                                    <p class="plan-description">Este es tu plan actual.</p>
+                                </div>
+                                <div class="plan-features">
+                                    <h4>Características incluidas:</h4>
+                                    <div class="features-list">
+                                        {% for feature in subscription.plan.get_feature_list|slice:":6" %}
+                                        <div class="feature-item">
+                                            <i class="fas fa-check"></i>
+                                            <span>{{ feature }}</span>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="plan-action">
+                                    <div class="current-plan-indicator">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>Plan Actual</span>
+                                    </div>
+                                </div>
                             </div>
-                            {% endfor %}
-                        </div>
 
-                        <div class="card-action">
-                            <button class="cta-button secondary-button" disabled>
-                                <span>Plan Actual</span>
-                                <i class="fas fa-check"></i>
-                            </button>
+                            <!-- SIGUIENTE PLAN (seleccionado automáticamente) -->
+                            {% if available_plans %}
+                            {% with target_plan=available_plans.0 %}
+                            <div class="plan-card upgrade-plan recommended" id="targetPlanCard">
+                                <div class="plan-header">
+                                    <div class="plan-badge recommended">Recomendado</div>
+                                    <h3 class="plan-name">{{ target_plan.display_name }}</h3>
+                                    <div class="plan-price">
+                                        <span class="price-amount">{{ target_plan.price|format_currency }}</span>
+                                        <span class="price-period">/mes</span>
+                                    </div>
+                                    <p class="plan-description">Actualiza para desbloquear más capacidades.</p>
+                                </div>
+                                <div class="plan-features">
+                                    <h4>Características incluidas:</h4>
+                                    <div class="features-list">
+                                        {% for feature in target_plan.get_feature_list|slice:":6" %}
+                                        <div class="feature-item">
+                                            <i class="fas fa-check"></i>
+                                            <span>{{ feature }}</span>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="plan-action">
+                                    <input type="hidden" name="requested_plan" value="{{ target_plan.id }}">
+                                    <button type="submit" class="plan-select-btn">
+                                        <span>Actualizar al plan {{ target_plan.display_name }}</span>
+                                        <i class="fas fa-arrow-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% endwith %}
+                            {% else %}
+                            <div class="no-plans-card">
+                                <div class="no-plans-icon">
+                                    <i class="fas fa-star"></i>
+                                </div>
+                                <h3>¡Ya tienes el mejor plan disponible!</h3>
+                                <p>Tu plan actual incluye todas las características premium. Si necesitas funcionalidades adicionales, contáctanos.</p>
+                                <a href="mailto:soporte@tuempresa.com" class="contact-support-btn">
+                                    <i class="fas fa-envelope"></i>
+                                    Contactar Soporte
+                                </a>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
 
-                    <!-- PLAN SUPERIOR -->
-                    {% for plan in available_plans %}
-                        <div class="pricing-card recommended-plan">
-                            <div class="card-header">
-                                <div class="plan-badge recommended">Recomendado</div>
-                                <h3>{{ plan.display_name }}</h3>
-                                <p>{{ plan.description|default:"Ideal para hacer crecer tu equipo." }}</p>
-                            </div>
-                            
-                            <div class="card-pricing">
-                                <div class="price-container">
-                                    <span class="price">{{ plan.price|format_currency }}</span>
-                                    <span class="period">/mes</span>
-                                </div>
-                            </div>
-
-                            <div class="card-features">
-                                {% for feature in plan.get_feature_list %}
-                                <div class="feature-item">
-                                    <i class="fas fa-check"></i>
-                                    <span>{{ feature }}</span>
-                                </div>
-                                {% endfor %}
-                            </div>
-
-                            <div class="card-action">
-                                <input type="radio" name="requested_plan" value="{{ plan.id }}" id="plan-{{ plan.id }}" class="plan-radio-input" required>
-                                <label for="plan-{{ plan.id }}" class="cta-button primary-button">
-                                    <span>Seleccionar Plan</span>
-                                    <i class="fas fa-arrow-up"></i>
-                                </label>
-                            </div>
-                        </div>
-                    {% empty %}
-                        <div class="no-plans-message">
-                            <h3>¡Ya tienes el mejor plan disponible!</h3>
-                            <p>Si necesitas más funcionalidades, contáctanos.</p>
-                        </div>
-                    {% endfor %}
+                    {# Nota removida por simplicidad #}
                 </div>
-            </div>
 
-            {% if available_plans %}
-            <div class="submission-section">
-                 <button type="submit" class="cta-button-submit">
-                    <i class="fas fa-rocket"></i> Solicitar Upgrade Ahora
-                </button>
-                <p class="submission-note">Se te guiará para el pago manual después de la solicitud.</p>
             </div>
-            {% endif %}
         </form>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'js/upgrade_plan.js' %}?v=2.1"></script>
+<script>
+// Confirmación simple en un solo paso para actualizar plan
+(function(){
+    const form = document.querySelector('form.upgrade-form');
+    if (!form) return;
+    let confirmed = false;
+    form.addEventListener('submit', function(e){
+        if (confirmed) { return; }
+        e.preventDefault();
+        // Con hidden input, no hay selección manual. Tomamos datos del target card.
+        const card = document.getElementById('targetPlanCard');
+        const name = card ? (card.querySelector('.plan-name')?.textContent || '') : '';
+        const price = card ? (card.querySelector('.price-amount')?.textContent || '') : '';
+
+        // Construir modal mínimo con Bootstrap (tamaño pequeño)
+        let modalEl = document.getElementById('upgradeConfirmModal');
+        if (!modalEl) {
+            modalEl = document.createElement('div');
+            modalEl.id = 'upgradeConfirmModal';
+            modalEl.className = 'modal fade';
+            modalEl.tabIndex = -1;
+            modalEl.innerHTML = `
+            <div class="modal-dialog modal-sm modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">Confirmar suscripción</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body text-center">
+                  <p id="upgradeConfirmText" class="mb-0"></p>
+                </div>
+                <div class="modal-footer">
+                  <div class="d-flex justify-content-center w-100 gap-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="upgradeConfirmBtn"><i class="fas fa-check"></i> Confirmar suscripción</button>
+                  </div>
+                </div>
+              </div>
+            </div>`;
+            document.body.appendChild(modalEl);
+        }
+        const textEl = modalEl.querySelector('#upgradeConfirmText');
+        if (textEl) {
+            textEl.textContent = `¿Confirmas la suscripción al plan "${name}"?`;
+        }
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        const confirmBtn = modalEl.querySelector('#upgradeConfirmBtn');
+        const onConfirm = () => {
+            confirmBtn.removeEventListener('click', onConfirm);
+            confirmed = true;
+            modal.hide();
+            form.submit();
+        };
+        confirmBtn.addEventListener('click', onConfirm);
+        modalEl.addEventListener('hidden.bs.modal', function onHide(){
+            // Asegurar que no quede ningún estado de carga si se cancela
+            const submitBtn = form.querySelector('.plan-select-btn, button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                const span = submitBtn.querySelector('span');
+                if (span && span.getAttribute('data-original-text')) {
+                    span.textContent = span.getAttribute('data-original-text');
+                }
+                const icon = submitBtn.querySelector('i');
+                if (icon && icon.getAttribute('data-original-class')) {
+                    icon.className = icon.getAttribute('data-original-class');
+                }
+                submitBtn.classList.remove('loading');
+            }
+            modalEl.removeEventListener('hidden.bs.modal', onHide);
+        });
+        modal.show();
+    });
+})();
+</script>
 {% endblock %}

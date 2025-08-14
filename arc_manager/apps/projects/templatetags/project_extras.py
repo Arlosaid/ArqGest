@@ -11,3 +11,13 @@ def get_item(dictionary, key):
         return []
 
 
+@register.filter(name='dict_get')
+def dict_get(value, key):
+    """Obtiene value[key] si es un dict; de lo contrario retorna None."""
+    try:
+        if isinstance(value, dict):
+            return value.get(key)
+        return None
+    except Exception:
+        return None
+

@@ -699,7 +699,7 @@ class TaskManager {
      * Actualiza el estado de una tarea
      */
     updateTaskStatus(taskId, status) {
-        const url = `/projects/tasks/${taskId}/update-status/`;
+        const url = `/projects/tasks/${taskId}/update_status/`;
         
         fetch(url, {
             method: 'POST',

@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Animación de entrada
-    animateLoginForm();
+    // Animación de entrada deshabilitada
+    // animateLoginForm();
     
     // Selecciona elementos del formulario
     const inputs = document.querySelectorAll('.login-form input');
@@ -23,20 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Función para animar la entrada del formulario
-function animateLoginForm() {
-    const formElements = document.querySelectorAll('.login-title, .form-group, .login-options, .signup-section, .notification-box');
-    
-    formElements.forEach((element, index) => {
-        element.style.opacity = '0';
-        element.style.transform = 'translateY(20px)';
-        element.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-        
-        setTimeout(() => {
-            element.style.opacity = '1';
-            element.style.transform = 'translateY(0)';
-        }, 100 + (index * 100));
-    });
-}
+function animateLoginForm() { /* deshabilitada intencionalmente */ }
 
 // Configurar efectos en los inputs
 function setupInputEffects(inputs) {
@@ -296,7 +283,6 @@ function setupButtonEffects() {
 // Asegúrate de llamar a esta función al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
     // Resto de tu código existente...
-    
-    // Añadir efectos adicionales a los botones
-    setupButtonEffects();
+    // Efectos adicionales de botones deshabilitados
+    // setupButtonEffects();
 });

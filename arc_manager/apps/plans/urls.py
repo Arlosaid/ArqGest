@@ -26,5 +26,5 @@ def plan_redirect_view(request):
 urlpatterns = [
     path('', login_required(plan_redirect_view), name='index'),
     path('dashboard/', views.SubscriptionDashboardView.as_view(), name='subscription_dashboard'),
-    path('request-upgrade/', views.RequestUpgradeView.as_view(), name='request_upgrade'),
+    path('solicitar-actualizacion/', views.RequestUpgradeView.as_view(), name='request_upgrade'),
 ]

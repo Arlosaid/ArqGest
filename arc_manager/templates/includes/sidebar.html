@@ -21,23 +21,15 @@
                 <!-- Dashboard -->
                 <li class="nav-item">
                     <a href="{% url 'main:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-                        <i class="fas fa-home"></i>
+                        <span class="nav-icon"><i class="fas fa-home"></i></span>
                         <span class="nav-text">Dashboard</span>
                     </a>
                 </li>
-                
-                <!-- Kanban de Proyectos - NUEVO -->
-                <li class="nav-item">
-                    <a href="{% url 'projects:kanban-selector' %}" class="nav-link">
-                        <i class="fas fa-columns"></i>
-                        <span class="nav-text">Kanban de Proyectos</span>
-                    </a>
-                </li>
-                
+
                 <!-- Proyectos -->
                 <li class="nav-item">
                     <a href="{% url 'projects:project-list' %}" class="nav-link {% if 'projects:' in request.resolver_match.namespace and 'phasetemplate' not in request.resolver_match.url_name %}active{% endif %}">
-                        <i class="fas fa-folder-open"></i>
+                        <span class="nav-icon"><i class="fas fa-folder-open"></i></span>
                         <span class="nav-text">Proyectos</span>
                     </a>
                 </li>
@@ -45,48 +37,56 @@
                 <!-- Mis Tareas -->
                 <li class="nav-item">
                     <a href="{% url 'projects:my-task-list' %}" class="nav-link {% if request.resolver_match.url_name == 'my-task-list' %}active{% endif %}">
-                        <i class="fas fa-tasks"></i>
+                        <span class="nav-icon"><i class="fas fa-clipboard-check"></i></span>
                         <span class="nav-text">Mis Tareas</span>
                     </a>
                 </li>
-                
-                <!-- Separador -->
-                <li class="nav-divider"></li>
+
+                <!-- Kanban de Proyectos -->
+                <li class="nav-item">
+                    <a href="{% url 'projects:kanban-selector' %}" class="nav-link">
+                        <span class="nav-icon"><i class="fas fa-columns"></i></span>
+                        <span class="nav-text">Kanban de Proyectos</span>
+                    </a>
+                </li>
+
+                <!-- Separador visual -->
+                <li class="nav-divider" aria-hidden="true"></li>
 
                 <!-- Administración (solo para admins) -->
                 {% if user.is_org_admin %}
-                    <li class="nav-item-header">Administración</li>
-                    
+                    <li class="nav-item-header" role="presentation">Administración</li>
+
                     <li class="nav-item">
                         <a href="{% url 'users:user_list' %}" class="nav-link {% if 'users:' in request.resolver_match.namespace %}active{% endif %}">
-                            <i class="fas fa-users"></i>
+                            <span class="nav-icon"><i class="fas fa-users"></i></span>
                             <span class="nav-text">Usuarios</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a href="{% url 'orgs:client_list' %}" class="nav-link {% if 'client' in request.resolver_match.url_name %}active{% endif %}">
-                            <i class="fas fa-user-tie"></i>
+                            <span class="nav-icon"><i class="fas fa-user-tie"></i></span>
                             <span class="nav-text">Clientes</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a href="{% url 'projects:phasetemplate-list' %}" class="nav-link {% if 'phasetemplate' in request.resolver_match.url_name %}active{% endif %}">
-                            <i class="fas fa-stream"></i>
+                            <span class="nav-icon"><i class="fas fa-stream"></i></span>
                             <span class="nav-text">Plantillas de Fases</span>
                         </a>
                     </li>
-                     <li class="nav-item">
+                    <li class="nav-item">
                         <a href="{% url 'orgs:my_organization' %}" class="nav-link {% if 'my_organization' in request.resolver_match.url_name %}active{% endif %}">
-                            <i class="fas fa-building"></i>
+                            <span class="nav-icon"><i class="fas fa-building"></i></span>
                             <span class="nav-text">Organización</span>
                         </a>
                     </li>
                 {% endif %}
-                
+
                 <!-- Suscripción -->
                 <li class="nav-item">
                     <a href="{% url 'plans:subscription_dashboard' %}" class="nav-link {% if 'plans:' in request.resolver_match.namespace %}active{% endif %}">
-                        <i class="fas fa-credit-card"></i>
+                        <span class="nav-icon"><i class="fas fa-credit-card"></i></span>
                         <span class="nav-text">Suscripción</span>
                     </a>
                 </li>

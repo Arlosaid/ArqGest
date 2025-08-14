@@ -1,83 +1,135 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Clientes de {{ user.organization.name }}{% endblock %}
+{% block title %}Gestión de Clientes{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/client_management.css' %}">
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4">
-    <h1 class="mt-4">Gestión de Clientes</h1>
-    <ol class="breadcrumb mb-4">
-        <li class="breadcrumb-item"><a href="{% url 'main:dashboard' %}">Dashboard</a></li>
-        <li class="breadcrumb-item active">Clientes</li>
-    </ol>
-
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <div>
-                <i class="fas fa-users me-1"></i>
-                Listado de Clientes
+<div class="page-container">
+    <!-- HEADER SECTION -->
+    <div class="header-section">
+        <div class="header-content">
+            <div class="header-title">
+                <div class="header-icon">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <h1>Gestión de Clientes</h1>
             </div>
-            <a href="{% url 'orgs:client_create' %}" class="btn btn-primary btn-sm">
-                <i class="fas fa-plus me-1"></i> Nuevo Cliente
+            <a href="{% url 'orgs:client_create' %}" class="btn-primary-prominent">
+                <i class="fas fa-user-plus"></i>
+                Nuevo Cliente
             </a>
         </div>
-        <div class="card-body">
-            {% if clients %}
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover" id="datatablesSimple">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Email</th>
-                                <th>Teléfono</th>
-                                <th>Proyectos</th>
-                                <th>Estado</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for client in clients %}
-                            <tr>
-                                <td>
-                                    <a href="{% url 'orgs:client_detail' client.pk %}" title="Ver detalles de {{ client.name }}">
-                                        {{ client.name }}
+    </div>
+
+    <!-- Tabla mejorada -->
+    <div class="table-container">
+        <div class="table-header">
+            <h3>Lista de Clientes</h3>
+            
+            <span class="result-count">
+                {{ clients|length }} cliente{{ clients|length|pluralize }}
+            </span>
+        </div>
+        
+        {% if clients %}
+            <!-- Vista de escritorio - Tabla -->
+            <div class="table-wrapper">
+                <table class="modern-table">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Email</th>
+                            <th>Teléfono</th>
+                            <th>Proyectos</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for client in clients %}
+                        <tr>
+                            <td>
+                                <div class="client-info">
+                                    <div class="client-avatar">
+                                        {{ client.name|first|upper }}
+                                    </div>
+                                    <div class="client-details">
+                                        <div class="client-name">{{ client.name }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if client.email %}
+                                    <a href="mailto:{{ client.email }}" class="email-link">
+                                        {{ client.email }}
                                     </a>
-                                </td>
-                                <td>{{ client.email|default:"N/A" }}</td>
-                                <td>{{ client.phone_number|default:"N/A" }}</td>
-                                <td>{{ client.projects.count }}</td>
-                                <td>
-                                    {% if client.is_active %}
-                                        <span class="badge bg-success">Activo</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">Inactivo</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <a href="{% url 'orgs:client_detail' client.pk %}" class="btn btn-info btn-sm" title="Ver Detalles">
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if client.phone_number %}
+                                    {{ client.phone_number }}
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge badge-info">{{ client.projects.count }}</span>
+                            </td>
+                            <td>
+                                {% if client.is_active %}
+                                    <span class="status-badge active">Activo</span>
+                                {% else %}
+                                    <span class="status-badge inactive">Inactivo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="{% url 'orgs:client_detail' client.pk %}" 
+                                       class="action-btn view"
+                                       title="Ver detalles">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="{% url 'orgs:client_edit' client.pk %}" class="btn btn-warning btn-sm" title="Editar">
+                                    
+                                    <a href="{% url 'orgs:client_edit' client.pk %}" 
+                                       class="action-btn edit"
+                                       title="Editar cliente">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <a href="{% url 'orgs:client_delete' client.pk %}" class="btn btn-danger btn-sm" title="Eliminar">
-                                        <i class="fas fa-trash"></i>
+                                    
+                                    <a href="{% url 'orgs:client_delete' client.pk %}" 
+                                       class="action-btn delete"
+                                       title="Eliminar cliente">
+                                        <i class="fas fa-trash-alt"></i>
                                     </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+        {% else %}
+            <!-- Estado vacío mejorado -->
+            <div class="empty-state-enhanced">
+                <div class="empty-icon">
+                    <i class="fas fa-user-tie"></i>
                 </div>
-            {% else %}
-                <div class="text-center p-4">
-                    <p class="lead">Aún no has registrado ningún cliente.</p>
-                    <p>Comienza por añadir tu primer cliente para poder asignarlo a tus proyectos.</p>
-                    <a href="{% url 'orgs:client_create' %}" class="btn btn-primary">
-                        <i class="fas fa-plus me-1"></i> Crear mi primer cliente
-                    </a>
-                </div>
-            {% endif %}
-        </div>
+                <h3>¡Bienvenido!</h3>
+                <p>Comienza registrando tu primer cliente para poder asignarlo a tus proyectos.</p>
+                
+                <a href="{% url 'orgs:client_create' %}" class="btn-primary-prominent">
+                    <i class="fas fa-user-plus"></i> 
+                    Crear mi primer cliente
+                </a>
+            </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

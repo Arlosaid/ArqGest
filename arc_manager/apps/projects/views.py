@@ -14,6 +14,8 @@ from apps.files.models import ProjectFile
 from .forms import ProjectForm, TaskForm, PhaseTemplateForm, PhaseFormSet
 from .services import create_phases_for_project  # Importar el nuevo servicio
 from django.http import JsonResponse
+from django.contrib.auth import get_user_model
+from datetime import datetime
 import json
 from django.utils import timezone
 
@@ -42,16 +44,53 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         project = self.get_object()
         
-        # Obtener fases del proyecto con sus archivos
-        phases = project.phases.prefetch_related('files', 'files__uploaded_by').order_by('order')
+        # Obtener fases del proyecto con sus archivos y tareas (optimizado)
+        phases = project.phases.prefetch_related(
+            'files', 'files__uploaded_by',
+            'tasks', 'tasks__assigned_to'
+        ).order_by('order')
         
         # Archivos del proyecto
         files = ProjectFile.objects.filter(phase__project=project).select_related('phase', 'uploaded_by')
         
-        from datetime import date
+        from datetime import date, timedelta
         context['phases'] = phases
         context['files'] = files
         context['today'] = date.today()
+
+        # Centro de tareas: métricas y listas rápidas
+        tasks_qs = Task.objects.filter(phase__project=project).select_related('phase', 'assigned_to')
+        context['tasks_total'] = tasks_qs.count()
+        context['tasks_todo'] = tasks_qs.filter(status='TODO').count()
+        context['tasks_in_progress'] = tasks_qs.filter(status='IN_PROGRESS').count()
+        context['tasks_paused'] = tasks_qs.filter(status='PAUSED').count()
+        context['tasks_done'] = tasks_qs.filter(status='DONE').count()
+        context['tasks_overdue'] = tasks_qs.filter(due_date__lt=date.today()).count()
+
+        upcoming_limit = 7
+        context['tasks_due_soon'] = list(
+            tasks_qs.filter(due_date__gte=date.today(), due_date__lte=date.today() + timedelta(days=upcoming_limit))
+                    .order_by('due_date')[:8]
+        )
+        context['tasks_recent'] = list(tasks_qs.order_by('-created_at')[:8])
+
+        # Lista simple para tabla compacta en Centro de Tareas
+        context['tasks_simple'] = list(tasks_qs.order_by('due_date', 'priority')[:50])
+
+        # Contadores por fase (para el sub-tab "Por fases") sin consultas extra
+        phase_task_counts = {}
+        for phase in phases:
+            # Usar tareas ya prefetchadas
+            phase_tasks = list(getattr(phase, 'tasks').all())
+            counts = {
+                'TOTAL': len(phase_tasks),
+                'TODO': sum(1 for t in phase_tasks if t.status == 'TODO'),
+                'IN_PROGRESS': sum(1 for t in phase_tasks if t.status == 'IN_PROGRESS'),
+                'PAUSED': sum(1 for t in phase_tasks if t.status == 'PAUSED'),
+                'DONE': sum(1 for t in phase_tasks if t.status == 'DONE'),
+            }
+            phase_task_counts[phase.id] = counts
+        context['phase_task_counts'] = phase_task_counts
         
         return context
 
@@ -167,12 +206,12 @@ def project_kanban(request, pk):
         for code, _label in status_choices:
             tasks_by_status[code] = base_qs.filter(status=code)
 
-    # Obtener usuarios de la organización para asignación
+    # Obtener usuarios de la organización para asignación (excluir solo superusuarios)
     users = []
     if hasattr(project.organization, 'users'):
-        users = project.organization.users.all()
+        users = project.organization.users.filter(is_active=True, is_superuser=False)
     elif hasattr(project.organization, 'members'):
-        users = project.organization.members.all()
+        users = project.organization.members.filter(is_active=True, is_superuser=False)
 
     context = {
         'project': project,
@@ -200,6 +239,7 @@ def project_statistics(request, pk):
     project = get_object_or_404(Project, pk=pk, organization=request.user.organization)
     all_tasks = Task.objects.filter(phase__project=project)
     data = {
+        'success': True,
         'total_tasks': all_tasks.count(),
         'completed_tasks': all_tasks.filter(status='DONE').count(),
         'in_progress_tasks': all_tasks.filter(status='IN_PROGRESS').count(),
@@ -244,7 +284,14 @@ def task_create(request, project_pk):
         phase_id = request.POST.get('phase')
         assigned_to_id = request.POST.get('assigned_to')
         priority = request.POST.get('priority', 'MEDIUM')
-        due_date = request.POST.get('due_date')
+        due_date_raw = request.POST.get('due_date')
+        # Parsear fecha de forma segura (YYYY-MM-DD). Si no es válida, usar None
+        due_date = None
+        if due_date_raw:
+            try:
+                due_date = datetime.strptime(due_date_raw, '%Y-%m-%d').date()
+            except ValueError:
+                due_date = None
         
         # Fallback de fase: si no viene 'phase', usar la primera fase del proyecto;
         # si no existen fases, crear una por defecto "Backlog".
@@ -271,9 +318,29 @@ def task_create(request, project_pk):
                     due_date=due_date if due_date else None
                 )
                 
+                # Validar que el asignado pertenezca a la organización del proyecto
                 if assigned_to_id:
-                    task.assigned_to_id = assigned_to_id
-                    task.save()
+                    try:
+                        eligible_qs = project.organization.users.filter(
+                            pk=assigned_to_id,
+                            is_active=True,
+                            is_superuser=False
+                        )
+                        assignee_exists = eligible_qs.exists()
+                    except Exception:
+                        assignee_exists = False
+                    if assignee_exists:
+                        task.assigned_to_id = assigned_to_id
+                        task.save()
+                    else:
+                        # Si el usuario no pertenece a la organización, no asignar y reportar
+                        error_msg = _('El usuario seleccionado no pertenece a tu organización.')
+                        messages.error(request, error_msg)
+                        accepts_json = 'application/json' in request.headers.get('Accept', '')
+                        is_htmx = request.headers.get('HX-Request')
+                        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+                        if accepts_json or is_htmx or is_ajax:
+                            return JsonResponse({'success': False, 'error': 'invalid_assignee'}, status=400)
                 
                 messages.success(request, f'Tarea "{title}" creada exitosamente.')
 
@@ -316,6 +383,11 @@ class MyTaskListView(LoginRequiredMixin, ListView):
             phase__project__organization=self.request.user.organization,
             assigned_to=self.request.user
         ).select_related('phase__project', 'assigned_to').order_by('due_date', 'priority')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['today'] = timezone.now().date()
+        return context
 
 @login_required
 @require_POST
@@ -393,7 +465,16 @@ def task_edit(request, pk):
             task.status = status
             task.priority = priority
             task.due_date = due_date if due_date else None
-            task.assigned_to_id = assigned_to_id if assigned_to_id else None
+            if assigned_to_id:
+                eligible_qs = task.phase.project.organization.users.filter(
+                    pk=assigned_to_id,
+                    is_active=True,
+                    is_superuser=False
+                )
+                if eligible_qs.exists():
+                    task.assigned_to_id = assigned_to_id
+                else:
+                    task.assigned_to = None
             if phase_id and str(task.phase_id) != str(phase_id):
                 try:
                     task.phase = Phase.objects.get(pk=phase_id, project=task.phase.project)
@@ -428,7 +509,10 @@ def task_edit(request, pk):
         'task': task,
         'project': task.phase.project,
         'phases': task.phase.project.phases.all(),
-        'users': task.phase.project.organization.users.all() if hasattr(task.phase.project.organization, 'users') else [],
+        'users': (
+            task.phase.project.organization.users.filter(is_active=True, is_superuser=False).exclude(is_org_admin=True)
+            if hasattr(task.phase.project.organization, 'users') else []
+        ),
         'status_choices': Task.Status.choices,
         'priority_choices': Task.Priority.choices,
     }
@@ -483,6 +567,7 @@ def task_detail(request, pk):
     context = {
         'task': task,
         'project': task.phase.project,
+        'today': timezone.now().date(),
     }
     
     return render(request, 'projects/task_detail_modal.html', context)

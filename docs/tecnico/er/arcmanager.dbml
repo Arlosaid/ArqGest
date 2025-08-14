@@ -1,0 +1,141 @@
+// ArcManager DBML
+
+Table Organization {
+  id int [pk]
+  name varchar
+  description text
+  is_active boolean
+  created_at datetime
+  updated_at datetime
+}
+
+Table User {
+  id int [pk]
+  email varchar [unique]
+  username varchar
+  first_name varchar
+  last_name varchar
+  is_org_admin boolean
+  organization_id int [ref: > Organization.id]
+}
+
+Table Client {
+  id int [pk]
+  organization_id int [ref: > Organization.id]
+  name varchar
+  email varchar
+  phone_number varchar
+  address text
+  is_active boolean
+  created_at datetime
+  updated_at datetime
+  indexes {
+    (organization_id, name) [unique]
+  }
+}
+
+Table Plan {
+  id int [pk]
+  name varchar
+  display_name varchar
+  description text
+  price decimal
+  max_users int
+  trial_days int
+  billing_cycle_days int
+  grace_period_days int
+  is_active boolean
+  created_at datetime
+  updated_at datetime
+}
+
+Table Subscription {
+  id int [pk]
+  organization_id int [ref: > Organization.id]
+  plan_id int [ref: > Plan.id]
+  start_date datetime
+  end_date datetime
+  grace_end_date datetime
+  subscription_status varchar
+  created_at datetime
+  updated_at datetime
+}
+
+Table Payment {
+  id int [pk]
+  subscription_id int [ref: > Subscription.id]
+  amount decimal
+  payment_method varchar
+  payment_type varchar
+  status varchar
+  processed_by varchar
+  description text
+  days_added int
+  old_end_date datetime
+  new_end_date datetime
+  created_at datetime
+}
+
+Table UpgradeRequest {
+  id int [pk]
+  organization_id int [ref: > Organization.id]
+  current_plan_id int [ref: > Plan.id]
+  requested_plan_id int [ref: > Plan.id]
+  amount decimal
+  status varchar
+  approved_by varchar
+  created_at datetime
+  updated_at datetime
+}
+
+Table Project {
+  id int [pk]
+  organization_id int [ref: > Organization.id]
+  owner_id int [ref: > User.id]
+  client_id int [ref: > Client.id]
+  name varchar
+  status varchar
+  start_date date
+  end_date date
+  created_at datetime
+}
+
+Table PhaseTemplate {
+  id int [pk]
+  organization_id int [ref: > Organization.id]
+  name varchar
+  description text
+  phases json
+}
+
+Table Phase {
+  id int [pk]
+  project_id int [ref: > Project.id]
+  name varchar
+  status varchar
+  "order" int
+  start_date date
+  end_date date
+  notes text
+  created_at datetime
+}
+
+Table Task {
+  id int [pk]
+  phase_id int [ref: > Phase.id]
+  assigned_to_id int [ref: > User.id]
+  title varchar
+  description text
+  status varchar
+  priority varchar
+  due_date date
+  created_at datetime
+}
+
+Table ProjectFile {
+  id int [pk]
+  phase_id int [ref: > Phase.id]
+  file varchar
+  uploaded_by_id int [ref: > User.id]
+  uploaded_at datetime
+}

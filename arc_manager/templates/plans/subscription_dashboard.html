@@ -4,16 +4,14 @@
 {% block title %}Mi Suscripción - Arc Manager{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/plans.css' %}?v=7.2">
+<link rel="stylesheet" href="{% static 'css/plans.css' %}?v=10.2">
 {% endblock %}
 
-{% block extra_js %}
-<script src="{% static 'js/plans.js' %}?v=2.1"></script>
-{% endblock %}
+{% block extra_js %}{% endblock %}
 
 {% block content %}
 <div class="page-container">
-    <!-- Header -->
+    <!-- Header Section simplificado -->
     <div class="header-section">
         <div class="header-content">
             <div class="header-title">
@@ -22,324 +20,218 @@
                 </div>
                 <div>
                     <h1>Mi Suscripción</h1>
-                    {% if subscription.end_date %}
-                        <span class="plan-validity-info">
-                            Vence el <strong>{{ subscription.end_date|date:"d/m/Y" }}</strong> 
-                            ({% if subscription.days_remaining > 0 %}
-                                Faltan {{ subscription.days_remaining }} día{{ subscription.days_remaining|pluralize }}
-                            {% else %}
-                                Expirado
-                            {% endif %})
-                        </span>
-                    {% else %}
-                        <span class="plan-validity-info">Plan vitalicio o sin fecha de fin definida.</span>
-                    {% endif %}
+                    {# Información de vigencia eliminada por redundancia; el recuadro muestra estos datos #}
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Grid principal -->
+    <!-- Main Content Grid -->
     <div class="main-content-grid">
-        <!-- Columna izquierda -->
+        <!-- Left Content -->
         <div class="left-content">
-            <!-- Banner de solicitud de upgrade pendiente -->
+            
+            <!-- Solicitud de Actualización Pendiente -->
             {% if pending_request and pending_request.status == 'pending' %}
-                <div class="notification-banner warning-banner">
-                    <div class="card-body p-4">
-                        <div class="d-flex align-items-center justify-content-between gap-3">
-                            <div class="d-flex align-items-center">
-                                <div class="banner-icon-container me-4">
-                                    <i class="fas fa-hourglass-half banner-icon"></i>
-                                </div>
-                                <div>
-                                    <h5 class="text-white fw-bold mb-1">⏳ Solicitud de Upgrade Pendiente</h5>
-                                    <p class="text-white mb-2">
-                                        Tu solicitud al plan <strong>{{ pending_request.requested_plan.display_name }}</strong> 
-                                        está siendo procesada desde el {{ pending_request.created_at|date:"d/m/Y" }}
-                                    </p>
-                                    <a href="{% url 'plans:request_upgrade' %}" class="upgrade-btn-cta">
-                                        <i class="fas fa-eye me-1"></i> Ver Detalles
-                                    </a>
-                                </div>
+                <div class="request-status-card pending">
+                    <div class="status-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="status-content">
+                        <h3>Tu solicitud de actualización está en proceso</h3>
+                        <p>
+                            Hemos recibido tu solicitud para actualizar al plan 
+                            <strong>{{ pending_request.requested_plan.display_name }}</strong>.
+                        </p>
+                        <div class="status-details">
+                            <div class="detail">
+                                <span class="label">Plan solicitado:</span>
+                                <span class="value">{{ pending_request.requested_plan.display_name }}</span>
+                            </div>
+                            <div class="detail">
+                                <span class="label">Fecha de solicitud:</span>
+                                <span class="value">{{ pending_request.created_at|date:"d/m/Y" }}</span>
+                            </div>
+                            <div class="detail">
+                                <span class="label">Estado:</span>
+                                <span class="badge pending">En proceso</span>
                             </div>
                         </div>
-                    </div>
-                </div>
-            {% elif subscription.is_trial %}
-                <div class="notification-banner trial-banner-discovery">
-                    <div class="card-body p-4">
-                        <div class="d-flex align-items-center justify-content-between gap-3">
-                            <div class="d-flex align-items-center">
-                                <div class="banner-icon-container me-4">
-                                    <i class="fas fa-rocket banner-icon"></i>
-                                </div>
-                                <div>
-                                    <h5 class="text-white fw-bold mb-1">Plan Gratuito - Período de Prueba</h5>
-                                    <p class="text-white mb-2">
-                                        Te quedan <strong>{{ subscription.days_remaining }}</strong> día{{ subscription.days_remaining|pluralize }} de prueba. ¡Aprovecha al máximo!
-                                    </p>
-                                    <a href="{% url 'plans:request_upgrade' %}" class="upgrade-btn-cta">
-                                        <i class="fas fa-rocket me-1"></i> Ver Planes
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="countdown-container">
-                                <div class="countdown-number">{{ subscription.days_remaining }}</div>
-                                <div class="countdown-label">Días</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {% elif subscription.is_expired %}
-                <div class="notification-banner danger-banner">
-                    <div class="card-body p-4">
-                        <div class="d-flex align-items-center justify-content-between gap-3">
-                            <div class="d-flex align-items-center">
-                                <div class="banner-icon-container me-4">
-                                    <i class="fas fa-exclamation-triangle banner-icon"></i>
-                                </div>
-                                <div>
-                                    <h5 class="text-white fw-bold mb-1">❌ Suscripción Expirada</h5>
-                                    <p class="text-white mb-2">Tu suscripción venció el {{ subscription.end_date|date:"d/m/Y" }}. Contacta a soporte para reactivarla.</p>
-                                    <a href="mailto:soporte@tuempresa.com" class="btn btn-light btn-sm">
-                                        <i class="fas fa-envelope me-1"></i> Contactar Soporte
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="countdown-container">
-                                <div class="countdown-number text-danger">EXPIRADA</div>
-                                <div class="countdown-label">Estado</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {% elif subscription.is_in_grace_period %}
-                <div class="notification-banner warning-banner">
-                    <div class="card-body p-4">
-                         <h5 class="text-white fw-bold mb-1">⚠️ Período de Gracia</h5>
-                         <p class="text-white mb-2">Tu suscripción ha expirado. Tienes <strong>{{ subscription.days_remaining }}</strong> día{{ subscription.days_remaining|pluralize }} para renovar antes de perder el acceso.</p>
-                    </div>
-                </div>
-            {% elif subscription.is_active %}
-                <div class="notification-banner success-banner">
-                    <div class="card-body p-4">
-                        <div class="d-flex align-items-center justify-content-between gap-3">
-                            <div class="d-flex align-items-center">
-                                <div class="banner-icon-container me-4">
-                                    <i class="fas fa-star banner-icon"></i>
-                                </div>
-                                <div>
-                                    <h5 class="text-white fw-bold mb-1">Plan {{ subscription.plan.display_name }} Activo</h5>
-                                    <p class="text-white mb-2">Tienes acceso completo a todas las funcionalidades. Tu plan se renovará en {{ subscription.days_remaining }} día{{ subscription.days_remaining|pluralize }}.</p>
-                                    <span class="badge bg-light text-dark fw-bold">✅ Suscripción Activa</span>
-                                </div>
-                            </div>
-                            <div class="countdown-container">
-                                <div class="countdown-number">{{ subscription.days_remaining }}</div>
-                                <div class="countdown-label">Días</div>
-                            </div>
+                        <div class="next-steps">
+                            <h4>¿Qué sigue?</h4>
+                            <p>Nuestro equipo se pondrá en contacto contigo para coordinar el proceso de pago y activar tu nuevo plan.</p>
                         </div>
                     </div>
                 </div>
             {% endif %}
 
-            <!-- Solo mostrar el contenido principal si la suscripción NO está expirada -->
-            {% if not subscription.is_expired %}
-            <!-- Estadísticas de uso -->
-            <div class="usage-statistics">
-                <div class="section-header">
-                    <h3><i class="fas fa-chart-bar"></i> Uso Actual</h3>
-                    <div class="usage-period">Límites del plan</div>
-                </div>
-                
-                <div class="usage-grid">
-                    <!-- Usuarios -->
-                    <div class="usage-card">
-                        <div class="usage-card-header">
-                            <div class="usage-icon users">
-                                <i class="fas fa-users"></i>
+            <!-- Banner simple de prueba gratuita -->
+            {% if subscription.plan.is_trial and not pending_request and is_org_admin %}
+                <div class="upgrade-motivator-card attention">
+                    <div class="motivator-icon"><i class="fas fa-bolt"></i></div>
+                    <div class="motivator-content">
+                        <h3>Prueba gratuita</h3>
+                        <p>
+                            {% if subscription.days_remaining > 0 %}
+                                Evita interrupciones y asegura tu acceso continuo. Termina el <strong>{{ subscription.end_date|date:"d/m/Y" }}</strong>.
+                            {% else %}
+                                Activa un plan para continuar usando Arc Manager sin interrupciones.
+                            {% endif %}
+                        </p>
+                        <div class="motivator-action">
+                            <a href="{% url 'plans:request_upgrade' %}" class="upgrade-btn">
+                                <i class="fas fa-arrow-up"></i>
+                                Mejorar ahora
+                            </a>
+                            {% if subscription.days_remaining > 0 %}
+                                <p class="upgrade-note">Tardas menos de 1 minuto</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="motivator-side">
+                        {% if subscription.days_remaining > 0 %}
+                            <div class="days-counter">
+                                <div class="days-number">{{ subscription.days_remaining }}</div>
+                                <div class="days-label">días restantes</div>
                             </div>
-                            <div class="usage-info">
-                                <h4>Usuarios</h4>
-                                <div class="usage-numbers">
-                                    {% with current_users=organization.users.count limit=subscription.plan.max_users %}
-                                        <span class="current">{{ current_users }}</span>
-                                        <span class="separator">/</span>
-                                        <span class="limit">{{ limit }}</span>
+                        {% else %}
+                            <div class="days-counter expired">
+                                <div class="days-number">0</div>
+                                <div class="days-label">prueba finalizada</div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if not subscription.plan.is_trial %}
+                <div class="upgrade-motivator-card success">
+                    <div class="motivator-icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="motivator-content">
+                        <h3>Plan activo</h3>
+                        <p>Tu plan actual es <strong>{{ subscription.plan.display_name }}</strong>.</p>
+                        <p>Vence el <strong>{{ subscription.end_date|date:"d/m/Y" }}</strong>.</p>
+                    </div>
+                    <div class="motivator-side">
+                        {% if subscription.days_remaining > 0 %}
+                            <div class="days-counter">
+                                <div class="days-number">{{ subscription.days_remaining }}</div>
+                                <div class="days-label">días restantes</div>
+                            </div>
+                        {% else %}
+                            <div class="days-counter expired">
+                                <div class="days-number">0</div>
+                                <div class="days-label">suscripción vencida</div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            {# Se elimina la tarjeta de Detalles del Plan Actual para evitar redundancia con el banner superior #}
+
+            <!-- Uso Actual -->
+            <div class="usage-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-chart-bar"></i> Uso Actual</h3>
+                </div>
+                <div class="card-body">
+                    <div class="usage-items">
+                        <div class="usage-item">
+                            <div class="usage-header">
+                                <div class="usage-icon users">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="usage-info">
+                                    <div class="usage-label">Usuarios</div>
+                                    <div class="usage-count">{{ organization.users.count }}/{{ subscription.plan.max_users }}</div>
+                                </div>
+                            </div>
+                            <div class="usage-progress">
+                                <div class="progress-bar">
+                                    {% with percentage=organization.users.count|percentage:subscription.plan.max_users %}
+                                        <div class="progress-fill" style="--usage-percentage: {{ percentage }}%"></div>
                                     {% endwith %}
                                 </div>
                             </div>
                         </div>
                         
-                        {% with current_users=organization.users.count limit=subscription.plan.max_users %}
-                            {% with percentage=current_users|percentage:limit %}
-                                <div class="usage-progress">
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" style="width: {{ percentage }}%;"></div>
-                                    </div>
-                                    <div class="usage-percentage">{{ percentage|floatformat:0 }}%</div>
+                        <div class="usage-item">
+                            <div class="usage-header">
+                                <div class="usage-icon projects">
+                                    <i class="fas fa-folder"></i>
                                 </div>
-                                
-                                <div class="usage-status {{ percentage|usage_status_class }}">
-                                    {% if current_users < limit %}
-                                        <i class="fas fa-check-circle"></i>
-                                        Puedes agregar {{ limit|subtract:current_users }} usuario{{ limit|subtract:current_users|pluralize }} más.
-                                    {% else %}
-                                        <i class="fas fa-exclamation-triangle"></i>
-                                        Límite de usuarios alcanzado.
-                                    {% endif %}
-                                </div>
-                            {% endwith %}
-                        {% endwith %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Historial de pagos -->
-            {% if payment_history %}
-            <div class="payment-history-section">
-                <div class="section-header">
-                    <h3><i class="fas fa-receipt"></i> Historial de Pagos</h3>
-                    <div class="history-period">Últimas transacciones</div>
-                </div>
-                <div class="payment-history-list">
-                    {% for payment in payment_history %}
-                        <div class="payment-history-item">
-                            <div class="payment-date-container">
-                                <div class="payment-month">{{ payment.created_at|date:"M" }}</div>
-                                <div class="payment-year">{{ payment.created_at|date:"Y" }}</div>
-                            </div>
-                            <div class="payment-details-container">
-                                <div class="payment-description">
-                                    {{ payment.description|default:"Pago de suscripción" }}
-                                </div>
-                                <div class="payment-method-info">
-                                    <i class="fas fa-credit-card"></i> 
-                                    {{ payment.get_payment_method_display }}
+                                <div class="usage-info">
+                                    <div class="usage-label">Proyectos</div>
+                                    <div class="usage-count">{{ organization.projects.count }}</div>
                                 </div>
                             </div>
-                            <div class="payment-amount-container">
-                                <div class="payment-amount">{{ payment.amount|format_currency }}</div>
-                                <div class="payment-status success">
-                                    <i class="fas fa-check-circle"></i> {{ payment.get_status_display }}
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Soporte -->
-            <div class="support-section">
-                <div class="support-card">
-                    <div class="support-content">
-                        <div class="support-icon"><i class="fas fa-headset"></i></div>
-                        <h4>¿Necesitas ayuda?</h4>
-                        <p>Nuestro equipo está para ayudarte con tu suscripción.</p>
-                        <div class="support-contacts">
-                            <a href="mailto:soporte@tuempresa.com" class="support-contact">
-                                <i class="fas fa-envelope"></i> soporte@tuempresa.com
-                            </a>
-                            <div class="support-hours">
-                                <i class="fas fa-clock"></i> L-V, 9am - 6pm
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Columna derecha -->
-        <div class="right-sidebar">
-            {% if not pending_request and is_org_admin and available_plans and not subscription.is_expired %}
-                <!-- Planes disponibles para upgrade (solo si no está expirado) -->
-                <div class="plans-available-card">
-                    <div class="card-header">
-                        <div class="header-icon"><i class="fas fa-rocket"></i></div>
-                        <h3>Mejora tu Plan</h3>
-                    </div>
-                    <div class="plans-list">
-                        {% for plan in available_plans %}
-                            <div class="plan-item">
-                                <div class="plan-header">
-                                    <h4>{{ plan.display_name }}</h4>
-                                    <div class="plan-price">{{ plan.price|format_currency }}/mes</div>
-                                </div>
-                                <div class="plan-features-list">
-                                    {% for feature in plan.get_feature_list %}
-                                    <div class="feature-item"><i class="fas fa-check"></i> {{ feature }}</div>
-                                    {% endfor %}
-                                </div>
-                                <a href="{% url 'plans:request_upgrade' %}" class="plan-select-button">
-                                    <i class="fas fa-rocket"></i> Solicitar Upgrade
-                                </a>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            {% else %}
-                 <!-- Plan actual -->
-                <div class="plans-available-card basic-plan-active">
-                    <div class="card-header">
-                        <div class="header-icon">
-                            <i class="fas fa-crown"></i>
-                        </div>
-                        <h3>Tu Plan Actual</h3>
-                    </div>
-                    <div class="plans-list">
-                        <div class="plan-item">
-                            <div class="plan-header">
-                                <h4>{{ subscription.plan.display_name }}</h4>
-                                <div class="plan-price">{{ subscription.plan.price|format_currency }}/mes</div>
-                            </div>
-                            
-                            <div class="plan-expiry-info">
-                                {% if subscription.is_active %}
-                                    <div class="expiry-alert success">
-                                        <i class="fas fa-check-circle"></i> Activo
-                                    </div>
-                                    <div class="expiry-date">
-                                        Vence en {{ subscription.days_remaining }} día{{ subscription.days_remaining|pluralize }}
-                                    </div>
-                                {% elif subscription.is_in_grace_period %}
-                                    <div class="expiry-alert warning">
-                                        <i class="fas fa-exclamation-triangle"></i> En Gracia
-                                    </div>
-                                     <div class="expiry-date">
-                                        Vence en {{ subscription.days_remaining }} día{{ subscription.days_remaining|pluralize }}
-                                    </div>
-                                {% elif subscription.is_expired %}
-                                    <div class="expiry-alert danger">
-                                        <i class="fas fa-times-circle"></i> Expirado
-                                    </div>
-                                    <div class="expiry-date">
-                                        Venció el {{ subscription.end_date|date:"d/m/Y" }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            
-                            <div class="plan-features-list">
-                                {% for feature in subscription.plan.get_feature_list %}
-                                <div class="feature-item"><i class="fas fa-check"></i> {{ feature }}</div>
-                                {% endfor %}
-                            </div>
-                            
-                            {% if subscription.is_expired %}
-                                <a href="mailto:soporte@tuempresa.com" class="plan-select-button expired-button">
-                                    <i class="fas fa-envelope"></i> Contactar Soporte
-                                </a>
-                            {% else %}
-                                <div class="plan-select-button plan-active-button">
-                                    <i class="fas fa-star"></i> Plan Activo
+                            {% if subscription.plan.is_trial %}
+                                <div class="usage-note">
+                                    <small>Con un plan premium: proyectos ilimitados</small>
                                 </div>
                             {% endif %}
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Características del Plan (compacto) -->
+            <div class="features-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-star"></i> Características Incluidas</h3>
+                </div>
+                <div class="card-body">
+                    <div class="features-list">
+                        {% for feature in subscription.plan.get_feature_list|slice:":6" %}
+                            <div class="feature-item">
+                                <i class="fas fa-check"></i>
+                                <span>{{ feature }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="right-sidebar">
+            
+            {% if not pending_request and available_plans and is_org_admin and not subscription.is_expired %}
+            <div class="upgrade-motivator-card attention">
+                <div class="motivator-content">
+                    <h3>Desbloquea más con un plan superior</h3>
+                    <p>Mejora tu experiencia y escala sin límites con capacidades avanzadas.</p>
+                    <div class="benefits-preview">
+                        <h4>Beneficios al actualizar</h4>
+                        <ul>
+                            <li><i class="fas fa-check"></i> Más usuarios para tu organización</li>
+                            <li><i class="fas fa-check"></i> Proyectos ilimitados</li>
+                            <li><i class="fas fa-check"></i> Soporte prioritario</li>
+                        </ul>
+                    </div>
+                    {# Botón de "Actualizar plan" removido por redundancia #}
+                </div>
+            </div>
             {% endif %}
+
+            <!-- Se elimina bloque de "Planes Disponibles" para reducir redundancia -->
+
+            <!-- Información de Soporte -->
+            <div class="support-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-headset"></i> ¿Necesitas ayuda?</h3>
+                </div>
+                <div class="card-body">
+                    <p>Si tienes preguntas sobre tu plan o necesitas asistencia, contáctanos:</p>
+                    <div class="support-info">
+                        <div class="support-row"><i class="fas fa-phone"></i> <span class="label">Teléfono:</span> <span class="value">{{ support_phone }}</span></div>
+                        <div class="support-row"><i class="fas fa-envelope"></i> <span class="label">Correo:</span> <span class="value">{{ support_email }}</span></div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>

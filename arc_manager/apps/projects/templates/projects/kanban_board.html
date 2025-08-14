@@ -91,56 +91,56 @@
                         {% for task in tasks_by_status.TODO %}
                         <div class="kanban-card" data-task-id="{{ task.id }}" draggable="true">
                             <div class="card-body">
-                                <!-- Header ultra compacto con título y prioridad -->
-                                <div class="task-header">
-                                    <h6 class="task-title" title="{{ task.title }}">{{ task.title|truncatechars:25 }}</h6>
-                                    <div class="task-priority-badge priority-{{ task.priority|lower }}">
-                                        {{ task.get_priority_display|slice:":3" }}
+                                <!-- Contenido principal de la tarjeta -->
+                                <div class="task-content-main">
+                                    <!-- Header ultra compacto con título y prioridad -->
+                                    <div class="task-header">
+                                        <h6 class="task-title" title="{{ task.title }}">{{ task.title|truncatechars:25 }}</h6>
+                                        <div class="task-priority-badge priority-{{ task.priority|lower }}">
+                                            {{ task.get_priority_display|slice:":3" }}
+                                        </div>
                                     </div>
-                                </div>
-                                
-                                <!-- Descripción ultra compacta (solo 1 línea) -->
-                                {% if task.description %}
-                                <p class="task-description" title="{{ task.description }}">{{ task.description|truncatechars:35 }}</p>
-                                {% endif %}
-                                
-                                <!-- Meta información ultra compacta en una sola línea -->
-                                <div class="task-meta">
-                                    <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}{% else %}Sin asignar{% endif %}">
-                                        <i class="fas fa-user-circle"></i>
-                                        <span class="small">
-                                            {% if task.assigned_to %}
-                                                {{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:task.assigned_to|truncatechars:12 }}
-                                            {% else %}
-                                                {% trans "Sin asignar" %}
-                                            {% endif %}
+                                    
+                                    <!-- Descripción ultra compacta (solo 1 línea) -->
+                                    {% if task.description %}
+                                    <p class="task-description" title="{{ task.description }}">{{ task.description|truncatechars:35 }}</p>
+                                    {% endif %}
+                                    
+                                    <!-- Meta información ultra compacta en una sola línea -->
+                                    <div class="task-meta">
+                                        <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}{% else %}Sin asignar{% endif %}">
+                                            <i class="fas fa-user-circle"></i>
+                                            <span class="small">
+                                                {% if task.assigned_to %}
+                                                    {{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:task.assigned_to|truncatechars:12 }}
+                                                {% else %}
+                                                    {% trans "Sin asignar" %}
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="task-phase">
+                                            <span class="phase-badge" title="{{ task.phase.name }}">{{ task.phase.name|truncatechars:8 }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Fecha de vencimiento ultra compacta -->
+                                    {% if task.due_date %}
+                                    <div class="task-due-date" title="Vence: {{ task.due_date|date:'d/m/Y' }}">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        <span class="small {% if task.due_date < today %}text-danger{% endif %}">
+                                            {{ task.due_date|date:"d/m" }}
                                         </span>
                                     </div>
-                                    <div class="task-phase">
-                                        <span class="phase-badge" title="{{ task.phase.name }}">{{ task.phase.name|truncatechars:8 }}</span>
-                                    </div>
+                                    {% endif %}
                                 </div>
                                 
-                                <!-- Fecha de vencimiento ultra compacta -->
-                                {% if task.due_date %}
-                                <div class="task-due-date" title="Vence: {{ task.due_date|date:'d/m/Y' }}">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    <span class="small {% if task.due_date < today %}text-danger{% endif %}">
-                                        {{ task.due_date|date:"d/m" }}
-                                    </span>
-                                </div>
-                                {% endif %}
-                                
-                                <!-- Acciones ultra compactas y bien alineadas -->
+                                <!-- Acciones mejoradas y bien alineadas -->
                                 <div class="task-actions">
-                                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#taskModal"
-                                            hx-get="{% url 'projects:task-edit' task.pk %}"
-                                            hx-target="#taskModalContent"
-                                            hx-trigger="click"
+                                    <button class="btn btn-outline-primary" onclick="openTaskModal('edit', {{ task.pk }})"
                                             title="{% trans 'Editar tarea' %}">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-outline-secondary" onclick="showTaskDetails({{ task.id }})"
+                                    <button class="btn btn-outline-secondary" onclick="openTaskModal('detail', {{ task.pk }})"
                                             title="{% trans 'Ver detalles' %}">
                                         <i class="fas fa-eye"></i>
                                     </button>
@@ -170,56 +170,56 @@
                         {% for task in tasks_by_status.IN_PROGRESS %}
                         <div class="kanban-card" data-task-id="{{ task.id }}" draggable="true">
                             <div class="card-body">
-                                <!-- Header ultra compacto con título y prioridad -->
-                                <div class="task-header">
-                                    <h6 class="task-title" title="{{ task.title }}">{{ task.title|truncatechars:25 }}</h6>
-                                    <div class="task-priority-badge priority-{{ task.priority|lower }}">
-                                        {{ task.get_priority_display|slice:":3" }}
+                                <!-- Contenido principal de la tarjeta -->
+                                <div class="task-content-main">
+                                    <!-- Header ultra compacto con título y prioridad -->
+                                    <div class="task-header">
+                                        <h6 class="task-title" title="{{ task.title }}">{{ task.title|truncatechars:25 }}</h6>
+                                        <div class="task-priority-badge priority-{{ task.priority|lower }}">
+                                            {{ task.get_priority_display|slice:":3" }}
+                                        </div>
                                     </div>
-                                </div>
-                                
-                                <!-- Descripción ultra compacta (solo 1 línea) -->
-                                {% if task.description %}
-                                <p class="task-description" title="{{ task.description }}">{{ task.description|truncatechars:35 }}</p>
-                                {% endif %}
-                                
-                                <!-- Meta información ultra compacta en una sola línea -->
-                                <div class="task-meta">
-                                    <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}{% else %}Sin asignar{% endif %}">
-                                        <i class="fas fa-user-circle"></i>
-                                        <span class="small">
-                                            {% if task.assigned_to %}
-                                                {{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:task.assigned_to|truncatechars:12 }}
-                                            {% else %}
-                                                {% trans "Sin asignar" %}
-                                            {% endif %}
+                                    
+                                    <!-- Descripción ultra compacta (solo 1 línea) -->
+                                    {% if task.description %}
+                                    <p class="task-description" title="{{ task.description }}">{{ task.description|truncatechars:35 }}</p>
+                                    {% endif %}
+                                    
+                                    <!-- Meta información ultra compacta en una sola línea -->
+                                    <div class="task-meta">
+                                        <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}{% else %}Sin asignar{% endif %}">
+                                            <i class="fas fa-user-circle"></i>
+                                            <span class="small">
+                                                {% if task.assigned_to %}
+                                                    {{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:task.assigned_to|truncatechars:12 }}
+                                                {% else %}
+                                                    {% trans "Sin asignar" %}
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="task-phase">
+                                            <span class="phase-badge" title="{{ task.phase.name }}">{{ task.phase.name|truncatechars:8 }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Fecha de vencimiento ultra compacta -->
+                                    {% if task.due_date %}
+                                    <div class="task-due-date" title="Vence: {{ task.due_date|date:'d/m/Y' }}">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        <span class="small {% if task.due_date < today %}text-danger{% endif %}">
+                                            {{ task.due_date|date:"d/m" }}
                                         </span>
                                     </div>
-                                    <div class="task-phase">
-                                        <span class="phase-badge" title="{{ task.phase.name }}">{{ task.phase.name|truncatechars:8 }}</span>
-                                    </div>
+                                    {% endif %}
                                 </div>
                                 
-                                <!-- Fecha de vencimiento ultra compacta -->
-                                {% if task.due_date %}
-                                <div class="task-due-date" title="Vence: {{ task.due_date|date:'d/m/Y' }}">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    <span class="small {% if task.due_date < today %}text-danger{% endif %}">
-                                        {{ task.due_date|date:"d/m" }}
-                                    </span>
-                                </div>
-                                {% endif %}
-                                
-                                <!-- Acciones ultra compactas y bien alineadas -->
+                                <!-- Acciones mejoradas y bien alineadas -->
                                 <div class="task-actions">
-                                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#taskModal"
-                                            hx-get="{% url 'projects:task-edit' task.pk %}"
-                                            hx-target="#taskModalContent"
-                                            hx-trigger="click"
+                                    <button class="btn btn-outline-primary" onclick="openTaskModal('edit', {{ task.pk }})"
                                             title="{% trans 'Editar tarea' %}">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-outline-secondary" onclick="showTaskDetails({{ task.id }})"
+                                    <button class="btn btn-outline-secondary" onclick="openTaskModal('detail', {{ task.pk }})"
                                             title="{% trans 'Ver detalles' %}">
                                         <i class="fas fa-eye"></i>
                                     </button>
@@ -249,56 +249,56 @@
                         {% for task in tasks_by_status.PAUSED %}
                         <div class="kanban-card" data-task-id="{{ task.id }}" draggable="true">
                             <div class="card-body">
-                                <!-- Header ultra compacto con título y prioridad -->
-                                <div class="task-header">
-                                    <h6 class="task-title" title="{{ task.title }}">{{ task.title|truncatechars:25 }}</h6>
-                                    <div class="task-priority-badge priority-{{ task.priority|lower }}">
-                                        {{ task.get_priority_display|slice:":3" }}
+                                <!-- Contenido principal de la tarjeta -->
+                                <div class="task-content-main">
+                                    <!-- Header ultra compacto con título y prioridad -->
+                                    <div class="task-header">
+                                        <h6 class="task-title" title="{{ task.title }}">{{ task.title|truncatechars:25 }}</h6>
+                                        <div class="task-priority-badge priority-{{ task.priority|lower }}">
+                                            {{ task.get_priority_display|slice:":3" }}
+                                        </div>
                                     </div>
-                                </div>
-                                
-                                <!-- Descripción ultra compacta (solo 1 línea) -->
-                                {% if task.description %}
-                                <p class="task-description" title="{{ task.description }}">{{ task.description|truncatechars:35 }}</p>
-                                {% endif %}
-                                
-                                <!-- Meta información ultra compacta en una sola línea -->
-                                <div class="task-meta">
-                                    <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}{% else %}Sin asignar{% endif %}">
-                                        <i class="fas fa-user-circle"></i>
-                                        <span class="small">
-                                            {% if task.assigned_to %}
-                                                {{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:task.assigned_to|truncatechars:12 }}
-                                            {% else %}
-                                                {% trans "Sin asignar" %}
-                                            {% endif %}
+                                    
+                                    <!-- Descripción ultra compacta (solo 1 línea) -->
+                                    {% if task.description %}
+                                    <p class="task-description" title="{{ task.description }}">{{ task.description|truncatechars:35 }}</p>
+                                    {% endif %}
+                                    
+                                    <!-- Meta información ultra compacta en una sola línea -->
+                                    <div class="task-meta">
+                                        <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}{% else %}Sin asignar{% endif %}">
+                                            <i class="fas fa-user-circle"></i>
+                                            <span class="small">
+                                                {% if task.assigned_to %}
+                                                    {{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:task.assigned_to|truncatechars:12 }}
+                                                {% else %}
+                                                    {% trans "Sin asignar" %}
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="task-phase">
+                                            <span class="phase-badge" title="{{ task.phase.name }}">{{ task.phase.name|truncatechars:8 }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Fecha de vencimiento ultra compacta -->
+                                    {% if task.due_date %}
+                                    <div class="task-due-date" title="Vence: {{ task.due_date|date:'d/m/Y' }}">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        <span class="small {% if task.due_date < today %}text-danger{% endif %}">
+                                            {{ task.due_date|date:"d/m" }}
                                         </span>
                                     </div>
-                                    <div class="task-phase">
-                                        <span class="phase-badge" title="{{ task.phase.name }}">{{ task.phase.name|truncatechars:8 }}</span>
-                                    </div>
+                                    {% endif %}
                                 </div>
                                 
-                                <!-- Fecha de vencimiento ultra compacta -->
-                                {% if task.due_date %}
-                                <div class="task-due-date" title="Vence: {{ task.due_date|date:'d/m/Y' }}">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    <span class="small {% if task.due_date < today %}text-danger{% endif %}">
-                                        {{ task.due_date|date:"d/m" }}
-                                    </span>
-                                </div>
-                                {% endif %}
-                                
-                                <!-- Acciones ultra compactas y bien alineadas -->
+                                <!-- Acciones mejoradas y bien alineadas -->
                                 <div class="task-actions">
-                                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#taskModal"
-                                            hx-get="{% url 'projects:task-edit' task.pk %}"
-                                            hx-target="#taskModalContent"
-                                            hx-trigger="click"
+                                    <button class="btn btn-outline-primary" onclick="openTaskModal('edit', {{ task.pk }})"
                                             title="{% trans 'Editar tarea' %}">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-outline-secondary" onclick="showTaskDetails({{ task.id }})"
+                                    <button class="btn btn-outline-secondary" onclick="openTaskModal('detail', {{ task.pk }})"
                                             title="{% trans 'Ver detalles' %}">
                                         <i class="fas fa-eye"></i>
                                     </button>
@@ -328,56 +328,56 @@
                         {% for task in tasks_by_status.DONE %}
                         <div class="kanban-card" data-task-id="{{ task.id }}" draggable="true">
                             <div class="card-body">
-                                <!-- Header ultra compacto con título y prioridad -->
-                                <div class="task-header">
-                                    <h6 class="task-title" title="{{ task.title }}">{{ task.title|truncatechars:25 }}</h6>
-                                    <div class="task-priority-badge priority-{{ task.priority|lower }}">
-                                        {{ task.get_priority_display|slice:":3" }}
+                                <!-- Contenido principal de la tarjeta -->
+                                <div class="task-content-main">
+                                    <!-- Header ultra compacto con título y prioridad -->
+                                    <div class="task-header">
+                                        <h6 class="task-title" title="{{ task.title }}">{{ task.title|truncatechars:25 }}</h6>
+                                        <div class="task-priority-badge priority-{{ task.priority|lower }}">
+                                            {{ task.get_priority_display|slice:":3" }}
+                                        </div>
                                     </div>
-                                </div>
-                                
-                                <!-- Descripción ultra compacta (solo 1 línea) -->
-                                {% if task.description %}
-                                <p class="task-description" title="{{ task.description }}">{{ task.description|truncatechars:35 }}</p>
-                                {% endif %}
-                                
-                                <!-- Meta información ultra compacta en una sola línea -->
-                                <div class="task-meta">
-                                    <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}{% else %}Sin asignar{% endif %}">
-                                        <i class="fas fa-user-circle"></i>
-                                        <span class="small">
-                                            {% if task.assigned_to %}
-                                                {{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:task.assigned_to|truncatechars:12 }}
-                                            {% else %}
-                                                {% trans "Sin asignar" %}
-                                            {% endif %}
+                                    
+                                    <!-- Descripción ultra compacta (solo 1 línea) -->
+                                    {% if task.description %}
+                                    <p class="task-description" title="{{ task.description }}">{{ task.description|truncatechars:35 }}</p>
+                                    {% endif %}
+                                    
+                                    <!-- Meta información ultra compacta en una sola línea -->
+                                    <div class="task-meta">
+                                        <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}{% else %}Sin asignar{% endif %}">
+                                            <i class="fas fa-user-circle"></i>
+                                            <span class="small">
+                                                {% if task.assigned_to %}
+                                                    {{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:task.assigned_to|truncatechars:12 }}
+                                                {% else %}
+                                                    {% trans "Sin asignar" %}
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="task-phase">
+                                            <span class="phase-badge" title="{{ task.phase.name }}">{{ task.phase.name|truncatechars:8 }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Fecha de vencimiento ultra compacta -->
+                                    {% if task.due_date %}
+                                    <div class="task-due-date" title="Vence: {{ task.due_date|date:'d/m/Y' }}">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        <span class="small {% if task.due_date < today %}text-danger{% endif %}">
+                                            {{ task.due_date|date:"d/m" }}
                                         </span>
                                     </div>
-                                    <div class="task-phase">
-                                        <span class="phase-badge" title="{{ task.phase.name }}">{{ task.phase.name|truncatechars:8 }}</span>
-                                    </div>
+                                    {% endif %}
                                 </div>
                                 
-                                <!-- Fecha de vencimiento ultra compacta -->
-                                {% if task.due_date %}
-                                <div class="task-due-date" title="Vence: {{ task.due_date|date:'d/m/Y' }}">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    <span class="small {% if task.due_date < today %}text-danger{% endif %}">
-                                        {{ task.due_date|date:"d/m" }}
-                                    </span>
-                                </div>
-                                {% endif %}
-                                
-                                <!-- Acciones ultra compactas y bien alineadas -->
+                                <!-- Acciones mejoradas y bien alineadas -->
                                 <div class="task-actions">
-                                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#taskModal"
-                                            hx-get="{% url 'projects:task-edit' task.pk %}"
-                                            hx-target="#taskModalContent"
-                                            hx-trigger="click"
+                                    <button class="btn btn-outline-primary" onclick="openTaskModal('edit', {{ task.pk }})"
                                             title="{% trans 'Editar tarea' %}">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-outline-secondary" onclick="showTaskDetails({{ task.id }})"
+                                    <button class="btn btn-outline-secondary" onclick="openTaskModal('detail', {{ task.pk }})"
                                             title="{% trans 'Ver detalles' %}">
                                         <i class="fas fa-eye"></i>
                                     </button>
@@ -401,7 +401,7 @@
 
 <!-- Modal para crear/editar tareas -->
 <div class="modal fade" id="addTaskModal" tabindex="-1" aria-labelledby="addTaskModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="addTaskModalLabel">{% trans "Nueva Tarea" %}</h5>
@@ -421,7 +421,7 @@
                         </div>
                         <div class="col-md-6">
                             <label for="phase" class="form-label">{% trans "Fase" %} *</label>
-                            <select class="form-select" id="phase" name="phase" required>
+                            <select class="form-select" id="phase" name="phase">
                                 <option value="">{% trans "Seleccionar fase" %}</option>
                                 {% for phase in phases %}
                                     <option value="{{ phase.id }}">{{ phase.name }}</option>
@@ -460,34 +460,16 @@
     </div>
 </div>
 
-<!-- Modal para editar tareas -->
-<div class="modal fade" id="taskModal" tabindex="-1" aria-labelledby="taskModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+<!-- Modal Universal para Tareas (Detalles y Edición) -->
+<div class="modal fade" id="taskUniversalModal" tabindex="-1" aria-labelledby="taskUniversalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="taskModalLabel">{% trans "Editar Tarea" %}</h5>
+                <h5 class="modal-title" id="taskUniversalModalLabel">{% trans "Tarea" %}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body" id="taskModalContent">
+            <div class="modal-body" id="taskUniversalContent">
                 <!-- El contenido se carga dinámicamente -->
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para ver detalles de tareas -->
-<div class="modal fade" id="taskDetailsModal" tabindex="-1" aria-labelledby="taskDetailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="taskDetailsModalLabel">{% trans "Detalles de la Tarea" %}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="taskDetailsContent">
-                <!-- El contenido se carga dinámicamente -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cerrar" %}</button>
             </div>
         </div>
     </div>
@@ -495,7 +477,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/kanban.js' %}?v=1.3"></script>
+<script src="{% static 'js/kanban.js' %}?v=1.5"></script>
 <script>
 // Funciones de utilidad
 function clearFilters() {
@@ -506,24 +488,54 @@ function refreshKanban() {
     location.reload();
 }
 
-function showTaskDetails(taskId) {
-    // Mostrar modal con detalles de la tarea
-    const modal = new bootstrap.Modal(document.getElementById('taskDetailsModal'));
-    const modalContent = document.getElementById('taskDetailsContent');
+// Función universal para abrir modales de tareas
+function openTaskModal(type, taskId) {
+    const modal = new bootstrap.Modal(document.getElementById('taskUniversalModal'));
+    const modalContent = document.getElementById('taskUniversalContent');
+    const modalTitle = document.getElementById('taskUniversalModalLabel');
+    
+    // Configurar título según el tipo
+    if (type === 'edit') {
+        modalTitle.textContent = '{% trans "Editar Tarea" %}';
+    } else if (type === 'detail') {
+        modalTitle.textContent = '{% trans "Detalles de la Tarea" %}';
+    }
     
     // Mostrar loading
-    modalContent.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Cargando detalles...</p></div>';
+    modalContent.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><p class="mt-2 text-muted">{% trans "Cargando..." %}</p></div>';
     modal.show();
     
-    // Cargar detalles de la tarea
-    fetch(`{% url 'projects:task-detail' 0 %}`.replace('0', taskId))
-        .then(response => response.text())
+    // Determinar la URL según el tipo
+    let url;
+    if (type === 'edit') {
+        url = `{% url 'projects:task-edit' 0 %}`.replace('0', taskId);
+    } else if (type === 'detail') {
+        url = `{% url 'projects:task-detail' 0 %}`.replace('0', taskId);
+    }
+    
+    // Cargar contenido
+    fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.text();
+        })
         .then(html => {
             modalContent.innerHTML = html;
         })
         .catch(error => {
             console.error('Error:', error);
-            modalContent.innerHTML = '<div class="text-center p-4 text-danger"><i class="fas fa-exclamation-triangle fa-2x"></i><p class="mt-2">Error al cargar los detalles</p></div>';
+            modalContent.innerHTML = `
+                <div class="text-center p-4 text-danger">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                    <h5>{% trans "Error al cargar" %}</h5>
+                    <p class="text-muted">{% trans "No se pudo cargar el contenido. Inténtalo de nuevo." %}</p>
+                    <button class="btn btn-outline-primary" onclick="openTaskModal('${type}', ${taskId})">
+                        <i class="fas fa-redo"></i> {% trans "Reintentar" %}
+                    </button>
+                </div>
+            `;
         });
 }
 

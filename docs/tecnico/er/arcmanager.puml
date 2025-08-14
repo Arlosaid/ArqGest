@@ -1,0 +1,171 @@
+@startuml
+' ArcManager ER Diagram
+hide circle
+skinparam linetype ortho
+skinparam packageStyle rectangle
+
+entity Organization {
+  * id : int <<PK>>
+  --
+  name : varchar
+  description : text
+  is_active : boolean
+  created_at : datetime
+  updated_at : datetime
+}
+
+entity User {
+  * id : int <<PK>>
+  --
+  email : varchar <<UK>>
+  username : varchar
+  first_name : varchar
+  last_name : varchar
+  is_org_admin : boolean
+  organization_id : int <<FK>>
+}
+
+entity Client {
+  * id : int <<PK>>
+  --
+  organization_id : int <<FK>>
+  name : varchar
+  email : varchar
+  phone_number : varchar
+  address : text
+  is_active : boolean
+  created_at : datetime
+  updated_at : datetime
+}
+
+entity Plan {
+  * id : int <<PK>>
+  --
+  name : varchar
+  display_name : varchar
+  description : text
+  price : decimal
+  max_users : int
+  trial_days : int
+  billing_cycle_days : int
+  grace_period_days : int
+  is_active : boolean
+  created_at : datetime
+  updated_at : datetime
+}
+
+entity Subscription {
+  * id : int <<PK>>
+  --
+  organization_id : int <<FK>>
+  plan_id : int <<FK>>
+  start_date : datetime
+  end_date : datetime
+  grace_end_date : datetime
+  subscription_status : varchar
+  created_at : datetime
+  updated_at : datetime
+}
+
+entity Payment {
+  * id : int <<PK>>
+  --
+  subscription_id : int <<FK>>
+  amount : decimal
+  payment_method : varchar
+  payment_type : varchar
+  status : varchar
+  processed_by : varchar
+  description : text
+  days_added : int
+  old_end_date : datetime
+  new_end_date : datetime
+  created_at : datetime
+}
+
+entity UpgradeRequest {
+  * id : int <<PK>>
+  --
+  organization_id : int <<FK>>
+  current_plan_id : int <<FK>>
+  requested_plan_id : int <<FK>>
+  amount : decimal
+  status : varchar
+  approved_by : varchar
+  created_at : datetime
+  updated_at : datetime
+}
+
+entity Project {
+  * id : int <<PK>>
+  --
+  organization_id : int <<FK>>
+  owner_id : int <<FK>>
+  client_id : int <<FK>>
+  name : varchar
+  status : varchar
+  start_date : date
+  end_date : date
+  created_at : datetime
+}
+
+entity PhaseTemplate {
+  * id : int <<PK>>
+  --
+  organization_id : int <<FK>>
+  name : varchar
+  description : text
+  phases : json
+}
+
+entity Phase {
+  * id : int <<PK>>
+  --
+  project_id : int <<FK>>
+  name : varchar
+  status : varchar
+  order : int
+  start_date : date
+  end_date : date
+  notes : text
+  created_at : datetime
+}
+
+entity Task {
+  * id : int <<PK>>
+  --
+  phase_id : int <<FK>>
+  assigned_to_id : int <<FK>>
+  title : varchar
+  description : text
+  status : varchar
+  priority : varchar
+  due_date : date
+  created_at : datetime
+}
+
+entity ProjectFile {
+  * id : int <<PK>>
+  --
+  phase_id : int <<FK>>
+  file : varchar
+  uploaded_by_id : int <<FK>>
+  uploaded_at : datetime
+}
+
+' Relationships
+Organization ||--o{ User
+Organization ||--o{ Client
+Organization ||--o{ Project
+Organization ||--|| Subscription
+Organization ||--o{ PhaseTemplate
+Subscription }o--|| Plan
+Subscription ||--o{ Payment
+Client ||--o{ Project
+Project ||--o{ Phase
+Phase ||--o{ Task
+Phase ||--o{ ProjectFile
+User ||--o{ Project
+User ||--o{ Task
+
+@enduml
