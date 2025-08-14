@@ -12,13 +12,7 @@
 
 {% block extra_css %}
 <link href="{% static 'css/projects.css' %}?v=1.2" rel="stylesheet">
-<style>
-/* Ocultar checkboxes internos de borrado del formset */
-input[type="checkbox"][name$="-DELETE"] { display: none !important; }
-.phase-form { background: #fff; }
-.phase-form .form-control { min-width: 220px; }
-.drag-handle { color: #6c757d; }
-</style>
+<link href="{% static 'css/phasetemplate_form.css' %}?v=1.0" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -82,7 +76,7 @@ input[type="checkbox"][name$="-DELETE"] { display: none !important; }
                             <div class="phase-form mb-2 p-2 border rounded d-flex align-items-center" data-form-index="{{ forloop.counter0 }}">
                                 <div class="row align-items-center">
                                     <div class="col-auto">
-                                        <i class="fas fa-bars drag-handle" style="cursor: move;"></i>
+                                        <i class="fas fa-bars drag-handle"></i>
                                     </div>
                                     <div class="col">
                                         {{ form.name }}
@@ -107,7 +101,7 @@ input[type="checkbox"][name$="-DELETE"] { display: none !important; }
                     <div class="phase-form mb-2 p-2 border rounded d-flex align-items-center" data-form-index="__prefix__">
                         <div class="row align-items-center">
                              <div class="col-auto">
-                                <i class="fas fa-bars drag-handle" style="cursor: move;"></i>
+                                 <i class="fas fa-bars drag-handle"></i>
                             </div>
                             <div class="col">
                                 {{ phase_formset.empty_form.name }}
@@ -145,84 +139,5 @@ input[type="checkbox"][name$="-DELETE"] { display: none !important; }
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
 <script src="{% static 'js/projects.js' %}?v=1.0"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const formsetContainer = document.getElementById('phase-forms-container');
-    const addButton = document.getElementById('add-form');
-    const emptyForm = document.getElementById('empty-form').innerHTML;
-    const totalForms = document.getElementById('id_phases-TOTAL_FORMS');
-    const formEl = document.getElementById('phase-template-form');
-    
-    let formNum = {{ phase_formset.total_form_count }};
-
-    addButton.addEventListener('click', function() {
-        const newFormHtml = emptyForm.replace(/__prefix__/g, formNum);
-        const newForm = document.createElement('div');
-        newForm.innerHTML = newFormHtml;
-        formsetContainer.appendChild(newForm.firstElementChild);
-        
-        updateOrder();
-        
-        totalForms.value = ++formNum;
-    });
-
-    // Manejar botón de eliminar fase: marca DELETE y oculta el bloque
-    formsetContainer.addEventListener('click', function(e) {
-        const btn = e.target.closest('.delete-phase-btn');
-        if (!btn) return;
-        const wrapper = btn.closest('.phase-form');
-        const deleteInput = wrapper.querySelector('input[type="checkbox"][name$="-DELETE"]');
-        const nameInput = wrapper.querySelector('input[name$="-name"]');
-        if (deleteInput) {
-            deleteInput.checked = true;
-        }
-        if (nameInput) {
-            nameInput.required = false;
-        }
-        wrapper.style.display = 'none';
-        updateOrder();
-    });
-
-    function updateOrder() {
-        const forms = formsetContainer.querySelectorAll('.phase-form');
-        forms.forEach((form, index) => {
-            const orderInput = form.querySelector('input[name$="-order"]');
-            if (orderInput) {
-                orderInput.value = index;
-            }
-        });
-    }
-
-    try {
-        if (window.Sortable && formsetContainer) {
-            new Sortable(formsetContainer, {
-                handle: '.drag-handle',
-                animation: 150,
-                onEnd: function() {
-                    updateOrder();
-                }
-            });
-        }
-    } catch (e) {
-        console.warn('SortableJS no está disponible o falló la inicialización:', e);
-    }
-
-    // Initial order for existing forms
-    updateOrder();
-
-    // Antes de enviar, marcar como DELETE las fases vacías y actualizar orden
-    formEl.addEventListener('submit', function() {
-        const forms = formsetContainer.querySelectorAll('.phase-form');
-        forms.forEach((form) => {
-            const nameInput = form.querySelector('input[name$="-name"]');
-            const deleteInput = form.querySelector('input[type="checkbox"][name$="-DELETE"]');
-            if (nameInput && !nameInput.value.trim() && deleteInput) {
-                deleteInput.checked = true;
-                form.style.display = 'none';
-            }
-        });
-        updateOrder();
-    });
-});
-</script>
+<script src="{% static 'js/phasetemplate_form.js' %}?v=1.0"></script>
 {% endblock extra_js %}

@@ -6,6 +6,7 @@
 
 {% block extra_css %}
 <link href="{% static 'css/tasks.css' %}?v=1.0" rel="stylesheet">
+<link href="{% static 'css/my_tasks_page.css' %}?v=1.0" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -183,6 +184,12 @@
 
 {% block extra_js %}
 <script src="{% static 'js/tasks.js' %}?v=1.0"></script>
+<script src="{% static 'js/my_tasks_page.js' %}?v=1.0"></script>
+{% endblock %}
+ 
+
+{# Moved inline script and styles to static files #}
+{#
 <script>
     // Función optimizada para cambio de estado instantáneo sin notificaciones
     window.updateTaskStatus = function(taskId, status) {
@@ -850,4 +857,4 @@
     }
 }
 </style>
-{% endblock %}
+#}

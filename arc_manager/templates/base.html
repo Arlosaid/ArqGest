@@ -61,22 +61,7 @@
 
     <!-- HTMX para interacciones hx-* (upload/delete parciales, etc.) -->
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-    <script>
-        // Configurar CSRF para todas las solicitudes HTMX automáticamente (Django)
-        (function() {
-          function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
-          }
-          document.addEventListener('htmx:configRequest', function (event) {
-            const csrfToken = getCookie('csrftoken');
-            if (csrfToken) {
-              event.detail.headers['X-CSRFToken'] = csrfToken;
-            }
-          });
-        })();
-    </script>
+    <script src="{% static 'js/htmx_csrf.js' %}"></script>
     
     <!-- Scripts base -->
     <script src="{% static 'js/base.js' %}"></script>
@@ -88,32 +73,7 @@
     <script src="{% static 'js/sidebar.js' %}"></script>
     
     <!-- Script para evitar duplicación de mensajes -->
-    <script>
-        // Función para remover mensajes duplicados
-        function removeDuplicateMessages() {
-            const messages = document.querySelectorAll('.alert');
-            const seenMessages = new Set();
-            
-            messages.forEach(message => {
-                const messageText = message.textContent.trim();
-                // Remover los caracteres del botón de cierre
-                const cleanText = messageText.replace('×', '').trim();
-                
-                if (seenMessages.has(cleanText)) {
-                    message.remove();
-                } else {
-                    seenMessages.add(cleanText);
-                }
-            });
-        }
-        
-        // Ejecutar cuando el DOM esté listo
-        document.addEventListener('DOMContentLoaded', removeDuplicateMessages);
-        
-        // También ejecutar si se agregan mensajes dinámicamente
-        const observer = new MutationObserver(removeDuplicateMessages);
-        observer.observe(document.body, { childList: true, subtree: true });
-    </script>
+    <script src="{% static 'js/messages.js' %}"></script>
     
     <!-- Scripts adicionales específicos por página -->
     {% block extra_js %}{% endblock %}
@@ -133,49 +93,6 @@
       </div>
     </div>
 
-    <style>
-      /* Backdrop translúcido con efecto de desenfoque para todos los modales */
-      .modal-backdrop {
-        background-color: rgba(255, 255, 255, 0.18) !important; /* sin oscurecer */
-        backdrop-filter: blur(8px) saturate(120%);
-        -webkit-backdrop-filter: blur(8px) saturate(120%);
-      }
-      .modal-backdrop.show { opacity: 1 !important; }
-    </style>
-
-    <script>
-      // Helper global para abrir el modal con contenido remoto
-      window.openAppModal = async function(url, title = '') {
-        try {
-          const modalEl = document.getElementById('appModal');
-          const bodyEl = document.getElementById('appModalBody');
-          const titleEl = document.getElementById('appModalTitle');
-          if (!modalEl || !bodyEl) return;
-          titleEl.textContent = title || '';
-          bodyEl.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Cargando...</p></div>';
-          const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-          const html = await res.text();
-          bodyEl.innerHTML = html;
-          const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-          modal.show();
-        } catch (e) {
-          console.error(e);
-          const bodyEl = document.getElementById('appModalBody');
-          if (bodyEl) bodyEl.innerHTML = '<div class="text-center p-4 text-danger"><i class="fas fa-exclamation-triangle fa-2x"></i><p class="mt-2">Error al cargar</p></div>';
-        }
-      }
-
-      // Delegación de clicks para cualquier elemento con data-modal-url
-      document.addEventListener('click', function(e) {
-        const trigger = e.target.closest('[data-modal-url]');
-        if (!trigger) return;
-        e.preventDefault();
-        const url = trigger.getAttribute('data-modal-url');
-        const title = trigger.getAttribute('data-modal-title') || '';
-        if (url) {
-          window.openAppModal(url, title);
-        }
-      });
-    </script>
+    <script src="{% static 'js/modal_helpers.js' %}"></script>
 </body>
 </html>

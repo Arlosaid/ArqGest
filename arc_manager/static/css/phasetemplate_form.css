@@ -1,0 +1,6 @@
+/* Ocultar checkboxes internos de borrado del formset */
+input[type="checkbox"][name$="-DELETE"] { display: none !important; }
+.phase-form { background: #fff; }
+.phase-form .form-control { min-width: 220px; }
+.drag-handle { color: #6c757d; cursor: move; }
+
