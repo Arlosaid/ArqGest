@@ -177,6 +177,9 @@
                     </li>
                 {% endfor %}
             </ul>
+            {% if is_paginated %}
+                {% include 'partials/pagination.html' with page_obj=page_obj item_label='tareas' %}
+            {% endif %}
         {% else %}
             <div class="tasks-empty">
                 <i class="fas fa-tasks tasks-empty-icon"></i>

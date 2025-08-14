@@ -75,9 +75,7 @@
                     </select>
                 </div>
                 
-                <button type="button" class="filter-clear-btn" id="clearFiltersBtn">
-                    <i class="fas fa-filter-circle-xmark"></i> {% trans "Limpiar filtros" %}
-                </button>
+                <!-- Botón de limpiar filtros oculto por petición -->
             </div>
         </div>
     </div>
@@ -165,6 +163,9 @@
                 </div>
             {% endfor %}
         </div>
+        {% if is_paginated %}
+            {% include 'partials/pagination.html' with page_obj=page_obj item_label='tareas' %}
+        {% endif %}
     {% else %}
         <div class="empty-state">
             <div class="empty-icon">
@@ -355,38 +356,7 @@
             document.querySelector('.stat-paused .stat-number').textContent = counts.paused;
             document.querySelector('.stat-done .stat-number').textContent = counts.done;
             
-            // Mostrar/ocultar mensaje de no resultados
-            const emptyState = document.querySelector('.empty-state');
-            const tasksList = document.querySelector('.tasks-grid-compact');
-            
-            if (counts.total === 0 && allTasks.length > 0) {
-                // Hay tareas pero todas están filtradas
-                if (!document.querySelector('.no-results-filtered')) {
-                    const noResults = document.createElement('div');
-                    noResults.className = 'no-results-filtered';
-                    noResults.innerHTML = `
-                        <div style="text-align: center; padding: 2rem; color: var(--arc-text-secondary);">
-                            <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-                            <h3 style="margin-bottom: 0.5rem;">No se encontraron tareas</h3>
-                            <p style="margin-bottom: 1rem;">Intenta ajustar los filtros o términos de búsqueda.</p>
-                            <button type="button" onclick="clearAllFilters()" style="padding: 0.5rem 1rem; background: var(--arc-color-primary); color: white; border: none; border-radius: var(--arc-border-radius-sm); cursor: pointer;">
-                                Limpiar filtros
-                            </button>
-                        </div>
-                    `;
-                    tasksList.parentNode.appendChild(noResults);
-                }
-                document.querySelector('.no-results-filtered').style.display = 'block';
-                tasksList.style.display = 'none';
-            } else {
-                const noResults = document.querySelector('.no-results-filtered');
-                if (noResults) {
-                    noResults.style.display = 'none';
-                }
-                if (tasksList) {
-                    tasksList.style.display = 'grid';
-                }
-            }
+            // No mostrar mensaje ni overlay cuando los filtros ocultan todas las tarjetas
         }
         
         // Función para filtrar tareas

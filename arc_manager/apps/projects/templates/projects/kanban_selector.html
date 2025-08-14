@@ -457,7 +457,7 @@
     </div>
     
     <div class="kanban-selector-grid">
-        {% for project in active_projects %}
+        {% for project in active_page_obj.object_list %}
         <div class="kanban-project-card active">
             <span class="kanban-project-status active">{{ project.get_phase_display }}</span>
             
@@ -499,6 +499,9 @@
         </div>
         {% endfor %}
     </div>
+    {% if active_page_obj.paginator.num_pages > 1 %}
+        {% include 'partials/pagination.html' with page_obj=active_page_obj page_param='active_page' extra_params='page_size='|add:page_size|add:'&' item_label='proyectos' %}
+    {% endif %}
     {% endif %}
 
     <!-- Proyectos Completados -->
@@ -512,7 +515,7 @@
     </div>
     
     <div class="kanban-selector-grid">
-        {% for project in completed_projects %}
+        {% for project in completed_page_obj.object_list %}
         <div class="kanban-project-card completed">
             <span class="kanban-project-status completed">Completado</span>
             
@@ -554,6 +557,9 @@
         </div>
         {% endfor %}
     </div>
+    {% if completed_page_obj.paginator.num_pages > 1 %}
+        {% include 'partials/pagination.html' with page_obj=completed_page_obj page_param='completed_page' extra_params='page_size='|add:page_size|add:'&' item_label='proyectos' %}
+    {% endif %}
     {% endif %}
 
     <!-- Proyectos Archivados -->
@@ -567,7 +573,7 @@
     </div>
     
     <div class="kanban-selector-grid">
-        {% for project in archived_projects %}
+        {% for project in archived_page_obj.object_list %}
         <div class="kanban-project-card archived">
             <span class="kanban-project-status archived">Archivado</span>
             
@@ -595,6 +601,9 @@
         </div>
         {% endfor %}
     </div>
+    {% if archived_page_obj.paginator.num_pages > 1 %}
+        {% include 'partials/pagination.html' with page_obj=archived_page_obj page_param='archived_page' extra_params='page_size='|add:page_size|add:'&' item_label='proyectos' %}
+    {% endif %}
     {% endif %}
 
     <!-- Estado Vacío -->

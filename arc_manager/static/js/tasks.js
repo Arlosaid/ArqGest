@@ -507,31 +507,15 @@ class TaskManager {
     }
 
     /**
-     * Muestra mensaje cuando no hay resultados
+     * No mostrar mensaje ni botón cuando no hay resultados filtrados.
+     * Si existe un mensaje previo inyectado por versiones anteriores, se elimina.
      */
     showNoResultsMessage(noResults) {
-        let noResultsElement = document.querySelector('.no-results-message');
-        
-        if (noResults && !noResultsElement) {
-            noResultsElement = document.createElement('div');
-            noResultsElement.className = 'no-results-message';
-            noResultsElement.innerHTML = `
-                <div class="tasks-empty">
-                    <i class="fas fa-search tasks-empty-icon"></i>
-                    <h3 class="tasks-empty-title">No se encontraron tareas</h3>
-                    <p class="tasks-empty-text">Intenta ajustar los filtros o términos de búsqueda.</p>
-                    <button type="button" class="task-action-btn secondary" onclick="taskManager.clearFilters()">
-                        <i class="fas fa-times"></i> Limpiar Filtros
-                    </button>
-                </div>
-            `;
-            
-            if (this.tasksList) {
-                this.tasksList.appendChild(noResultsElement);
-            }
-        } else if (!noResults && noResultsElement) {
+        const noResultsElement = document.querySelector('.no-results-message');
+        if (noResultsElement) {
             noResultsElement.remove();
         }
+        // Intencionalmente no se muestra ningún overlay ni botón
     }
 
     /**

@@ -13,8 +13,11 @@ class ClientForm(forms.ModelForm):
         fields = ['name', 'email', 'phone_number', 'address', 'is_active']
 
     def __init__(self, *args, **kwargs):
-        kwargs.pop('organization', None)
+        organization = kwargs.pop('organization', None)
         super().__init__(*args, **kwargs)
+        # Guardar organización para validaciones y asignación en save
+        self.organization = organization or getattr(self.instance, 'organization', None)
+
         self.helper = FormHelper()
         self.helper.layout = Layout(
             Field('name', css_class='form-control', placeholder='Nombre completo o Razón Social'),
@@ -24,6 +27,27 @@ class ClientForm(forms.ModelForm):
             Field('is_active', css_class='form-check-input'),
             Submit('submit', 'Guardar Cliente', css_class='btn btn-primary mt-3')
         )
+
+    def clean_name(self):
+        name = self.cleaned_data.get('name')
+        if not name or not self.organization:
+            return name
+
+        # Validar unicidad por organización (case-insensitive)
+        qs = Client.objects.filter(organization=self.organization, name__iexact=name)
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError('Ya existe un cliente con este nombre en tu organización.')
+        return name
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if not getattr(instance, 'organization_id', None) and self.organization:
+            instance.organization = self.organization
+        if commit:
+            instance.save()
+        return instance
 
 
 class OrganizationForm(forms.ModelForm):

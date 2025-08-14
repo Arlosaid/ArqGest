@@ -151,7 +151,7 @@
                               </tr>
                             </thead>
                             <tbody>
-                              {% for task in tasks_simple %}
+                              {% for task in tasks_page_obj.object_list %}
                               <tr data-phase-id="{{ task.phase_id }}" data-task-id="{{ task.id }}">
                                 <td class="fw-semibold text-truncate">{{ task.title }}</td>
                                 <td class="text-muted small">{{ task.phase.name }}</td>
@@ -170,6 +170,7 @@
                             </tbody>
                           </table>
                         </div>
+                        {% include 'partials/pagination.html' with page_obj=tasks_page_obj page_param='tasks_page' extra_params='tab=kanban&' item_label='tareas' %}
                     </div>
                 </div>
             </div>

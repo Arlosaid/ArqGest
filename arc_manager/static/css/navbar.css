@@ -327,15 +327,16 @@
 }
 
 /* Eliminar estilos del logout específico para que sea igual a los demás */
-.dropdown-header,
-.user-profile-preview,
-.user-avatar-large,
-.avatar-placeholder-large,
-.user-details .user-name,
-.user-details .user-email,
-.user-details .user-org,
-.dropdown-section-title,
-.dropdown-divider {
+/* Limitar estos ocultamientos solo al dropdown de usuario del navbar */
+.user-dropdown .dropdown-header,
+.user-dropdown .user-profile-preview,
+.user-dropdown .user-avatar-large,
+.user-dropdown .avatar-placeholder-large,
+.user-dropdown .user-details .user-name,
+.user-dropdown .user-details .user-email,
+.user-dropdown .user-details .user-org,
+.user-dropdown .dropdown-section-title,
+.user-dropdown .dropdown-divider {
     display: none;
 }
 

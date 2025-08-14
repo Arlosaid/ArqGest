@@ -69,20 +69,21 @@ class User(AbstractUser):
 
     def __str__(self):
         """Mostrar nombre completo o email como fallback"""
-        if self.first_name and self.last_name:
-            return f"{self.first_name} {self.last_name}"
-        elif self.first_name:
-            return self.first_name
-        return self.email
+        return self.full_name
     
     @property
     def full_name(self):
-        """Nombre completo del usuario"""
-        if self.first_name and self.last_name:
-            return f"{self.first_name} {self.last_name}"
-        elif self.first_name:
-            return self.first_name
-        return self.email
+        """Nombre completo del usuario con fallback robusto."""
+        first = (self.first_name or '').strip()
+        last = (self.last_name or '').strip()
+        name = f"{first} {last}".strip()
+        if not name:
+            return self.email
+        return name
+
+    def get_full_name(self):
+        """Compatibilidad con AbstractUser: retorna el nombre completo robusto."""
+        return self.full_name
     
     @property
     def username_display(self):

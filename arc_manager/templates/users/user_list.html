@@ -97,10 +97,18 @@
             </div>
             
             <span class="result-count">
-                {% if search %}
-                    {{ users|length }} resultado{{ users|length|pluralize }} para "{{ search }}"
+                {% if is_paginated %}
+                    {% if search %}
+                        {{ page_obj.paginator.count }} resultado{{ page_obj.paginator.count|pluralize }} para "{{ search }}"
+                    {% else %}
+                        {{ page_obj.paginator.count }} usuario{{ page_obj.paginator.count|pluralize }}
+                    {% endif %}
                 {% else %}
-                    {{ users|length }} usuario{{ users|length|pluralize }}
+                    {% if search %}
+                        {{ users|length }} resultado{{ users|length|pluralize }} para "{{ search }}"
+                    {% else %}
+                        {{ users|length }} usuario{{ users|length|pluralize }}
+                    {% endif %}
                 {% endif %}
             </span>
         </div>
@@ -124,10 +132,12 @@
                             <td style="text-align: left; padding-left: 1.5rem;">
                                 <div class="user-info">
                                     <div class="user-avatar">
-                                        {{ user_item.first_name|first|upper }}{{ user_item.last_name|first|upper }}
+                                        {{ user_item.get_full_name|first|upper }}
                                     </div>
                                     <div class="user-details">
-                                        <div class="user-name">{{ user_item.first_name }} {{ user_item.last_name }}</div>
+                                        <div class="user-name" title="{{ user_item.get_full_name|default:user_item.email }}">
+                                            {{ user_item.get_full_name|default:user_item.email }}
+                                        </div>
                                     </div>
                                 </div>
                             </td>
@@ -193,10 +203,12 @@
                 <div class="mobile-user-card">
                     <div class="mobile-user-header">
                         <div class="user-avatar">
-                            {{ user_item.first_name|first|upper }}{{ user_item.last_name|first|upper }}
+                            {{ user_item.get_full_name|first|upper }}
                         </div>
                         <div class="user-details">
-                            <div class="user-name">{{ user_item.first_name }} {{ user_item.last_name }}</div>
+                            <div class="user-name" title="{{ user_item.get_full_name|default:user_item.email }}">
+                                {{ user_item.get_full_name|default:user_item.email }}
+                            </div>
                             <div class="user-username">{{ user_item.email }}</div>
                         </div>
                     </div>
@@ -256,41 +268,7 @@
                 {% endfor %}
             </div>
 
-            <!-- Paginación mejorada -->
-            {% if is_paginated %}
-                <div class="pagination-container">
-                    <div class="pagination-info">
-                        <span>Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} usuarios</span>
-                    </div>
-                    <div class="pagination">
-                        {% if page_obj.has_previous %}
-                            <a href="?{% if search %}search={{ search }}&{% endif %}page=1" 
-                               class="pagination-btn">
-                                <i class="fas fa-angle-double-left"></i>
-                            </a>
-                            <a href="?{% if search %}search={{ search }}&{% endif %}page={{ page_obj.previous_page_number }}" 
-                               class="pagination-btn">
-                                <i class="fas fa-chevron-left"></i>
-                                Anterior
-                            </a>
-                        {% endif %}
-                        
-                        <span class="pagination-current">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-                        
-                        {% if page_obj.has_next %}
-                            <a href="?{% if search %}search={{ search }}&{% endif %}page={{ page_obj.next_page_number }}" 
-                               class="pagination-btn">
-                                Siguiente
-                                <i class="fas fa-chevron-right"></i>
-                            </a>
-                            <a href="?{% if search %}search={{ search }}&{% endif %}page={{ page_obj.paginator.num_pages }}" 
-                               class="pagination-btn">
-                                <i class="fas fa-angle-double-right"></i>
-                            </a>
-                        {% endif %}
-                    </div>
-                </div>
-            {% endif %}
+            {% include 'partials/pagination.html' with page_obj=page_obj page_param='page' extra_params=extra_params item_label='usuarios' %}
             
         {% else %}
             <!-- Estado vacío mejorado -->

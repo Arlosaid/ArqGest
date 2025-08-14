@@ -6,22 +6,24 @@ from django.core.exceptions import PermissionDenied
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.http import JsonResponse
+from django.db.utils import IntegrityError
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import logging
 from django.conf import settings
 
 from .forms import SimpleUserCreateForm, SimpleUserEditForm
+from core.mixins import PageSizeMixin
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
-class UserListView(LoginRequiredMixin, ListView):
+class UserListView(LoginRequiredMixin, PageSizeMixin, ListView):
     """Vista para listar usuarios - Solo para org_admin"""
     model = User
     template_name = 'users/user_list.html'
     context_object_name = 'users'
-    paginate_by = 15
+    paginate_by = 6
     
     def get_queryset(self):
         user = self.request.user
@@ -78,6 +80,14 @@ class UserListView(LoginRequiredMixin, ListView):
         # Pasar búsqueda al contexto
         context['search'] = self.request.GET.get('search', '')
         
+        # Construir extra_params para el partial de paginación (preserva filtros)
+        params = self.request.GET.copy()
+        params.pop('page', None)
+        extra_params = params.urlencode()
+        if extra_params:
+            extra_params = f"{extra_params}&"
+        context['extra_params'] = extra_params
+        
         return context
 
 class SimpleUserCreateView(LoginRequiredMixin, View):
@@ -133,6 +143,9 @@ class SimpleUserCreateView(LoginRequiredMixin, View):
                 
                 return redirect('users:user_list')
                 
+            except IntegrityError:
+                # Posible condición de carrera con email duplicado u otra unicidad
+                form.add_error('email', 'Este correo ya está registrado.')
             except Exception as e:
                 # Log detallado del error para desarrolladores
                 logger.error(f"Error al crear usuario: {str(e)}", exc_info=True)
