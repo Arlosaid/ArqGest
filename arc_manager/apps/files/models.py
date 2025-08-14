@@ -34,10 +34,20 @@ class ProjectFile(models.Model):
     )
     uploaded_at = models.DateTimeField(_("Upload Date"), auto_now_add=True)
 
+    # Metadatos persistentes para consultas y métricas
+    size_bytes = models.BigIntegerField(default=0, db_index=True)
+    ext_upper = models.CharField(max_length=16, blank=True, db_index=True)
+    content_type = models.CharField(max_length=128, blank=True)
+    checksum_sha256 = models.CharField(max_length=64, blank=True, db_index=True)
+
     class Meta:
         verbose_name = _("Project File")
         verbose_name_plural = _("Project Files")
         ordering = ['-uploaded_at']
+        indexes = [
+            models.Index(fields=['uploaded_at']),
+            models.Index(fields=['ext_upper', 'size_bytes']),
+        ]
 
     def __str__(self):
         return self.file.name
@@ -60,8 +70,24 @@ class ProjectFile(models.Model):
     @property
     def extension(self) -> str:
         """Extensión del archivo, en mayúsculas, sin el punto (ej. PDF)."""
+        if getattr(self, 'ext_upper', ''):
+            return self.ext_upper
         try:
             _, ext = os.path.splitext(self.file.name)
             return ext.replace('.', '').upper()
         except Exception:
             return ""
+
+    def save(self, *args, **kwargs):
+        # Completar metadatos si están disponibles
+        try:
+            if self.file and hasattr(self.file, 'size'):
+                self.size_bytes = int(getattr(self.file, 'size', 0) or 0)
+        except Exception:
+            pass
+        try:
+            name = (self.file.name if self.file else '')
+            self.ext_upper = os.path.splitext(name)[1].replace('.', '').upper() if name else ''
+        except Exception:
+            pass
+        super().save(*args, **kwargs)

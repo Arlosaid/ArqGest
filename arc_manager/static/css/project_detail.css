@@ -1,0 +1,6 @@
+.stat-chip {background:#f8f9fa;border:1px solid #e9ecef;border-radius:10px;padding:.5rem .75rem;display:flex;justify-content:space-between;align-items:center}
+.stat-chip .label{color:#6c757d;font-size:.8rem;font-weight:600}
+.stat-chip .value{font-weight:700}
+.compact-list .list-group-item{padding:.5rem .75rem}
+.compact-list .list-group-item .fw-semibold{font-weight:600}
+

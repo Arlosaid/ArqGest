@@ -92,23 +92,5 @@
 
 {% block extra_js %}
 {{ block.super }}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Display a confirmation message when notes are saved via HTMX
-    document.body.addEventListener('htmx:afterRequest', function(evt) {
-        if (evt.target.id === 'notes-form' && evt.detail.successful) {
-            const statusEl = document.getElementById('notes-save-status');
-            statusEl.textContent = '{% trans "Notas guardadas!" %}';
-            setTimeout(() => { statusEl.textContent = ''; }, 3000);
-        }
-    });
-
-    // Reset the file input after a successful upload
-    document.body.addEventListener('htmx:afterOnLoad', function(evt) {
-        if (evt.target.id === 'file-upload-form') {
-            evt.target.reset();
-        }
-    });
-});
-</script>
+<script src="{% static 'js/phase_detail.js' %}?v=1.0"></script>
 {% endblock %}

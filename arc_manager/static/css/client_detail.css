@@ -1,0 +1,10 @@
+/* Estilos específicos para el detalle del cliente */
+.phone-link { color: var(--arc-color-primary); text-decoration: none; font-weight: 600; padding: 0.5rem 0.75rem; border-radius: 6px; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 0.5rem; }
+.phone-link:hover { background: rgba(66, 133, 244, 0.08); color: var(--arc-color-primary-hover); text-decoration: none; }
+.project-name { font-weight: 600; color: var(--arc-text-primary); font-size: 0.875rem; }
+.info-row { display: flex; align-items: flex-start; padding: 1.5rem 0; border-bottom: 1px solid rgba(0, 0, 0, 0.05); }
+.info-row:last-child { border-bottom: none; }
+.info-label { font-weight: 600; color: #64748b; min-width: 140px; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; }
+.info-label i { color: var(--arc-color-primary); width: 16px; }
+.info-value { flex: 1; color: #1e293b; font-weight: 500; font-size: 0.9rem; }
+

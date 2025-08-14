@@ -85,6 +85,14 @@ body.modal-open {
     height: 100vh;
 }
 
+/* Backdrop translúcido con efecto de desenfoque para todos los modales */
+.modal-backdrop {
+    background-color: rgba(255, 255, 255, 0.18) !important;
+    backdrop-filter: blur(8px) saturate(120%);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);
+}
+.modal-backdrop.show { opacity: 1 !important; }
+
 /* ===== LAYOUT PRINCIPAL ===== */
 .main-content {
     margin-left: var(--side-layout-width);

@@ -9,23 +9,32 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-^nqywk9lip*o%!y_jo3w)--_+yo5c&m-q^sw3dk*8(_k@%o4j4')
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-# Configuración mejorada para AWS Beanstalk
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,testserver').split(',')
-# Simplificar para deployment
-if '*' in ALLOWED_HOSTS or os.environ.get('AWS_EXECUTION_ENV'):
-    ALLOWED_HOSTS = ['*']
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.environ.get('SECRET_KEY', '')
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = 'dev-insecure-key'
+    else:
+        raise RuntimeError('SECRET_KEY must be set via environment when DEBUG=False')
 
-# Para testing, siempre permitir todos los hosts
-if os.environ.get('TESTING') or 'test' in sys.argv:
-    ALLOWED_HOSTS = ['*']
+# Configuración mejorada de ALLOWED_HOSTS
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
-# En producción, asegurar que DEBUG esté en False
+TESTING = bool(os.environ.get('TESTING')) or ('test' in sys.argv)
+
+# En desarrollo o testing se permite configuración laxa
+if DEBUG or TESTING:
+    if '*' in ALLOWED_HOSTS:
+        ALLOWED_HOSTS = ['*']
+else:
+    # En producción, prohibir comodín
+    if '*' in ALLOWED_HOSTS:
+        raise RuntimeError('ALLOWED_HOSTS cannot contain "*" when DEBUG=False')
+
+# En producción, asegurar que DEBUG esté en False si variable de entorno lo indica
 if os.environ.get('AWS_EXECUTION_ENV') or os.environ.get('PRODUCTION'):
     DEBUG = False
 
@@ -60,6 +69,10 @@ INSTALLED_APPS = [
     'apps.files',
 ]
 
+# Activar django-storages solo si está habilitado por entorno
+if os.environ.get('ENABLE_STORAGES', 'false').lower() == 'true':
+    INSTALLED_APPS.append('storages')
+
 AUTH_USER_MODEL = 'accounts.User'
 
 MIDDLEWARE = [
@@ -76,6 +89,7 @@ MIDDLEWARE = [
     'apps.accounts.middleware.SuperuserRestrictMiddleware',
     'apps.orgs.middleware.OrganizationContextMiddleware',
     'apps.accounts.middleware.ErrorHandlingMiddleware',
+    'core.mixins.PerformanceMiddleware',
 ]
 
 # Insertar Debug Toolbar Middleware si DEBUG está activado
@@ -170,6 +184,9 @@ DATABASES = {
     'default': dj_database_url.parse(DATABASE_URL)
 }
 
+# Conexiones persistentes a DB
+DATABASES['default']['CONN_MAX_AGE'] = int(os.environ.get('CONN_MAX_AGE', '120'))
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -204,10 +221,22 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Storage backend opcional para R2/S3 (activado por variables de entorno)
+if os.environ.get('DEFAULT_FILE_STORAGE'):
+    DEFAULT_FILE_STORAGE = os.environ['DEFAULT_FILE_STORAGE']
+    AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL')
+    AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+    AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID') or os.environ.get('R2_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY') or os.environ.get('R2_SECRET_ACCESS_KEY')
+    AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'auto')
+    AWS_S3_ADDRESSING_STYLE = os.environ.get('AWS_S3_ADDRESSING_STYLE', 'virtual')
+    AWS_S3_SIGNATURE_VERSION = os.environ.get('AWS_S3_SIGNATURE_VERSION', 's3v4')
+    AWS_DEFAULT_ACL = None
+
 # Configuración de sesiones con Redis
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'sessions'
-SESSION_SAVE_EVERY_REQUEST = True
+SESSION_SAVE_EVERY_REQUEST = False
 
 # Configuración de la cookie de sesión
 SESSION_COOKIE_NAME = 'sessionid'
@@ -437,3 +466,15 @@ def health_check(request):
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
+
+# Endurecimiento general cuando no hay DEBUG
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'

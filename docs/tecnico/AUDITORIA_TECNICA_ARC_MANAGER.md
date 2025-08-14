@@ -1,22 +1,22 @@
 ## Auditoría Técnica y de Producto — Arc Manager
 
 ## 1. Estado General del Proyecto
-- **Clasificación**: Beta (MVP avanzado). Ya hay separación por apps (`accounts`, `orgs`, `projects`, `plans`, `files`, `users`), middleware propio, servicios y plantillas. Faltan endurecimientos de producción y algunas optimizaciones.
-- **Calidad del código**: En general clara y modular. Buen uso de `select_related/prefetch_related`, servicios en `plans`, y validaciones en modelos. Áreas a mejorar: duplicación de lógica de conteos en vistas, manejo de errores JSON filtrando detalles, y algún acceso a atributos inexistentes.
-- **Dependencias críticas/riesgosas**:
-  - `SECRET_KEY` con default inseguro en `core/settings.py` y `ALLOWED_HOSTS='*'` en escenarios comunes.
-  - `SESSION_SAVE_EVERY_REQUEST=True` (impacto de rendimiento).
-  - `redis==3.5.3` (antigua) y logging a archivos dentro de contenedor (menos ideal en orquestadores).
-  - `crispy-bootstrap5` sin versión fijada.
+- **Clasificación**: Beta (MVP avanzado). Ya hay separación por apps (`accounts`, `orgs`, `projects`, `plans`, `files`, `users`), middleware propio, servicios y plantillas.
+- **Calidad del código**: En general clara y modular. Buen uso de `select_related/prefetch_related`, servicios en `plans`, y validaciones en modelos. Áreas a mejorar: evitar lógica duplicada en vistas antiguas y reducir trabajo innecesario en middlewares.
+- **Dependencias críticas/riesgosas (estado actual)**:
+  - `SECRET_KEY` y `ALLOWED_HOSTS` validados por entorno en producción.
+  - `SESSION_SAVE_EVERY_REQUEST=False` aplicado.
+  - Cliente Redis actualizado y `crispy-bootstrap5` con versión fija.
+  - Logging a archivos en contenedor: aceptable para MVP; recomendable migrar a stdout/stderr como siguiente paso.
 
 ## 2. Rendimiento y Optimización
-- **Cuellos de botella detectados**:
-  - Conteos repetidos en `ProjectDetailView.get_context_data` y en Kanban (`projects/views.py`), generando múltiples consultas por métrica/estado.
-  - `LoginRequiredMiddleware` hace `select_related('organization')` en cada request (puede ser costoso si no siempre se usa).
-  - `SESSION_SAVE_EVERY_REQUEST=True` aumenta escrituras de sesión.
+- **Cuellos de botella (estado actual)**:
+  - Métricas en `ProjectDetailView` y Kanban optimizadas con agregaciones únicas y agrupación en memoria.
+  - `LoginRequiredMiddleware` podría costar en todos los requests: monitorear y ajustar si se detecta impacto.
+  - Conexiones persistentes (`CONN_MAX_AGE`) habilitadas por entorno.
 - **Revisión de consultas y ciclos**:
-  - Kanban calcula `tasks_by_status` filtrando por estado en bucle; puede resolverse con una única agregación o agrupación en memoria tras una sola consulta.
-  - Falta `CONN_MAX_AGE` para conexiones persistentes a DB.
+  - Kanban ya agrupa con una sola consulta y usa `select_related/prefetch_related`.
+  - Conexiones persistentes activas.
 - **Optimización propuesta (concreta)**:
   - Agregar agregaciones en una sola consulta:
     ```python
@@ -31,15 +31,15 @@
     )
     ```
   - En Kanban, traer `all_tasks.select_related('phase','assigned_to')` una vez y agrupar en Python o con agregaciones.
-  - Cambiar `SESSION_SAVE_EVERY_REQUEST = False` salvo requerimiento explícito.
-  - `DATABASES['default']['CONN_MAX_AGE'] = int(os.environ.get('CONN_MAX_AGE','120'))`.
+  - Mantener `SESSION_SAVE_EVERY_REQUEST = False` salvo requerimiento explícito.
+  - Mantener `DATABASES['default']['CONN_MAX_AGE'] = int(os.environ.get('CONN_MAX_AGE','120'))`.
 
 ## 3. Seguridad
-- **Vulnerabilidades/olvidos**:
-  - `SECRET_KEY` por defecto y `ALLOWED_HOSTS=['*']` en condiciones relajadas.
-  - `SESSION_COOKIE_SECURE=False` salvo AWS; debería activarse siempre que `DEBUG=False`.
-  - Respuestas JSON con `str(e)` en `update_task_status`/`move_task` (filtran detalles internos).
-  - En creación de usuario se loggea contraseña temporal en warning (riesgo de exposición en logs).
+- **Vulnerabilidades/olvidos (estado actual)**:
+  - Defaults inseguros mitigados: `SECRET_KEY` y `ALLOWED_HOSTS` obligatorios por entorno con `DEBUG=False`.
+  - Cookies seguras/HSTS y redirección SSL activas cuando `DEBUG=False`.
+  - Respuestas JSON saneadas en `update_task_status`/`move_task`.
+  - Revisar onboarding para eliminar cualquier log de credenciales si persiste.
 - **Mejoras recomendadas**:
   - Endurecer settings si `DEBUG=False` (SSL redirect, HSTS, cookies seguras, `X_FRAME_OPTIONS`, `REFERRER_POLICY`, `Content-Type nosniff`).
   - Prohibir defaults de `SECRET_KEY` y `ALLOWED_HOSTS`; obligar a variables de entorno.
@@ -85,32 +85,32 @@
   - Endurecer settings de prod, sanear respuestas JSON, eliminar logging de credenciales, optimizar consultas, fijar versiones y modernizar cliente Redis, introducir Celery/RQ.
 
 ## 8. Informe Final
-- **Tabla de prioridades y acciones**
+- **Tabla de prioridades y acciones (ajustada al estado actual)**
 
 | Prioridad | Hallazgo | Acción recomendada |
 | --- | --- | --- |
-| Alta | Defaults inseguros (`SECRET_KEY`, `ALLOWED_HOSTS`, cookies) | Forzar variables de entorno; activar SSL/HSTS/cookies seguras cuando `DEBUG=False` |
-| Alta | Errores JSON exponen detalles | Loggear con `logger.error(..., exc_info=True)` y responder mensaje genérico |
-| Alta | Queries redundantes en métricas/Kanban | Agregaciones en una sola consulta; agrupar en memoria tras `select_related/prefetch_related` |
-| Alta | `SESSION_SAVE_EVERY_REQUEST=True` | Cambiar a `False` salvo necesidad |
-| Media | Falta `CONN_MAX_AGE` | `DATABASES['default']['CONN_MAX_AGE']=120-300` |
-| Media | Logging de contraseñas temporales | Eliminar logs de credenciales; usar set-password por token |
-| Media | `crispy-bootstrap5` sin versión | Fijar versión (p. ej. `crispy-bootstrap5==2024.2`) |
-| Media | Redis cliente antiguo/pool | Actualizar `redis` y configurar pool/compresión opcional |
-| Baja | Logging a archivos en contenedor | Migrar a stdout/stderr y agregación centralizada |
+| Alta | Defaults inseguros (`SECRET_KEY`, `ALLOWED_HOSTS`, cookies) | Ya aplicado; mantener validaciones por entorno |
+| Alta | Errores JSON exponen detalles | Ya saneado en vistas críticas; mantener patrón |
+| Alta | Queries redundantes en métricas/Kanban | Ya optimizado con agregaciones y `select_related/prefetch_related` |
+| Alta | Persistencia de archivos en servidor | Activar R2/S3 con `django-storages` para producción del MVP |
+| Media | CONN_MAX_AGE | Ya aplicado; ajustar por entorno (120–300) |
+| Media | Logging de contraseñas temporales | Verificar y eliminar si existe; migrar a set-password por token |
+| Baja | Logging a archivos en contenedor | Planear migración a stdout/stderr en siguientes pasos |
 
-- **Roadmap (3 fases)**
-  - Fase 1: Seguridad y rendimiento (2 semanas)
-    - Endurecer settings de producción y saneo de errores JSON.
-    - `SESSION_SAVE_EVERY_REQUEST=False`, `CONN_MAX_AGE`, optimizaciones de consultas en vistas clave.
-    - Fijar versiones críticas (`crispy-bootstrap5`), actualizar cliente `redis` y configuración básica de cache.
-  - Fase 2: UX y escalabilidad (3-4 semanas)
-    - Dashboard ejecutivo, filtros y notificaciones in-app/email.
-    - Migrar logging a stdout/stderr; preparar stack de observabilidad.
-    - Introducir Celery/RQ para emails/reportes; tareas programadas de mantenimiento (suscripciones).
-  - Fase 3: Diferenciales de producto (4-6 semanas)
-    - Cronogramas/Gantt, reportes automáticos y control de costos.
-    - Integración inicial con BIM/Revit (import/export), webhooks y API pública básica.
+**Roadmap enfocado al MVP**
+
+- Fase 1 (crítica para el MVP) — Seguridad, rendimiento y archivos
+  - Endurecer settings de producción y saneo de errores JSON. (aplicado)
+  - `SESSION_SAVE_EVERY_REQUEST=False`, `CONN_MAX_AGE`, optimizaciones en vistas clave. (aplicado)
+  - Versionado de dependencias críticas (crispy, redis) actualizado. (aplicado)
+  - Soporte de almacenamiento externo (R2/S3) listo con endpoints de URLs firmadas; activar en producción mediante variables de entorno. (pendiente de configuración)
+  - Ver documento consolidado: `docs/tecnico/MEJORAS_BACKEND_FASE_1.md`.
+
+- Siguientes pasos (no críticos para salir el MVP)
+  - UX y escalabilidad: dashboard ejecutivo, filtros avanzados, notificaciones in-app/email.
+  - Observabilidad: migrar logging a stdout/stderr y preparar stack de monitoreo.
+  - Procesamiento asíncrono: Celery/RQ para emails/reportes; tareas programadas de mantenimiento.
+  - Diferenciales: Gantt/reportes de costos; integración BIM/Revit (import/export), webhooks y API pública básica.
 
 ---
 

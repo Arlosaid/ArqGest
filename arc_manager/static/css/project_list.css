@@ -1,0 +1,54 @@
+/* Estilos elegantes y profesionales para la lista de proyectos (migrados) */
+.projects-hero-section { background: linear-gradient(135deg, var(--arc-color-primary) 0%, var(--arc-color-info) 100%); border-radius: var(--arc-border-radius); padding: 2rem 2rem; margin-bottom: 2rem; color: white; text-align: center; position: relative; overflow: hidden; box-shadow: var(--arc-shadow-lg); }
+.projects-hero-section::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url('/static/images/auth/planos.jpg') center/cover; opacity: 0.15; filter: brightness(0.8); }
+.projects-hero-content { position: relative; z-index: 1; }
+.projects-hero-title { font-size: 1.75rem; font-weight: 700; margin: 0 0 0.75rem 0; text-shadow: 0 2px 4px rgba(0,0,0,0.3); letter-spacing: -0.02em; }
+.projects-hero-subtitle { font-size: 1rem; margin: 0 0 1.5rem 0; opacity: 0.9; font-weight: 300; line-height: 1.5; }
+.projects-hero-stats { display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; }
+.hero-stat { text-align: center; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); border-radius: var(--arc-border-radius); padding: 1rem 1.25rem; min-width: 120px; border: 1px solid rgba(255, 255, 255, 0.2); }
+.hero-stat-number { font-size: 1.75rem; font-weight: 700; display: block; margin-bottom: 0.25rem; color: white; }
+.hero-stat-label { font-size: 0.75rem; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+.projects-filters-modern { background: transparent; border-radius: 0; padding: 0; margin-bottom: 2rem; box-shadow: none; border: none; }
+.filters-header-modern { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.filters-title-modern { font-size: 1rem; font-weight: 400; color: #6c757d; margin: 0; display: flex; align-items: center; gap: 0.75rem; }
+.search-box-modern { position: relative; max-width: 400px; }
+.search-input-modern { width: 100%; padding: 0.75rem 0.75rem 0.75rem 2.5rem; border: 1px solid #dee2e6; border-radius: 8px; font-size: 0.875rem; transition: all 0.2s ease; background: #ffffff; color: #495057; }
+.search-input-modern:focus { outline: none; border-color: #007bff; background: #ffffff; box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1); }
+.search-box-modern::before { content: ''; position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; background: #6c757d; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'/%3E%3C/svg%3E") center/contain; mask-repeat: no-repeat; opacity: 0.6; }
+.projects-grid-modern { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 2rem; margin-bottom: 2rem; }
+.project-card-modern { background: #FFFFFF; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; border: none; }
+.project-card-modern:hover { transform: none; box-shadow: none; }
+.project-card-image { height: 200px; background-size: cover; background-position: center; background-repeat: no-repeat; position: relative; display: flex; align-items: flex-start; padding: 16px; transition: none; border-radius: 0; }
+.project-card-image::before { display: none; }
+.project-status-modern { padding: 8px 16px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; position: relative; z-index: 1; color: white; border: none; background: rgba(13, 71, 161, 0.8); backdrop-filter: blur(10px); }
+.project-status-modern.planificación, .project-status-modern.diseño, .project-status-modern.construcción, .project-status-modern.finalización { background: rgba(108, 117, 125, 0.8); }
+.project-status-modern.en-progreso { background: rgba(13, 71, 161, 0.8); }
+.project-code { display: none; }
+.project-card-body-modern { padding: 20px; }
+.project-card-title-modern { font-size: 1.125rem; font-weight: 400; color: #2c3e50; margin: 0 0 16px 0; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.project-card-info-modern { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+.info-row { display: flex; align-items: center; gap: 12px; padding: 0; background: transparent; border: none; transition: none; }
+.info-row:hover { background: transparent; border: none; transform: none; }
+.info-icon { width: 16px; height: 16px; color: #6c757d; flex-shrink: 0; }
+.info-content { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.info-label-modern { font-size: 0.75rem; color: #6c757d; font-weight: 500; text-transform: none; letter-spacing: normal; }
+.info-value-modern { font-size: 0.875rem; color: #6c757d; font-weight: 400; }
+.project-card-progress-modern { margin-bottom: 20px; background: transparent; padding: 0; border: none; }
+.progress-header-modern { display: none; }
+.progress-bar-modern { width: 100%; height: 4px; background: #e9ecef; border-radius: 2px; overflow: hidden; position: relative; }
+.progress-fill-modern { height: 100%; background: #0d47a1; border-radius: 2px; transition: width 0.8s ease; position: relative; }
+.project-card-footer-modern { padding: 20px; background: transparent; border-top: 1px solid #f8f9fa; }
+.project-actions-modern { display: flex; gap: 12px; }
+.btn-view-modern { flex: 2; background: #0d47a1; color: white; padding: 10px 16px; border-radius: 8px; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s ease; border: none; cursor: pointer; font-size: 0.875rem; box-shadow: none; }
+.btn-view-modern:hover { background: #0a3d8f; color: white; text-decoration: none; transform: none; box-shadow: none; }
+.btn-edit-modern { flex: 1; background: #f8f9fa; color: #6c757d; padding: 10px 16px; border-radius: 8px; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s ease; border: none; cursor: pointer; font-size: 0.875rem; box-shadow: none; }
+.btn-edit-modern:hover { background: #e9ecef; color: #495057; text-decoration: none; transform: none; box-shadow: none; }
+.btn-delete-modern { flex: 1; background: #ff6b9d; color: white; padding: 10px 16px; border-radius: 8px; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s ease; border: none; cursor: pointer; font-size: 0.875rem; box-shadow: none; }
+.btn-delete-modern:hover { background: #ff5a8c; color: white; text-decoration: none; transform: none; box-shadow: none; }
+.empty-projects-state { grid-column: 1 / -1; text-align: center; padding: 3rem 2rem; background: var(--arc-bg-primary); border-radius: var(--arc-border-radius); border: 2px dashed var(--arc-border-color); color: var(--arc-text-muted); }
+.empty-projects-state i { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; color: var(--arc-color-primary); }
+.empty-projects-state h3 { font-size: 1.25rem; margin-bottom: 0.75rem; color: var(--arc-text-secondary); font-weight: 600; }
+.empty-projects-state p { font-size: 1rem; margin: 0 0 1.5rem 0; color: var(--arc-text-muted); line-height: 1.5; }
+.empty-projects-state .btn-primary-modern { display: inline-flex; padding: 0.875rem 1.5rem; font-size: 0.875rem; }
+@media (max-width: 768px) { .projects-hero-section { padding: 1.5rem 1rem; } .projects-hero-title { font-size: 1.5rem; } .projects-hero-stats { gap: 1rem; } .projects-grid-modern { grid-template-columns: 1fr; gap: 1.5rem; } .project-actions-modern { flex-direction: column; } .btn-view-modern, .btn-edit-modern, .btn-delete-modern { flex: none; } }
+
