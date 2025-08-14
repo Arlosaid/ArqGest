@@ -12,31 +12,45 @@
 
 {% block extra_css %}
 <link href="{% static 'css/projects.css' %}?v=1.2" rel="stylesheet">
+<style>
+/* Ocultar checkboxes internos de borrado del formset */
+input[type="checkbox"][name$="-DELETE"] { display: none !important; }
+.phase-form { background: #fff; }
+.phase-form .form-control { min-width: 220px; }
+.drag-handle { color: #6c757d; }
+</style>
 {% endblock %}
 
 {% block content %}
 <!-- Usar el container estándar de base.css -->
 <div class="page-container">
     <!-- Header Section (viene de base.css) -->
-    <div class="header-section">
-        <div class="header-content">
-            <div class="header-title">
-                <div class="header-icon">
-                    <i class="fas fa-layer-group"></i>
+            <div class="header-section">
+                <div class="header-content">
+                    <div class="header-title">
+                        <div class="header-icon">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <h1>
+                            {% if form.instance.pk %}
+                                {% trans "Editar Plantilla de Fase" %}
+                            {% else %}
+                                {% trans "Crear Plantilla de Fase" %}
+                            {% endif %}
+                        </h1>
+                    </div>
+                    <div class="header-actions">
+                        {% if form.instance.pk %}
+                        <a href="{% url 'projects:phasetemplate-delete' form.instance.pk %}" class="btn btn-danger me-2">
+                            <i class="fas fa-trash-alt"></i> {% trans "Eliminar Plantilla" %}
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'projects:phasetemplate-list' %}" class="btn-primary-prominent">
+                            <i class="fas fa-arrow-left"></i> {% trans "Volver a Plantillas" %}
+                        </a>
+                    </div>
                 </div>
-                <h1>
-                    {% if form.instance.pk %}
-                        {% trans "Editar Plantilla de Fase" %}
-                    {% else %}
-                        {% trans "Crear Plantilla de Fase" %}
-                    {% endif %}
-                </h1>
             </div>
-            <a href="{% url 'projects:phasetemplate-list' %}" class="btn-primary-prominent">
-                <i class="fas fa-arrow-left"></i> {% trans "Volver a Plantillas" %}
-            </a>
-        </div>
-    </div>
 
     <div class="card shadow">
         <div class="card-header">
@@ -49,7 +63,7 @@
             </h3>
         </div>
         <div class="card-body">
-            <form method="post" id="phase-template-form">
+            <form method="post" id="phase-template-form" novalidate>
                 {% csrf_token %}
                 
                 {{ form.as_p }}
@@ -57,12 +71,15 @@
                 <hr>
 
                 <h4>{% trans "Fases" %}</h4>
+                {% if phase_formset.non_form_errors %}
+                    <div class="alert alert-danger">{{ phase_formset.non_form_errors }}</div>
+                {% endif %}
                 
                 <div id="phase-formset">
                     {{ phase_formset.management_form }}
                     <div id="phase-forms-container">
                         {% for form in phase_formset %}
-                            <div class="phase-form mb-2 p-2 border rounded" data-form-index="{{ forloop.counter0 }}">
+                            <div class="phase-form mb-2 p-2 border rounded d-flex align-items-center" data-form-index="{{ forloop.counter0 }}">
                                 <div class="row align-items-center">
                                     <div class="col-auto">
                                         <i class="fas fa-bars drag-handle" style="cursor: move;"></i>
@@ -74,10 +91,10 @@
                                     </div>
                                     <div class="col-auto">
                                         {% if phase_formset.can_delete %}
-                                            <div class="form-check">
-                                                {{ form.DELETE }}
-                                                <label class="form-check-label" for="{{ form.DELETE.id_for_label }}">{% trans "Eliminar" %}</label>
-                                            </div>
+                                            <button type="button" class="btn btn-outline-danger btn-sm delete-phase-btn" title="{% trans 'Eliminar fase' %}">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                            {{ form.DELETE }}
                                         {% endif %}
                                     </div>
                                 </div>
@@ -87,7 +104,7 @@
                 </div>
 
                 <div id="empty-form" class="d-none">
-                    <div class="phase-form mb-2 p-2 border rounded" data-form-index="__prefix__">
+                    <div class="phase-form mb-2 p-2 border rounded d-flex align-items-center" data-form-index="__prefix__">
                         <div class="row align-items-center">
                              <div class="col-auto">
                                 <i class="fas fa-bars drag-handle" style="cursor: move;"></i>
@@ -98,20 +115,26 @@
                             </div>
                             <div class="col-auto">
                                 {% if phase_formset.can_delete %}
-                                    <div class="form-check">
-                                        {{ phase_formset.empty_form.DELETE }}
-                                        <label class="form-check-label" for="{{ phase_formset.empty_form.DELETE.id_for_label }}">{% trans "Eliminar" %}</label>
-                                    </div>
+                                    <button type="button" class="btn btn-outline-danger btn-sm delete-phase-btn" title="{% trans 'Eliminar fase' %}">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                    {{ phase_formset.empty_form.DELETE }}
                                 {% endif %}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <button type="button" id="add-form" class="btn btn-outline-primary btn-sm mt-2">{% trans "Añadir Fase" %}</button>
+                <button type="button" id="add-form" class="btn btn-outline-primary btn-sm mt-2">
+                    <i class="fas fa-plus"></i> {% trans "Añadir Fase" %}
+                </button>
                 <hr>
-                <button type="submit" class="btn btn-primary">{% trans "Guardar Plantilla" %}</button>
-                <a href="{% url 'projects:phasetemplate-list' %}" class="btn btn-secondary">{% trans "Cancelar" %}</a>
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-save"></i> {% trans "Guardar Plantilla" %}
+                </button>
+                <a href="{% url 'projects:phasetemplate-list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> {% trans "Cancelar" %}
+                </a>
             </form>
         </div>
     </div>
@@ -128,6 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const addButton = document.getElementById('add-form');
     const emptyForm = document.getElementById('empty-form').innerHTML;
     const totalForms = document.getElementById('id_phases-TOTAL_FORMS');
+    const formEl = document.getElementById('phase-template-form');
     
     let formNum = {{ phase_formset.total_form_count }};
 
@@ -142,17 +166,21 @@ document.addEventListener('DOMContentLoaded', function() {
         totalForms.value = ++formNum;
     });
 
-    formsetContainer.addEventListener('change', function(e) {
-        if (e.target && e.target.matches('input[type="checkbox"][name$="-DELETE"]')) {
-            const form = e.target.closest('.phase-form');
-            if (e.target.checked) {
-                form.style.backgroundColor = '#f8d7da';
-                form.querySelector('input[name$="-name"]').required = false;
-            } else {
-                form.style.backgroundColor = '';
-                form.querySelector('input[name$="-name"]').required = true;
-            }
+    // Manejar botón de eliminar fase: marca DELETE y oculta el bloque
+    formsetContainer.addEventListener('click', function(e) {
+        const btn = e.target.closest('.delete-phase-btn');
+        if (!btn) return;
+        const wrapper = btn.closest('.phase-form');
+        const deleteInput = wrapper.querySelector('input[type="checkbox"][name$="-DELETE"]');
+        const nameInput = wrapper.querySelector('input[name$="-name"]');
+        if (deleteInput) {
+            deleteInput.checked = true;
         }
+        if (nameInput) {
+            nameInput.required = false;
+        }
+        wrapper.style.display = 'none';
+        updateOrder();
     });
 
     function updateOrder() {
@@ -165,16 +193,36 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    new Sortable(formsetContainer, {
-        handle: '.drag-handle',
-        animation: 150,
-        onEnd: function() {
-            updateOrder();
+    try {
+        if (window.Sortable && formsetContainer) {
+            new Sortable(formsetContainer, {
+                handle: '.drag-handle',
+                animation: 150,
+                onEnd: function() {
+                    updateOrder();
+                }
+            });
         }
-    });
+    } catch (e) {
+        console.warn('SortableJS no está disponible o falló la inicialización:', e);
+    }
 
     // Initial order for existing forms
     updateOrder();
+
+    // Antes de enviar, marcar como DELETE las fases vacías y actualizar orden
+    formEl.addEventListener('submit', function() {
+        const forms = formsetContainer.querySelectorAll('.phase-form');
+        forms.forEach((form) => {
+            const nameInput = form.querySelector('input[name$="-name"]');
+            const deleteInput = form.querySelector('input[type="checkbox"][name$="-DELETE"]');
+            if (nameInput && !nameInput.value.trim() && deleteInput) {
+                deleteInput.checked = true;
+                form.style.display = 'none';
+            }
+        });
+        updateOrder();
+    });
 });
 </script>
 {% endblock extra_js %}

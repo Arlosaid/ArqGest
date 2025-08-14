@@ -39,3 +39,19 @@ class PageSizeMixin:
 		return context
 
 
+# Middleware simple de performance (latencia de request)
+class PerformanceMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        import time, logging
+        logger = logging.getLogger('apps')
+        start = time.perf_counter()
+        response = self.get_response(request)
+        elapsed_ms = (time.perf_counter() - start) * 1000.0
+        if elapsed_ms > 2000:
+            logger.warning(f"Slow request {request.path} took {elapsed_ms:.1f}ms")
+        return response
+
+

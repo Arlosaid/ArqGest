@@ -12,6 +12,7 @@ class PhaseForm(forms.Form):
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Nombre de la fase')})
     )
     order = forms.IntegerField(
+        required=False,
         widget=forms.HiddenInput()
     )
 
@@ -42,7 +43,14 @@ class BasePhaseFormSet(forms.BaseFormSet):
                     raise forms.ValidationError(_("Los nombres de las fases deben ser únicos."))
                 names.append(name)
 
-PhaseFormSet = formset_factory(PhaseForm, formset=BasePhaseFormSet, can_delete=True, can_order=True, extra=1)
+# No forzar un formulario vacío por defecto y manejar el orden manualmente con el campo oculto 'order'
+PhaseFormSet = formset_factory(
+    PhaseForm,
+    formset=BasePhaseFormSet,
+    can_delete=True,
+    can_order=False,
+    extra=0
+)
 
 class ProjectForm(forms.ModelForm):
     """

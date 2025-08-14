@@ -20,58 +20,50 @@
                 </div>
                 <h1>{{ template.name }}</h1>
             </div>
-            <a href="{% url 'projects:phasetemplate-list' %}" class="btn-primary-prominent">
-                <i class="fas fa-arrow-left"></i> {% trans "Volver a Plantillas" %}
-            </a>
+            <div class="header-actions">
+                <a href="{% url 'projects:phasetemplate-update' template.pk %}" class="btn btn-primary me-2">
+                    <i class="fas fa-edit"></i> {% trans "Editar Plantilla" %}
+                </a>
+                <a href="{% url 'projects:phasetemplate-delete' template.pk %}" class="btn btn-danger me-2">
+                    <i class="fas fa-trash-alt"></i> {% trans "Eliminar" %}
+                </a>
+                <a href="{% url 'projects:phasetemplate-list' %}" class="btn-primary-prominent">
+                    <i class="fas fa-arrow-left"></i> {% trans "Volver a Plantillas" %}
+                </a>
+            </div>
         </div>
     </div>
 
     <p class="text-muted mb-4">{{ template.description }}</p>
 
     <div class="row">
-        <!-- List of Default Phases -->
         <div class="col-lg-8">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">{% trans "Fases Predeterminadas" %}</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">{% trans "Fases" %}</h6>
                 </div>
                 <div class="card-body">
                     <ul class="list-group">
-                        {% for phase in template.default_phases.all %}
+                        {% for phase in template.phases %}
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span><strong>{{ phase.order }}.</strong> {{ phase.name }}</span>
-                                <div>
-                                    <a href="{% url 'projects:defaultphase-update' phase.pk %}" class="btn btn-warning btn-sm">{% trans "Editar" %}</a>
-                                    <a href="{% url 'projects:defaultphase-delete' phase.pk %}" class="btn btn-danger btn-sm">{% trans "Eliminar" %}</a>
-                                </div>
+                                <span><strong>{{ phase.order|default:forloop.counter0 }}.</strong> {{ phase.name }}</span>
                             </li>
                         {% empty %}
-                            <li class="list-group-item">{% trans "Aún no se han añadido fases predeterminadas a esta plantilla." %}</li>
+                            <li class="list-group-item">{% trans "Aún no se han añadido fases a esta plantilla." %}</li>
                         {% endfor %}
                     </ul>
                 </div>
             </div>
         </div>
 
-        <!-- Add New Phase Form -->
         <div class="col-lg-4">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">{% trans "Añadir Nueva Fase" %}</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">{% trans "Gestionar Fases" %}</h6>
                 </div>
                 <div class="card-body">
-                    <form action="{% url 'projects:add-default-phase' template.pk %}" method="post">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label for="id_name" class="form-label">{% trans "Nombre de la Fase" %}</label>
-                            {{ form.name }}
-                        </div>
-                        <div class="mb-3">
-                            <label for="id_order" class="form-label">{% trans "Orden" %}</label>
-                            {{ form.order }}
-                        </div>
-                        <button type="submit" class="btn btn-primary">{% trans "Añadir Fase" %}</button>
-                    </form>
+                    <p class="text-muted">{% trans "Para añadir, eliminar o reordenar fases, usa el botón Editar en la plantilla." %}</p>
+                    <a href="{% url 'projects:phasetemplate-update' template.pk %}" class="btn btn-primary btn-sm">{% trans "Editar Plantilla" %}</a>
                 </div>
             </div>
         </div>

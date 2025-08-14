@@ -251,3 +251,471 @@ docker-compose exec web python manage.py migrate | cat
 Nota editorial: Código y nombres de modelos/campos se mantienen en inglés; los textos visibles al usuario final en español [[memory:5285752]].
 
 
+
+---
+
+# Prompt Técnico Avanzado - Análisis de Performance y Archivos
+
+## Contexto
+Necesito que analices mi proyecto ArcManager para implementar optimizaciones específicas para arquitectos mexicanos. Este es un análisis técnico complementario enfocado en performance, tipos de archivos pesados y costos operativos reales.
+
+## Arquitectura de archivos específica para arquitectos
+
+Debo soportar archivos típicos de estudios de arquitectura mexicanos:
+- **AutoCAD (.dwg, .dxf)**: 5-50MB por archivo
+- **Revit (.rvt)**: 100-500MB por archivo (MUY CRÍTICO)
+- **SketchUp (.skp)**: 10-100MB por archivo  
+- **PDFs de planos**: 5-20MB por archivo
+- **Imágenes técnicas (.jpg, .png, .tiff)**: 2-15MB por archivo
+- **Archivos comprimidos (.zip, .rar)**: Pueden contener múltiples planos
+
+**Pregunta clave**: ¿Mi actual sistema de archivos (`apps/files`) puede manejar eficientemente archivos de 100-500MB sin impactar performance o disparar costos de Railway?
+
+## Análisis de Performance Crítico
+
+### 1. **Consultas que podrían ser costosas**
+Analiza si estas consultas pueden causar problemas de RAM/CPU con mi esquema actual:
+
+```sql
+-- Suma de storage por organización (puede ser pesada)
+SELECT organization_id, SUM(size_bytes) FROM project_files 
+GROUP BY organization_id;
+
+-- Listado de archivos con metadata (N+1 potential)
+SELECT * FROM project_files pf 
+JOIN projects p ON pf.project_id = p.id 
+JOIN organizations o ON p.organization_id = o.id;
+
+-- Búsqueda de archivos por tipo/tamaño
+SELECT * FROM project_files 
+WHERE file_type IN ('.dwg', '.rvt') 
+ORDER BY size_bytes DESC;
+```
+
+### 2. **Upload de archivos grandes**
+¿Necesito implementar upload chunking para archivos de 200-500MB o Django + Railway + R2 lo manejan nativamente sin problemas?
+
+### 3. **Memory usage scenarios**
+Con 50 usuarios subiendo/descargando archivos de 100MB simultáneamente, ¿mi configuración actual de Railway Hobby (8GB RAM) es suficiente?
+
+## Admin Panel Operativo
+
+Necesito monitorear desde Django Admin:
+
+### Métricas críticas por organización:
+- Storage usado vs límite (3GB)
+- Archivos más pesados por org
+- Organizaciones cerca del límite de storage
+- Uploads fallidos (archivos muy grandes)
+- Proyectos activos vs límite (6 máximo)
+
+### Alertas operativas:
+- Orgs usando >80% de su storage
+- Archivos individuales >100MB
+- Queries de BD >2 segundos
+- RAM usage >6GB en Railway
+
+¿Puedes revisar mi actual estructura de admin y sugerir los AdminModels específicos que necesito?
+
+## Optimizaciones de Costos
+
+### Railway Resource Usage:
+Con archivos pesados, estas operaciones podrían disparar costos:
+- **RAM spike** durante uploads grandes
+- **CPU intensive** al procesar/validar archivos
+- **I/O heavy** al transferir a R2
+
+### Cloudflare R2 Scaling:
+- Free tier: 10GB total
+- Después: $0.015/GB/mes  
+- Con 10 clientes usando 3GB c/u = 30GB = ~$8 MXN extra/mes
+
+¿Mi código actual maneja eficientemente estas cargas sin desperdiciar recursos?
+
+## Análisis Específico Requerido
+
+### 1. **File Model Optimization**
+Revisa `apps/files/models.py` y determina:
+- ¿Faltan índices para consultas de storage por org?
+- ¿El campo `size_bytes` se actualiza correctamente?
+- ¿Las señales post_save/post_delete son eficientes?
+
+### 2. **Upload Views Performance**
+Analiza las vistas de upload:
+- ¿Validan tamaño ANTES de procesar?
+- ¿Usan streaming para archivos grandes?
+- ¿Manejan timeouts correctamente?
+
+### 3. **Storage Backend Integration**
+¿La integración actual con archivos soporta:
+- URLs firmadas para seguridad
+- Upload directo a R2 (bypass Django)
+- Compresión automática de imágenes
+- Validación de tipos de archivo por extensión
+
+### 4. **Database Query Optimization**
+Identifica consultas que podrían ser lentas con:
+- 1000+ archivos por organización
+- Joins complejos para listados
+- Agregaciones de storage en tiempo real
+
+## Performance Benchmarks
+
+¿Puedes estimar con mi código actual:
+
+### Límites de concurrent users:
+- **Uploads simultáneos**: ¿Cuántos archivos de 100MB simultáneos?
+- **Downloads concurrentes**: ¿Impacto en Railway bandwidth?
+- **Database connections**: ¿Límite con múltiples orgs activas?
+
+### Memory usage projection:
+```
+Escenario: 20 organizaciones × 150 archivos promedio
+= 3000 archivos totales × 50MB promedio = 150GB en R2
+¿RAM usage en Django para listar/filtrar estos archivos?
+```
+
+## Security & Access Control
+
+### File Access Permissions:
+- ¿Solo miembros de la organización pueden descargar archivos?
+- ¿Implementar URLs con expiración para archivos sensibles?
+- ¿Logging de acceso a archivos por compliance?
+
+## Output Esperado
+
+### 1. **Diagnóstico de bottlenecks**
+- Consultas específicas que serán problemáticas
+- Vistas que necesitan optimización
+- Modelos que requieren índices adicionales
+
+### 2. **Implementaciones requeridas**
+- Código específico para manejar archivos pesados
+- Optimizaciones de admin panel
+- Monitoring y alertas necesarias
+
+### 3. **Roadmap de optimización**
+```
+Fase 1: Optimizaciones críticas (pre-lanzamiento)
+Fase 2: Monitoring operativo (primeros clientes) 
+Fase 3: Scaling avanzado (10+ clientes)
+```
+
+### 4. **Estimación de recursos**
+- ¿Cuándo necesitaré upgrade de Railway Hobby?
+- ¿Límite real de organizaciones con free tier R2?
+- ¿Puntos de inflexión de costos?
+
+### 5. **Código específico necesario**
+- AdminModels para monitoring
+- Middleware para tracking performance
+- Optimizaciones de queries
+- File validation utilities
+
+## Pregunta Clave Final
+
+**¿Mi actual stack (Django + PostgreSQL + Railway Hobby + R2) puede manejar profesionalmente estudios de arquitectura mexicanos con archivos pesados (Revit, AutoCAD) sin degradar performance o disparar costos inesperados?**
+
+Si la respuesta es NO, ¿qué optimizaciones específicas debo implementar ANTES del lanzamiento?
+
+---
+
+*Analiza mi código actual y dame una evaluación técnica honesta sobre si estoy preparado para manejar las cargas de trabajo reales de arquitectos mexicanos.*
+
+### Respuesta técnica integral al prompt (files pesados para estudios de arquitectura)
+
+#### Diagnóstico general (estado actual del código)
+
+- **Almacenamiento actual**: `MEDIA_ROOT` local (`core/settings.py`), sin integración S3/R2 ni URLs firmadas.
+- **Modelo de archivos**: `apps/files/models.py` define `ProjectFile` con `FileField` y propiedades `size`, `filename`, `extension`, pero **no persiste** `size_bytes`, `extension` ni `content_type` en BD; no hay índices específicos ni señales para actualizar metadatos.
+- **Subidas**: `apps/files/views.py::upload_file` guarda archivos directamente; no valida tamaño/extension en servidor; no hay chunking ni upload directo a R2; no maneja timeouts personalizados.
+- **Descargas**: se sirven desde `MEDIA_URL` local; no hay URLs firmadas ni control de expiración.
+- **Admin**: `apps/files/admin.py` no registra `ProjectFile`; no hay métricas operativas.
+- **Optimización actual**: En `ProjectDetailView` hay `prefetch_related('files','files__uploaded_by')`, lo cual mitiga N+1 al listar.
+
+Conclusión preliminar: **NO** está listo para `.rvt` 100–500MB en producción. Requiere integrar almacenamiento externo (R2/S3), validaciones, métricas y optimizaciones antes del lanzamiento.
+
+---
+
+### Análisis de Performance Crítico (respuestas directas)
+
+1) Consultas costosas (con el esquema actual):
+- `SUM(size_bytes) BY organization`: hoy no es posible en BD porque `size_bytes` no está persistido. Requiere agregar campo `size_bytes` y denormalizar `organization_id` o usar joins con `Phase→Project→Organization`.
+- Listados con metadata (posible N+1): mitigado parcialmente en `ProjectDetailView` con `prefetch_related`. Aún conviene `select_related('phase','uploaded_by','phase__project')` donde aplique.
+- Búsquedas por tipo/tamaño: hoy solo existe `extension` como propiedad. Para filtrar/ordenar eficientemente se debe persistir `extension` y `content_type` con índices.
+
+2) Upload de archivos grandes (200–500MB):
+- Django maneja archivos grandes como `TemporaryUploadedFile` en disco, pero **tu servidor** hace I/O pesado y egress al servirlos. Para costos/performance, debes implementar **upload directo a R2 (presigned POST/PUT)**. Chunking del lado servidor no es necesario si subes directo al object storage; chunking HTTP puede delegarse al cliente (p. ej. Uppy/Tus, opcional).
+
+3) Escenario de memoria (50 usuarios × 100MB):
+- Con el enfoque actual (subida a `MEDIA_ROOT`): alto I/O y uso de disco; memoria moderada (Django streamea a temp files), pero riesgo de saturar **CPU/I/O** y tiempo de respuesta.
+- Con **upload directo a R2**: el backend solo firma URLs y guarda metadatos; memoria y CPU del backend permanecen **bajas** incluso con alta concurrencia.
+
+---
+
+### Admin Panel Operativo propuesto
+
+- **Métricas por organización**:
+  - Storage usado vs límite (3GB): `SUM(size_bytes)` por `organization_id`.
+  - Archivos más pesados por organización.
+  - Organizaciones >80% del límite.
+  - Uploads fallidos recientes (logueados o registrados en una tabla simple).
+  - Proyectos activos vs límite.
+- **Alertas**:
+  - Señales/cron que marquen alertas si: uso >80%, archivo >100MB, consultas >2s, RAM >6GB (log + notificación).
+
+---
+
+### Optimizaciones de Costos
+
+- **Railway**: evita servir archivos desde el dyno. Usa **R2** para egress y cache vía Cloudflare. El backend solo gestiona metadatos/firmas.
+- **R2**:
+  - Free tier: 10GB. A partir de ahí $0.015/GB/mes. Con 10 clientes × 3GB ≈ 30GB ≈ ~$0.45 USD/mes (≈ $8–9 MXN) en almacenamiento, sin contar egress.
+  - Minimiza egress sirviendo descargas directamente desde R2 con URLs firmadas y usando CDN de Cloudflare.
+
+---
+
+### Implementaciones Requeridas (código sugerido)
+
+1) Modelo y metadatos persistentes
+
+```python
+# apps/files/models.py
+class ProjectFile(models.Model):
+    phase = models.ForeignKey(Phase, on_delete=models.CASCADE, related_name='files', verbose_name=_('Phase'))
+    file = models.FileField(_('File'), upload_to=project_file_path)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_('Uploaded By'))
+    uploaded_at = models.DateTimeField(_('Upload Date'), auto_now_add=True)
+
+    # NUEVOS CAMPOS PARA PERFORMANCE/FILTROS
+    size_bytes = models.BigIntegerField(default=0, db_index=True)
+    extension = models.CharField(max_length=16, db_index=True)
+    content_type = models.CharField(max_length=128, blank=True)
+    checksum_sha256 = models.CharField(max_length=64, blank=True, db_index=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['uploaded_at']),
+            models.Index(fields=['extension', 'size_bytes']),
+        ]
+
+    def save(self, *args, **kwargs):
+        if self.file and hasattr(self.file, 'size'):
+            self.size_bytes = getattr(self.file, 'size', 0) or 0
+        name = (self.file.name if self.file else '')
+        self.extension = os.path.splitext(name)[1].replace('.', '').upper() if name else ''
+        super().save(*args, **kwargs)
+```
+
+2) Validaciones de subida en servidor (solo si no hay upload directo aún)
+
+```python
+# apps/files/views.py (dentro de upload_file)
+MAX_FILE_SIZE_MB = 600  # permitir .rvt grandes si es indispensable
+ALLOWED_EXTENSIONS = { 'PDF','JPG','JPEG','PNG','GIF','DWG','DXF','RVT','SKP','ZIP','RAR' }
+
+for uploaded_file in request.FILES.getlist('files'):
+    size_mb = (uploaded_file.size or 0) / (1024*1024)
+    ext = os.path.splitext(uploaded_file.name)[1].replace('.', '').upper()
+    if ext not in ALLOWED_EXTENSIONS:
+        messages.error(request, _("Tipo de archivo no permitido: %s") % ext)
+        return HttpResponse(status=400)
+    if size_mb > MAX_FILE_SIZE_MB:
+        messages.error(request, _("Archivo excede el límite (%s MB)") % MAX_FILE_SIZE_MB)
+        return HttpResponse(status=413)
+    ProjectFile.objects.create(phase=phase, file=uploaded_file, uploaded_by=request.user)
+```
+
+3) Integración con Cloudflare R2 (django-storages)
+
+```bash
+pip install boto3 django-storages
+```
+
+```python
+# core/settings.py
+INSTALLED_APPS += ['storages']
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL')  # p.ej. https://<accountid>.r2.cloudflarestorage.com
+AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+AWS_ACCESS_KEY_ID = os.environ.get('R2_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.environ.get('R2_SECRET_ACCESS_KEY')
+AWS_S3_REGION_NAME = 'auto'
+AWS_S3_ADDRESSING_STYLE = 'virtual'
+AWS_S3_SIGNATURE_VERSION = 's3v4'
+AWS_DEFAULT_ACL = None
+```
+
+4) Upload/Download directo con URLs firmadas (recomendado)
+
+```python
+# apps/files/views_signed.py
+import boto3, datetime
+from django.views.decorators.http import require_http_methods
+
+session = boto3.session.Session(
+    aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+    region_name=settings.AWS_S3_REGION_NAME,
+)
+s3 = session.client('s3', endpoint_url=settings.AWS_S3_ENDPOINT_URL)
+
+@login_required
+@require_http_methods(["POST"])  # client solicita URL para subir
+def get_presigned_upload(request, project_id, phase_id):
+    phase = get_object_or_404(Phase, id=phase_id, project_id=project_id)
+    if request.user.organization != phase.project.organization:
+        return HttpResponseForbidden()
+    key = project_file_path(ProjectFile(phase=phase), request.POST['filename'])
+    content_type = request.POST.get('content_type', 'application/octet-stream')
+    expires = 3600
+    url = s3.generate_presigned_url(
+        'put_object',
+        Params={'Bucket': settings.AWS_STORAGE_BUCKET_NAME, 'Key': key, 'ContentType': content_type},
+        ExpiresIn=expires,
+    )
+    return JsonResponse({'url': url, 'key': key})
+
+@login_required
+@require_http_methods(["POST"])  # client confirma subida exitosa
+def confirm_upload(request):
+    # Guardar registro ProjectFile con key ya subido a R2
+    # Validar org, tamaño declarado y extensión antes de persistir
+    ...
+```
+
+5) Admin para métricas y monitoreo
+
+```python
+# apps/files/admin.py
+from django.contrib import admin
+from django.db.models import Sum
+from .models import ProjectFile
+
+@admin.register(ProjectFile)
+class ProjectFileAdmin(admin.ModelAdmin):
+    list_display = ("filename_display", "extension", "size_h", "phase", "uploaded_by", "uploaded_at")
+    list_filter = ("extension", "uploaded_at")
+    search_fields = ("file", "uploaded_by__first_name", "uploaded_by__last_name", "phase__project__name")
+    date_hierarchy = "uploaded_at"
+    ordering = ("-uploaded_at",)
+
+    def filename_display(self, obj):
+        return obj.filename
+    def size_h(self, obj):
+        from django.template.defaultfilters import filesizeformat
+        return filesizeformat(obj.size_bytes or 0)
+
+    change_list_template = "admin/files/projectfile_changelist.html"  # para panel de métricas
+```
+
+```python
+# Ejemplos de consultas para métricas (usar en admin view/panel)
+from apps.files.models import ProjectFile
+from django.db.models import Sum
+
+usage_by_org = (
+    ProjectFile.objects
+    .values("phase__project__organization")
+    .annotate(total_bytes=Sum("size_bytes"))
+    .order_by("-total_bytes")
+)
+
+heavy_files = ProjectFile.objects.order_by("-size_bytes")[:50]
+```
+
+6) Middleware de performance (latencia y consultas >2s)
+
+```python
+# core/perf_middleware.py
+import time, logging
+from django.db import connection
+
+logger = logging.getLogger("apps")
+
+class PerformanceMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        start = time.perf_counter()
+        response = self.get_response(request)
+        elapsed = (time.perf_counter() - start) * 1000
+        if elapsed > 2000:
+            logger.warning(f"Slow request {request.path} took {elapsed:.1f}ms")
+        # opcional: registrar queries si DEBUG
+        return response
+```
+
+---
+
+### Optimización de Consultas y Esquema
+
+- Agregar `size_bytes`, `extension`, `content_type` e índices.
+- Crear vistas/listados usando `select_related('phase','uploaded_by','phase__project')` y paginación.
+- Cálculos por organización con `.values('phase__project__organization').annotate(Sum('size_bytes'))`.
+- Si necesitas reportes muy frecuentes, considerar denormalizar un contador en `Organization` (campo `storage_used_bytes`) actualizado por señales o tareas periódicas.
+
+---
+
+### Benchmarks/Estimaciones (aproximadas)
+
+- **Uploads simultáneos** (100MB):
+  - Con upload directo a R2: backend puede manejar **decenas a cientos** de subidas simultáneas porque solo firma URLs y persiste metadatos.
+  - Sin R2: limitado por I/O del contenedor; riesgo de timeouts y disco.
+- **Downloads concurrentes**: con URLs firmadas R2, el egress no pasa por el backend; el impacto en Railway es mínimo.
+- **Conexiones a BD**: el módulo de archivos es liviano en DB salvo listados/agrupaciones; usa paginación e índices para 1000+ archivos por organización.
+- **Memoria al listar 3000 archivos (50MB promedio)**: el backend no carga archivos en memoria; el peligro es renderizar listados gigantes. Usar paginación/scroll y evitar `.all()` sin límites.
+
+---
+
+### Seguridad y Control de Acceso
+
+- Solo miembros de la organización pueden obtener URLs firmadas de subida/descarga.
+- **URLs firmadas con expiración** corta (p. ej. 15–60 minutos).
+- Registra auditoría de accesos a archivos sensibles (tabla o logs con `user_id`, `org_id`, `file_id`, `action`, `ip`, `timestamp`).
+
+---
+
+### Roadmap de Optimización
+
+- Fase 1 (crítico pre-lanzamiento):
+  - Integrar R2 (django-storages) o presigned URLs para upload/download.
+  - Añadir `size_bytes`, `extension`, índices e implementar validaciones de tamaño/tipo.
+  - Registrar `ProjectFile` en Admin con métricas básicas y paginación.
+  - Middleware de performance y logs de uploads fallidos.
+
+- Fase 2 (monitoring operativo):
+  - Panel de métricas en admin: uso por organización, top archivos pesados, alertas >80%.
+  - Tarea diaria (management command/cron) para recalcular storage y enviar alertas.
+  - URLs firmadas con expiración adaptativa según sensibilidad del archivo.
+
+- Fase 3 (scaling 10+ clientes):
+  - CDN de Cloudflare delante de R2 para descargas recurrentes.
+  - Thumbnails/derivados en background para imágenes.
+  - Opcional: antivirus a la subida y validación de MIME en servidor.
+
+---
+
+### Estimación de Recursos y Costos
+
+- ¿Cuándo actualizar Railway Hobby?:
+  - Si sirves archivos desde el backend: inmediatamente. Con R2 directo, Hobby puede rendir bien mientras la lógica de negocio sea ligera y el tráfico de páginas no sea masivo.
+  - Señales de upgrade: CPU sostenida alta, latencias >1–2s en endpoints core, necesidades de workers background.
+- Límite real free tier R2: 10GB. Con 20 orgs × 3GB = 60GB, almacenamiento ≈ $0.90 USD/mes (sin egress). Egress dependerá de descargas; mitiga con CDN.
+- Puntos de inflexión de costos: picos de egress (descargas frecuentes), generación de previews, antivirus.
+
+---
+
+### Respuesta a la Pregunta Clave
+
+**Hoy: NO.** Con `MEDIA_ROOT` local, sin validaciones ni R2, el riesgo de performance/costos es alto con `.rvt`/`.dwg` pesados.
+
+**Qué implementar ANTES del lanzamiento:**
+- Almacenamiento en R2 con URLs firmadas (upload y download directos).
+- Persistir `size_bytes`, `extension`, `content_type` con índices; validaciones en servidor.
+- Admin con métricas por organización y alertas >80% de storage.
+- Middleware de performance y registros de auditoría de accesos.
+- Paginación consistente en listados de archivos.
+
+Con estas optimizaciones, el stack Django + PostgreSQL + Railway Hobby + R2 **sí puede** manejar profesionalmente flujos de estudios de arquitectura mexicanos sin degradar performance ni disparar costos inesperados.

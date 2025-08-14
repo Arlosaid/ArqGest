@@ -98,14 +98,23 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         files_phases_page_obj = build_page(phases, 4, 'files_phases_page')
         context['files_phases_page_obj'] = files_phases_page_obj
 
-        # Centro de tareas: métricas y listas rápidas
+        # Centro de tareas: métricas y listas rápidas (optimizado con agregaciones)
+        from django.db.models import Count, Q
         tasks_qs = Task.objects.filter(phase__project=project).select_related('phase', 'assigned_to')
-        context['tasks_total'] = tasks_qs.count()
-        context['tasks_todo'] = tasks_qs.filter(status='TODO').count()
-        context['tasks_in_progress'] = tasks_qs.filter(status='IN_PROGRESS').count()
-        context['tasks_paused'] = tasks_qs.filter(status='PAUSED').count()
-        context['tasks_done'] = tasks_qs.filter(status='DONE').count()
-        context['tasks_overdue'] = tasks_qs.filter(due_date__lt=date.today()).count()
+        agg = tasks_qs.aggregate(
+            total=Count('id'),
+            todo=Count('id', filter=Q(status='TODO')),
+            in_progress=Count('id', filter=Q(status='IN_PROGRESS')),
+            paused=Count('id', filter=Q(status='PAUSED')),
+            done=Count('id', filter=Q(status='DONE')),
+            overdue=Count('id', filter=Q(due_date__lt=date.today())),
+        )
+        context['tasks_total'] = agg['total']
+        context['tasks_todo'] = agg['todo']
+        context['tasks_in_progress'] = agg['in_progress']
+        context['tasks_paused'] = agg['paused']
+        context['tasks_done'] = agg['done']
+        context['tasks_overdue'] = agg['overdue']
 
         upcoming_limit = 7
         context['tasks_due_soon'] = list(
@@ -238,13 +247,21 @@ def project_kanban(request, pk):
     # Fases con tareas
     phases = project.phases.prefetch_related('tasks__assigned_to').order_by('order')
 
-    # Estadísticas detalladas del proyecto
+    # Estadísticas detalladas del proyecto (optimizado)
+    from django.db.models import Count, Q
     all_tasks = Task.objects.filter(phase__project=project)
-    total_tasks = all_tasks.count()
-    tasks_todo = all_tasks.filter(status='TODO').count()
-    tasks_in_progress = all_tasks.filter(status='IN_PROGRESS').count()
-    tasks_paused = all_tasks.filter(status='PAUSED').count()
-    tasks_done = all_tasks.filter(status='DONE').count()
+    stats = all_tasks.aggregate(
+        total=Count('id'),
+        todo=Count('id', filter=Q(status='TODO')),
+        in_progress=Count('id', filter=Q(status='IN_PROGRESS')),
+        paused=Count('id', filter=Q(status='PAUSED')),
+        done=Count('id', filter=Q(status='DONE')),
+    )
+    total_tasks = stats['total']
+    tasks_todo = stats['todo']
+    tasks_in_progress = stats['in_progress']
+    tasks_paused = stats['paused']
+    tasks_done = stats['done']
     
     # Calcular progreso del proyecto
     if total_tasks > 0:
@@ -261,8 +278,10 @@ def project_kanban(request, pk):
         base_qs = all_tasks.select_related('phase', 'assigned_to')
         if selected_phase_id:
             base_qs = base_qs.filter(phase_id=selected_phase_id)
+        # Traer todas las tareas y agrupar en memoria para evitar N consultas
+        tasks_list = list(base_qs)
         for code, _label in status_choices:
-            tasks_by_status[code] = base_qs.filter(status=code)
+            tasks_by_status[code] = [t for t in tasks_list if t.status == code]
 
     # Obtener usuarios de la organización para asignación (excluir solo superusuarios)
     users = []
@@ -491,8 +510,11 @@ def update_task_status(request, task_pk):
             return JsonResponse({'success': True})
         else:
             return JsonResponse({'success': False, 'error': 'Estado inválido'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+    except Exception:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error('update_task_status failed', exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Unexpected error'})
 
 @login_required
 @require_POST
@@ -521,8 +543,11 @@ def move_task(request, task_pk):
                 return JsonResponse({'success': False, 'error': 'Fase no encontrada'})
         else:
             return JsonResponse({'success': False, 'error': 'ID de fase requerido'})
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+    except Exception:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error('move_task failed', exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Unexpected error'})
 
 @login_required
 def task_edit(request, pk):
@@ -612,22 +637,109 @@ class PhaseTemplateListView(LoginRequiredMixin, PageSizeMixin, ListView):
     template_name = 'projects/phasetemplate_list.html'
     context_object_name = 'templates'
 
+    def get_queryset(self):
+        # Mostrar solo plantillas de la organización del usuario para gestión
+        if hasattr(self.request.user, 'organization') and self.request.user.organization:
+            return PhaseTemplate.objects.filter(organization=self.request.user.organization)
+        return PhaseTemplate.objects.none()
+
 class PhaseTemplateCreateView(LoginRequiredMixin, CreateView):
     model = PhaseTemplate
     form_class = PhaseTemplateForm
     template_name = 'projects/phasetemplate_form.html'
     success_url = reverse_lazy('projects:phasetemplate-list')
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Inicializar formset de fases
+        if self.request.POST:
+            context['phase_formset'] = PhaseFormSet(self.request.POST, prefix='phases')
+        else:
+            # Si se desea, se puede iniciar con un ejemplo vacío
+            context['phase_formset'] = PhaseFormSet(prefix='phases')
+        return context
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        phase_formset = context['phase_formset']
+
+        if not phase_formset.is_valid():
+            return self.form_invalid(form)
+
+        # Asociar la organización
+        if hasattr(self.request.user, 'organization') and self.request.user.organization:
+            form.instance.organization = self.request.user.organization
+
+        # Persistir fases en JSON ordenadas por 'order'
+        phases_payload = []
+        for f in phase_formset.forms:
+            if f.cleaned_data and not f.cleaned_data.get('DELETE'):
+                phases_payload.append({
+                    'name': f.cleaned_data.get('name'),
+                    'order': int(f.cleaned_data.get('order') or 0),
+                })
+        phases_payload.sort(key=lambda x: x.get('order', 0))
+        form.instance.phases = phases_payload
+
+        return super().form_valid(form)
+
 class PhaseTemplateDetailView(LoginRequiredMixin, DetailView):
     model = PhaseTemplate
     template_name = 'projects/phasetemplate_detail.html'
     context_object_name = 'template'
+
+    def get_queryset(self):
+        # Limitar la vista de detalle a plantillas de la organización
+        if hasattr(self.request.user, 'organization') and self.request.user.organization:
+            return PhaseTemplate.objects.filter(organization=self.request.user.organization)
+        return PhaseTemplate.objects.none()
 
 class PhaseTemplateUpdateView(LoginRequiredMixin, UpdateView):
     model = PhaseTemplate
     form_class = PhaseTemplateForm
     template_name = 'projects/phasetemplate_form.html'
     success_url = reverse_lazy('projects:phasetemplate-list')
+
+    def get_queryset(self):
+        # Solo permitir edición de plantillas de la organización
+        if hasattr(self.request.user, 'organization') and self.request.user.organization:
+            return PhaseTemplate.objects.filter(organization=self.request.user.organization)
+        return PhaseTemplate.objects.none()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        instance = self.object
+        if self.request.POST:
+            context['phase_formset'] = PhaseFormSet(self.request.POST, prefix='phases')
+        else:
+            # Precargar fases existentes desde JSON
+            initial = []
+            try:
+                for idx, p in enumerate(sorted(instance.phases or [], key=lambda x: x.get('order', 0))):
+                    initial.append({'name': p.get('name', ''), 'order': p.get('order', idx)})
+            except Exception:
+                initial = []
+            context['phase_formset'] = PhaseFormSet(prefix='phases', initial=initial)
+        return context
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        phase_formset = context['phase_formset']
+
+        if not phase_formset.is_valid():
+            return self.form_invalid(form)
+
+        phases_payload = []
+        for f in phase_formset.forms:
+            if f.cleaned_data and not f.cleaned_data.get('DELETE'):
+                phases_payload.append({
+                    'name': f.cleaned_data.get('name'),
+                    'order': int(f.cleaned_data.get('order') or 0),
+                })
+        phases_payload.sort(key=lambda x: x.get('order', 0))
+        form.instance.phases = phases_payload
+
+        return super().form_valid(form)
 
 class PhaseTemplateDeleteView(LoginRequiredMixin, DeleteView):
     model = PhaseTemplate
@@ -663,10 +775,15 @@ class ProjectKanbanSelectorView(LoginRequiredMixin, View):
         if request.user.is_org_admin:
             projects = Project.objects.filter(organization=request.user.organization)
         else:
-            projects = Project.objects.filter(
-                organization=request.user.organization,
-                assigned_users=request.user
-            ).distinct()
+            # Filtrar proyectos donde el usuario tenga tareas asignadas
+            projects = (
+                Project.objects
+                .filter(
+                    organization=request.user.organization,
+                    phases__tasks__assigned_to=request.user,
+                )
+                .distinct()
+            )
         
         # Agrupar por estado - CORREGIDO para usar los estados reales del modelo
         active_projects = projects.filter(status='ACTIVE')
