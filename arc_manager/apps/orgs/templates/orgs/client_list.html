@@ -31,7 +31,11 @@
             <h3>Lista de Clientes</h3>
             
             <span class="result-count">
-                {{ clients|length }} cliente{{ clients|length|pluralize }}
+                {% if is_paginated %}
+                    {{ page_obj.paginator.count }} cliente{{ page_obj.paginator.count|pluralize }}
+                {% else %}
+                    {{ clients|length }} cliente{{ clients|length|pluralize }}
+                {% endif %}
             </span>
         </div>
         
@@ -114,6 +118,10 @@
                     </tbody>
                 </table>
             </div>
+
+            {% if is_paginated %}
+                {% include 'partials/pagination.html' with page_obj=page_obj item_label='clientes' %}
+            {% endif %}
             
         {% else %}
             <!-- Estado vacío mejorado -->

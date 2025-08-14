@@ -197,7 +197,6 @@ class UserManagement {
     }
 
     handlePaginationClick(event) {
-        event.preventDefault();
         const button = event.currentTarget;
         
         if (button.classList.contains('disabled')) return;
@@ -212,7 +211,11 @@ class UserManagement {
             button.classList.add('active');
         }
 
-        // Simular carga
+        // Si el elemento tiene href, dejamos que el navegador navegue normalmente
+        const href = button.getAttribute('href');
+        if (href) return;
+
+        // Simular carga solo si no hay navegación
         this.showLoading();
         setTimeout(() => {
             this.hideLoading();

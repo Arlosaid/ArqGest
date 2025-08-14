@@ -9,9 +9,9 @@
         </button>
     </div>
     <div class="card-body">
-        {% if phases %}
+		{% if phases_page_obj %}
             <div class="row">
-                {% for phase in phases %}
+				{% for phase in phases_page_obj.object_list %}
                     <div class="col-md-6 col-lg-4 mb-3">
                         <div class="card h-100">
                             <div class="card-body">
@@ -45,6 +45,7 @@
                     </div>
                 {% endfor %}
             </div>
+			{% include 'partials/pagination.html' with page_obj=phases_page_obj page_param='phases_page' extra_params='tab=phases&' item_label='fases' %}
         {% else %}
             <div class="text-center py-4">
                 <i class="fas fa-layer-group fa-3x text-muted mb-3"></i>

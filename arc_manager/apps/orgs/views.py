@@ -2,6 +2,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, DeleteView
+from django.db.utils import IntegrityError
+from core.mixins import PageSizeMixin
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from .models import Organization, Client
@@ -12,10 +14,11 @@ from .forms import OrganizationForm, ClientForm
 # Vistas de Clientes
 # =============================================================================
 
-class ClientListView(LoginRequiredMixin, ListView):
+class ClientListView(LoginRequiredMixin, PageSizeMixin, ListView):
     model = Client
     template_name = 'orgs/client_list.html'
     context_object_name = 'clients'
+    paginate_by = 6
 
     def get_queryset(self):
         """
@@ -55,8 +58,13 @@ class ClientCreateView(LoginRequiredMixin, CreateView):
         Assign the organization from the logged-in user to the client.
         """
         form.instance.organization = self.request.user.organization
-        messages.success(self.request, "Cliente creado con éxito.")
-        return super().form_valid(form)
+        try:
+            response = super().form_valid(form)
+            messages.success(self.request, "Cliente creado con éxito.")
+            return response
+        except IntegrityError:
+            form.add_error('name', 'Ya existe un cliente con este nombre en tu organización.')
+            return self.form_invalid(form)
 
 class ClientUpdateView(LoginRequiredMixin, ClientOwnerMixin, UpdateView):
     model = Client
@@ -72,8 +80,13 @@ class ClientUpdateView(LoginRequiredMixin, ClientOwnerMixin, UpdateView):
         return kwargs
 
     def form_valid(self, form):
-        messages.success(self.request, "Cliente actualizado con éxito.")
-        return super().form_valid(form)
+        try:
+            response = super().form_valid(form)
+            messages.success(self.request, "Cliente actualizado con éxito.")
+            return response
+        except IntegrityError:
+            form.add_error('name', 'Ya existe un cliente con este nombre en tu organización.')
+            return self.form_invalid(form)
 
 class ClientDeleteView(LoginRequiredMixin, ClientOwnerMixin, DeleteView):
     model = Client

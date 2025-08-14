@@ -15,15 +15,19 @@ from .forms import ProjectForm, TaskForm, PhaseTemplateForm, PhaseFormSet
 from .services import create_phases_for_project  # Importar el nuevo servicio
 from django.http import JsonResponse
 from django.contrib.auth import get_user_model
+from django.db.utils import IntegrityError
 from datetime import datetime
 import json
 from django.utils import timezone
+from core.mixins import PageSizeMixin
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 # Project Views
-class ProjectListView(LoginRequiredMixin, ListView):
+class ProjectListView(LoginRequiredMixin, PageSizeMixin, ListView):
     model = Project
     template_name = 'projects/project_list.html'
     context_object_name = 'projects'
+    paginate_by = 6
 
     def get_queryset(self):
         if hasattr(self.request.user, 'organization') and self.request.user.organization:
@@ -31,6 +35,23 @@ class ProjectListView(LoginRequiredMixin, ListView):
                 organization=self.request.user.organization
             ).select_related('client', 'owner').order_by('-created_at')
         return Project.objects.none()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if hasattr(self.request.user, 'organization') and self.request.user.organization:
+            projects_all = Project.objects.filter(organization=self.request.user.organization)
+            # Contadores por estado básicos
+            context['total_projects'] = projects_all.count()
+            try:
+                context['active_projects_count'] = projects_all.filter(status='ACTIVE').count()
+                context['completed_projects_count'] = projects_all.filter(status='COMPLETED').count()
+                context['archived_projects_count'] = projects_all.filter(status='ARCHIVED').count()
+            except Exception:
+                # Si el modelo no tiene estos estados, degradar con cero
+                context.setdefault('active_projects_count', 0)
+                context.setdefault('completed_projects_count', 0)
+                context.setdefault('archived_projects_count', 0)
+        return context
 
 class ProjectDetailView(LoginRequiredMixin, DetailView):
     model = Project
@@ -54,9 +75,28 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         files = ProjectFile.objects.filter(phase__project=project).select_related('phase', 'uploaded_by')
         
         from datetime import date, timedelta
+        # Fases (todas) para selects y otros usos
         context['phases'] = phases
         context['files'] = files
         context['today'] = date.today()
+        context['open_phase'] = self.request.GET.get('open_phase')
+
+        # Helpers de paginación locales
+        def build_page(qs, per_page, page_param_name):
+            paginator = Paginator(qs, per_page)
+            page_number = self.request.GET.get(page_param_name, 1)
+            try:
+                return paginator.page(page_number)
+            except (PageNotAnInteger, EmptyPage):
+                return paginator.page(1)
+
+        # Paginación: pestaña Fases (6 por página)
+        phases_page_obj = build_page(phases, 6, 'phases_page')
+        context['phases_page_obj'] = phases_page_obj
+
+        # Paginación: pestaña Archivos → listado de fases (4 por página)
+        files_phases_page_obj = build_page(phases, 4, 'files_phases_page')
+        context['files_phases_page_obj'] = files_phases_page_obj
 
         # Centro de tareas: métricas y listas rápidas
         tasks_qs = Task.objects.filter(phase__project=project).select_related('phase', 'assigned_to')
@@ -74,8 +114,9 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         )
         context['tasks_recent'] = list(tasks_qs.order_by('-created_at')[:8])
 
-        # Lista simple para tabla compacta en Centro de Tareas
-        context['tasks_simple'] = list(tasks_qs.order_by('due_date', 'priority')[:50])
+        # Centro de tareas (pestaña interna): paginar 10 por página
+        tasks_page_obj = build_page(tasks_qs.order_by('due_date', 'priority'), 10, 'tasks_page')
+        context['tasks_page_obj'] = tasks_page_obj
 
         # Contadores por fase (para el sub-tab "Por fases") sin consultas extra
         phase_task_counts = {}
@@ -91,6 +132,11 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
             }
             phase_task_counts[phase.id] = counts
         context['phase_task_counts'] = phase_task_counts
+
+        # Paginación de archivos por fase dentro de la pestaña Archivos (5 por página por fase mostrada)
+        for phase in getattr(files_phases_page_obj, 'object_list', []):
+            files_qs = getattr(phase, 'files').all()
+            setattr(phase, 'files_page_obj', build_page(files_qs, 5, f'file_page_{phase.id}'))
         
         return context
 
@@ -125,7 +171,12 @@ class ProjectCreateView(LoginRequiredMixin, CreateView):
         form.instance.owner = self.request.user
         form.instance.organization = self.request.user.organization
         
-        self.object = form.save()
+        try:
+            self.object = form.save()
+        except IntegrityError:
+            # Nombre duplicado u otra restricción a nivel BD
+            form.add_error('name', _('Ya existe un proyecto con este nombre en tu organización.'))
+            return self.form_invalid(form)
 
         create_phases_for_project(
             project=self.object,
@@ -144,6 +195,13 @@ class ProjectUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_queryset(self):
         return super().get_queryset().filter(organization=self.request.user.organization)
+
+    def form_valid(self, form):
+        try:
+            return super().form_valid(form)
+        except IntegrityError:
+            form.add_error('name', _('Ya existe un proyecto con este nombre en tu organización.'))
+            return self.form_invalid(form)
 
 class ProjectDeleteView(LoginRequiredMixin, DeleteView):
     model = Project
@@ -363,7 +421,7 @@ def task_create(request, project_pk):
     
     return redirect('projects:project-detail', pk=project_pk)
 
-class TaskListView(LoginRequiredMixin, ListView):
+class TaskListView(LoginRequiredMixin, PageSizeMixin, ListView):
     model = Task
     template_name = 'projects/task_list.html'
     context_object_name = 'tasks'
@@ -373,10 +431,22 @@ class TaskListView(LoginRequiredMixin, ListView):
             phase__project__organization=self.request.user.organization
         ).select_related('phase__project', 'assigned_to').order_by('due_date', 'priority')
 
-class MyTaskListView(LoginRequiredMixin, ListView):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        all_tasks = Task.objects.filter(phase__project__organization=self.request.user.organization)
+        context['total_tasks'] = all_tasks.count()
+        context['tasks_todo'] = all_tasks.filter(status='TODO').count()
+        context['tasks_in_progress'] = all_tasks.filter(status='IN_PROGRESS').count()
+        context['tasks_paused'] = all_tasks.filter(status='PAUSED').count()
+        context['tasks_done'] = all_tasks.filter(status='DONE').count()
+        context['today'] = timezone.now().date()
+        return context
+
+class MyTaskListView(LoginRequiredMixin, PageSizeMixin, ListView):
     model = Task
     template_name = 'projects/my_tasks.html'
     context_object_name = 'tasks'
+    paginate_by = 8
 
     def get_queryset(self):
         return Task.objects.filter(
@@ -386,6 +456,15 @@ class MyTaskListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        all_tasks = Task.objects.filter(
+            phase__project__organization=self.request.user.organization,
+            assigned_to=self.request.user
+        )
+        context['total_tasks'] = all_tasks.count()
+        context['tasks_todo'] = all_tasks.filter(status='TODO').count()
+        context['tasks_in_progress'] = all_tasks.filter(status='IN_PROGRESS').count()
+        context['tasks_paused'] = all_tasks.filter(status='PAUSED').count()
+        context['tasks_done'] = all_tasks.filter(status='DONE').count()
         context['today'] = timezone.now().date()
         return context
 
@@ -528,7 +607,7 @@ def task_delete(request, pk):
     return JsonResponse({'success': True})
 
 # PhaseTemplate Views
-class PhaseTemplateListView(LoginRequiredMixin, ListView):
+class PhaseTemplateListView(LoginRequiredMixin, PageSizeMixin, ListView):
     model = PhaseTemplate
     template_name = 'projects/phasetemplate_list.html'
     context_object_name = 'templates'
@@ -593,11 +672,35 @@ class ProjectKanbanSelectorView(LoginRequiredMixin, View):
         active_projects = projects.filter(status='ACTIVE')
         completed_projects = projects.filter(status='COMPLETED')
         archived_projects = projects.filter(status='ARCHIVED')
+
+        # Paginación por sección (8 por página por solicitud)
+        try:
+            page_size = int(request.GET.get('page_size', 8))
+        except Exception:
+            page_size = 8
+
+        def build_page(qs, page_param_name):
+            paginator = Paginator(qs, page_size)
+            page_number = request.GET.get(page_param_name, 1)
+            try:
+                page_obj = paginator.page(page_number)
+            except (PageNotAnInteger, EmptyPage):
+                page_obj = paginator.page(1)
+            return page_obj
+
+        active_page_obj = build_page(active_projects, 'active_page')
+        completed_page_obj = build_page(completed_projects, 'completed_page')
+        archived_page_obj = build_page(archived_projects, 'archived_page')
         
         context = {
             'active_projects': active_projects,
             'completed_projects': completed_projects,
-            'archived_projects': archived_projects,  # Cambiado de on_hold_projects
+            'archived_projects': archived_projects,  # Colecciones completas para contadores
             'total_projects': projects.count(),
+            # Page objects
+            'active_page_obj': active_page_obj,
+            'completed_page_obj': completed_page_obj,
+            'archived_page_obj': archived_page_obj,
+            'page_size': page_size,
         }
         return render(request, self.template_name, context)

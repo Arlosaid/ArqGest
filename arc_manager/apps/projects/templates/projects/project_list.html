@@ -517,15 +517,15 @@
             <p class="projects-hero-subtitle">Organiza, planifica y ejecuta tus proyectos arquitectónicos con herramientas profesionales</p>
             <div class="projects-hero-stats">
                 <div class="hero-stat">
-                    <span class="hero-stat-number">{{ projects.count }}</span>
+                    <span class="hero-stat-number">{% if is_paginated %}{{ page_obj.paginator.count }}{% else %}{{ projects|length }}{% endif %}</span>
                     <span class="hero-stat-label">Proyectos</span>
                 </div>
                 <div class="hero-stat">
-                    <span class="hero-stat-number">{{ projects|length|add:"0" }}</span>
+                    <span class="hero-stat-number">{{ active_projects_count|default:"0" }}</span>
                     <span class="hero-stat-label">Activos</span>
                 </div>
                 <div class="hero-stat">
-                    <span class="hero-stat-number">{% widthratio projects.count 1 100 %}</span>
+                    <span class="hero-stat-number">{% if total_projects %}{% widthratio completed_projects_count|default:0 total_projects 100 %}{% else %}0{% endif %}</span>
                     <span class="hero-stat-label">% Completado</span>
                 </div>
             </div>
@@ -632,6 +632,10 @@
         </div>
         {% endfor %}
     </div>
+
+    {% if is_paginated %}
+        {% include 'partials/pagination.html' with page_obj=page_obj item_label='proyectos' %}
+    {% endif %}
 </div>
 {% endblock %}
 

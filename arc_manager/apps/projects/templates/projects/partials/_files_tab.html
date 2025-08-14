@@ -6,9 +6,9 @@
         <h6 class="m-0 font-weight-bold text-primary">{% trans "Archivos del Proyecto" %}</h6>
     </div>
     <div class="card-body">
-        {% if phases %}
+        {% if files_phases_page_obj %}
         <div class="accordion" id="filesAccordion">
-            {% for phase in phases %}
+            {% for phase in files_phases_page_obj.object_list %}
             <div class="accordion-item mb-3 file-phase-item">
                 <h2 class="accordion-header" id="heading-{{ phase.id }}">
                     <button class="accordion-button file-phase-header collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ phase.id }}" aria-expanded="false" aria-controls="collapse-{{ phase.id }}">
@@ -20,7 +20,7 @@
                         </span>
                     </button>
                 </h2>
-                <div id="collapse-{{ phase.id }}" class="accordion-collapse collapse" aria-labelledby="heading-{{ phase.id }}" data-bs-parent="#filesAccordion">
+                <div id="collapse-{{ phase.id }}" class="accordion-collapse collapse{% if open_phase|default:'' == phase.id|stringformat:'s' %} show{% endif %}" aria-labelledby="heading-{{ phase.id }}" data-bs-parent="#filesAccordion">
                     <div class="accordion-body">
                         <form class="mb-3" action="{% url 'files:upload_file' project_id=project.pk phase_id=phase.pk %}" method="post" enctype="multipart/form-data">
                             {% csrf_token %}
@@ -30,8 +30,8 @@
                             </div>
                         </form>
 
-                        {% with phase.files.all as phase_files %}
-                        {% if phase_files %}
+                        {% with phase.files_page_obj as phase_files_page %}
+                        {% if phase_files_page %}
                         <div id="files-table-{{ phase.id }}" class="table-responsive">
                             <table class="modern-table file-list-table" width="100%">
                                 <thead>
@@ -45,7 +45,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                {% for file in phase_files %}
+                                {% for file in phase_files_page.object_list %}
                                     <tr id="file-{{ file.id }}" class="file-row">
                                         <td>
                                             <a href="{{ file.file.url }}" target="_blank" class="d-flex align-items-center gap-2 text-decoration-none">
@@ -88,6 +88,9 @@
                                 </tbody>
                             </table>
                         </div>
+                        {% with file_page_param='file_page_'|add:phase.id|stringformat:'s' %}
+                        {% include 'partials/pagination.html' with page_obj=phase_files_page page_param=file_page_param extra_params='tab=files&files_phases_page='|add:files_phases_page_obj.number|stringformat:'s'|add:'&open_phase='|add:phase.id|stringformat:'s'|add:'&' item_label='archivos' anchor='files' %}
+                        {% endwith %}
                         {% else %}
                             <div class="text-muted">{% trans "Aún no se han subido archivos para esta fase." %}</div>
                         {% endif %}
@@ -97,6 +100,7 @@
             </div>
             {% endfor %}
         </div>
+        {% include 'partials/pagination.html' with page_obj=files_phases_page_obj page_param='files_phases_page' extra_params='tab=files&' item_label='fases' anchor='files' %}
         {% else %}
             <div class="text-center text-muted">{% trans "Primero crea una fase para poder subir archivos." %}</div>
         {% endif %}
