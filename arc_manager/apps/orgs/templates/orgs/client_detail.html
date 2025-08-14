@@ -1,76 +1,173 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}
     Detalle de Cliente: {{ client.name }}
 {% endblock %}
 
-{% block content %}
-<div class="container-fluid px-4">
-    <h1 class="mt-4">{{ client.name }}</h1>
-    <ol class="breadcrumb mb-4">
-        <li class="breadcrumb-item"><a href="{% url 'main:dashboard' %}">Dashboard</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'orgs:client_list' %}">Clientes</a></li>
-        <li class="breadcrumb-item active">Detalle</li>
-    </ol>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/client_management.css' %}">
+{% endblock %}
 
-    <div class="row">
-        <!-- Client Details -->
-        <div class="col-lg-4">
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="fas fa-user-tie me-1"></i> Información del Cliente</span>
-                    <div>
-                        <a href="{% url 'orgs:client_update' client.pk %}" class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-edit"></i> Editar
-                        </a>
-                        <a href="{% url 'orgs:client_delete' client.pk %}" class="btn btn-sm btn-outline-danger">
-                            <i class="fas fa-trash"></i> Eliminar
-                        </a>
+{% block content %}
+<div class="page-container">
+    <!-- HEADER HERO SECTION -->
+    <div class="user-detail-hero">
+        <div class="hero-content">
+            <div class="hero-left">
+                <div class="user-avatar-hero">
+                    {{ client.name|first|upper }}
+                    <div class="user-status-indicator {% if client.is_active %}active{% else %}inactive{% endif %}"></div>
+                </div>
+                <div class="hero-info">
+                    <h1 class="user-hero-name">{{ client.name }}</h1>
+                    <div class="hero-badges">
+                        {% if client.is_active %}
+                            <span class="hero-badge">Cliente Activo</span>
+                        {% else %}
+                            <span class="hero-badge">Cliente Inactivo</span>
+                        {% endif %}
+                        <span class="hero-badge">{{ projects.count }} Proyecto{{ projects.count|pluralize }}</span>
                     </div>
                 </div>
+            </div>
+            <div class="hero-actions">
+                <a href="{% url 'orgs:client_edit' client.pk %}" class="btn-hero-primary">
+                    <i class="fas fa-edit"></i>
+                    Editar Cliente
+                </a>
+                <a href="{% url 'orgs:client_list' %}" class="btn-hero-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Volver a Lista
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT GRID -->
+    <div class="main-content-grid">
+        <!-- INFORMACIÓN DEL CLIENTE - LADO IZQUIERDO -->
+        <div class="left-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Información del Cliente</h3>
+                </div>
                 <div class="card-body">
-                    <p><strong>Email:</strong> {{ client.email }}</p>
-                    <p><strong>Teléfono:</strong> {{ client.phone_number|default:"No especificado" }}</p>
-                    <p><strong>Dirección:</strong> {{ client.address|default:"No especificada" }}</p>
-                    <p>
-                        <strong>Estado:</strong>
-                        {% if client.is_active %}
-                            <span class="badge bg-success">Activo</span>
-                        {% else %}
-                            <span class="badge bg-danger">Inactivo</span>
-                        {% endif %}
-                    </p>
+                    <div class="info-row">
+                        <div class="info-label">
+                            <i class="fas fa-building"></i>
+                            Nombre
+                        </div>
+                        <div class="info-value">{{ client.name }}</div>
+                    </div>
+                    
+                    <div class="info-row">
+                        <div class="info-label">
+                            <i class="fas fa-envelope"></i>
+                            Email
+                        </div>
+                        <div class="info-value">
+                            {% if client.email %}
+                                <a href="mailto:{{ client.email }}" class="email-link">
+                                    {{ client.email }}
+                                </a>
+                            {% else %}
+                                <span class="text-muted">No especificado</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="info-row">
+                        <div class="info-label">
+                            <i class="fas fa-phone"></i>
+                            Teléfono
+                        </div>
+                        <div class="info-value">
+                            {% if client.phone_number %}
+                                <a href="tel:{{ client.phone_number }}" class="phone-link">
+                                    {{ client.phone_number }}
+                                </a>
+                            {% else %}
+                                <span class="text-muted">No especificado</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="info-row">
+                        <div class="info-label">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Dirección
+                        </div>
+                        <div class="info-value">
+                            {% if client.address %}
+                                {{ client.address }}
+                            {% else %}
+                                <span class="text-muted">No especificada</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="info-row">
+                        <div class="info-label">
+                            <i class="fas fa-toggle-on"></i>
+                            Estado
+                        </div>
+                        <div class="info-value">
+                            {% if client.is_active %}
+                                <span class="status-badge active">Activo</span>
+                            {% else %}
+                                <span class="status-badge inactive">Inactivo</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="info-row">
+                        <div class="info-label">
+                            <i class="fas fa-calendar"></i>
+                            Fecha de Registro
+                        </div>
+                        <div class="info-value">{{ client.created_at|date:"d/m/Y" }}</div>
+                    </div>
                 </div>
             </div>
         </div>
-
-        <!-- Associated Projects -->
-        <div class="col-lg-8">
-            <div class="card mb-4">
+        
+        <!-- PROYECTOS ASOCIADOS - LADO DERECHO -->
+        <div class="right-content">
+            <div class="card">
                 <div class="card-header">
-                    <i class="fas fa-briefcase me-1"></i>
-                    Proyectos Asociados ({{ projects.count }})
+                    <h3>Proyectos Asociados ({{ projects.count }})</h3>
                 </div>
                 <div class="card-body">
                     {% if projects %}
-                        <div class="table-responsive">
-                            <table class="table table-bordered">
+                        <div class="table-wrapper">
+                            <table class="modern-table">
                                 <thead>
                                     <tr>
-                                        <th>Nombre del Proyecto</th>
+                                        <th>Proyecto</th>
                                         <th>Estado</th>
-                                        <th>Fecha de Creación</th>
+                                        <th>Fecha</th>
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for project in projects %}
                                         <tr>
-                                            <td>{{ project.name }}</td>
-                                            <td>{{ project.get_status_display }}</td>
+                                            <td>
+                                                <div class="project-name">{{ project.name }}</div>
+                                            </td>
+                                            <td>
+                                                <span class="status-badge active">{{ project.get_status_display }}</span>
+                                            </td>
                                             <td>{{ project.created_at|date:"d/m/Y" }}</td>
                                             <td>
-                                                <a href="{% url 'projects:project-detail' project.pk %}" class="btn btn-sm btn-info">Ver Proyecto</a>
+                                                <div class="action-buttons">
+                                                    <a href="{% url 'projects:project-detail' project.pk %}" 
+                                                       class="action-btn view"
+                                                       title="Ver proyecto">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                </div>
                                             </td>
                                         </tr>
                                     {% endfor %}
@@ -78,11 +175,81 @@
                             </table>
                         </div>
                     {% else %}
-                        <p class="text-center text-muted">Este cliente aún no tiene proyectos asignados.</p>
+                        <div class="empty-state-enhanced">
+                            <div class="empty-icon">
+                                <i class="fas fa-briefcase"></i>
+                            </div>
+                            <h3>Sin Proyectos</h3>
+                            <p>Este cliente aún no tiene proyectos asignados.</p>
+                            <a href="{% url 'projects:project-create' %}" class="btn-primary-prominent">
+                                <i class="fas fa-plus"></i>
+                                Crear Proyecto
+                            </a>
+                        </div>
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+/* Estilos específicos para el detalle del cliente */
+.phone-link {
+    color: var(--arc-color-primary);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.phone-link:hover {
+    background: rgba(66, 133, 244, 0.08);
+    color: var(--arc-color-primary-hover);
+    text-decoration: none;
+}
+
+.project-name {
+    font-weight: 600;
+    color: var(--arc-text-primary);
+    font-size: 0.875rem;
+}
+
+.info-row {
+    display: flex;
+    align-items: flex-start;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #64748b;
+    min-width: 140px;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.info-label i {
+    color: var(--arc-color-primary);
+    width: 16px;
+}
+
+.info-value {
+    flex: 1;
+    color: #1e293b;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+</style>
 {% endblock %}

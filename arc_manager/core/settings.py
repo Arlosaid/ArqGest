@@ -382,6 +382,10 @@ PAYMENT_BANK_INFO = {
 ADMIN_EMAIL = 'admin@tudominio.com'
 SITE_URL = 'http://localhost:8000' if DEBUG else 'https://tudominio.com'
 
+# Información de contacto de soporte
+SUPPORT_PHONE = os.environ.get('SUPPORT_PHONE', '55 1234 5678')
+SUPPORT_EMAIL = os.environ.get('SUPPORT_EMAIL', 'soporte@tuempresa.com')
+
 # ========================================
 # CONFIGURACIONES ESPECÍFICAS PARA AWS BEANSTALK
 # ========================================

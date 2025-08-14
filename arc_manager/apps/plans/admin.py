@@ -1,9 +1,9 @@
 # apps/plans/admin.py
 from django import forms
 from django.contrib import admin, messages
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.utils.html import format_html
-from django.urls import reverse
+from django.urls import reverse, path
 from .models import Plan, Subscription, UpgradeRequest, Payment
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
@@ -240,16 +240,16 @@ class SubscriptionAdmin(ImportExportModelAdmin):
 class UpgradeRequestAdmin(admin.ModelAdmin):
     list_display = [
         'organization', 'current_plan', 'requested_plan', 
-        'amount', 'status_display', 'created_at', 'approved_by'
+        'amount', 'status_display', 'created_at', 'approved_by', 'actions_column'
     ]
     list_filter = ['status', 'created_at']
     search_fields = ['organization__name']
     readonly_fields = [
-        'organization', 'current_plan', 'requested_plan', 'amount',
+        'organization', 'current_plan', 'requested_plan', 'amount', 'status',
         'created_at', 'updated_at', 'approved_by'
     ]
     ordering = ['-created_at']
-    actions = ['approve_selected_requests']
+    actions = ['approve_selected_requests', 'reject_selected_requests']
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related(
@@ -274,6 +274,104 @@ class UpgradeRequestAdmin(admin.ModelAdmin):
                 approved_count += 1
         self.message_user(request, f'{approved_count} solicitudes de upgrade aprobadas.', messages.SUCCESS)
     approve_selected_requests.short_description = "Aprobar solicitudes seleccionadas"
+
+    def reject_selected_requests(self, request, queryset):
+        rejected_count = 0
+        for req in queryset.filter(status='pending'):
+            result = req.reject(request.user)
+            if result['success']:
+                rejected_count += 1
+        if rejected_count:
+            self.message_user(request, f'{rejected_count} solicitudes de upgrade rechazadas.', messages.SUCCESS)
+        else:
+            self.message_user(request, 'No había solicitudes pendientes para rechazar.', messages.WARNING)
+    reject_selected_requests.short_description = "Rechazar solicitudes seleccionadas"
+
+    # --- Botones por fila en la lista ---
+    @admin.display(description='Acciones')
+    def actions_column(self, obj):
+        if obj.status != 'pending':
+            return format_html('<span style="color: #888;">—</span>')
+        approve_url = reverse('admin:plans_upgraderequest_approve', args=[obj.pk])
+        reject_url = reverse('admin:plans_upgraderequest_reject', args=[obj.pk])
+        return format_html(
+            '<a class="button" href="{}" style="margin-right:6px;">Aprobar</a>'
+            '<a class="button" href="{}" style="background:#cc0000;border-color:#cc0000;">Rechazar</a>',
+            approve_url,
+            reject_url
+        )
+
+    # --- URLs personalizadas para acciones rápidas ---
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('<int:pk>/approve/', self.admin_site.admin_view(self.approve_view), name='plans_upgraderequest_approve'),
+            path('<int:pk>/reject/', self.admin_site.admin_view(self.reject_view), name='plans_upgraderequest_reject'),
+        ]
+        return custom_urls + urls
+
+    def approve_view(self, request, pk):
+        obj = self.get_object(request, pk)
+        if not obj:
+            self.message_user(request, 'Solicitud no encontrada.', messages.ERROR)
+            return redirect('..')
+        if obj.status != 'pending':
+            self.message_user(request, 'La solicitud no está pendiente.', messages.WARNING)
+            return redirect('..')
+        result = obj.approve(request.user)
+        if result.get('success'):
+            self.message_user(request, 'Solicitud aprobada y suscripción actualizada.', messages.SUCCESS)
+        else:
+            self.message_user(request, f"No se pudo aprobar la solicitud: {result.get('error')}", messages.ERROR)
+        return redirect('..')
+
+    def reject_view(self, request, pk):
+        obj = self.get_object(request, pk)
+        if not obj:
+            self.message_user(request, 'Solicitud no encontrada.', messages.ERROR)
+            return redirect('..')
+        if obj.status != 'pending':
+            self.message_user(request, 'La solicitud no está pendiente.', messages.WARNING)
+            return redirect('..')
+        result = obj.reject(request.user)
+        if result.get('success'):
+            self.message_user(request, 'Solicitud rechazada.', messages.SUCCESS)
+        else:
+            self.message_user(request, f"No se pudo rechazar la solicitud: {result.get('error')}", messages.ERROR)
+        return redirect('..')
+
+    def save_model(self, request, obj, form, change):
+        """
+        Evita que un cambio manual del campo 'status' salte la lógica de negocio.
+        Si alguien intenta marcar como 'approved' desde el formulario, ejecutamos approve().
+        """
+        if change and obj.pk:
+            try:
+                original = UpgradeRequest.objects.get(pk=obj.pk)
+            except UpgradeRequest.DoesNotExist:
+                original = None
+
+            # Si el original estaba pendiente y en el form viene aprobado, usar approve()
+            new_status = form.cleaned_data.get('status') if form is not None else None
+            if original and original.status == 'pending' and new_status == 'approved':
+                result = original.approve(request.user)
+                if result.get('success'):
+                    self.message_user(request, 'Solicitud aprobada y suscripción actualizada.', messages.SUCCESS)
+                else:
+                    self.message_user(request, f"No se pudo aprobar la solicitud: {result.get('error')}", messages.ERROR)
+                return  # No llamar a super() para evitar doble guardado
+
+            # Si el original estaba pendiente y en el form viene rechazado, usar reject()
+            if original and original.status == 'pending' and new_status == 'rejected':
+                result = original.reject(request.user)
+                if result.get('success'):
+                    self.message_user(request, 'Solicitud rechazada.', messages.SUCCESS)
+                else:
+                    self.message_user(request, f"No se pudo rechazar la solicitud: {result.get('error')}", messages.ERROR)
+                return
+
+        # Por defecto, comportamiento estándar
+        return super().save_model(request, obj, form, change)
 
 @admin.register(Payment)
 class PaymentAdmin(ImportExportModelAdmin):

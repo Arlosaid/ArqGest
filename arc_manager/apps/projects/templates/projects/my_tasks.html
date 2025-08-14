@@ -10,153 +10,170 @@
 
 {% block content %}
 <div class="page-container">
-        <div class="header-section">
-            <div class="header-content">
-                <div class="header-title">
-                    <div class="header-icon"><i class="fas fa-tasks"></i></div>
-                    <h1>{% trans "Mis Tareas" %}</h1>
-                </div>
-            </div>
-            <div class="stats-grid-advanced mt-3">
-                <div class="stat-card-advanced" data-stat="total">
-                    <div class="stat-header-advanced">
-                        <div class="stat-icon-advanced users"><i class="fas fa-list"></i></div>
-                    </div>
-                    <div class="stat-main-advanced">
-                        <div class="stat-title-advanced">{% trans "Total" %}</div>
-                        <div class="stat-value-advanced">{{ total_tasks|default:"0" }}</div>
-                        <div class="stat-subtitle-advanced">{% trans "Tareas registradas" %}</div>
-                    </div>
-                </div>
-                <div class="stat-card-advanced" data-stat="todo">
-                    <div class="stat-header-advanced">
-                        <div class="stat-icon-advanced inactive"><i class="fas fa-circle"></i></div>
-                    </div>
-                    <div class="stat-main-advanced">
-                        <div class="stat-title-advanced">{% trans "Pendientes" %}</div>
-                        <div class="stat-value-advanced">{{ tasks_todo|default:"0" }}</div>
-                        <div class="stat-subtitle-advanced">{% trans "Sin iniciar" %}</div>
-                    </div>
-                </div>
-                <div class="stat-card-advanced" data-stat="in_progress">
-                    <div class="stat-header-advanced">
-                        <div class="stat-icon-advanced active"><i class="fas fa-spinner"></i></div>
+    <!-- Header simplificado -->
+    <div class="my-tasks-header">
+        <div class="header-content">
+            <h1><i class="fas fa-user-check"></i> {% trans "Mis Tareas" %}</h1>
+            <p class="header-subtitle">{% trans "Gestiona y revisa tus tareas asignadas" %}</p>
         </div>
-                    <div class="stat-main-advanced">
-                        <div class="stat-title-advanced">{% trans "En progreso" %}</div>
-                        <div class="stat-value-advanced">{{ tasks_in_progress|default:"0" }}</div>
-                        <div class="stat-subtitle-advanced">{% trans "Trabajando" %}</div>
+        
+        <!-- Estadísticas compactas -->
+        <div class="stats-compact">
+            <div class="stat-item stat-total">
+                <div class="stat-number">{{ total_tasks|default:"0" }}</div>
+                <div class="stat-label">{% trans "Total" %}</div>
             </div>
+            <div class="stat-item stat-todo">
+                <div class="stat-number">{{ tasks_todo|default:"0" }}</div>
+                <div class="stat-label">{% trans "Pendientes" %}</div>
             </div>
-                <div class="stat-card-advanced" data-stat="done">
-                    <div class="stat-header-advanced">
-                        <div class="stat-icon-advanced subscription"><i class="fas fa-check"></i></div>
+            <div class="stat-item stat-progress">
+                <div class="stat-number">{{ tasks_in_progress|default:"0" }}</div>
+                <div class="stat-label">{% trans "En Curso" %}</div>
             </div>
-                    <div class="stat-main-advanced">
-                        <div class="stat-title-advanced">{% trans "Completadas" %}</div>
-                        <div class="stat-value-advanced">{{ tasks_done|default:"0" }}</div>
-                        <div class="stat-subtitle-advanced">{% trans "Finalizadas" %}</div>
+            <div class="stat-item stat-paused">
+                <div class="stat-number">{{ tasks_paused|default:"0" }}</div>
+                <div class="stat-label">{% trans "Pausadas" %}</div>
+            </div>
+            <div class="stat-item stat-done">
+                <div class="stat-number">{{ tasks_done|default:"0" }}</div>
+                <div class="stat-label">{% trans "Completadas" %}</div>
             </div>
         </div>
     </div>
+    
+    <!-- Filtros mejorados -->
+    <div class="search-and-filters">
+        <div class="search-section">
+            <div class="search-box-enhanced">
+                <i class="fas fa-search"></i>
+                <input type="text" id="taskSearch" placeholder="{% trans 'Buscar tareas, proyectos o fases...' %}" class="search-input-enhanced">
+                <button type="button" class="search-clear" id="clearSearch" style="display: none;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
         
-        <div class="tasks-filters">
-        <div class="filters-row">
-            <div class="filter-group">
-                <label class="filter-label">{% trans "Estado" %}</label>
-                <select class="filter-select" id="statusFilter">
-                    <option value="">{% trans "Todos" %}</option>
-                    <option value="TODO">{% trans "Pendiente" %}</option>
-                    <option value="IN_PROGRESS">{% trans "En Progreso" %}</option>
-                    <option value="PAUSED">{% trans "Pausada" %}</option>
-                    <option value="DONE">{% trans "Completada" %}</option>
-                </select>
-            </div>
-            
-            <div class="filter-group">
-                <label class="filter-label">{% trans "Prioridad" %}</label>
-                <select class="filter-select" id="priorityFilter">
-                    <option value="">{% trans "Todas" %}</option>
-                    <option value="LOW">{% trans "Baja" %}</option>
-                    <option value="MEDIUM">{% trans "Media" %}</option>
-                    <option value="HIGH">{% trans "Alta" %}</option>
-                </select>
-            </div>
-            
-            <div class="filter-group project-filter">
-                <label class="filter-label">{% trans "Proyecto" %}</label>
-                <div class="search-box">
-                    <i class="fas fa-search search-icon"></i>
-                    <input type="text" class="search-input" id="projectFilter" placeholder="{% trans 'Buscar proyecto...' %}">
+        <div class="filters-section">
+            <div class="filter-pills">
+                <div class="filter-pill">
+                    <select id="statusFilter" class="filter-select-modern">
+                        <option value="">{% trans "Todos los estados" %}</option>
+                        <option value="TODO">📋 {% trans "Pendientes" %}</option>
+                        <option value="IN_PROGRESS">⚡ {% trans "En Progreso" %}</option>
+                        <option value="PAUSED">⏸️ {% trans "Pausadas" %}</option>
+                        <option value="DONE">✅ {% trans "Completadas" %}</option>
+                    </select>
                 </div>
+                
+                <div class="filter-pill">
+                    <select id="priorityFilter" class="filter-select-modern">
+                        <option value="">{% trans "Todas las prioridades" %}</option>
+                        <option value="HIGH">🔴 {% trans "Alta" %}</option>
+                        <option value="MEDIUM">🟡 {% trans "Media" %}</option>
+                        <option value="LOW">🟢 {% trans "Baja" %}</option>
+                    </select>
+                </div>
+                
+                <button type="button" class="filter-clear-btn" id="clearFiltersBtn">
+                    <i class="fas fa-filter-circle-xmark"></i> {% trans "Limpiar filtros" %}
+                </button>
             </div>
-            
-            
-            
-            <button type="button" class="clear-filters-btn" id="clearFiltersBtn">
-                <i class="fas fa-times"></i> {% trans "Limpiar" %}
-            </button>
         </div>
     </div>
 
+    <!-- Grid de tareas compactas -->
     {% if tasks %}
-            <div id="tasksList" class="tasks-grid">
+        <div id="tasksList" class="tasks-grid-compact">
             {% for task in tasks %}
-                    <div class="task-item" data-task-id="{{ task.pk }}" data-status="{{ task.status }}" data-priority="{{ task.priority }}" data-project="{{ task.phase.project.name|lower }}" data-project-id="{{ task.phase.project.id }}" data-phase="{{ task.phase.name|lower }}">
-                        <div class="task-card card">
-                    <div class="task-card-header">
-                                <span class="task-status-badge {% if task.status == 'DONE' %}done{% elif task.status == 'IN_PROGRESS' %}in-progress{% elif task.status == 'PAUSED' %}paused{% else %}todo{% endif %}">
-                            {{ task.get_status_display }}
-                        </span>
-                                <span class="task-priority-badge {% if task.priority == 'HIGH' %}high{% elif task.priority == 'MEDIUM' %}medium{% else %}low{% endif %}">
-                            {{ task.get_priority_display }}
-                        </span>
-                    </div>
-                    <div class="task-card-body">
-                        <h3 class="task-title">{{ task.title }}</h3>
-                        <div class="task-info">
-                                    <div class="task-info-row task-project">
-                                <i class="fas fa-folder task-info-icon"></i>
-                                <span class="task-info-text">{{ task.phase.project.name }}</span>
+                <div class="task-card-compact" data-task-id="{{ task.pk }}" data-status="{{ task.status }}" data-priority="{{ task.priority }}" data-project="{{ task.phase.project.name|lower }}" data-project-id="{{ task.phase.project.id }}" data-phase="{{ task.phase.name|lower }}">
+                    <!-- Header con badges -->
+                    <div class="task-card-top">
+                        <div class="task-badges-compact">
+                            <span class="badge-status badge-{{ task.status|lower }}">{{ task.get_status_display }}</span>
+                            <span class="badge-priority badge-priority-{{ task.priority|lower }}">{{ task.get_priority_display }}</span>
+                        </div>
+                        {% if task.due_date and task.due_date < today %}
+                            <div class="overdue-indicator" title="{% trans 'Tarea vencida' %}">
+                                <i class="fas fa-exclamation-triangle"></i>
                             </div>
-                                    <div class="task-info-row task-phase">
-                                <i class="fas fa-layer-group task-info-icon"></i>
-                                <span class="task-info-text">{{ task.phase.name }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Contenido principal -->
+                    <div class="task-card-content">
+                        <h4 class="task-title-compact">{{ task.title }}</h4>
+                        
+                        <div class="task-meta-compact">
+                            <div class="meta-item">
+                                <i class="fas fa-folder"></i>
+                                <span>{{ task.phase.project.name }}</span>
+                            </div>
+                            <div class="meta-item">
+                                <i class="fas fa-layer-group"></i>
+                                <span>{{ task.phase.name }}</span>
                             </div>
                             {% if task.due_date %}
-                                        <div class="task-info-row task-due-date">
-                                    <i class="fas fa-calendar-alt task-info-icon"></i>
-                                    <span class="task-info-text {% if task.due_date < today %}text-danger{% endif %}">
-                                        {% trans "Vence:" %} {{ task.due_date|date:"d M, Y" }}
-                                    </span>
-                                </div>
-                            {% else %}
-                                        <div class="task-info-row task-due-date">
-                                    <i class="fas fa-calendar-alt task-info-icon"></i>
-                                    <span class="task-info-text text-muted">{% trans "Sin fecha" %}</span>
+                                <div class="meta-item meta-date {% if task.due_date < today %}overdue{% endif %}">
+                                    <i class="fas fa-calendar"></i>
+                                    <span>{{ task.due_date|date:"d/m/Y" }}</span>
                                 </div>
                             {% endif %}
                         </div>
                     </div>
-                    <div class="task-card-footer">
-                        <div class="task-actions">
-                            <button type="button" class="task-action-btn secondary task-detail-btn" title="{% trans 'Ver detalles' %}">
-                                <i class="fas fa-eye"></i> {% trans "Ver" %}
+                    
+                    <!-- Acciones -->
+                    <div class="task-card-actions">
+                        <button type="button" class="action-btn action-view"
+                                data-modal-url="{% url 'projects:task-detail' task.pk %}"
+                                data-modal-title="{% trans 'Detalles de la tarea' %}"
+                                title="{% trans 'Ver detalles' %}">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        
+                        {% if task.status == 'TODO' %}
+                            <button type="button" class="action-btn action-start" 
+                                    onclick="updateTaskStatus({{ task.pk }}, 'IN_PROGRESS')"
+                                    title="{% trans 'Iniciar tarea' %}">
+                                <i class="fas fa-play"></i>
                             </button>
-                                </div>
-                            </div>
+                        {% elif task.status == 'IN_PROGRESS' %}
+                            <button type="button" class="action-btn action-pause" 
+                                    onclick="updateTaskStatus({{ task.pk }}, 'PAUSED')"
+                                    title="{% trans 'Pausar tarea' %}">
+                                <i class="fas fa-pause"></i>
+                            </button>
+                            <button type="button" class="action-btn action-complete" 
+                                    onclick="updateTaskStatus({{ task.pk }}, 'DONE')"
+                                    title="{% trans 'Completar tarea' %}">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        {% elif task.status == 'PAUSED' %}
+                            <button type="button" class="action-btn action-resume" 
+                                    onclick="updateTaskStatus({{ task.pk }}, 'IN_PROGRESS')"
+                                    title="{% trans 'Reanudar tarea' %}">
+                                <i class="fas fa-play"></i>
+                            </button>
+                        {% endif %}
+                        
+                        <a href="{% url 'projects:project-kanban' task.phase.project.id %}" 
+                           class="action-btn action-kanban"
+                           title="{% trans 'Ir al Kanban' %}">
+                            <i class="fas fa-columns"></i>
+                        </a>
                     </div>
                 </div>
             {% endfor %}
         </div>
     {% else %}
-            <div class="tasks-empty">
-                <i class="fas fa-tasks tasks-empty-icon"></i>
-                <h3 class="tasks-empty-title">{% trans "No tienes tareas asignadas" %}</h3>
-                <p class="tasks-empty-text">{% trans "¡Disfruta de tu día o busca algo en qué trabajar! Las tareas aparecerán aquí cuando te sean asignadas." %}</p>
-                <a href="{% url 'projects:project-list' %}" class="task-card-btn primary">
-                <i class="fas fa-plus"></i> {% trans "Explorar Proyectos" %}
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-clipboard-check"></i>
+            </div>
+            <h3>{% trans "No tienes tareas asignadas" %}</h3>
+            <p>{% trans "¡Perfecto! No tienes tareas pendientes en este momento." %}</p>
+            <a href="{% url 'projects:project-list' %}" class="btn-explore">
+                <i class="fas fa-search"></i> {% trans "Explorar Proyectos" %}
             </a>
         </div>
     {% endif %}
@@ -166,11 +183,701 @@
 {% block extra_js %}
 <script src="{% static 'js/tasks.js' %}?v=1.0"></script>
 <script>
-    // Alias ligero si algún botón antiguo llamó a updateTaskStatus directamente
+    // Función optimizada para cambio de estado instantáneo sin notificaciones
     window.updateTaskStatus = function(taskId, status) {
-        if (window.taskManager) {
-            window.taskManager.updateTaskStatus(taskId, status);
-        }
+        updateTaskStatusInstant(taskId, status);
     };
+    
+    // Función instantánea sin notificaciones ni recargas
+    function updateTaskStatusInstant(taskId, status) {
+        // Primero actualizar la UI inmediatamente
+        updateTaskUIInstant(taskId, status);
+        
+        // Luego enviar al servidor en background
+        const url = `/projects/tasks/${taskId}/update_status/`;
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCookie('csrftoken') || ''
+            },
+            body: `status=${status}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                // Solo si falla, revertir la UI y mostrar error discreto
+                console.error('Error al actualizar tarea:', data.error);
+                // Podrías revertir la UI aquí si quisieras
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Podrías revertir la UI aquí si quisieras
+        });
+    }
+    
+    // Función para actualizar la UI instantáneamente
+    function updateTaskUIInstant(taskId, newStatus) {
+        const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
+        if (!taskCard) return;
+        
+        // Actualizar el dataset
+        taskCard.dataset.status = newStatus;
+        
+        // Actualizar el badge de estado
+        const statusBadge = taskCard.querySelector('.badge-status');
+        if (statusBadge) {
+            // Remover clases anteriores
+            statusBadge.className = statusBadge.className.replace(/badge-\w+/g, '');
+            statusBadge.classList.add('badge-status', `badge-${newStatus.toLowerCase()}`);
+            
+            // Actualizar texto
+            const statusTexts = {
+                'TODO': 'Pendiente',
+                'IN_PROGRESS': 'En Progreso',
+                'PAUSED': 'Pausada',
+                'DONE': 'Completada'
+            };
+            statusBadge.textContent = statusTexts[newStatus] || newStatus;
+        }
+        
+        // Actualizar botones de acción
+        updateTaskActions(taskCard, newStatus);
+        
+        // Actualizar contadores
+        updateCounters();
+    }
+    
+    // Función para actualizar los botones según el nuevo estado
+    function updateTaskActions(taskCard, status) {
+        const actionsContainer = taskCard.querySelector('.task-card-actions');
+        if (!actionsContainer) return;
+        
+        const taskId = taskCard.dataset.taskId;
+        const kanbanUrl = taskCard.querySelector('.action-kanban')?.href || '#';
+        
+        // Mantener siempre el botón de ver y kanban
+        let actionsHTML = `
+            <button type="button" class="action-btn action-view"
+                    data-modal-url="/projects/tasks/${taskId}/"
+                    data-modal-title="Detalles de la tarea"
+                    title="Ver detalles">
+                <i class="fas fa-eye"></i>
+            </button>
+        `;
+        
+        // Botones según estado
+        if (status === 'TODO') {
+            actionsHTML += `
+                <button type="button" class="action-btn action-start" 
+                        onclick="updateTaskStatus(${taskId}, 'IN_PROGRESS')"
+                        title="Iniciar tarea">
+                    <i class="fas fa-play"></i>
+                </button>
+            `;
+        } else if (status === 'IN_PROGRESS') {
+            actionsHTML += `
+                <button type="button" class="action-btn action-pause" 
+                        onclick="updateTaskStatus(${taskId}, 'PAUSED')"
+                        title="Pausar tarea">
+                    <i class="fas fa-pause"></i>
+                </button>
+                <button type="button" class="action-btn action-complete" 
+                        onclick="updateTaskStatus(${taskId}, 'DONE')"
+                        title="Completar tarea">
+                    <i class="fas fa-check"></i>
+                </button>
+            `;
+        } else if (status === 'PAUSED') {
+            actionsHTML += `
+                <button type="button" class="action-btn action-resume" 
+                        onclick="updateTaskStatus(${taskId}, 'IN_PROGRESS')"
+                        title="Reanudar tarea">
+                    <i class="fas fa-play"></i>
+                </button>
+            `;
+        }
+        
+        // Siempre agregar botón de kanban
+        actionsHTML += `
+            <a href="${kanbanUrl}" 
+               class="action-btn action-kanban"
+               title="Ir al Kanban">
+                <i class="fas fa-columns"></i>
+            </a>
+        `;
+        
+        actionsContainer.innerHTML = actionsHTML;
+    }
+    
+    // Función para obtener cookie CSRF
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+    
+    // Mejorar búsqueda en tiempo real y contadores funcionales
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('taskSearch');
+        const clearSearch = document.getElementById('clearSearch');
+        const statusFilter = document.getElementById('statusFilter');
+        const priorityFilter = document.getElementById('priorityFilter');
+        const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+        
+        // Función para actualizar contadores
+        function updateCounters() {
+            const allTasks = document.querySelectorAll('.task-card-compact');
+            const visibleTasks = document.querySelectorAll('.task-card-compact:not([style*="display: none"])');
+            
+            let counts = {
+                total: visibleTasks.length,
+                todo: 0,
+                in_progress: 0,
+                paused: 0,
+                done: 0
+            };
+            
+            visibleTasks.forEach(task => {
+                const status = task.dataset.status;
+                if (status === 'TODO') counts.todo++;
+                else if (status === 'IN_PROGRESS') counts.in_progress++;
+                else if (status === 'PAUSED') counts.paused++;
+                else if (status === 'DONE') counts.done++;
+            });
+            
+            // Actualizar contadores en la UI
+            document.querySelector('.stat-total .stat-number').textContent = counts.total;
+            document.querySelector('.stat-todo .stat-number').textContent = counts.todo;
+            document.querySelector('.stat-progress .stat-number').textContent = counts.in_progress;
+            document.querySelector('.stat-paused .stat-number').textContent = counts.paused;
+            document.querySelector('.stat-done .stat-number').textContent = counts.done;
+            
+            // Mostrar/ocultar mensaje de no resultados
+            const emptyState = document.querySelector('.empty-state');
+            const tasksList = document.querySelector('.tasks-grid-compact');
+            
+            if (counts.total === 0 && allTasks.length > 0) {
+                // Hay tareas pero todas están filtradas
+                if (!document.querySelector('.no-results-filtered')) {
+                    const noResults = document.createElement('div');
+                    noResults.className = 'no-results-filtered';
+                    noResults.innerHTML = `
+                        <div style="text-align: center; padding: 2rem; color: var(--arc-text-secondary);">
+                            <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                            <h3 style="margin-bottom: 0.5rem;">No se encontraron tareas</h3>
+                            <p style="margin-bottom: 1rem;">Intenta ajustar los filtros o términos de búsqueda.</p>
+                            <button type="button" onclick="clearAllFilters()" style="padding: 0.5rem 1rem; background: var(--arc-color-primary); color: white; border: none; border-radius: var(--arc-border-radius-sm); cursor: pointer;">
+                                Limpiar filtros
+                            </button>
+                        </div>
+                    `;
+                    tasksList.parentNode.appendChild(noResults);
+                }
+                document.querySelector('.no-results-filtered').style.display = 'block';
+                tasksList.style.display = 'none';
+            } else {
+                const noResults = document.querySelector('.no-results-filtered');
+                if (noResults) {
+                    noResults.style.display = 'none';
+                }
+                if (tasksList) {
+                    tasksList.style.display = 'grid';
+                }
+            }
+        }
+        
+        // Función para filtrar tareas
+        function filterTasks() {
+            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+            const statusValue = statusFilter ? statusFilter.value : '';
+            const priorityValue = priorityFilter ? priorityFilter.value : '';
+            
+            const tasks = document.querySelectorAll('.task-card-compact');
+            
+            tasks.forEach(task => {
+                const taskTitle = task.querySelector('.task-title-compact').textContent.toLowerCase();
+                const taskProject = task.dataset.project || '';
+                const taskStatus = task.dataset.status || '';
+                const taskPriority = task.dataset.priority || '';
+                
+                let show = true;
+                
+                // Filtro de búsqueda
+                if (searchTerm && !taskTitle.includes(searchTerm) && !taskProject.includes(searchTerm)) {
+                    show = false;
+                }
+                
+                // Filtro de estado
+                if (statusValue && taskStatus !== statusValue) {
+                    show = false;
+                }
+                
+                // Filtro de prioridad
+                if (priorityValue && taskPriority !== priorityValue) {
+                    show = false;
+                }
+                
+                task.style.display = show ? 'block' : 'none';
+            });
+            
+            updateCounters();
+        }
+        
+        // Función global para limpiar filtros
+        window.clearAllFilters = function() {
+            if (searchInput) searchInput.value = '';
+            if (statusFilter) statusFilter.value = '';
+            if (priorityFilter) priorityFilter.value = '';
+            if (clearSearch) clearSearch.style.display = 'none';
+            filterTasks();
+        };
+        
+        // Event listeners
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                if (this.value.length > 0) {
+                    clearSearch.style.display = 'block';
+                } else {
+                    clearSearch.style.display = 'none';
+                }
+                filterTasks();
+            });
+        }
+        
+        if (clearSearch) {
+            clearSearch.addEventListener('click', function() {
+                searchInput.value = '';
+                this.style.display = 'none';
+                filterTasks();
+            });
+        }
+        
+        if (statusFilter) {
+            statusFilter.addEventListener('change', filterTasks);
+        }
+        
+        if (priorityFilter) {
+            priorityFilter.addEventListener('change', filterTasks);
+        }
+        
+        if (clearFiltersBtn) {
+            clearFiltersBtn.addEventListener('click', window.clearAllFilters);
+        }
+        
+        // Inicializar contadores
+        updateCounters();
+    });
 </script>
+
+<style>
+/* ===== MIS TAREAS - DISEÑO COMPACTO Y MODERNO ===== */
+
+/* Header simplificado */
+.my-tasks-header {
+    background: var(--arc-bg-primary);
+    padding: var(--arc-spacing-lg) var(--arc-spacing-xl);
+    border-bottom: 1px solid var(--arc-border-color);
+    margin-bottom: var(--arc-spacing-lg);
+}
+
+.my-tasks-header h1 {
+    color: var(--arc-text-primary);
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0 0 var(--arc-spacing-xs) 0;
+}
+
+.my-tasks-header h1 i {
+    color: var(--arc-color-primary);
+    margin-right: var(--arc-spacing-sm);
+}
+
+.header-subtitle {
+    color: var(--arc-text-secondary);
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* Estadísticas compactas */
+.stats-compact {
+    display: flex;
+    gap: var(--arc-spacing-lg);
+    margin-top: var(--arc-spacing-lg);
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--arc-spacing-md);
+    background: var(--arc-bg-secondary);
+    border-radius: var(--arc-border-radius-sm);
+    border: 1px solid var(--arc-border-color);
+    min-width: 80px;
+    cursor: pointer;
+}
+
+.stat-item:hover {
+    background: var(--arc-bg-tertiary);
+}
+
+.stat-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--arc-text-primary);
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--arc-text-secondary);
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-top: var(--arc-spacing-xs);
+}
+
+.stat-total .stat-number { color: var(--arc-text-primary); }
+.stat-todo .stat-number { color: var(--arc-color-secondary); }
+.stat-progress .stat-number { color: var(--arc-color-primary); }
+.stat-paused .stat-number { color: var(--arc-color-warning); }
+.stat-done .stat-number { color: var(--arc-color-success); }
+
+/* Búsqueda y filtros mejorados */
+.search-and-filters {
+    background: var(--arc-bg-primary);
+    padding: var(--arc-spacing-md);
+    border-radius: var(--arc-border-radius);
+    border: 1px solid var(--arc-border-color);
+    margin-bottom: var(--arc-spacing-lg);
+}
+
+.search-section {
+    margin-bottom: var(--arc-spacing-md);
+}
+
+.search-box-enhanced {
+    position: relative;
+    max-width: 320px;
+}
+
+.search-box-enhanced i {
+    position: absolute;
+    left: var(--arc-spacing-sm);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--arc-text-muted);
+    font-size: 0.875rem;
+}
+
+.search-input-enhanced {
+    width: 100%;
+    padding: var(--arc-spacing-sm) var(--arc-spacing-lg) var(--arc-spacing-sm) 2rem;
+    border: 1px solid var(--arc-border-color);
+    border-radius: var(--arc-border-radius-sm);
+    font-size: 0.875rem;
+    background: var(--arc-bg-primary);
+    color: var(--arc-text-primary);
+}
+
+.search-input-enhanced:focus {
+    outline: none;
+    border-color: var(--arc-color-primary);
+}
+
+.search-clear {
+    position: absolute;
+    right: var(--arc-spacing-sm);
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--arc-text-muted);
+    cursor: pointer;
+    padding: var(--arc-spacing-xs);
+    border-radius: 50%;
+}
+
+.search-clear:hover {
+    background: var(--arc-bg-secondary);
+    color: var(--arc-text-primary);
+}
+
+/* Filtros modernos */
+.filter-pills {
+    display: flex;
+    gap: var(--arc-spacing-md);
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.filter-pill {
+    position: relative;
+}
+
+.filter-select-modern {
+    padding: var(--arc-spacing-sm) var(--arc-spacing-md);
+    border: 1px solid var(--arc-border-color);
+    border-radius: var(--arc-border-radius);
+    background: var(--arc-bg-primary);
+    color: var(--arc-text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: var(--arc-transition);
+}
+
+.filter-select-modern:focus {
+    outline: none;
+    border-color: var(--arc-color-primary);
+    box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+}
+
+.filter-clear-btn {
+    padding: var(--arc-spacing-sm) var(--arc-spacing-md);
+    background: var(--arc-bg-secondary);
+    border: 1px solid var(--arc-border-color);
+    border-radius: var(--arc-border-radius);
+    color: var(--arc-text-secondary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: var(--arc-transition);
+}
+
+.filter-clear-btn:hover {
+    background: var(--arc-color-danger);
+    color: white;
+    border-color: var(--arc-color-danger);
+}
+
+/* Grid de tareas compactas */
+.tasks-grid-compact {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--arc-spacing-lg);
+    padding: 0;
+}
+
+/* Tarjetas compactas */
+.task-card-compact {
+    background: var(--arc-bg-primary);
+    border: 1px solid var(--arc-border-color);
+    border-radius: var(--arc-border-radius);
+    padding: var(--arc-spacing-md);
+    position: relative;
+    overflow: hidden;
+}
+
+.task-card-compact:hover {
+    border-color: var(--arc-color-primary);
+    box-shadow: var(--arc-shadow-sm);
+}
+
+.task-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--arc-spacing-md);
+}
+
+.task-badges-compact {
+    display: flex;
+    gap: var(--arc-spacing-xs);
+    flex-wrap: wrap;
+}
+
+.badge-status, .badge-priority {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--arc-border-radius-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-todo { background: #f1f5f9; color: #475569; }
+.badge-in_progress { background: #dbeafe; color: #1d4ed8; }
+.badge-paused { background: #fef3c7; color: #d97706; }
+.badge-done { background: #d1fae5; color: #065f46; }
+
+.badge-priority-low { background: #f0fdf4; color: #166534; }
+.badge-priority-medium { background: #fefbf0; color: #92400e; }
+.badge-priority-high { background: #fef2f2; color: #b91c1c; }
+
+.overdue-indicator {
+    color: var(--arc-color-danger);
+    font-size: 1rem;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Contenido de la tarjeta */
+.task-title-compact {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--arc-text-primary);
+    margin: 0 0 var(--arc-spacing-md) 0;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.task-meta-compact {
+    display: flex;
+    flex-direction: column;
+    gap: var(--arc-spacing-xs);
+    margin-bottom: var(--arc-spacing-md);
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: var(--arc-spacing-xs);
+    font-size: 0.8125rem;
+    color: var(--arc-text-secondary);
+}
+
+.meta-item i {
+    width: 14px;
+    font-size: 0.75rem;
+    color: var(--arc-text-muted);
+}
+
+.meta-date.overdue {
+    color: var(--arc-color-danger);
+    font-weight: 600;
+}
+
+/* Acciones de la tarjeta */
+.task-card-actions {
+    display: flex;
+    gap: var(--arc-spacing-xs);
+    padding-top: var(--arc-spacing-md);
+    border-top: 1px solid var(--arc-border-color);
+}
+
+.action-btn {
+    flex: 1;
+    padding: var(--arc-spacing-xs) var(--arc-spacing-sm);
+    border: 1px solid var(--arc-border-color);
+    border-radius: var(--arc-border-radius-sm);
+    background: var(--arc-bg-primary);
+    color: var(--arc-text-secondary);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: var(--arc-transition);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+}
+
+.action-btn:hover {
+    color: white;
+    border-color: transparent;
+}
+
+.action-view:hover { background: var(--arc-color-primary); }
+.action-start:hover { background: var(--arc-color-success); }
+.action-pause:hover { background: var(--arc-color-warning); }
+.action-complete:hover { background: var(--arc-color-success); }
+.action-resume:hover { background: var(--arc-color-primary); }
+.action-kanban:hover { background: var(--arc-color-info); }
+
+/* Estado vacío */
+.empty-state {
+    text-align: center;
+    padding: var(--arc-spacing-2xl);
+    color: var(--arc-text-secondary);
+}
+
+.empty-icon {
+    font-size: 4rem;
+    color: var(--arc-text-muted);
+    margin-bottom: var(--arc-spacing-lg);
+}
+
+.empty-state h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--arc-text-primary);
+    margin-bottom: var(--arc-spacing-sm);
+}
+
+.empty-state p {
+    font-size: 1rem;
+    margin-bottom: var(--arc-spacing-lg);
+}
+
+.btn-explore {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--arc-spacing-sm);
+    padding: var(--arc-spacing-md) var(--arc-spacing-lg);
+    background: var(--arc-color-primary);
+    color: white;
+    text-decoration: none;
+    border-radius: var(--arc-border-radius);
+    font-weight: 600;
+    transition: var(--arc-transition);
+}
+
+.btn-explore:hover {
+    background: var(--arc-color-primary-hover);
+    color: white;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .my-tasks-header {
+        padding: var(--arc-spacing-md);
+    }
+    
+    .stats-compact {
+        justify-content: center;
+        gap: var(--arc-spacing-md);
+    }
+    
+    .stat-item {
+        min-width: 70px;
+        padding: var(--arc-spacing-sm);
+    }
+    
+    .tasks-grid-compact {
+        grid-template-columns: 1fr;
+        gap: var(--arc-spacing-md);
+    }
+    
+    .search-and-filters {
+        padding: var(--arc-spacing-md);
+    }
+    
+    .filter-pills {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--arc-spacing-sm);
+    }
+}
+
+@media (max-width: 480px) {
+    .task-card-actions {
+        flex-wrap: wrap;
+    }
+    
+    .action-btn {
+        flex: 1 1 calc(50% - 0.25rem);
+        min-width: 0;
+    }
+}
+</style>
 {% endblock %}

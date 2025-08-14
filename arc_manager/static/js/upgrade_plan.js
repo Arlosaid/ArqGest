@@ -64,8 +64,8 @@ class UpgradePlanManager {
         
         debugLog('Formulario válido, datos:', this.getFormData(form));
         
-        // Mostrar estado de carga
-        this.showLoadingState(form);
+        // No activar estado de carga porque se intercepta con modal de confirmación
+        // y el envío real ocurre solo tras confirmar.
         
         // Permitir envío normal del formulario
         debugLog('Permitiendo envío normal del formulario');
@@ -122,7 +122,7 @@ class UpgradePlanManager {
         
         if (span) {
             span.setAttribute('data-original-text', span.textContent);
-            span.textContent = 'Procesando...';
+            // Mantener el texto original; no mostrar 'Procesando...'
         }
         
         if (icon) {
@@ -159,10 +159,8 @@ class UpgradePlanManager {
             transition: all 0.3s ease;
         `;
         
-        this.processingIndicator.innerHTML = `
-            <i class="fas fa-spinner fa-spin"></i>
-            <span>Enviando solicitud...</span>
-        `;
+        // Deshabilitado el banner de "Enviando solicitud..."
+        this.processingIndicator.innerHTML = '';
         
         document.body.appendChild(this.processingIndicator);
         

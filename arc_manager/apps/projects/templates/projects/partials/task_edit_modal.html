@@ -1,5 +1,6 @@
 {% load i18n %}
-<form hx-post="{% url 'projects:task-edit' task.pk %}" hx-target="#taskModalContent" hx-swap="none" hx-trigger="submit">
+<form hx-post="{% url 'projects:task-edit' task.pk %}"
+      hx-target="#appModalBody" hx-swap="none" hx-trigger="submit">
     {% csrf_token %}
     <div class="modal-header">
         <h5 class="modal-title">{% trans "Editar Tarea" %}</h5>
@@ -58,7 +59,7 @@
 </form>
 
 <script>
-// Manejo de respuesta HTMX para cerrar modal y refrescar tarjeta sin recargar
+// Manejo de respuesta HTMX para cerrar el modal global y refrescar UI
 document.addEventListener('htmx:afterOnLoad', function (e) {
   try {
     const xhr = e.detail.xhr;
@@ -66,13 +67,13 @@ document.addEventListener('htmx:afterOnLoad', function (e) {
     if (contentType.includes('application/json')) {
       const data = JSON.parse(xhr.responseText || '{}');
       if (data && data.success && data.task) {
-        // Cerrar modal
-        const modalEl = document.getElementById('taskModal');
-        if (modalEl) {
-          const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        // Cerrar modal global si existe
+        const appModalEl = document.getElementById('appModal');
+        if (appModalEl && window.bootstrap) {
+          const modal = bootstrap.Modal.getInstance(appModalEl) || new bootstrap.Modal(appModalEl);
           modal.hide();
         }
-        // Actualizar tarjeta en el DOM
+        // Actualizar tarjeta Kanban si está presente
         const card = document.querySelector('.kanban-card[data-task-id="' + data.task.id + '"]');
         if (card) {
           const titleEl = card.querySelector('.task-title');
@@ -81,6 +82,12 @@ document.addEventListener('htmx:afterOnLoad', function (e) {
           if (assigneeEl) assigneeEl.textContent = data.task.assigned_to_name || assigneeEl.textContent;
           const phaseBadge = card.querySelector('.phase-badge');
           if (phaseBadge && data.task.phase_name) phaseBadge.textContent = data.task.phase_name;
+        }
+        // Actualizar item en "Mis Tareas" si está presente
+        const listItem = document.querySelector('.task-item[data-task-id="' + data.task.id + '"]');
+        if (listItem) {
+          const title = listItem.querySelector('.task-title');
+          if (title) title.textContent = data.task.title;
         }
       }
     }

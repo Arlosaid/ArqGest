@@ -352,7 +352,18 @@ class UpgradeRequest(models.Model):
                 self.approved_by = approved_by_user.username
                 self.save()
                 
-                subscription = self.organization.subscription
+                # Asegurar que la organización tenga suscripción antes de cambiar el plan
+                try:
+                    subscription = self.organization.subscription
+                except Subscription.DoesNotExist:
+                    # Crear una suscripción trial (o la primera activa) como base
+                    fallback_plan = Plan.get_trial_plan() or Plan.get_basic_plan() or Plan.objects.filter(is_active=True).order_by('price').first()
+                    if not fallback_plan:
+                        raise Exception('No hay planes activos disponibles para inicializar la suscripción.')
+                    subscription = Subscription.objects.create(
+                        organization=self.organization,
+                        plan=fallback_plan
+                    )
                 result = subscription.switch_plan(
                     new_plan=self.requested_plan,
                     processed_by=self.approved_by
@@ -369,3 +380,19 @@ class UpgradeRequest(models.Model):
         except Exception as e:
             logger.error(f"Error al aprobar la solicitud de upgrade {self.id}: {str(e)}", exc_info=True)
             return {'success': False, 'error': f'Error interno: {str(e)}'}        
+
+    def reject(self, rejected_by_user, reason: str | None = None):
+        """Rechaza la solicitud y registra el usuario que la procesó."""
+        logger = logging.getLogger(__name__)
+        if self.status != 'pending':
+            return {'success': False, 'error': 'La solicitud no está pendiente.'}
+        try:
+            self.status = 'rejected'
+            # Reutilizamos el campo approved_by para almacenar el usuario que procesó
+            self.approved_by = rejected_by_user.username
+            self.save(update_fields=['status', 'approved_by', 'updated_at'])
+            logger.info(f"Solicitud de upgrade {self.id} rechazada por {self.approved_by}.")
+            return {'success': True}
+        except Exception as e:
+            logger.error(f"Error al rechazar la solicitud de upgrade {self.id}: {str(e)}", exc_info=True)
+            return {'success': False, 'error': f'Error interno: {str(e)}'}

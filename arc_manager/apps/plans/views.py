@@ -81,6 +81,11 @@ class SubscriptionDashboardView(LoginRequiredMixin, TemplateView):
 
         # Pasar el historial de pagos directamente
         context['payment_history'] = subscription.get_payment_history(limit=5)
+
+        # Datos de contacto de soporte desde settings
+        from django.conf import settings
+        context['support_phone'] = getattr(settings, 'SUPPORT_PHONE', '55 1234 5678')
+        context['support_email'] = getattr(settings, 'SUPPORT_EMAIL', 'soporte@tuempresa.com')
         
         return context
 
@@ -89,7 +94,7 @@ class SubscriptionDashboardView(LoginRequiredMixin, TemplateView):
 
 
 class RequestUpgradeView(LoginRequiredMixin, OrgAdminRequiredMixin, TemplateView):
-    """Vista simplificada para que los usuarios soliciten un upgrade de plan."""
+    """Vista simplificada para que los usuarios soliciten una actualización de plan."""
     template_name = 'plans/request_upgrade.html'
     
     def get_context_data(self, **kwargs):
@@ -112,14 +117,14 @@ class RequestUpgradeView(LoginRequiredMixin, OrgAdminRequiredMixin, TemplateView
         return context
     
     def post(self, request, *args, **kwargs):
-        """Procesa una solicitud de upgrade de forma simple y directa."""
+        """Procesa una solicitud de actualización de plan de forma simple y directa."""
         organization = request.user.organization
         subscription = get_object_or_404(Subscription, organization=organization)
         requested_plan_id = request.POST.get('requested_plan')
         
         # 1. Verificar que no haya una solicitud pendiente
         if UpgradeRequest.objects.filter(organization=organization, status='pending').exists():
-            messages.warning(request, "Ya tienes una solicitud de upgrade pendiente.")
+            messages.warning(request, "Ya tienes una solicitud de actualización pendiente.")
             return redirect('plans:subscription_dashboard')
 
         # 2. Validar el plan solicitado
@@ -133,9 +138,9 @@ class RequestUpgradeView(LoginRequiredMixin, OrgAdminRequiredMixin, TemplateView
             messages.error(request, "El plan seleccionado no es válido.")
             return redirect('plans:request_upgrade')
             
-        # 3. Validar que sea un upgrade
+        # 3. Validar que sea una actualización a un plan superior
         if requested_plan.price <= subscription.plan.price:
-            messages.error(request, "Solo puedes hacer un upgrade a un plan de mayor valor.")
+            messages.error(request, "Solo puedes actualizar a un plan de mayor valor.")
             return redirect('plans:request_upgrade')
 
         # 4. Crear la solicitud
@@ -150,12 +155,12 @@ class RequestUpgradeView(LoginRequiredMixin, OrgAdminRequiredMixin, TemplateView
                 
             messages.success(
                 request, 
-                f"Tu solicitud de upgrade a {requested_plan.display_name} ha sido enviada. "
+                f"Tu solicitud de actualización a {requested_plan.display_name} ha sido enviada. "
                 "Recibirás instrucciones de pago una vez que sea aprobada."
             )
             return redirect('plans:subscription_dashboard')
                 
         except Exception as e:
-            logging.getLogger(__name__).error(f"Error al crear solicitud de upgrade: {e}", exc_info=True)
+            logging.getLogger(__name__).error(f"Error al crear solicitud de actualización: {e}", exc_info=True)
             messages.error(request, "Ocurrió un error al procesar tu solicitud. Por favor, contacta a soporte.")
             return redirect('plans:request_upgrade')

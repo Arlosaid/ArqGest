@@ -663,17 +663,18 @@
 }
 
 .task-modal .modal-header {
-    background: var(--task-primary);
-    color: white;
-    border-bottom: none;
+    background: var(--task-surface);
+    color: var(--task-text);
+    border-bottom: 1px solid var(--task-border-light);
     border-radius: var(--task-radius) var(--task-radius) 0 0;
-    padding: 1.5rem;
+    padding: 1rem 1.25rem;
 }
 
 .task-modal .modal-title {
-    font-size: 1.25rem;
-    font-weight: 600;
+    font-size: 1.1rem;
+    font-weight: 700;
     margin: 0;
+    color: var(--task-text);
 }
 
 .task-modal .modal-body {
@@ -729,9 +730,8 @@
     background: white;
     border-radius: var(--task-radius-lg);
     box-shadow: var(--task-shadow-xl);
-    max-width: 90vw;
-    max-height: 90vh;
-    width: 800px;
+    width: 100%;
+    max-width: min(920px, 100%);
     overflow: hidden;
     position: relative;
 }

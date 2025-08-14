@@ -1,4 +1,4 @@
-// Gestión de Usuarios - JavaScript Moderno con Tooltips Mejorados
+// Gestión de Usuarios - JavaScript Moderno con UX Mejorado
 class UserManagement {
     constructor() {
         this.searchInput = document.querySelector('.table-search-input');
@@ -9,6 +9,16 @@ class UserManagement {
         this.currentTooltip = null;
         this.tooltipTimeout = null;
         
+        // Elementos de formulario
+        this.userForm = document.getElementById('userForm');
+        this.saveButton = document.getElementById('saveButton');
+        this.loadingSpinner = document.getElementById('loadingSpinner');
+        this.saveButtonText = document.getElementById('saveButtonText');
+        this.successMessage = document.getElementById('successMessage');
+        
+        // Elementos de entrada para validación en tiempo real
+        this.formInputs = document.querySelectorAll('.modern-input, .modern-select');
+        
         this.init();
     }
 
@@ -17,7 +27,9 @@ class UserManagement {
         this.setupSearch();
         this.setupCheckboxes();
         this.setupTooltips();
-        this.animateOnLoad();
+        this.setupFormValidation();
+        this.setupFormSubmission();
+        // this.animateOnLoad(); // deshabilitado
         this.createTooltipContainer();
     }
 
@@ -62,23 +74,9 @@ class UserManagement {
     }
 
     setupSearch() {
-        // Animación del icono de búsqueda
+        // Animación del icono de búsqueda deshabilitada
         if (this.searchInput) {
-            this.searchInput.addEventListener('focus', () => {
-                const searchIcon = document.querySelector('.table-search-icon');
-                if (searchIcon) {
-                    searchIcon.style.color = 'var(--primary-color)';
-                    searchIcon.style.transform = 'translateY(-50%) scale(1.1)';
-                }
-            });
-
-            this.searchInput.addEventListener('blur', () => {
-                const searchIcon = document.querySelector('.table-search-icon');
-                if (searchIcon) {
-                    searchIcon.style.color = 'var(--text-muted)';
-                    searchIcon.style.transform = 'translateY(-50%) scale(1)';
-                }
-            });
+            // listeners removidos para evitar animaciones
         }
     }
 
@@ -174,11 +172,7 @@ class UserManagement {
         // Ocultar tooltip inmediatamente
         this.hideTooltip();
 
-        // Agregar efecto visual
-        button.style.transform = 'scale(0.95)';
-        setTimeout(() => {
-            button.style.transform = 'scale(1)';
-        }, 150);
+        // Efecto visual deshabilitado
 
         // No manejar aquí los botones con onclick específico
         if (button.hasAttribute('onclick')) {
@@ -291,44 +285,16 @@ class UserManagement {
     }
 
     showNotification(message, type = 'info') {
-        // Crear notificación temporal
+        // Notificación simple sin animaciones
         const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.textContent = message;
-        
-        // Estilos inline para la notificación
-        Object.assign(notification.style, {
-            position: 'fixed',
-            top: '20px',
-            right: '20px',
-            padding: '12px 20px',
-            borderRadius: '8px',
-            color: 'white',
-            fontWeight: '500',
-            zIndex: '10000',
-            transform: 'translateX(100%)',
-            transition: 'transform 0.3s ease',
-            backgroundColor: type === 'success' ? '#10b981' : 
-                           type === 'warning' ? '#f59e0b' : 
-                           type === 'error' ? '#ef4444' : '#06b6d4'
-        });
-
+        notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible`;
+        notification.style.cssText = 'position:fixed; top:20px; right:20px; z-index:10000; min-width:280px;';
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
         document.body.appendChild(notification);
-
-        // Animación de entrada
-        setTimeout(() => {
-            notification.style.transform = 'translateX(0)';
-        }, 100);
-
-        // Remover después de 3 segundos
-        setTimeout(() => {
-            notification.style.transform = 'translateX(100%)';
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    document.body.removeChild(notification);
-                }
-            }, 300);
-        }, 3000);
+        setTimeout(() => { if (notification.parentNode) notification.remove(); }, 4000);
     }
 
     showTooltip(element, text) {
@@ -860,6 +826,190 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// ===== JavaScript BÁSICO PARA USUARIOS =====
+// ===== MEJORAS DE UX PARA FORMULARIOS =====
+
+// Mejorar experiencia de envío de formularios
+document.addEventListener('DOMContentLoaded', function() {
+    const userForm = document.getElementById('userForm');
+    const saveButton = document.getElementById('saveButton');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const saveButtonText = document.getElementById('saveButtonText');
+    
+    if (userForm && saveButton) {
+        userForm.addEventListener('submit', function(e) {
+            // Mostrar estado de carga
+            if (loadingSpinner) {
+                loadingSpinner.style.display = 'inline-block';
+            }
+            if (saveButtonText) {
+                saveButtonText.style.opacity = '0.7';
+            }
+            saveButton.disabled = true;
+            
+            // Validar formulario antes de enviar
+            const requiredFields = userForm.querySelectorAll('[required]');
+            let allValid = true;
+            
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    allValid = false;
+                    field.classList.add('error');
+                    FormValidation.showFieldError(field, 'Este campo es obligatorio');
+                } else {
+                    field.classList.remove('error');
+                    FormValidation.clearFieldError(field);
+                }
+            });
+            
+            if (!allValid) {
+                e.preventDefault();
+                // Restaurar estado del botón
+                if (loadingSpinner) {
+                    loadingSpinner.style.display = 'none';
+                }
+                if (saveButtonText) {
+                    saveButtonText.style.opacity = '1';
+                }
+                saveButton.disabled = false;
+                
+                // Mostrar mensaje de error
+                showFormNotification('Por favor, completa todos los campos obligatorios', 'error');
+                return;
+            }
+        });
+    }
+});
+
+// Función para mostrar notificaciones en formularios
+function showFormNotification(message, type = 'info') {
+    // Remover notificaciones existentes
+    const existingNotification = document.querySelector('.form-notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    // Crear nueva notificación
+    const notification = document.createElement('div');
+    notification.className = `form-notification ${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    // Insertar al inicio del contenido principal
+    const pageContainer = document.querySelector('.page-container');
+    if (pageContainer) {
+        pageContainer.insertBefore(notification, pageContainer.firstChild);
+        
+        // Auto-remover después de 5 segundos
+        setTimeout(() => {
+            notification.classList.add('fade-out');
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
+        }, 5000);
+    }
+}
+
+// Mejorar validación de email en tiempo real
+function setupAdvancedEmailValidation() {
+    const emailInputs = document.querySelectorAll('input[type="email"]');
+    
+    emailInputs.forEach(input => {
+        let validationTimeout;
+        
+        input.addEventListener('input', function() {
+            clearTimeout(validationTimeout);
+            
+            // Debounce la validación
+            validationTimeout = setTimeout(() => {
+                const email = this.value.trim();
+                if (email) {
+                    if (FormValidation.validateEmail(email)) {
+                        this.classList.add('valid');
+                        this.classList.remove('error');
+                        FormValidation.clearFieldError(this);
+                    } else {
+                        this.classList.add('error');
+                        this.classList.remove('valid');
+                        FormValidation.showFieldError(this, 'Formato de email inválido');
+                    }
+                } else {
+                    this.classList.remove('valid', 'error');
+                    FormValidation.clearFieldError(this);
+                }
+            }, 500);
+        });
+    });
+}
+
+// Animaciones suaves para elementos del formulario
+function setupFormAnimations() {
+    const formSections = document.querySelectorAll('.form-section');
+    
+    // Animación de entrada para las secciones
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, {
+        threshold: 0.1
+    });
+    
+    formSections.forEach(section => {
+        section.style.opacity = '0';
+        section.style.transform = 'translateY(20px)';
+        section.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(section);
+    });
+}
+
+// Mejorar accesibilidad del formulario
+function setupAccessibilityFeatures() {
+    // Agregar indicadores visuales para campos requeridos
+    const requiredFields = document.querySelectorAll('[required]');
+    requiredFields.forEach(field => {
+        const label = document.querySelector(`label[for="${field.id}"]`);
+        if (label && !label.querySelector('.required')) {
+            const requiredIndicator = document.createElement('span');
+            requiredIndicator.className = 'required';
+            requiredIndicator.textContent = ' *';
+            requiredIndicator.setAttribute('aria-label', 'campo obligatorio');
+            label.appendChild(requiredIndicator);
+        }
+    });
+    
+    // Mejorar navegación con teclado
+    const formInputs = document.querySelectorAll('.modern-input, .modern-select');
+    formInputs.forEach((input, index) => {
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && this.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                const nextInput = formInputs[index + 1];
+                if (nextInput) {
+                    nextInput.focus();
+                } else {
+                    // Si es el último campo, enviar formulario
+                    const submitButton = document.querySelector('button[type="submit"]');
+                    if (submitButton) {
+                        submitButton.click();
+                    }
+                }
+            }
+        });
+    });
+}
+
+// Inicializar todas las mejoras de UX
+document.addEventListener('DOMContentLoaded', function() {
+    setupAdvancedEmailValidation();
+    setupFormAnimations();
+    setupAccessibilityFeatures();
+});
 
 // ===== FIN DEL ARCHIVO =====

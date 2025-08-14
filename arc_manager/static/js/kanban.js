@@ -238,15 +238,9 @@ class KanbanManager {
         // Mover la tarjeta visualmente
         targetColumn.appendChild(card);
         
-        // Aplicar animación suave
-        card.style.opacity = '0';
-        card.style.transform = 'scale(0.8)';
-        
-        setTimeout(() => {
-            card.style.transition = 'all 0.3s ease';
-            card.style.opacity = '1';
-            card.style.transform = 'scale(1)';
-        }, 50);
+        // Sin animaciones al mover
+        card.style.opacity = '1';
+        card.style.transform = 'none';
 
         // Actualizar contadores de columnas
         this.updateColumnCounts();
@@ -277,17 +271,7 @@ class KanbanManager {
         // Actualizar estadísticas en tiempo real sin recargar
         const statCards = document.querySelectorAll('.stat-card');
         
-        // Aplicar efecto de actualización
-        statCards.forEach(card => {
-            card.classList.add('updating');
-        });
-
-        // Simular actualización sutil
-        setTimeout(() => {
-            statCards.forEach(card => {
-                card.classList.remove('updating');
-            });
-        }, 1000);
+        // Efectos de actualización deshabilitados
         
         // Actualizar números reales de las estadísticas
         this.updateStatisticsInRealTime();
@@ -319,34 +303,11 @@ class KanbanManager {
         const numberElement = statCard.querySelector('.stat-number');
         if (!numberElement) return;
 
-        // Animar el cambio de número
-        const oldValue = parseInt(numberElement.textContent) || 0;
-        this.animateNumberChange(numberElement, oldValue, newValue);
+        // Actualizar número sin animación
+        numberElement.textContent = newValue;
     }
 
-    animateNumberChange(element, oldValue, newValue) {
-        if (oldValue === newValue) return;
-
-        const duration = 500; // 500ms para la animación
-        const startTime = performance.now();
-        
-        const animate = (currentTime) => {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            
-            // Función de easing suave
-            const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-            const currentValue = Math.round(oldValue + (newValue - oldValue) * easeOutQuart);
-            
-            element.textContent = currentValue;
-            
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            }
-        };
-        
-        requestAnimationFrame(animate);
-    }
+    animateNumberChange() { /* deshabilitada intencionalmente */ }
 
     getProjectIdFromUrl() {
         // Extraer el ID del proyecto de la URL actual
@@ -362,39 +323,62 @@ class KanbanManager {
         e.preventDefault();
         
         const formData = new FormData(this.taskForm);
-        const submitBtn = this.taskForm.querySelector('button[type="submit"]');
-        const originalText = submitBtn.textContent;
+        // El botón de submit está fuera del <form> (usa atributo form="taskForm").
+        // Buscar primero por el botón vinculado al form y, si no existe, buscar dentro del form.
+        const submitBtn = document.querySelector('button[type="submit"][form="taskForm"]') || this.taskForm.querySelector('button[type="submit"]');
+        const originalHTML = submitBtn ? submitBtn.innerHTML : null;
         
-        // Deshabilitar botón y mostrar loading
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando...';
+        // Deshabilitar botón y mostrar loading (si existe)
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando...';
+        }
         
         try {
             const response = await fetch(this.taskForm.action, {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-CSRFToken': this.getCSRFToken()
+                    'X-CSRFToken': this.getCSRFToken(),
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
                 }
             });
 
+            const contentType = response.headers.get('content-type') || '';
             if (response.ok) {
-                this.showNotification('Tarea creada correctamente', 'success');
-                this.closeModal('addTask');
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
+                if (contentType.includes('application/json')) {
+                    const data = await response.json();
+                    if (data && data.success) {
+                        this.showNotification('Tarea creada correctamente', 'success');
+                        this.closeModal('addTask');
+                        setTimeout(() => location.reload(), 600);
+                    } else {
+                        this.showNotification((data && (data.message || data.error)) || 'Error al crear la tarea', 'error');
+                    }
+                } else {
+                    // Fallback: servidor devolvió HTML por redirección; considerarlo éxito
+                    this.showNotification('Tarea creada correctamente', 'success');
+                    this.closeModal('addTask');
+                    setTimeout(() => location.reload(), 600);
+                }
             } else {
-                const errorData = await response.json();
-                this.showNotification(errorData.message || 'Error al crear la tarea', 'error');
+                let msg = 'Error al crear la tarea';
+                try {
+                    const data = contentType.includes('application/json') ? await response.json() : null;
+                    msg = (data && (data.message || data.error)) || msg;
+                } catch (_) {}
+                this.showNotification(msg, 'error');
             }
         } catch (error) {
             console.error('Error:', error);
             this.showNotification('Error de conexión', 'error');
         } finally {
-            // Restaurar botón
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
+            // Restaurar botón si existe
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalHTML;
+            }
         }
     }
 
@@ -413,9 +397,13 @@ class KanbanManager {
     }
 
     viewTask(taskId) {
-        // Implementar vista detallada de la tarea
-        console.log('Vista detallada de tarea:', taskId);
-        // Aquí se podría abrir un modal con información detallada
+        // Abrir modal global si existe, como fallback usa navegación
+        if (typeof window.openAppModal === 'function') {
+            window.openAppModal(`/projects/tasks/${taskId}/`, 'Detalles de la Tarea');
+            return;
+        }
+        // Fallback
+        window.location.href = `/projects/tasks/${taskId}/`;
     }
 
     async deleteTask(taskId) {
@@ -522,17 +510,7 @@ class KanbanManager {
 
     updateStatistics() {
         // Actualizar estadísticas en tiempo real si es necesario
-        const statCards = document.querySelectorAll('.stat-card');
-        statCards.forEach(card => {
-            card.classList.add('updating');
-        });
-
-        // Simular actualización
-        setTimeout(() => {
-            statCards.forEach(card => {
-                card.classList.remove('updating');
-            });
-        }, 1000);
+        // Actualización visual deshabilitada
     }
 }
 
@@ -551,9 +529,11 @@ document.addEventListener('DOMContentLoaded', function() {
         window.kanbanManager.refreshKanban();
     };
     
-    window.showTaskDetails = function(taskId) {
-        window.kanbanManager.viewTask(taskId);
-    };
+    if (typeof window.showTaskDetails !== 'function') {
+        window.showTaskDetails = function(taskId) {
+            window.kanbanManager.viewTask(taskId);
+        };
+    }
     
     window.updateTaskStatus = function(taskId, newStatus) {
         window.kanbanManager.updateTaskStatusSilently(taskId, newStatus);

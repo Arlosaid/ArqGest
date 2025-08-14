@@ -55,11 +55,34 @@
     box-sizing: border-box;
 }
 
+/* Desactivar animaciones y transiciones globales (rendimiento) */
+html.reduced-motion *,
+html.reduced-motion *::before,
+html.reduced-motion *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     background-color: var(--arc-bg-secondary);
     color: var(--arc-text-primary);
     line-height: 1.6;
+}
+
+/* Congelar scroll global cuando un modal Bootstrap está abierto */
+html.modal-open,
+body.modal-open {
+    overflow: hidden !important;
+}
+
+/* Asegurar que los contenedores principales tampoco muestren scroll de fondo */
+.modal-open .main-content,
+.modal-open .content-area,
+.modal-open .page-container {
+    overflow: hidden !important;
+    height: 100vh;
 }
 
 /* ===== LAYOUT PRINCIPAL ===== */
