@@ -41,7 +41,7 @@
             </div>
         </div>
     </div>
-
+    
     <!-- Estadísticas Principales -->
     <div class="stats-grid-advanced">
         <!-- Plan Actual -->
@@ -71,7 +71,7 @@
                 </div>
             </div>
         </div>
-
+    
         <!-- Usuarios -->
         <div class="stat-card-advanced">
             <div class="stat-header-advanced">
@@ -85,7 +85,7 @@
                 </div>
             </div>
         </div>
-
+    
         <!-- Estado de Suscripción -->
         <div class="stat-card-advanced">
             <div class="stat-header-advanced">
@@ -104,7 +104,7 @@
             </div>
         </div>
     </div>
-
+    
     <!-- Acciones Rápidas -->
     {% if user.is_org_admin %}
         <div class="quick-actions-section">
@@ -145,7 +145,7 @@
             </div>
         </div>
     {% endif %}
-
+    
     <!-- Mensaje de Soporte -->
     <div class="support-card">
         <div class="support-icon">
@@ -156,9 +156,11 @@
             <p>Para cambios en la organización o soporte técnico, contacta: <span class="support-email">soporte@arcmanager.com</span></p>
         </div>
     </div>
-</div>
+    </div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'js/organization_management.js' %}"></script>
 {% endblock %} 
+
+
