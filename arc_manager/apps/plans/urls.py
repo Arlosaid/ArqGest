@@ -27,4 +27,7 @@ urlpatterns = [
     path('', login_required(plan_redirect_view), name='index'),
     path('dashboard/', views.SubscriptionDashboardView.as_view(), name='subscription_dashboard'),
     path('solicitar-actualizacion/', views.RequestUpgradeView.as_view(), name='request_upgrade'),
+    
+    # API para notificaciones
+    path('api/subscription-info/', views.SubscriptionInfoAPIView.as_view(), name='subscription_info_api'),
 ]

@@ -225,69 +225,18 @@ function addCloseBtnsToBanners() {
  * Muestra una notificación
  */
 function showNotification(message, type = 'info', duration = 4000) {
-    const container = document.getElementById('notifications-container');
-    if (!container) return;
-    
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    
-    const colors = {
-        info: '#2563eb',
-        success: '#059669',
-        warning: '#d97706',
-        error: '#dc2626'
-    };
-    
-    const icons = {
-        info: 'fas fa-info-circle',
-        success: 'fas fa-check-circle',
-        warning: 'fas fa-exclamation-triangle',
-        error: 'fas fa-times-circle'
-    };
-    
-    notification.style.cssText = `
-        background: ${colors[type]};
-        color: white;
-        padding: 1rem 1.5rem;
-        border-radius: 0.5rem;
-        margin-bottom: 10px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        opacity: 0;
-        transform: translateX(100%);
-        transition: all 0.3s ease;
-        position: relative;
-        font-size: 0.875rem;
-        pointer-events: auto;
-        max-width: 100%;
-    `;
-    
-    notification.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <i class="${icons[type]}"></i>
-            <span>${message}</span>
-            <button onclick="this.parentElement.parentElement.remove()" 
-                    style="background: none; border: none; color: white; font-size: 18px; cursor: pointer; margin-left: auto; padding: 0;">×</button>
-        </div>
-    `;
-    
-    container.appendChild(notification);
-    
-    // Animar entrada
-    requestAnimationFrame(() => {
-        notification.style.opacity = '1';
-        notification.style.transform = 'translateX(0)';
-    });
-    
-    // Auto-dismiss
-    setTimeout(() => {
-        if (notification.parentElement) {
-            notification.style.opacity = '0';
-            notification.style.transform = 'translateX(100%)';
-            setTimeout(() => {
-                notification.remove();
-            }, 300);
-        }
-    }, duration);
+    if (window.notifications) {
+        window.notifications.show(message, type, { duration: duration });
+    } else {
+        // Fallback temporal hasta que el sistema se cargue
+        setTimeout(() => {
+            if (window.notifications) {
+                window.notifications.show(message, type, { duration: duration });
+            } else {
+                console.warn('Sistema de notificaciones no disponible:', message);
+            }
+        }, 100);
+    }
 }
 
 /**

@@ -1,16 +1,18 @@
 # apps/plans/views.py (actualizado)
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.db import transaction
 from django.core.exceptions import PermissionDenied
+from django.http import JsonResponse
 import logging
 
 from .models import Plan, Subscription, UpgradeRequest
 from apps.orgs.models import Organization
+from .services import SubscriptionService
 
 
 # El logger se configurará localmente en cada función para evitar problemas de inicialización
@@ -164,3 +166,58 @@ class RequestUpgradeView(LoginRequiredMixin, OrgAdminRequiredMixin, TemplateView
             logging.getLogger(__name__).error(f"Error al crear solicitud de actualización: {e}", exc_info=True)
             messages.error(request, "Ocurrió un error al procesar tu solicitud. Por favor, contacta a soporte.")
             return redirect('plans:request_upgrade')
+
+
+class SubscriptionInfoAPIView(LoginRequiredMixin, View):
+    """Vista API para obtener información de suscripción para notificaciones automáticas"""
+    
+    def get(self, request):
+        """Devuelve información de suscripción en formato JSON"""
+        try:
+            # Verificar que el usuario tenga organización
+            if not hasattr(request.user, 'organization') or not request.user.organization:
+                return JsonResponse({'error': 'Usuario sin organización'}, status=400)
+            
+            # Obtener suscripción
+            subscription = SubscriptionService.get_subscription_or_create(request.user.organization)
+            if not subscription:
+                return JsonResponse({'error': 'No se pudo obtener la suscripción'}, status=500)
+            
+            # Obtener estadísticas de uso
+            organization = request.user.organization
+            current_users = organization.users.filter(is_active=True, is_superuser=False).count()
+            current_projects = organization.projects.count() if hasattr(organization, 'projects') else 0
+            
+            # Preparar respuesta
+            response_data = {
+                'status': subscription.subscription_status,
+                'display_status': subscription.get_subscription_status_display(),
+                'is_active': subscription.is_active,
+                'is_expired': subscription.is_expired,
+                'is_in_grace': subscription.is_in_grace_period,
+                'is_trial': subscription.plan.is_trial,
+                'days_remaining': subscription.days_remaining,
+                'plan_name': subscription.plan.display_name,
+                'expires_soon': subscription.days_remaining <= 7 and subscription.days_remaining > 0,
+                'needs_attention': subscription.is_expired or subscription.is_in_grace_period,
+                
+                # Información de uso
+                'user_usage': current_users,
+                'user_limit': subscription.plan.max_users,
+                'user_percentage': subscription.plan.get_usage_percentage(current_users, 'users'),
+                
+                # Proyectos (si está disponible)
+                'project_usage': current_projects,
+                'project_limit': 999,  # Sin límite por ahora, se puede configurar después
+                'project_percentage': 0,
+                
+                # Fechas importantes
+                'end_date': subscription.end_date.isoformat() if subscription.end_date else None,
+                'start_date': subscription.start_date.isoformat() if subscription.start_date else None,
+            }
+            
+            return JsonResponse(response_data)
+            
+        except Exception as e:
+            logging.getLogger(__name__).error(f"Error en SubscriptionInfoAPIView: {e}", exc_info=True)
+            return JsonResponse({'error': 'Error interno del servidor'}, status=500)
