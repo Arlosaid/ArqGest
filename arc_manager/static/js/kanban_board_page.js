@@ -43,7 +43,19 @@ function updateTaskStatus(taskId, newStatus) {
   const urlTemplate = document.body.dataset.updateTaskStatusUrlTemplate || '';
   const url = urlTemplate.replace('0', taskId);
   fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '' }, body: JSON.stringify({ status: newStatus }) })
-    .then(r => r.json()).then(data => { if (data.success) location.reload(); else alert('Error al actualizar la tarea'); })
-    .catch(() => alert('Error al actualizar la tarea'));
+    .then(r => r.json()).then(data => { 
+      if (data.success) {
+        location.reload();
+      } else {
+        if (window.notifications) {
+          window.notifications.error('Error al actualizar la tarea');
+        }
+      }
+    })
+    .catch(() => {
+      if (window.notifications) {
+        window.notifications.error('Error al actualizar la tarea');
+      }
+    });
 }
 

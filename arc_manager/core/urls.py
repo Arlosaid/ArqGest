@@ -4,6 +4,7 @@ from django.urls import path, include
 from django.shortcuts import redirect
 from django.conf.urls.static import static
 from django.http import JsonResponse
+from apps.plans.views import SubscriptionInfoAPIView
 
 def root_redirect(request):
     if not request.user.is_authenticated:
@@ -23,6 +24,7 @@ urlpatterns = [
     path('plans/', include('apps.plans.urls')),
     path('projects/', include('apps.projects.urls')),
     path('', include('apps.files.urls')),
+    path('api/subscription-info/', SubscriptionInfoAPIView.as_view(), name='subscription_info_api'),
     path('health/', health_check, name='health_check'),
     path('', root_redirect),
 ]

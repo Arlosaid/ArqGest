@@ -485,24 +485,14 @@ class KanbanManager {
     }
 
     showNotification(message, type = 'info') {
-        // Crear notificación visual solo para acciones importantes
-        if (type === 'error' || type === 'success') {
-            const notification = document.createElement('div');
-            notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
-            notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-            notification.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-
-            document.body.appendChild(notification);
-
-            // Auto-remover después de 5 segundos
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.remove();
-                }
-            }, 5000);
+        // Usar el sistema de notificaciones moderno
+        if (window.notifications) {
+            // Solo mostrar notificaciones para acciones importantes
+            if (type === 'error' || type === 'success') {
+                window.notifications.show(message, type);
+            }
+        } else {
+            console.warn('Sistema de notificaciones no disponible:', message);
         }
     }
 

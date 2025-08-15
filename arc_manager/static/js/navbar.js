@@ -196,43 +196,19 @@ class NavbarManager {
     
     // === API Pública ===
     showToast(message, type = 'info') {
-        // Sistema de notificaciones toast simple
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type}`;
-        toast.textContent = message;
-        
-        // Estilos inline para el toast
-        Object.assign(toast.style, {
-            position: 'fixed',
-            top: '80px',
-            right: '20px',
-            background: type === 'error' ? '#ef4444' : '#3b82f6',
-            color: 'white',
-            padding: '12px 20px',
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-            zIndex: '9999',
-            transform: 'translateX(100%)',
-            transition: 'transform 0.3s ease',
-            maxWidth: '300px'
-        });
-        
-        document.body.appendChild(toast);
-        
-        // Animación de entrada
-        setTimeout(() => {
-            toast.style.transform = 'translateX(0)';
-        }, 100);
-        
-        // Remover después de 3 segundos
-        setTimeout(() => {
-            toast.style.transform = 'translateX(100%)';
+        // Usar el sistema de notificaciones moderno
+        if (window.notifications) {
+            window.notifications.show(message, type);
+        } else {
+            // Fallback temporal
             setTimeout(() => {
-                if (toast.parentNode) {
-                    toast.parentNode.removeChild(toast);
+                if (window.notifications) {
+                    window.notifications.show(message, type);
+                } else {
+                    console.warn('Sistema de notificaciones no disponible:', message);
                 }
-            }, 300);
-        }, 3000);
+            }, 100);
+        }
     }
     
     // === Métodos de utilidad ===

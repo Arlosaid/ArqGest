@@ -288,16 +288,13 @@ class UserManagement {
     }
 
     showNotification(message, type = 'info') {
-        // Notificación simple sin animaciones
-        const notification = document.createElement('div');
-        notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible`;
-        notification.style.cssText = 'position:fixed; top:20px; right:20px; z-index:10000; min-width:280px;';
-        notification.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        document.body.appendChild(notification);
-        setTimeout(() => { if (notification.parentNode) notification.remove(); }, 4000);
+        // Usar el sistema de notificaciones moderno
+        if (window.notifications) {
+            window.notifications.show(message, type);
+        } else {
+            // Fallback si el sistema no está disponible
+            console.warn('Sistema de notificaciones no disponible:', message);
+        }
     }
 
     showTooltip(element, text) {
@@ -474,46 +471,20 @@ const Utils = {
 // Variable global para la instancia
 let userManagementInstance = null;
 
-// Función global para notificaciones (fallback)
+// Función global para notificaciones (usa el sistema moderno)
 function showGlobalNotification(message, type = 'info') {
-    // Crear notificación temporal
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.textContent = message;
-    
-    // Estilos inline para la notificación
-    Object.assign(notification.style, {
-        position: 'fixed',
-        top: '20px',
-        right: '20px',
-        padding: '12px 20px',
-        borderRadius: '8px',
-        color: 'white',
-        fontWeight: '500',
-        zIndex: '10000',
-        transform: 'translateX(100%)',
-        transition: 'transform 0.3s ease',
-        backgroundColor: type === 'success' ? '#10b981' : 
-                       type === 'warning' ? '#f59e0b' : 
-                       type === 'error' ? '#ef4444' : '#06b6d4'
-    });
-
-    document.body.appendChild(notification);
-
-    // Animación de entrada
-    setTimeout(() => {
-        notification.style.transform = 'translateX(0)';
-    }, 100);
-
-    // Remover después de 3 segundos
-    setTimeout(() => {
-        notification.style.transform = 'translateX(100%)';
+    if (window.notifications) {
+        window.notifications.show(message, type);
+    } else {
+        // Fallback temporal hasta que el sistema se cargue
         setTimeout(() => {
-            if (notification.parentNode) {
-                document.body.removeChild(notification);
+            if (window.notifications) {
+                window.notifications.show(message, type);
+            } else {
+                console.warn('Sistema de notificaciones no disponible:', message);
             }
-        }, 300);
-    }, 3000);
+        }, 100);
+    }
 }
 
 // Inicializar cuando el DOM esté listo
@@ -883,36 +854,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Función para mostrar notificaciones en formularios
+// Función para mostrar notificaciones en formularios - DEPRECATED
+// Usar window.notifications en su lugar
 function showFormNotification(message, type = 'info') {
-    // Remover notificaciones existentes
-    const existingNotification = document.querySelector('.form-notification');
-    if (existingNotification) {
-        existingNotification.remove();
-    }
-    
-    // Crear nueva notificación
-    const notification = document.createElement('div');
-    notification.className = `form-notification ${type}`;
-    notification.innerHTML = `
-        <div class="notification-content">
-            <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
-            <span>${message}</span>
-        </div>
-    `;
-    
-    // Insertar al inicio del contenido principal
-    const pageContainer = document.querySelector('.page-container');
-    if (pageContainer) {
-        pageContainer.insertBefore(notification, pageContainer.firstChild);
-        
-        // Auto-remover después de 5 segundos
-        setTimeout(() => {
-            notification.classList.add('fade-out');
-            setTimeout(() => {
-                notification.remove();
-            }, 300);
-        }, 5000);
+    console.warn('showFormNotification está obsoleto, usar window.notifications en su lugar');
+    if (window.notifications) {
+        window.notifications.show(message, type);
     }
 }
 

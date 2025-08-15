@@ -419,14 +419,15 @@ def task_create(request, project_pk):
                         if accepts_json or is_htmx or is_ajax:
                             return JsonResponse({'success': False, 'error': 'invalid_assignee'}, status=400)
                 
-                messages.success(request, f'Tarea "{title}" creada exitosamente.')
-
-                # Si es una petición AJAX/JSON, devolver JSON
+                # Si es una petición AJAX/JSON, devolver JSON sin mensaje Django
                 accepts_json = 'application/json' in request.headers.get('Accept', '')
                 is_htmx = request.headers.get('HX-Request')
                 is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
                 if accepts_json or is_htmx or is_ajax:
                     return JsonResponse({'success': True, 'task_id': task.id})
+                
+                # Solo mostrar mensaje Django para peticiones normales (no AJAX)
+                messages.success(request, f'Tarea "{title}" creada exitosamente.')
 
                 # Redirecciones para peticiones normales
                 if 'kanban' in request.META.get('HTTP_REFERER', ''):
@@ -586,9 +587,8 @@ def task_edit(request, pk):
                     pass
             task.save()
             
-            messages.success(request, f'Tarea "{title}" actualizada exitosamente.')
-            
             # Respuesta para htmx: devolver JSON para actualizar la tarjeta y cerrar modal
+            # Solo mostrar mensaje Django para peticiones normales (no AJAX)
             if request.headers.get('HX-Request'):
                 assigned_name = ''
                 if task.assigned_to:

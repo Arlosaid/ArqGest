@@ -21,6 +21,9 @@
     <!-- Sidebar CSS específico con cache-busting -->
     <link href="{% static 'css/sidebar.css' %}?v=1.5" rel="stylesheet">
     
+    <!-- Sistema de Notificaciones Moderno -->
+    <link href="{% static 'css/notifications.css' %}?v=1.0" rel="stylesheet">
+    
     <!-- Estilos adicionales específicos por página -->
     {% block extra_css %}{% endblock %}
 </head>
@@ -72,8 +75,14 @@
     <!-- Scripts específicos de Sidebar -->
     <script src="{% static 'js/sidebar.js' %}"></script>
     
-    <!-- Script para evitar duplicación de mensajes -->
-    <script src="{% static 'js/messages.js' %}"></script>
+    <!-- Sistema de Notificaciones Moderno -->
+    <script src="{% static 'js/notifications.js' %}?v=1.0"></script>
+    
+    <!-- Demo de Notificaciones (solo en desarrollo) -->
+    <script src="{% static 'js/notifications-demo.js' %}?v=1.0"></script>
+    
+    <!-- Notificaciones Automáticas de Suscripción -->
+    <script src="{% static 'js/subscription-notifications.js' %}?v=1.0"></script>
     
     <!-- Scripts adicionales específicos por página -->
     {% block extra_js %}{% endblock %}

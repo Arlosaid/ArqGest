@@ -371,10 +371,10 @@ class UpgradePlanManager {
      * Muestra un mensaje de error
      */
     showError(message) {
-        if (window.PlansJS && window.PlansJS.showNotification) {
-            window.PlansJS.showNotification(message, 'error', 6000);
+        if (window.notifications) {
+            window.notifications.error(message);
         } else {
-            alert(message);
+            console.warn('Sistema de notificaciones no disponible:', message);
         }
     }
 
@@ -382,10 +382,10 @@ class UpgradePlanManager {
      * Muestra un mensaje de éxito
      */
     showSuccess(message) {
-        if (window.PlansJS && window.PlansJS.showNotification) {
-            window.PlansJS.showNotification(message, 'success', 4000);
+        if (window.notifications) {
+            window.notifications.success(message);
         } else {
-            alert(message);
+            console.warn('Sistema de notificaciones no disponible:', message);
         }
     }
 }

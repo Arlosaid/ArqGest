@@ -59,11 +59,15 @@ document.addEventListener('DOMContentLoaded', function () {
         const row = document.querySelector(`tr[data-task-id="${taskId}"]`);
         if (row) row.remove();
       } else {
-        alert('Error al eliminar');
+        if (window.notifications) {
+          window.notifications.error('Error al eliminar');
+        }
       }
     } catch (err) {
       console.error(err);
-      alert('Error al eliminar');
+      if (window.notifications) {
+        window.notifications.error('Error al eliminar');
+      }
     }
   });
 

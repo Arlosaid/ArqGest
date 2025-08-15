@@ -84,29 +84,13 @@ class Dashboard {
         }
     }
 
-    // Método para mostrar notificaciones simples
+    // Método para mostrar notificaciones usando el sistema moderno
     showNotification(message, type = 'info') {
-        // Implementación básica - podrías usar una librería como toastify
-        const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        notification.textContent = message;
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 16px;
-            background: ${type === 'error' ? '#ef4444' : '#3b82f6'};
-            color: white;
-            border-radius: 8px;
-            z-index: 1000;
-            font-size: 14px;
-            font-weight: 500;
-        `;
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            notification.remove();
-        }, 3000);
+        if (window.notifications) {
+            window.notifications.show(message, type);
+        } else {
+            console.warn('Sistema de notificaciones no disponible:', message);
+        }
     }
 
     // Cleanup

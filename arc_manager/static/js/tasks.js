@@ -733,46 +733,21 @@ class TaskManager {
     }
 
     /**
-     * Muestra un mensaje temporal
+     * Muestra un mensaje usando el sistema de notificaciones moderno
      */
     showMessage(message, type = 'info') {
-        const messageElement = document.createElement('div');
-        messageElement.className = `task-message task-message-${type}`;
-        messageElement.textContent = message;
-        messageElement.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 1rem 1.5rem;
-            border-radius: var(--task-radius);
-            color: white;
-            font-weight: 600;
-            z-index: 9999;
-            animation: slideInRight 0.3s ease-out;
-            max-width: 300px;
-            word-wrap: break-word;
-        `;
-
-        // Colores según el tipo
-        if (type === 'success') {
-            messageElement.style.background = 'var(--task-success)';
-        } else if (type === 'error') {
-            messageElement.style.background = 'var(--task-error)';
+        if (window.notifications) {
+            window.notifications.show(message, type);
         } else {
-            messageElement.style.background = 'var(--task-primary)';
-        }
-
-        document.body.appendChild(messageElement);
-
-        // Remover después de 3 segundos
-        setTimeout(() => {
-            messageElement.style.animation = 'slideOutRight 0.3s ease-out';
+            // Fallback temporal
             setTimeout(() => {
-                if (messageElement.parentNode) {
-                    messageElement.parentNode.removeChild(messageElement);
+                if (window.notifications) {
+                    window.notifications.show(message, type);
+                } else {
+                    console.warn('Sistema de notificaciones no disponible:', message);
                 }
-            }, 300);
-        }, 3000);
+            }, 100);
+        }
     }
 
     /**
