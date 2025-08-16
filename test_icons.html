@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Iconos de Extensión</title>
+    <link rel="stylesheet" href="arc_manager/static/css/dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .icon-test {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .icon-test .project-image-mini {
+            width: 100px;
+            height: 80px;
+            margin-right: 15px;
+        }
+        .icon-test .info {
+            flex: 1;
+        }
+        .icon-test h4 {
+            margin: 0 0 5px 0;
+            color: #333;
+        }
+        .icon-test p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Prueba de Iconos de Extensión</h1>
+        <p>Este archivo prueba que los iconos de extensión se muestren correctamente en las tarjetas de proyecto.</p>
+        
+        <h2>Tarjetas de Proyecto con Iconos:</h2>
+        
+        <!-- PDF -->
+        <div class="icon-test">
+            <div class="project-image-mini">
+                <i class="fas fa-file-pdf project-file-icon pdf"></i>
+            </div>
+            <div class="info">
+                <h4>Proyecto PDF</h4>
+                <p>Documento PDF con planos de construcción</p>
+            </div>
+        </div>
+        
+        <!-- Word -->
+        <div class="icon-test">
+            <div class="project-image-mini">
+                <i class="fas fa-file-word project-file-icon doc"></i>
+            </div>
+            <div class="info">
+                <h4>Proyecto Word</h4>
+                <p>Documento Word con especificaciones</p>
+            </div>
+        </div>
+        
+        <!-- Excel -->
+        <div class="icon-test">
+            <div class="project-image-mini">
+                <i class="fas fa-file-excel project-file-icon xls"></i>
+            </div>
+            <div class="info">
+                <h4>Proyecto Excel</h4>
+                <p>Hoja de cálculo con presupuesto</p>
+            </div>
+        </div>
+        
+        <!-- AutoCAD -->
+        <div class="icon-test">
+            <div class="project-image-mini">
+                <i class="fas fa-drafting-compass project-file-icon dwg"></i>
+            </div>
+            <div class="info">
+                <h4>Proyecto AutoCAD</h4>
+                <p>Archivo DWG con planos técnicos</p>
+            </div>
+        </div>
+        
+        <!-- Imagen -->
+        <div class="icon-test">
+            <div class="project-image-mini">
+                <i class="fas fa-image project-file-icon jpg"></i>
+            </div>
+            <div class="info">
+                <h4>Proyecto Imagen</h4>
+                <p>Fotografías del sitio de construcción</p>
+            </div>
+        </div>
+        
+        <!-- ZIP -->
+        <div class="icon-test">
+            <div class="project-image-mini">
+                <i class="fas fa-file-archive project-file-icon zip"></i>
+            </div>
+            <div class="info">
+                <h4>Proyecto ZIP</h4>
+                <p>Archivo comprimido con documentación</p>
+            </div>
+        </div>
+        
+        <h2>Verificación:</h2>
+        <ul>
+            <li>✅ Los iconos deben mostrarse en lugar de rectángulos rosas</li>
+            <li>✅ Cada icono debe tener un color diferente según el tipo de archivo</li>
+            <li>✅ Los iconos deben estar centrados en el área de imagen</li>
+            <li>✅ Al hacer hover, los iconos deben agrandarse ligeramente</li>
+        </ul>
+        
+        <h2>Si sigues viendo rectángulos rosas:</h2>
+        <ol>
+            <li>Verifica que Font Awesome esté cargando correctamente</li>
+            <li>Revisa la consola del navegador para errores</li>
+            <li>Asegúrate de que el CSS esté siendo cargado</li>
+            <li>Verifica que las clases CSS coincidan con el HTML</li>
+        </ol>
+    </div>
+</body>
+</html>

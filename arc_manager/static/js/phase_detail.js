@@ -10,9 +10,12 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   document.body.addEventListener('htmx:afterOnLoad', function(evt) {
-    if (evt.target.id === 'file-upload-form') {
+    if (evt.target.classList.contains('file-upload-form')) {
       evt.target.reset();
     }
   });
+
+  // Nota: El manejo de errores HTMX ahora está en htmx_error_handler.js
+  // que se encarga globalmente de todos los errores HTTP en la aplicación
 });
 

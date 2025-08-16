@@ -137,7 +137,7 @@
 {% endblock content %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+<script src="{% static 'js/sortable.min.js' %}"></script>
 <script src="{% static 'js/projects.js' %}?v=1.0"></script>
 <script src="{% static 'js/phasetemplate_form.js' %}?v=1.0"></script>
 {% endblock extra_js %}

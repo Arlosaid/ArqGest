@@ -54,6 +54,45 @@ class Project(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def progress_percentage(self):
+        """Calcula el progreso real del proyecto basado en las fases completadas."""
+        total_phases = self.phases.count()
+        if total_phases == 0:
+            return 0
+        
+        completed_phases = self.phases.filter(status='COMPLETED').count()
+        return int((completed_phases / total_phases) * 100)
+    
+    @property
+    def active_phases_count(self):
+        """Cuenta las fases que están en progreso."""
+        return self.phases.filter(status='IN_PROGRESS').count()
+    
+    @property
+    def pending_tasks_count(self):
+        """Cuenta las tareas pendientes en todo el proyecto."""
+        return Task.objects.filter(
+            phase__project=self,
+            status__in=['TODO', 'IN_PROGRESS', 'PAUSED']
+        ).count()
+    
+    @property
+    def total_tasks_count(self):
+        """Cuenta el total de tareas en el proyecto."""
+        return Task.objects.filter(phase__project=self).count()
+    
+    @property
+    def next_deadline(self):
+        """Obtiene la próxima fecha límite de tareas pendientes."""
+        next_task = Task.objects.filter(
+            phase__project=self,
+            status__in=['TODO', 'IN_PROGRESS', 'PAUSED'],
+            due_date__isnull=False
+        ).order_by('due_date').first()
+        
+        return next_task.due_date if next_task else None
+
 class Phase(models.Model):
     """Representa una fase dentro de un proyecto, ej., Diseño Preliminar."""
 

@@ -94,9 +94,8 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         phases_page_obj = build_page(phases, 6, 'phases_page')
         context['phases_page_obj'] = phases_page_obj
 
-        # Paginación: pestaña Archivos → listado de fases (4 por página)
-        files_phases_page_obj = build_page(phases, 4, 'files_phases_page')
-        context['files_phases_page_obj'] = files_phases_page_obj
+        # Simplificado: mostrar todas las fases para archivos (sin paginación)
+        context['files_phases_page_obj'] = None  # Ya no necesitamos paginación
 
         # Centro de tareas: métricas y listas rápidas (optimizado con agregaciones)
         from django.db.models import Count, Q
@@ -142,10 +141,8 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
             phase_task_counts[phase.id] = counts
         context['phase_task_counts'] = phase_task_counts
 
-        # Paginación de archivos por fase dentro de la pestaña Archivos (5 por página por fase mostrada)
-        for phase in getattr(files_phases_page_obj, 'object_list', []):
-            files_qs = getattr(phase, 'files').all()
-            setattr(phase, 'files_page_obj', build_page(files_qs, 5, f'file_page_{phase.id}'))
+        # Simplificado: sin paginación de archivos, mostrar todos
+        # Los archivos se cargan mediante la relación phase.files.all() en el template
         
         return context
 

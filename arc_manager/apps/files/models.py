@@ -78,6 +78,56 @@ class ProjectFile(models.Model):
         except Exception:
             return ""
 
+    @property
+    def file_extension(self) -> str:
+        """Extensión del archivo en minúsculas para uso en CSS."""
+        return self.extension.lower()
+
+    @property
+    def icon_class(self) -> str:
+        """Retorna la clase CSS del icono según el tipo de archivo."""
+        ext = self.extension.lower()
+        
+        # Documentos
+        if ext in ['pdf']:
+            return 'fa-file-pdf'
+        elif ext in ['doc', 'docx']:
+            return 'fa-file-word'
+        elif ext in ['xls', 'xlsx']:
+            return 'fa-file-excel'
+        elif ext in ['ppt', 'pptx']:
+            return 'fa-file-powerpoint'
+        elif ext in ['txt', 'md']:
+            return 'fa-file-alt'
+        
+        # Imágenes
+        elif ext in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp']:
+            return 'fa-file-image'
+        
+        # Archivos CAD/Diseño
+        elif ext in ['dwg', 'dxf', 'rvt', 'skp', '3ds', 'max']:
+            return 'fa-drafting-compass'
+        
+        # Archivos comprimidos
+        elif ext in ['zip', 'rar', '7z', 'tar', 'gz']:
+            return 'fa-file-archive'
+        
+        # Archivos de video
+        elif ext in ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm']:
+            return 'fa-file-video'
+        
+        # Archivos de audio
+        elif ext in ['mp3', 'wav', 'flac', 'aac', 'ogg']:
+            return 'fa-file-audio'
+        
+        # Archivos de código
+        elif ext in ['py', 'js', 'html', 'css', 'php', 'java', 'cpp', 'c', 'cs']:
+            return 'fa-file-code'
+        
+        # Por defecto
+        else:
+            return 'fa-file'
+
     def save(self, *args, **kwargs):
         # Completar metadatos si están disponibles
         try:

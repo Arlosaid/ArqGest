@@ -6,9 +6,9 @@
         <h6 class="m-0 font-weight-bold text-primary">{% trans "Archivos del Proyecto" %}</h6>
     </div>
     <div class="card-body">
-        {% if files_phases_page_obj %}
+        {% if phases %}
         <div class="accordion" id="filesAccordion">
-            {% for phase in files_phases_page_obj.object_list %}
+            {% for phase in phases %}
             <div class="accordion-item mb-3 file-phase-item">
                 <h2 class="accordion-header" id="heading-{{ phase.id }}">
                     <button class="accordion-button file-phase-header collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ phase.id }}" aria-expanded="false" aria-controls="collapse-{{ phase.id }}">
@@ -22,16 +22,64 @@
                 </h2>
                 <div id="collapse-{{ phase.id }}" class="accordion-collapse collapse{% if open_phase|default:'' == phase.id|stringformat:'s' %} show{% endif %}" aria-labelledby="heading-{{ phase.id }}" data-bs-parent="#filesAccordion">
                     <div class="accordion-body">
-                        <form class="mb-3" action="{% url 'files:upload_file' project_id=project.pk phase_id=phase.pk %}" method="post" enctype="multipart/form-data">
+                        <form class="mb-3 file-upload-form" 
+                              hx-post="{% url 'files:upload_file' project_id=project.pk phase_id=phase.pk %}"
+                              hx-target="#files-table-{{ phase.id }}"
+                              hx-swap="outerHTML"
+                              hx-encoding="multipart/form-data"
+                              enctype="multipart/form-data">
                             {% csrf_token %}
                             <div class="input-group">
                                 <input type="file" name="files" class="form-control" multiple required>
-                                <button class="btn btn-primary" type="submit"><i class="fas fa-upload"></i> {% trans "Subir archivo" %}</button>
+                                <button class="btn btn-primary" type="submit">
+                                    <i class="fas fa-upload"></i> {% trans "Subir archivo" %}
+                                </button>
                             </div>
                         </form>
 
-                        {% with phase.files_page_obj as phase_files_page %}
-                        {% if phase_files_page %}
+                        {% with phase_files=phase.files.all %}
+                        {% if phase_files %}
+                        <!-- Controles de archivo mejorados -->
+                        <div class="mb-3">
+                            <div class="row g-2">
+                                <div class="col-12 col-md-auto">
+                                    <span class="badge bg-primary">{{ phase_files.count }} archivo{{ phase_files.count|pluralize }}</span>
+                                </div>
+                                <div class="col-12 col-md-auto">
+                                    <select class="form-select form-select-sm" id="fileTypeFilter-{{ phase.id }}">
+                                        <option value="">{% trans "Todos los tipos" %}</option>
+                                        <option value="PDF">📄 PDF</option>
+                                        <option value="JPG,JPEG,PNG,GIF,TIFF">🖼️ {% trans "Imágenes" %}</option>
+                                        <option value="DWG,DXF,RVT,SKP">📐 {% trans "CAD/Diseño" %}</option>
+                                        <option value="DOC,DOCX">📝 Word</option>
+                                        <option value="XLS,XLSX">📊 Excel</option>
+                                        <option value="PPT,PPTX">📊 PowerPoint</option>
+                                        <option value="ZIP,RAR">📦 {% trans "Comprimidos" %}</option>
+                                        <option value="TXT,MD">📋 {% trans "Texto" %}</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-auto">
+                                    <select class="form-select form-select-sm" id="fileDateFilter-{{ phase.id }}">
+                                        <option value="">{% trans "Todas las fechas" %}</option>
+                                        <option value="today">📅 {% trans "Hoy" %}</option>
+                                        <option value="week">📅 {% trans "Esta semana" %}</option>
+                                        <option value="month">📅 {% trans "Este mes" %}</option>
+                                        <option value="older">📅 {% trans "Más antiguo" %}</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-auto">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="clearFilters-{{ phase.id }}">
+                                        <i class="fas fa-times"></i> {% trans "Limpiar" %}
+                                    </button>
+                                </div>
+                                <div class="col-12 col-md-auto ms-auto">
+                                    <small class="text-muted">
+                                        <i class="fas fa-filter"></i> {% trans "Filtros disponibles" %}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div id="files-table-{{ phase.id }}" class="table-responsive">
                             <table class="modern-table file-list-table" width="100%">
                                 <thead>
@@ -44,21 +92,27 @@
                                         <th class="text-right">{% trans "Acciones" %}</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                {% for file in phase_files_page.object_list %}
-                                    <tr id="file-{{ file.id }}" class="file-row">
+                                <tbody id="filesTableBody-{{ phase.id }}">
+                                {% for file in phase_files %}
+                                    <tr id="file-{{ file.id }}" class="file-row" data-file-type="{{ file.extension }}" data-file-date="{{ file.uploaded_at|date:'Y-m-d' }}">
                                         <td>
                                             <a href="{{ file.file.url }}" target="_blank" class="d-flex align-items-center gap-2 text-decoration-none">
-                                                {% if file.extension == 'JPG' or file.extension == 'JPEG' or file.extension == 'PNG' or file.extension == 'GIF' %}
+                                                {% if file.extension == 'JPG' or file.extension == 'JPEG' or file.extension == 'PNG' or file.extension == 'GIF' or file.extension == 'TIFF' %}
                                                     <i class="fas fa-file-image text-primary"></i>
                                                 {% elif file.extension == 'PDF' %}
                                                     <i class="fas fa-file-pdf text-danger"></i>
-                                                {% elif file.extension == 'DWG' or file.extension == 'DXF' %}
+                                                {% elif file.extension == 'DWG' or file.extension == 'DXF' or file.extension == 'RVT' or file.extension == 'SKP' %}
                                                     <i class="fas fa-drafting-compass text-info"></i>
                                                 {% elif file.extension == 'DOC' or file.extension == 'DOCX' %}
                                                     <i class="fas fa-file-word text-primary"></i>
                                                 {% elif file.extension == 'XLS' or file.extension == 'XLSX' %}
                                                     <i class="fas fa-file-excel text-success"></i>
+                                                {% elif file.extension == 'PPT' or file.extension == 'PPTX' %}
+                                                    <i class="fas fa-file-powerpoint text-warning"></i>
+                                                {% elif file.extension == 'ZIP' or file.extension == 'RAR' %}
+                                                    <i class="fas fa-file-archive text-dark"></i>
+                                                {% elif file.extension == 'TXT' or file.extension == 'MD' %}
+                                                    <i class="fas fa-file-alt text-secondary"></i>
                                                 {% else %}
                                                     <i class="fas fa-file text-secondary"></i>
                                                 {% endif %}
@@ -82,15 +136,12 @@
                                     </tr>
                                 {% empty %}
                                     <tr>
-                                        <td colspan="5">{% trans "Aún no se han subido archivos para esta fase." %}</td>
+                                        <td colspan="6">{% trans "Aún no se han subido archivos para esta fase." %}</td>
                                     </tr>
                                 {% endfor %}
                                 </tbody>
                             </table>
                         </div>
-                        {% with file_page_param='file_page_'|add:phase.id|stringformat:'s' %}
-                        {% include 'partials/pagination.html' with page_obj=phase_files_page page_param=file_page_param extra_params='tab=files&files_phases_page='|add:files_phases_page_obj.number|stringformat:'s'|add:'&open_phase='|add:phase.id|stringformat:'s'|add:'&' item_label='archivos' anchor='files' %}
-                        {% endwith %}
                         {% else %}
                             <div class="text-muted">{% trans "Aún no se han subido archivos para esta fase." %}</div>
                         {% endif %}
@@ -100,7 +151,6 @@
             </div>
             {% endfor %}
         </div>
-        {% include 'partials/pagination.html' with page_obj=files_phases_page_obj page_param='files_phases_page' extra_params='tab=files&' item_label='fases' anchor='files' %}
         {% else %}
             <div class="text-center text-muted">{% trans "Primero crea una fase para poder subir archivos." %}</div>
         {% endif %}

@@ -178,7 +178,7 @@
                 {% endfor %}
             </ul>
             {% if is_paginated %}
-                {% include 'partials/pagination.html' with page_obj=page_obj item_label='tareas' %}
+                {% include 'partials/pagination.html' with page_obj=page_obj page_param='page' item_label='tareas' %}
             {% endif %}
         {% else %}
             <div class="tasks-empty">

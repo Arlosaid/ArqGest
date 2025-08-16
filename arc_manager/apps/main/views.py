@@ -6,6 +6,7 @@ from django.urls import reverse
 
 from apps.projects.models import Project, Task
 from apps.orgs.models import Client
+from apps.files.models import ProjectFile
 
 User = get_user_model()
 
@@ -53,6 +54,31 @@ def dashboard(request):
     total_clients = Client.objects.filter(organization=organization).count()
     recent_clients = Client.objects.filter(organization=organization).order_by('-created_at')[:5]
 
+    # --- Contadores Totales para el Dashboard ---
+    
+    # Total de proyectos de la organización
+    total_projects = Project.objects.filter(organization=organization).count()
+    
+    # Total de tareas de la organización
+    total_tasks = Task.objects.filter(
+        phase__project__organization=organization
+    ).count()
+    
+    # Total de tareas pendientes del usuario (sin límite)
+    total_my_tasks = Task.objects.filter(
+        assigned_to=current_user
+    ).exclude(status='DONE').count()
+
+    # --- Archivos Recientes para el Dashboard ---
+    
+    # Obtener los archivos más recientes de la organización
+    recent_files = ProjectFile.objects.filter(
+        phase__project__organization=organization
+    ).select_related(
+        'phase__project',
+        'uploaded_by'
+    ).order_by('-uploaded_at')[:5]
+
     context = {
         'user': current_user,
         'organization': organization,
@@ -63,6 +89,14 @@ def dashboard(request):
         'active_projects': active_projects,
         'total_clients': total_clients,
         'recent_clients': recent_clients,
+
+        # Contadores totales para el dashboard
+        'total_projects': total_projects,
+        'total_tasks': total_tasks,
+        'total_my_tasks': total_my_tasks,
+
+        # Archivos recientes
+        'recent_files': recent_files,
 
         # Para consistencia con la plantilla actual (se puede refinar)
         'tasks': my_tasks, 
