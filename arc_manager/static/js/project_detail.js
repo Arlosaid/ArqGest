@@ -201,10 +201,10 @@ document.addEventListener('DOMContentLoaded', function () {
   if (phaseFilter) {
     phaseFilter.addEventListener('change', () => {
       const selected = phaseFilter.value;
-      const rows = document.querySelectorAll('#simpleTasksTable tbody tr');
-      rows.forEach(row => {
-        const phaseId = row.getAttribute('data-phase-id');
-        row.style.display = (!selected || selected === phaseId) ? '' : 'none';
+      const cards = document.querySelectorAll('#compactTasksGrid .task-compact-card');
+      cards.forEach(card => {
+        const phaseId = card.getAttribute('data-phase-id');
+        card.style.display = (!selected || selected === phaseId) ? '' : 'none';
       });
     });
   }

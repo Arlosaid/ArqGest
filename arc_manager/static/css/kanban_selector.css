@@ -17,6 +17,10 @@
     transition: var(--arc-transition);
     position: relative;
     cursor: pointer;
+    /* Asegurar altura mínima consistente */
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
 }
 
 .kanban-project-card:hover {
@@ -48,6 +52,13 @@
     line-height: 1.3;
     padding: 0 1.5rem;
     padding-top: 1.5rem;
+    /* Limitar altura del título para consistencia */
+    min-height: 2.5rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .kanban-project-status {
@@ -87,6 +98,8 @@
     gap: 1rem;
     margin-bottom: 1.5rem;
     padding: 0 1.5rem;
+    /* Altura fija para la información del proyecto */
+    min-height: 3.5rem;
 }
 
 .kanban-info-item {
@@ -107,11 +120,20 @@
     font-size: 0.875rem;
     color: var(--arc-text-primary);
     font-weight: 500;
+    /* Limitar altura del valor para consistencia */
+    min-height: 1.25rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .kanban-project-progress {
     margin-bottom: 1.5rem;
     padding: 0 1.5rem;
+    /* Altura fija para la barra de progreso */
+    min-height: 2.5rem;
 }
 
 .kanban-progress-header {
@@ -152,11 +174,18 @@
     padding: 1.5rem;
     background: var(--arc-bg-secondary);
     border-top: 1px solid var(--arc-border-color);
+    /* Empujar el footer al final de la tarjeta */
+    margin-top: auto;
+    /* Altura fija para el footer */
+    min-height: 5rem;
+    display: flex;
+    align-items: center;
 }
 
 .kanban-actions {
     display: flex;
     gap: 0.75rem;
+    width: 100%;
 }
 
 .btn-kanban-primary {
@@ -176,6 +205,9 @@
     cursor: pointer;
     font-size: 0.875rem;
     box-shadow: var(--arc-shadow-sm);
+    /* Altura fija para consistencia */
+    height: 2.75rem;
+    white-space: nowrap;
 }
 
 .btn-kanban-primary:hover {
@@ -202,6 +234,9 @@
     border: 1px solid var(--arc-border-color);
     cursor: pointer;
     font-size: 0.875rem;
+    /* Altura fija para consistencia */
+    height: 2.75rem;
+    white-space: nowrap;
 }
 
 .btn-kanban-secondary:hover {

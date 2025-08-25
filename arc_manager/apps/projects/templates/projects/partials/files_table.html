@@ -2,47 +2,6 @@
 {% load humanize %}
 
 {% with phase_files=phase.files.all %}
-<!-- Controles de archivo mejorados -->
-<div class="mb-3">
-    <div class="row g-2">
-        <div class="col-12 col-md-auto">
-            <span class="badge bg-primary">{{ phase_files.count }} archivo{{ phase_files.count|pluralize }}</span>
-        </div>
-        <div class="col-12 col-md-auto">
-            <select class="form-select form-select-sm" id="fileTypeFilter-{{ phase.id }}">
-                <option value="">{% trans "Todos los tipos" %}</option>
-                <option value="PDF">📄 PDF</option>
-                <option value="JPG,JPEG,PNG,GIF,TIFF">🖼️ {% trans "Imágenes" %}</option>
-                <option value="DWG,DXF,RVT,SKP">📐 {% trans "CAD/Diseño" %}</option>
-                <option value="DOC,DOCX">📝 Word</option>
-                <option value="XLS,XLSX">📊 Excel</option>
-                <option value="PPT,PPTX">📊 PowerPoint</option>
-                <option value="ZIP,RAR">📦 {% trans "Comprimidos" %}</option>
-                <option value="TXT,MD">📋 {% trans "Texto" %}</option>
-            </select>
-        </div>
-        <div class="col-12 col-md-auto">
-            <select class="form-select form-select-sm" id="fileDateFilter-{{ phase.id }}">
-                <option value="">{% trans "Todas las fechas" %}</option>
-                <option value="today">📅 {% trans "Hoy" %}</option>
-                <option value="week">📅 {% trans "Esta semana" %}</option>
-                <option value="month">📅 {% trans "Este mes" %}</option>
-                <option value="older">📅 {% trans "Más antiguo" %}</option>
-            </select>
-        </div>
-        <div class="col-12 col-md-auto">
-            <button type="button" class="btn btn-outline-secondary btn-sm" id="clearFilters-{{ phase.id }}">
-                <i class="fas fa-times"></i> {% trans "Limpiar" %}
-            </button>
-        </div>
-        <div class="col-12 col-md-auto ms-auto">
-            <small class="text-muted">
-                <i class="fas fa-sync-alt"></i> {% trans "Actualizado después de subida" %}
-            </small>
-        </div>
-    </div>
-</div>
-
 <div id="files-table-{{ phase.id }}" class="table-responsive">
     <table class="modern-table file-list-table" width="100%">
         <thead>

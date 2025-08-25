@@ -41,6 +41,17 @@ document.addEventListener('click', function(e) {
   const url = trigger.getAttribute('data-modal-url');
   const title = trigger.getAttribute('data-modal-title') || '';
   if (url) {
+    // Si la URL es de tareas, usar el modal universal de tareas
+    if (url.includes('/projects/tasks/') && (url.endsWith('/') || url.includes('/edit/'))) {
+      const taskIdMatch = url.match(/\/projects\/tasks\/(\d+)\//);
+      if (taskIdMatch) {
+        const taskId = taskIdMatch[1];
+        const type = url.includes('/edit/') ? 'edit' : 'detail';
+        window.openTaskModal(type, taskId);
+        return;
+      }
+    }
+    // Para otras URLs, usar el modal general
     window.openAppModal(url, title);
   }
 });

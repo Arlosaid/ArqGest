@@ -5,6 +5,123 @@ window.updateTaskStatus = function(taskId, status) {
     updateTaskStatusInstant(taskId, status);
 };
 
+// Función global para confirmar eliminación de tareas
+window.confirmDeleteTask = function(taskId, taskTitle) {
+    // Crear modal de confirmación personalizado
+    const modalHtml = `
+        <div class="modal fade" id="deleteTaskModal" tabindex="-1" aria-labelledby="deleteTaskModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title" id="deleteTaskModalLabel">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Confirmar eliminación
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="text-center mb-3">
+                            <i class="fas fa-trash-alt text-danger" style="font-size: 3rem; opacity: 0.7;"></i>
+                        </div>
+                        <p class="mb-3">¿Estás seguro de que deseas eliminar la siguiente tarea?</p>
+                        <div class="alert alert-light border">
+                            <strong>"${taskTitle}"</strong>
+                        </div>
+                        <p class="text-muted small mb-0">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Esta acción no se puede deshacer.
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>
+                            Cancelar
+                        </button>
+                        <button type="button" class="btn btn-danger" onclick="deleteTask(${taskId})">
+                            <i class="fas fa-trash-alt me-1"></i>
+                            Eliminar tarea
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remover modal anterior si existe
+    const existingModal = document.getElementById('deleteTaskModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Agregar modal al DOM
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('deleteTaskModal'));
+    modal.show();
+    
+    // Limpiar modal después de cerrarlo
+    document.getElementById('deleteTaskModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+};
+
+// Función para eliminar la tarea
+window.deleteTask = function(taskId) {
+    const url = `/projects/tasks/${taskId}/delete/`;
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken') || ''
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Cerrar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteTaskModal'));
+            if (modal) {
+                modal.hide();
+            }
+            
+            // Remover tarjeta de la UI
+            const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
+            if (taskCard) {
+                // Animación de salida
+                taskCard.style.transition = 'all 0.3s ease';
+                taskCard.style.transform = 'scale(0.8)';
+                taskCard.style.opacity = '0';
+                
+                setTimeout(() => {
+                    taskCard.remove();
+                    
+                    // Actualizar contadores
+                    const taskStatus = taskCard.dataset.status;
+                    updateTaskDeleteCounter(taskStatus);
+                    
+                    // Verificar si no hay más tareas
+                    const remainingTasks = document.querySelectorAll('.task-card-compact');
+                    if (remainingTasks.length === 0) {
+                        showEmptyState();
+                    }
+                }, 300);
+            }
+            
+            // Mostrar notificación de éxito
+            showSuccessNotification('Tarea eliminada correctamente');
+        } else {
+            // Mostrar error
+            showErrorNotification(data.error || 'Error al eliminar la tarea');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showErrorNotification('Error de conexión al eliminar la tarea');
+    });
+};
+
 // Función instantánea sin notificaciones ni recargas
 function updateTaskStatusInstant(taskId, status) {
     // Primero actualizar la UI inmediatamente
@@ -40,6 +157,9 @@ function updateTaskUIInstant(taskId, newStatus) {
     const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
     if (!taskCard) return;
     
+    // Guardar el estado anterior
+    const oldStatus = taskCard.dataset.status;
+    
     // Actualizar el dataset
     taskCard.dataset.status = newStatus;
     
@@ -63,8 +183,8 @@ function updateTaskUIInstant(taskId, newStatus) {
     // Actualizar botones de acción
     updateTaskActions(taskCard, newStatus);
     
-    // Actualizar contadores
-    updateCounters();
+    // Actualizar contadores específicamente para este cambio de estado
+    updateTaskStatusCounter(oldStatus, newStatus);
 }
 
 // Función para actualizar los botones según el nuevo estado
@@ -74,15 +194,30 @@ function updateTaskActions(taskCard, status) {
     
     const taskId = taskCard.dataset.taskId;
     const kanbanUrl = taskCard.querySelector('.action-kanban')?.href || '#';
+    const taskTitle = taskCard.querySelector('.task-title-compact')?.textContent || 'Tarea';
     
-    // Mantener siempre el botón de ver y kanban
+    // Nueva estructura con botones principales siempre visibles
     let actionsHTML = `
-        <button type="button" class="action-btn action-view"
-                data-modal-url="/projects/tasks/${taskId}/"
-                data-modal-title="Detalles de la tarea"
-                title="Ver detalles">
-            <i class="fas fa-eye"></i>
-        </button>
+        <!-- Botones principales siempre visibles -->
+        <div class="primary-actions">
+            <button type="button" class="action-btn-primary action-view"
+                    data-modal-url="/projects/tasks/${taskId}/"
+                    data-modal-title="Detalles de la tarea"
+                    title="Ver detalles">
+                <i class="fas fa-eye"></i>
+                <span>Ver detalles</span>
+            </button>
+            
+            <button type="button" class="action-btn-primary action-delete"
+                    onclick="confirmDeleteTask(${taskId}, '${taskTitle.replace(/'/g, "\\'")}')"
+                    title="Eliminar tarea">
+                <i class="fas fa-trash-alt"></i>
+                <span>Eliminar</span>
+            </button>
+        </div>
+        
+        <!-- Botones de estado -->
+        <div class="status-actions">
     `;
     
     // Botones según estado
@@ -119,11 +254,12 @@ function updateTaskActions(taskCard, status) {
     
     // Siempre agregar botón de kanban
     actionsHTML += `
-        <a href="${kanbanUrl}" 
-           class="action-btn action-kanban"
-           title="Ir al Kanban">
-            <i class="fas fa-columns"></i>
-        </a>
+            <a href="${kanbanUrl}" 
+               class="action-btn action-kanban"
+               title="Ir al Kanban">
+                <i class="fas fa-columns"></i>
+            </a>
+        </div>
     `;
     
     actionsContainer.innerHTML = actionsHTML;
@@ -136,95 +272,236 @@ function getCookie(name) {
     if (parts.length === 2) return parts.pop().split(';').shift();
 }
 
-// Función para actualizar contadores
-function updateCounters() {
-    const allTasks = document.querySelectorAll('.task-card-compact');
-    const visibleTasks = document.querySelectorAll('.task-card-compact:not([style*="display: none"])');
-    
-    let counts = {
-        total: visibleTasks.length,
-        todo: 0,
-        in_progress: 0,
-        paused: 0,
-        done: 0
-    };
-    
-    visibleTasks.forEach(task => {
-        const status = task.dataset.status;
-        if (status === 'TODO') counts.todo++;
-        else if (status === 'IN_PROGRESS') counts.in_progress++;
-        else if (status === 'PAUSED') counts.paused++;
-        else if (status === 'DONE') counts.done++;
-    });
-    
-    // Actualizar contadores en la UI
+// Variables globales para guardar los valores reales del servidor
+let serverCounters = {
+    total: 0,
+    todo: 0,
+    in_progress: 0,
+    paused: 0,
+    done: 0
+};
+
+// Función para inicializar contadores del servidor
+function initializeServerCounters() {
     const totalEl = document.querySelector('.stat-total .stat-number');
     const todoEl = document.querySelector('.stat-todo .stat-number');
     const progressEl = document.querySelector('.stat-progress .stat-number');
     const pausedEl = document.querySelector('.stat-paused .stat-number');
     const doneEl = document.querySelector('.stat-done .stat-number');
     
-    if (totalEl) totalEl.textContent = counts.total;
-    if (todoEl) todoEl.textContent = counts.todo;
-    if (progressEl) progressEl.textContent = counts.in_progress;
-    if (pausedEl) pausedEl.textContent = counts.paused;
-    if (doneEl) doneEl.textContent = counts.done;
+    // Guardar los valores originales del servidor
+    if (totalEl) serverCounters.total = parseInt(totalEl.textContent) || 0;
+    if (todoEl) serverCounters.todo = parseInt(todoEl.textContent) || 0;
+    if (progressEl) serverCounters.in_progress = parseInt(progressEl.textContent) || 0;
+    if (pausedEl) serverCounters.paused = parseInt(pausedEl.textContent) || 0;
+    if (doneEl) serverCounters.done = parseInt(doneEl.textContent) || 0;
 }
 
-// Función para filtrar tareas
+// Función para actualizar un contador específico cuando cambia el estado de una tarea
+function updateTaskStatusCounter(oldStatus, newStatus) {
+    // Decrementar el contador anterior
+    if (oldStatus === 'TODO') serverCounters.todo--;
+    else if (oldStatus === 'IN_PROGRESS') serverCounters.in_progress--;
+    else if (oldStatus === 'PAUSED') serverCounters.paused--;
+    else if (oldStatus === 'DONE') serverCounters.done--;
+    
+    // Incrementar el nuevo contador
+    if (newStatus === 'TODO') serverCounters.todo++;
+    else if (newStatus === 'IN_PROGRESS') serverCounters.in_progress++;
+    else if (newStatus === 'PAUSED') serverCounters.paused++;
+    else if (newStatus === 'DONE') serverCounters.done++;
+    
+    // Actualizar la UI con los valores actualizados
+    refreshCountersUI();
+}
+
+// Función para actualizar contadores cuando se elimina una tarea
+function updateTaskDeleteCounter(taskStatus) {
+    // Decrementar el total
+    serverCounters.total--;
+    
+    // Decrementar el contador específico
+    if (taskStatus === 'TODO') serverCounters.todo--;
+    else if (taskStatus === 'IN_PROGRESS') serverCounters.in_progress--;
+    else if (taskStatus === 'PAUSED') serverCounters.paused--;
+    else if (taskStatus === 'DONE') serverCounters.done--;
+    
+    // Actualizar la UI
+    refreshCountersUI();
+}
+
+// Función para refrescar la UI con los contadores actuales
+function refreshCountersUI() {
+    const totalEl = document.querySelector('.stat-total .stat-number');
+    const todoEl = document.querySelector('.stat-todo .stat-number');
+    const progressEl = document.querySelector('.stat-progress .stat-number');
+    const pausedEl = document.querySelector('.stat-paused .stat-number');
+    const doneEl = document.querySelector('.stat-done .stat-number');
+    
+    if (totalEl) totalEl.textContent = serverCounters.total;
+    if (todoEl) todoEl.textContent = serverCounters.todo;
+    if (progressEl) progressEl.textContent = serverCounters.in_progress;
+    if (pausedEl) pausedEl.textContent = serverCounters.paused;
+    if (doneEl) doneEl.textContent = serverCounters.done;
+}
+
+// Función legacy para compatibilidad (ahora no hace nada)
+function updateCounters() {
+    // No hacer nada - preservar los valores del servidor
+    // Solo se actualizan cuando cambia específicamente el estado de una tarea
+}
+
+// Función para mostrar estado vacío
+function showEmptyState() {
+    const tasksGrid = document.getElementById('tasksList');
+    if (tasksGrid) {
+        tasksGrid.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1;">
+                <div class="empty-icon">
+                    <i class="fas fa-clipboard-check"></i>
+                </div>
+                <h3>No tienes tareas asignadas</h3>
+                <p>¡Perfecto! No tienes tareas pendientes en este momento.</p>
+                <a href="/projects/" class="btn-explore">
+                    <i class="fas fa-search"></i> Explorar Proyectos
+                </a>
+            </div>
+        `;
+    }
+}
+
+// Funciones de notificación
+function showSuccessNotification(message) {
+    showNotification(message, 'success');
+}
+
+function showErrorNotification(message) {
+    showNotification(message, 'error');
+}
+
+function showNotification(message, type = 'success') {
+    // Crear notificación toast
+    const toastHtml = `
+        <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    `;
+    
+    // Buscar o crear contenedor de toasts
+    let toastContainer = document.querySelector('.toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+        toastContainer.style.zIndex = '1055';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Agregar toast
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    
+    // Mostrar toast
+    const toastElement = toastContainer.lastElementChild;
+    const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
+    toast.show();
+    
+    // Limpiar después de ocultar
+    toastElement.addEventListener('hidden.bs.toast', function() {
+        this.remove();
+    });
+}
+
+// Las funciones de filtros ya no necesitan manejar paginación
+// porque ahora se hace en el servidor
+
+// Función para filtrar tareas - ahora redirige al servidor con parámetros GET
 function filterTasks() {
     const searchInput = document.getElementById('taskSearch');
     const statusFilter = document.getElementById('statusFilter');
     const priorityFilter = document.getElementById('priorityFilter');
     
-    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+    const searchTerm = searchInput ? searchInput.value.trim() : '';
     const statusValue = statusFilter ? statusFilter.value : '';
     const priorityValue = priorityFilter ? priorityFilter.value : '';
     
-    const tasks = document.querySelectorAll('.task-card-compact');
+    // Construir URL con parámetros de filtro
+    const currentUrl = new URL(window.location);
+    const params = new URLSearchParams();
     
-    tasks.forEach(task => {
-        const taskTitle = task.querySelector('.task-title-compact').textContent.toLowerCase();
-        const taskProject = task.dataset.project || '';
-        const taskStatus = task.dataset.status || '';
-        const taskPriority = task.dataset.priority || '';
-        
-        let show = true;
-        
-        // Filtro de búsqueda
-        if (searchTerm && !taskTitle.includes(searchTerm) && !taskProject.includes(searchTerm)) {
-            show = false;
-        }
-        
-        // Filtro de estado
-        if (statusValue && taskStatus !== statusValue) {
-            show = false;
-        }
-        
-        // Filtro de prioridad
-        if (priorityValue && taskPriority !== priorityValue) {
-            show = false;
-        }
-        
-        task.style.display = show ? 'block' : 'none';
-    });
+    if (searchTerm) {
+        params.set('search', searchTerm);
+    }
     
-    updateCounters();
+    if (statusValue) {
+        params.set('status', statusValue);
+    }
+    
+    if (priorityValue) {
+        params.set('priority', priorityValue);
+    }
+    
+    // Navegar a la nueva URL con filtros
+    const newUrl = currentUrl.pathname + (params.toString() ? '?' + params.toString() : '');
+    
+    // Si no hay cambios en la URL, no recargar
+    if (newUrl !== window.location.pathname + window.location.search) {
+        window.location.href = newUrl;
+    }
 }
 
 // Función global para limpiar filtros
 window.clearAllFilters = function() {
+    // Simplemente redirigir a la URL base sin parámetros
+    window.location.href = window.location.pathname;
+};
+
+// Función para establecer valores de filtros desde URL
+function setFiltersFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
     const searchInput = document.getElementById('taskSearch');
     const statusFilter = document.getElementById('statusFilter');
     const priorityFilter = document.getElementById('priorityFilter');
     const clearSearch = document.getElementById('clearSearch');
     
-    if (searchInput) searchInput.value = '';
-    if (statusFilter) statusFilter.value = '';
-    if (priorityFilter) priorityFilter.value = '';
-    if (clearSearch) clearSearch.style.display = 'none';
-    filterTasks();
-};
+    // Establecer valor de búsqueda
+    const searchValue = urlParams.get('search') || '';
+    if (searchInput) {
+        searchInput.value = searchValue;
+        if (searchValue && clearSearch) {
+            clearSearch.style.display = 'block';
+        }
+    }
+    
+    // Establecer filtro de estado
+    const statusValue = urlParams.get('status') || '';
+    if (statusFilter) {
+        statusFilter.value = statusValue;
+    }
+    
+    // Establecer filtro de prioridad
+    const priorityValue = urlParams.get('priority') || '';
+    if (priorityFilter) {
+        priorityFilter.value = priorityValue;
+    }
+}
+
+// Función para añadir debounce a la búsqueda
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
 
 // Inicialización cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
@@ -234,15 +511,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const priorityFilter = document.getElementById('priorityFilter');
     const clearFiltersBtn = document.getElementById('clearFiltersBtn');
     
-    // Event listeners para búsqueda
+    // Establecer valores de filtros desde URL
+    setFiltersFromURL();
+    
+    // Event listeners para búsqueda con debounce
     if (searchInput) {
+        const debouncedFilter = debounce(filterTasks, 500);
+        
         searchInput.addEventListener('input', function() {
             if (this.value.length > 0) {
                 if (clearSearch) clearSearch.style.display = 'block';
             } else {
                 if (clearSearch) clearSearch.style.display = 'none';
             }
-            filterTasks();
+            debouncedFilter();
         });
     }
     
@@ -269,7 +551,7 @@ document.addEventListener('DOMContentLoaded', function() {
         clearFiltersBtn.addEventListener('click', window.clearAllFilters);
     }
     
-    // Inicializar contadores
-    updateCounters();
+    // Inicializar contadores del servidor (preservar valores originales)
+    initializeServerCounters();
 });
 

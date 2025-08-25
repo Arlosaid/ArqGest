@@ -76,7 +76,16 @@ def upload_file(request, project_id, phase_id):
     if request.headers.get('HX-Request') == 'true':
         # Determinar qué template usar basado en el target
         hx_target = request.headers.get('HX-Target', '')
-        if 'files-table' in hx_target:
+        if 'files-container' in hx_target:
+            # Redirigir a la vista paginada para mantener consistencia
+            from django.shortcuts import redirect
+            from django.urls import reverse
+            redirect_url = reverse('projects:phase-files-paginated', kwargs={
+                'project_id': phase.project.id,
+                'phase_id': phase.id
+            }) + '?page=1'
+            return redirect(redirect_url)
+        elif 'files-table' in hx_target:
             # Si el target es una tabla, devolver el template de tabla simplificado
             from apps.projects.models import Project
             

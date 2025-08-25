@@ -1,32 +1,29 @@
 {% load i18n %}
 <form hx-post="{% url 'projects:task-edit' task.pk %}"
-      hx-target="#appModalBody" hx-swap="none" hx-trigger="submit">
+      hx-target="#taskUniversalContent" hx-swap="innerHTML" hx-trigger="submit"
+      hx-on::after-request="if(event.detail.xhr.status === 200) { const modal = bootstrap.Modal.getInstance(document.getElementById('taskUniversalModal')); if(modal) modal.hide(); }"
     {% csrf_token %}
-    <div class="modal-header">
-        <h5 class="modal-title">{% trans "Editar Tarea" %}</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-    </div>
     <div class="modal-body">
-        <div class="mb-3">
-            <label for="id_title" class="form-label">{% trans "Título de la Tarea" %}</label>
-            <input type="text" name="title" id="id_title" class="form-control" value="{{ task.title }}" required>
+        <div class="mb-4">
+            <label for="id_title" class="form-label fw-bold text-dark">{% trans "TÍTULO DE LA TAREA" %}</label>
+            <input type="text" name="title" id="id_title" class="form-control border-2" value="{{ task.title }}" required>
         </div>
-        <div class="mb-3">
-            <label for="id_description" class="form-label">{% trans "Descripción" %}</label>
-            <textarea name="description" id="id_description" class="form-control" rows="3">{{ task.description }}</textarea>
+        <div class="mb-4">
+            <label for="id_description" class="form-label fw-bold text-dark">{% trans "DESCRIPCIÓN" %}</label>
+            <textarea name="description" id="id_description" class="form-control border-2" rows="2">{{ task.description }}</textarea>
         </div>
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <label for="id_priority" class="form-label">{% trans "Prioridad" %}</label>
-                <select name="priority" id="id_priority" class="form-select">
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <label for="id_priority" class="form-label fw-bold text-dark">{% trans "PRIORIDAD" %}</label>
+                <select name="priority" id="id_priority" class="form-select border-2">
                     {% for value, label in priority_choices %}
                         <option value="{{ value }}" {% if task.priority == value %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-6 mb-3">
-                <label for="id_assigned_to" class="form-label">{% trans "Asignado a" %}</label>
-                <select name="assigned_to" id="id_assigned_to" class="form-select">
+            <div class="col-md-6">
+                <label for="id_assigned_to" class="form-label fw-bold text-dark">{% trans "ASIGNADO A" %}</label>
+                <select name="assigned_to" id="id_assigned_to" class="form-select border-2">
                     <option value="">{% trans "Sin asignar" %}</option>
                     {% for u in users %}
                         <option value="{{ u.id }}" {% if task.assigned_to and task.assigned_to.id == u.id %}selected{% endif %}>{{ u.get_full_name|default:u.username }}</option>
@@ -34,27 +31,35 @@
                 </select>
             </div>
         </div>
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <label for="id_phase" class="form-label">{% trans "Fase" %}</label>
-                <select name="phase" id="id_phase" class="form-select">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label for="id_phase" class="form-label fw-bold text-dark">{% trans "FASE" %}</label>
+                <select name="phase" id="id_phase" class="form-select border-2">
                     {% for phase in phases %}
                         <option value="{{ phase.id }}" {% if task.phase.id == phase.id %}selected{% endif %}>{{ phase.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-6 mb-3">
-                <label for="id_due_date" class="form-label">{% trans "Fecha de Vencimiento" %}</label>
-                <input type="date" name="due_date" id="id_due_date" class="form-control" value="{{ task.due_date|date:'Y-m-d'|default:'' }}">
+            <div class="col-md-6">
+                <label for="id_due_date" class="form-label fw-bold text-dark">{% trans "FECHA DE VENCIMIENTO" %}</label>
+                <input type="date" name="due_date" id="id_due_date" class="form-control border-2" value="{{ task.due_date|date:'Y-m-d'|default:'' }}">
             </div>
         </div>
     </div>
     <div class="modal-footer">
-        <button type="button" class="btn btn-outline-danger" id="deleteTaskBtn" data-task-id="{{ task.id }}">
-            <i class="fas fa-trash"></i> {% trans "Eliminar" %}
-        </button>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancelar" %}</button>
-        <button type="submit" class="btn btn-primary" id="saveTaskBtn">{% trans "Guardar Cambios" %}</button>
+        <div class="footer-left">
+            <button type="button" class="btn btn-outline-danger" id="deleteTaskBtn" data-task-id="{{ task.id }}">
+                <i class="fas fa-trash me-2"></i>{% trans "Eliminar" %}
+            </button>
+        </div>
+        <div class="footer-right">
+            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">
+                <i class="fas fa-times me-2"></i>{% trans "Cancelar" %}
+            </button>
+            <button type="submit" class="btn btn-primary" id="saveTaskBtn">
+                <i class="fas fa-save me-2"></i>{% trans "Guardar Cambios" %}
+            </button>
+        </div>
     </div>
 </form>
 

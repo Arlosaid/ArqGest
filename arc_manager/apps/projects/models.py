@@ -183,6 +183,14 @@ class Task(models.Model):
 
     def __str__(self):
         return self.title
+    
+    @property
+    def is_due_soon(self):
+        """Devuelve True si la tarea vence en los próximos 3 días."""
+        if not self.due_date:
+            return False
+        from datetime import date, timedelta
+        return self.due_date <= date.today() + timedelta(days=3)
 
 class PhaseTemplate(models.Model):
     name = models.CharField(_("Nombre"), max_length=100)

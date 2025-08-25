@@ -1,0 +1,62 @@
+{% load i18n %}
+{% load humanize %}
+
+<!-- Solo los elementos de archivos, sin el contenedor grid -->
+{% for file in files %}
+<div class="file-item" id="file-{{ file.id }}">
+    <div class="file-card">
+        <!-- Icono del archivo -->
+        <a href="{{ file.file.url }}" target="_blank" class="text-decoration-none">
+            {% if file.extension == 'JPG' or file.extension == 'JPEG' or file.extension == 'PNG' or file.extension == 'GIF' or file.extension == 'TIFF' %}
+                <div class="file-icon file-image"><i class="fas fa-image"></i></div>
+            {% elif file.extension == 'PDF' %}
+                <div class="file-icon file-pdf"><i class="fas fa-file-pdf"></i></div>
+            {% elif file.extension == 'DWG' or file.extension == 'DXF' or file.extension == 'RVT' or file.extension == 'SKP' %}
+                <div class="file-icon file-cad"><i class="fas fa-drafting-compass"></i></div>
+            {% elif file.extension == 'DOC' or file.extension == 'DOCX' %}
+                <div class="file-icon file-doc"><i class="fas fa-file-word"></i></div>
+            {% elif file.extension == 'XLS' or file.extension == 'XLSX' %}
+                <div class="file-icon file-excel"><i class="fas fa-file-excel"></i></div>
+            {% elif file.extension == 'PPT' or file.extension == 'PPTX' %}
+                <div class="file-icon file-ppt"><i class="fas fa-file-powerpoint"></i></div>
+            {% elif file.extension == 'ZIP' or file.extension == 'RAR' %}
+                <div class="file-icon file-archive"><i class="fas fa-file-archive"></i></div>
+            {% elif file.extension == 'TXT' or file.extension == 'MD' %}
+                <div class="file-icon file-text"><i class="fas fa-file-alt"></i></div>
+            {% else %}
+                <div class="file-icon file-default"><i class="fas fa-file"></i></div>
+            {% endif %}
+        </a>
+        
+        <!-- Información del archivo -->
+        <div class="file-name" title="{{ file.filename }}">{{ file.filename|truncatechars:18 }}</div>
+        <div class="file-meta">
+            <span class="file-size">{{ file.size|filesizeformat }}</span>
+            <span class="file-type">{{ file.extension }}</span>
+        </div>
+        <div class="file-date">{{ file.uploaded_at|date:"d/m/Y" }}</div>
+        <div class="file-uploader">{{ file.uploaded_by.get_full_name|default:"N/A"|truncatechars:12 }}</div>
+        
+        <!-- Acciones -->
+        <div class="file-actions">
+            <a href="{{ file.file.url }}" class="btn btn-sm btn-primary" download>
+                <i class="fas fa-download"></i>
+            </a>
+            <button class="btn btn-sm btn-outline-danger"
+                    hx-post="{% url 'files:delete_file' file.id %}"
+                    hx-confirm="{% trans '¿Seguro que deseas eliminar este archivo?' %}"
+                    hx-target="#file-{{ file.id }}"
+                    hx-swap="outerHTML">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    </div>
+</div>
+{% empty %}
+{% if not has_existing_files %}
+<div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #6b7280;" id="no-files-message">
+    <i class="fas fa-folder-open" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+    <p>{% trans "No se encontraron archivos" %}</p>
+</div>
+{% endif %}
+{% endfor %}

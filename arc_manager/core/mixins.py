@@ -9,8 +9,8 @@ class PageSizeMixin:
 	"""
 
 	# Tamaño por defecto y límites aceptados
-	paginate_by: int = 15
-	allowed_page_sizes = (10, 15, 25, 50, 100)
+	paginate_by: int = 12
+	allowed_page_sizes = (6, 12, 24, 48, 100)
 	max_page_size: int = 100
 
 	def get_paginate_by(self, queryset) -> Optional[int]:  # type: ignore[override]
