@@ -1,0 +1,364 @@
+// Gestión de Clientes - JavaScript con búsqueda del servidor
+class ClientManagement {
+    constructor() {
+        // Solo inicializar si estamos en la página de gestión de clientes
+        if (!document.querySelector('.client-management-page')) {
+            console.log('No es la página de gestión de clientes, saliendo...');
+            return;
+        }
+        
+        // Verificar elementos necesarios
+        if (!document.querySelector('.table-search-input')) {
+            console.log('No se encontró input de búsqueda, saliendo...');
+            return;
+        }
+        
+        this.searchInput = document.querySelector('.table-search-input');
+        this.actionButtons = document.querySelectorAll('.action-btn');
+        this.paginationButtons = document.querySelectorAll('.pagination-btn, .pagination-number');
+        
+        console.log('ClientManagement inicializado correctamente');
+        console.log('Search input encontrado:', this.searchInput);
+        
+        this.init();
+    }
+
+    init() {
+        this.setupEventListeners();
+        this.setupSearch();
+    }
+
+    setupEventListeners() {
+        // Búsqueda del servidor - enviar formulario automáticamente después de un delay
+        if (this.searchInput) {
+            this.searchInput.addEventListener('input', this.debounce(this.handleServerSearch.bind(this), 500));
+        }
+
+        // Botones de acción
+        this.actionButtons.forEach(button => {
+            button.addEventListener('click', this.handleActionClick.bind(this));
+        });
+
+        // Paginación
+        this.paginationButtons.forEach(button => {
+            button.addEventListener('click', this.handlePaginationClick.bind(this));
+        });
+    }
+
+    setupSearch() {
+        // Configuración adicional para búsqueda si es necesaria
+        if (this.searchInput) {
+            // Focus automático con Ctrl+F
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 'f') {
+                    e.preventDefault();
+                    this.searchInput.focus();
+                }
+                
+                // Limpiar búsqueda con Escape
+                if (e.key === 'Escape' && this.searchInput.value) {
+                    this.searchInput.value = '';
+                    // Enviar formulario para limpiar la búsqueda
+                    const form = this.searchInput.closest('form');
+                    if (form) form.submit();
+                }
+            });
+        }
+    }
+
+    handleServerSearch(event) {
+        const searchTerm = event.target.value.trim();
+        const form = event.target.closest('form');
+        
+        if (!form) {
+            console.log('No se encontró formulario de búsqueda');
+            return;
+        }
+
+        console.log('Enviando búsqueda al servidor:', searchTerm);
+        
+        // Mostrar indicador de carga
+        this.showSearchLoading();
+        
+        // Enviar formulario automáticamente
+        form.submit();
+    }
+
+    showSearchLoading() {
+        const searchInput = this.searchInput;
+        const searchIcon = document.querySelector('.table-search-icon');
+        
+        if (searchInput) {
+            searchInput.disabled = true;
+        }
+        
+        if (searchIcon) {
+            searchIcon.className = 'fas fa-spinner fa-spin table-search-icon';
+        }
+    }
+
+    handleActionClick(event) {
+        const button = event.currentTarget;
+        
+        // No manejar aquí los botones que ya tienen href
+        if (button.hasAttribute('href')) {
+            return; // Dejar que el navegador maneje la navegación
+        }
+
+        const action = button.classList.contains('view') ? 'view' : 
+                      button.classList.contains('edit') ? 'edit' : 'delete';
+
+        const row = button.closest('tr');
+        const clientName = row ? row.querySelector('.client-name').textContent : '';
+
+        switch (action) {
+            case 'view':
+                this.showClientDetails(clientName);
+                break;
+            case 'edit':
+                this.editClient(clientName);
+                break;
+            case 'delete':
+                this.confirmDeleteClient(clientName);
+                break;
+        }
+    }
+
+    handlePaginationClick(event) {
+        const button = event.currentTarget;
+        
+        if (button.classList.contains('disabled')) return;
+
+        // Remover clase active de todos los números
+        document.querySelectorAll('.pagination-number').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // Agregar clase active al botón clickeado si es un número
+        if (button.classList.contains('pagination-number')) {
+            button.classList.add('active');
+        }
+
+        // Si el elemento tiene href, dejamos que el navegador navegue normalmente
+        const href = button.getAttribute('href');
+        if (href) return;
+
+        // Simular carga solo si no hay navegación
+        this.showLoading();
+        setTimeout(() => {
+            this.hideLoading();
+        }, 500);
+    }
+
+    showClientDetails(clientName) {
+        this.showNotification(`Mostrando detalles de ${clientName}`, 'info');
+    }
+
+    editClient(clientName) {
+        this.showNotification(`Editando cliente ${clientName}`, 'warning');
+    }
+
+    confirmDeleteClient(clientName) {
+        const confirmed = confirm(`¿Estás seguro de que deseas eliminar al cliente ${clientName}?\n\nEsta acción no se puede deshacer.`);
+        if (confirmed) {
+            this.deleteClient(clientName);
+        }
+    }
+
+    deleteClient(clientName) {
+        // Simular eliminación
+        this.showNotification(`Cliente ${clientName} eliminado correctamente`, 'success');
+        
+        // Aquí harías la petición real al servidor
+        // fetch('/api/clients/delete', { method: 'DELETE', ... })
+    }
+
+    showNotification(message, type = 'info') {
+        // Usar el sistema de notificaciones moderno
+        if (window.notifications) {
+            window.notifications.show(message, type);
+        } else {
+            // Fallback si el sistema no está disponible
+            console.warn('Sistema de notificaciones no disponible:', message);
+        }
+    }
+
+    showLoading() {
+        const tableContainer = document.querySelector('.table-container');
+        if (tableContainer) {
+            tableContainer.classList.add('loading');
+        }
+    }
+
+    hideLoading() {
+        const tableContainer = document.querySelector('.table-container');
+        if (tableContainer) {
+            tableContainer.classList.remove('loading');
+        }
+    }
+
+    // Utility function para debounce
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+}
+
+// Funciones globales para compatibilidad
+function clearSearch() {
+    const searchInput = document.querySelector('.table-search-input');
+    if (searchInput) {
+        searchInput.value = '';
+        // Enviar formulario para limpiar la búsqueda
+        const form = searchInput.closest('form');
+        if (form) {
+            form.submit();
+        } else {
+            // Fallback: redirigir a la página sin parámetros
+            window.location.href = window.location.pathname;
+        }
+    }
+}
+
+// Variable global para la instancia
+let clientManagementInstance = null;
+
+// Función global para notificaciones (usa el sistema moderno)
+function showGlobalNotification(message, type = 'info') {
+    if (window.notifications) {
+        window.notifications.show(message, type);
+    } else {
+        // Fallback temporal hasta que el sistema se cargue
+        setTimeout(() => {
+            if (window.notifications) {
+                window.notifications.show(message, type);
+            } else {
+                console.warn('Sistema de notificaciones no disponible:', message);
+            }
+        }, 100);
+    }
+}
+
+// Inicializar cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM cargado para gestión de clientes...');
+    
+    // Verificar si estamos en la página correcta
+    const isClientPage = document.querySelector('.client-management-page') || 
+                        (document.querySelector('h1') && document.querySelector('h1').textContent.includes('Gestión de Clientes'));
+    
+    if (!isClientPage) {
+        console.log('No es la página de clientes, saliendo...');
+        return;
+    }
+    
+    console.log('Página de clientes detectada, inicializando...');
+    
+    // Intentar inicializar la clase principal
+    try {
+        clientManagementInstance = new ClientManagement();
+        console.log('ClientManagement inicializado');
+    } catch (error) {
+        console.error('Error al inicializar ClientManagement:', error);
+    }
+    
+    // Siempre inicializar búsqueda simple como respaldo
+    setTimeout(() => {
+        initSimpleSearch();
+    }, 200);
+});
+
+// Función de búsqueda simple como fallback
+function initSimpleSearch() {
+    const searchInput = document.querySelector('.table-search-input');
+    if (!searchInput) {
+        console.log('FALLBACK: No se encontró el input de búsqueda');
+        return;
+    }
+    
+    // Verificar si ya tiene event listeners (para evitar duplicados)
+    if (searchInput.hasAttribute('data-search-initialized')) {
+        console.log('FALLBACK: Búsqueda ya inicializada, saltando...');
+        return;
+    }
+    
+    console.log('FALLBACK: Inicializando búsqueda simple...');
+    
+    // Marcar como inicializado
+    searchInput.setAttribute('data-search-initialized', 'true');
+    
+    // Event listener para búsqueda
+    searchInput.addEventListener('input', function(event) {
+        const searchTerm = event.target.value.trim();
+        const form = event.target.closest('form');
+        
+        console.log('FALLBACK: Input detectado:', searchTerm);
+        
+        if (!form) {
+            console.error('FALLBACK: No se encontró formulario para la búsqueda');
+            return;
+        }
+        
+        // Limpiar timeout anterior
+        if (window.clientSearchTimeout) {
+            clearTimeout(window.clientSearchTimeout);
+        }
+        
+        // Crear nuevo timeout para debounce
+        window.clientSearchTimeout = setTimeout(() => {
+            console.log('FALLBACK: Enviando formulario con búsqueda:', searchTerm);
+            
+            // Mostrar indicador visual (opcional)
+            const searchIcon = document.querySelector('.table-search-icon');
+            if (searchIcon) {
+                searchIcon.className = 'fas fa-spinner fa-spin table-search-icon';
+            }
+            
+            // Enviar formulario
+            form.submit();
+        }, 500);
+    });
+    
+    // Event listener para tecla Escape
+    searchInput.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && this.value) {
+            console.log('FALLBACK: Escape presionado, limpiando búsqueda');
+            this.value = '';
+            const form = this.closest('form');
+            if (form) {
+                form.submit();
+            }
+        }
+    });
+    
+    console.log('FALLBACK: Búsqueda simple configurada correctamente');
+}
+
+// Función de debug inmediata
+(function debugClientSearch() {
+    console.log('=== DEBUG CLIENT SEARCH ===');
+    console.log('URL actual:', window.location.pathname);
+    console.log('Título de página:', document.title);
+    console.log('H1 encontrado:', document.querySelector('h1')?.textContent || 'No encontrado');
+    console.log('Clase client-management-page:', !!document.querySelector('.client-management-page'));
+    console.log('Input de búsqueda:', !!document.querySelector('.table-search-input'));
+    console.log('Formulario de búsqueda:', !!document.querySelector('.table-search-box'));
+    console.log('============================');
+})();
+
+// Limpiar al cerrar la página
+window.addEventListener('beforeunload', () => {
+    if (window.clientSearchTimeout) {
+        clearTimeout(window.clientSearchTimeout);
+    }
+    if (clientManagementInstance) {
+        // Limpiar si es necesario
+    }
+});

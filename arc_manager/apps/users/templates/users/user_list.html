@@ -9,7 +9,247 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/user_management.js' %}"></script>
+<script>
+// Script único y directo para búsqueda de usuarios
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('👥 INICIALIZANDO BÚSQUEDA DE USUARIOS');
+    
+    const searchInput = document.querySelector('.table-search-input');
+    const searchForm = document.querySelector('.table-search-box');
+    
+    if (!searchInput || !searchForm) {
+        console.error('❌ No se encontraron elementos de búsqueda de usuarios');
+        return;
+    }
+    
+    console.log('✅ Elementos de usuarios encontrados, configurando búsqueda...');
+    
+    let searchTimeout;
+    let isSearching = false;
+    
+    // Event listener principal para búsqueda
+    searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.trim();
+        console.log('📝 Búsqueda de usuarios:', searchTerm);
+        
+        // Prevenir múltiples búsquedas simultáneas
+        if (isSearching) {
+            console.log('⏳ Búsqueda de usuarios en progreso, esperando...');
+            return;
+        }
+        
+        // Limpiar timeout anterior
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+        
+        // Configurar nuevo timeout
+        searchTimeout = setTimeout(function() {
+            console.log('🚀 Enviando búsqueda de usuarios:', searchTerm);
+            isSearching = true;
+            
+            // Cambiar icono a loading
+            const icon = document.querySelector('.table-search-icon');
+            if (icon) {
+                icon.className = 'fas fa-spinner fa-spin table-search-icon';
+            }
+            
+            // Enviar formulario
+            try {
+                searchForm.submit();
+            } catch (error) {
+                console.error('❌ Error al enviar formulario de usuarios:', error);
+                isSearching = false;
+            }
+        }, 500);
+    });
+    
+    // Event listener para tecla Escape
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && this.value) {
+            console.log('🧹 Limpiando búsqueda de usuarios con Escape');
+            this.value = '';
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+            searchForm.submit();
+        }
+    });
+    
+    console.log('✅ Búsqueda de usuarios configurada correctamente');
+});
+
+// Funciones para modal de eliminación (extraídas del JS original)
+function openDeleteModal(userId) {
+    // Buscar información del usuario en la tabla
+    let userRow = null;
+    const deleteButtons = document.querySelectorAll('button[onclick*="openDeleteModal"]');
+    
+    for (let btn of deleteButtons) {
+        if (btn.onclick.toString().includes(userId)) {
+            userRow = btn.closest('tr');
+            if (!userRow) {
+                userRow = btn.closest('.mobile-user-card');
+            }
+            break;
+        }
+    }
+    
+    if (!userRow) {
+        console.error('No se encontró información del usuario');
+        return;
+    }
+    
+    // Poblar modal
+    if (userRow.tagName === 'TR') {
+        populateDeleteModalFromTable(userId, userRow);
+    } else {
+        populateDeleteModalFromMobile(userId, userRow);
+    }
+    
+    // Mostrar modal manualmente
+    const modalElement = document.getElementById('deleteUserModal');
+    modalElement.style.display = 'block';
+    modalElement.classList.add('show');
+    document.body.classList.add('modal-open');
+}
+
+function closeDeleteModal() {
+    const modalElement = document.getElementById('deleteUserModal');
+    modalElement.style.display = 'none';
+    modalElement.classList.remove('show');
+    document.body.classList.remove('modal-open');
+}
+
+function populateDeleteModalFromTable(userId, row) {
+    const userInfo = extractUserInfoFromTableRow(row);
+    populateDeleteModal(userId, userInfo);
+}
+
+function populateDeleteModalFromMobile(userId, card) {
+    const userInfo = extractUserInfoFromMobileCard(card);
+    populateDeleteModal(userId, userInfo);
+}
+
+function extractUserInfoFromTableRow(row) {
+    const userNameEl = row.querySelector('.user-name');
+    const emailEl = row.querySelector('.email-link');
+    const roleEl = row.querySelector('.role-badge');
+    const statusEl = row.querySelector('.status-badge');
+    
+    return {
+        fullName: userNameEl ? userNameEl.textContent.trim() : 'N/A',
+        email: emailEl ? emailEl.textContent.trim() : 'N/A',
+        role: roleEl ? roleEl.textContent.trim() : 'N/A',
+        status: statusEl ? statusEl.textContent.trim() : 'N/A',
+        initials: userNameEl ? getInitials(userNameEl.textContent) : 'NA'
+    };
+}
+
+function extractUserInfoFromMobileCard(card) {
+    const userNameEl = card.querySelector('.user-name');
+    const emailEl = card.querySelector('.user-username');
+    const roleEl = card.querySelector('.role-badge');
+    const statusEl = card.querySelector('.status-badge');
+    
+    return {
+        fullName: userNameEl ? userNameEl.textContent.trim() : 'N/A',
+        email: emailEl ? emailEl.textContent.trim() : 'N/A',
+        role: roleEl ? roleEl.textContent.trim() : 'N/A',
+        status: statusEl ? statusEl.textContent.trim() : 'N/A',
+        initials: userNameEl ? getInitials(userNameEl.textContent) : 'NA'
+    };
+}
+
+function getInitials(name) {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+}
+
+function populateDeleteModal(userId, userInfo) {
+    document.getElementById('userInitials').textContent = userInfo.initials;
+    document.getElementById('userFullName').textContent = userInfo.fullName;
+    document.getElementById('userEmail').textContent = userInfo.email;
+    document.getElementById('userStatus').innerHTML = `<span class="badge ${userInfo.status.toLowerCase() === 'activo' ? 'bg-success' : 'bg-secondary'}">${userInfo.status}</span>`;
+    
+    // Configurar el botón de confirmación
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    confirmBtn.setAttribute('data-user-id', userId);
+    
+    // Resetear checkbox y botón
+    const checkbox = document.getElementById('confirmUnderstand');
+    checkbox.checked = false;
+    confirmBtn.disabled = true;
+    
+    // Resetear spinner
+    const spinner = confirmBtn.querySelector('.spinner-border');
+    if (spinner) spinner.classList.add('d-none');
+}
+
+function deleteUser(userId) {
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    const spinner = confirmBtn.querySelector('.spinner-border');
+    
+    // Mostrar loading
+    confirmBtn.disabled = true;
+    if (spinner) spinner.classList.remove('d-none');
+    
+    // Realizar petición de eliminación con la URL correcta
+    const formData = new FormData();
+    formData.append('confirm_delete', 'yes');
+    
+    fetch(`/users/${userId}/delete-ajax/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeDeleteModal();
+            const userNameEl = document.getElementById('userFullName');
+            const userName = userNameEl ? userNameEl.textContent : 'Usuario';
+            
+            // Mostrar notificación simple
+            alert(`${userName} eliminado correctamente`);
+            
+            // Recargar página
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            throw new Error(data.error || 'Error al eliminar usuario');
+        }
+    })
+    .catch(error => {
+        confirmBtn.disabled = false;
+        if (spinner) spinner.classList.add('d-none');
+        alert(`Error al eliminar usuario: ${error.message}`);
+        console.error('Error al eliminar usuario:', error);
+        closeDeleteModal();
+    });
+}
+
+// Configurar modal cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmCheckbox = document.getElementById('confirmUnderstand');
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    
+    if (confirmCheckbox && confirmBtn) {
+        confirmCheckbox.addEventListener('change', function() {
+            confirmBtn.disabled = !this.checked;
+        });
+        
+        confirmBtn.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            if (userId && confirmCheckbox.checked) {
+                deleteUser(userId);
+            }
+        });
+    }
+});
+</script>
 {% endblock %}
 
 {% block content %}
