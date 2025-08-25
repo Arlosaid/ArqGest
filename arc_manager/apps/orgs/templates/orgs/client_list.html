@@ -9,7 +9,7 @@
             
 {% block content %}
 <div class="page-container client-management-page">
-    <!-- HEADER SECTION -->
+    <!-- HEADER SECTION (estilo tareas unificado) -->
     <div class="header-section">
         <div class="header-content">
             <div class="header-title">
@@ -17,18 +17,20 @@
                     <i class="fas fa-user-tie"></i>
                 </div>
                 <h1>Gestión de Clientes</h1>
+                <div class="text-muted">Administra tu cartera de clientes</div>
             </div>
-            <a href="{% url 'orgs:client_create' %}" class="btn-primary-prominent">
-                <i class="fas fa-user-plus"></i>
-                Nuevo Cliente
-            </a>
+            <div class="d-flex gap-2">
+                <a href="{% url 'orgs:client_create' %}" class="btn btn-primary">
+                    <i class="fas fa-user-plus"></i> Nuevo Cliente
+                </a>
+            </div>
         </div>
     </div>
 
     <!-- Tabla mejorada -->
     <div class="table-container">
         <div class="table-header">
-            <h3>Lista de Clientes</h3>
+            <h3 class="unified-title-tertiary">Lista de Clientes</h3>
             
             <!-- Búsqueda -->
             <div class="table-search-container">

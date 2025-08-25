@@ -142,9 +142,15 @@ body.modal-open {
     gap: 1rem;
 }
 
-/* ===== HEADER SECTION (GLOBAL) ===== */
+/* ===== HEADER SECTION (ESTILO TAREAS UNIFICADO) ===== */
+/* Basado exactamente en kanban_board.html líneas 22-40 */
 .header-section {
-    margin-bottom: 3rem; /* Antes: var(--arc-spacing-lg) o 1.5rem. Ahora más espacio. */
+    background: linear-gradient(135deg, #f8faff 0%, #eef5ff 100%);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid #e8f2ff;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
 .header-content {
@@ -171,6 +177,7 @@ body.modal-open {
     justify-content: center;
     color: white;
     font-size: 1.25rem;
+    flex-shrink: 0;
 }
 
 .header-title h1 {
@@ -178,6 +185,16 @@ body.modal-open {
     font-weight: 700;
     color: var(--arc-text-primary);
     margin: 0;
+    line-height: 1.2;
+}
+
+/* Subtítulo del header - exacto como en kanban_board.html */
+.header-title .text-muted {
+    font-size: 0.875rem;
+    color: var(--arc-text-secondary);
+    margin: 0;
+    font-weight: 400;
+    line-height: 1.3;
 }
 
 /* ===== BOTONES GLOBALES ===== */
@@ -392,6 +409,347 @@ body.modal-open {
 .pagination-btn.disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+/* ===== SISTEMA UNIFICADO DE ESTILOS DE TEXTO Y LAYOUT ===== */
+/* Basado en el diseño de la página de tareas - Referencia: tasks.css */
+
+/* Títulos principales unificados */
+.unified-title-primary {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--arc-text-primary);
+    margin: 0 0 0.5rem 0;
+    line-height: 1.4;
+}
+
+.unified-title-secondary {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--arc-text-primary);
+    margin: 0 0 0.5rem 0;
+    line-height: 1.4;
+}
+
+.unified-title-tertiary {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--arc-text-primary);
+    margin: 0 0 0.5rem 0;
+    line-height: 1.4;
+}
+
+/* Subtítulos unificados */
+.unified-subtitle {
+    font-size: 1rem;
+    color: var(--arc-text-secondary);
+    margin: 0 0 1rem 0;
+    line-height: 1.5;
+}
+
+.unified-subtitle-small {
+    font-size: 0.875rem;
+    color: var(--arc-text-secondary);
+    margin: 0 0 0.75rem 0;
+    line-height: 1.5;
+}
+
+/* Texto del cuerpo unificado */
+.unified-text-primary {
+    font-size: 1rem;
+    color: var(--arc-text-primary);
+    line-height: 1.6;
+    margin: 0 0 1rem 0;
+}
+
+.unified-text-secondary {
+    font-size: 0.875rem;
+    color: var(--arc-text-secondary);
+    line-height: 1.5;
+    margin: 0 0 0.75rem 0;
+}
+
+.unified-text-muted {
+    font-size: 0.875rem;
+    color: var(--arc-text-muted);
+    line-height: 1.5;
+    margin: 0 0 0.75rem 0;
+}
+
+.unified-text-small {
+    font-size: 0.75rem;
+    color: var(--arc-text-secondary);
+    line-height: 1.4;
+    margin: 0 0 0.5rem 0;
+}
+
+/* Headers unificados para todas las páginas */
+.unified-header {
+    background: var(--arc-bg-primary);
+    border-radius: var(--arc-border-radius);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--arc-border-color);
+    box-shadow: var(--arc-shadow-sm);
+}
+
+.unified-header-gradient {
+    background: linear-gradient(135deg, var(--arc-color-primary) 0%, var(--arc-color-primary-hover) 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: var(--arc-border-radius);
+    margin-bottom: 2rem;
+    box-shadow: var(--arc-shadow-md);
+    position: relative;
+    overflow: hidden;
+}
+
+.unified-header-gradient::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 200px;
+    height: 200px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    transform: translate(50%, -50%);
+}
+
+.unified-header-content {
+    position: relative;
+    z-index: 2;
+}
+
+.unified-header-gradient .unified-title-primary,
+.unified-header-gradient .unified-title-secondary,
+.unified-header-gradient .unified-title-tertiary {
+    color: white;
+}
+
+.unified-header-gradient .unified-subtitle,
+.unified-header-gradient .unified-subtitle-small {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Containers unificados */
+.unified-container {
+    background: var(--arc-bg-primary);
+    border-radius: var(--arc-border-radius);
+    box-shadow: var(--arc-shadow-sm);
+    border: 1px solid var(--arc-border-color);
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
+
+.unified-container-padding {
+    padding: 1.5rem;
+}
+
+.unified-container-header {
+    background: var(--arc-bg-tertiary);
+    border-bottom: 1px solid var(--arc-border-color);
+    padding: 1rem 1.5rem;
+}
+
+.unified-container-body {
+    padding: 1.5rem;
+}
+
+.unified-container-footer {
+    background: var(--arc-bg-secondary);
+    border-top: 1px solid var(--arc-border-color);
+    padding: 1rem 1.5rem;
+}
+
+/* Grids unificados */
+.unified-grid-auto {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.unified-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.unified-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+
+.unified-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+}
+
+/* Responsive para grids */
+@media (max-width: 1024px) {
+    .unified-grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .unified-grid-3 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .unified-grid-4,
+    .unified-grid-3,
+    .unified-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Espaciado unificado */
+.unified-spacing-xs { margin-bottom: var(--arc-spacing-xs); }
+.unified-spacing-sm { margin-bottom: var(--arc-spacing-sm); }
+.unified-spacing-md { margin-bottom: var(--arc-spacing-md); }
+.unified-spacing-lg { margin-bottom: var(--arc-spacing-lg); }
+.unified-spacing-xl { margin-bottom: var(--arc-spacing-xl); }
+.unified-spacing-2xl { margin-bottom: var(--arc-spacing-2xl); }
+
+.unified-padding-xs { padding: var(--arc-spacing-xs); }
+.unified-padding-sm { padding: var(--arc-spacing-sm); }
+.unified-padding-md { padding: var(--arc-spacing-md); }
+.unified-padding-lg { padding: var(--arc-spacing-lg); }
+.unified-padding-xl { padding: var(--arc-spacing-xl); }
+.unified-padding-2xl { padding: var(--arc-spacing-2xl); }
+
+/* Badges y estados unificados */
+.unified-badge {
+    padding: 0.375rem 0.75rem;
+    border-radius: var(--arc-border-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.unified-badge-primary {
+    background: var(--arc-color-primary);
+    color: white;
+}
+
+.unified-badge-secondary {
+    background: var(--arc-color-secondary);
+    color: white;
+}
+
+.unified-badge-success {
+    background: var(--arc-color-success);
+    color: white;
+}
+
+.unified-badge-warning {
+    background: var(--arc-color-warning);
+    color: white;
+}
+
+.unified-badge-danger {
+    background: var(--arc-color-danger);
+    color: white;
+}
+
+.unified-badge-info {
+    background: var(--arc-color-info);
+    color: white;
+}
+
+.unified-badge-light {
+    background: var(--arc-bg-tertiary);
+    color: var(--arc-text-primary);
+    border: 1px solid var(--arc-border-color);
+}
+
+/* Estados vacíos unificados */
+.unified-empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--arc-text-muted);
+}
+
+.unified-empty-state .unified-empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1.5rem;
+    opacity: 0.5;
+    color: var(--arc-color-primary);
+}
+
+.unified-empty-state .unified-title-tertiary {
+    color: var(--arc-text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.unified-empty-state .unified-text-secondary {
+    margin-bottom: 1.5rem;
+}
+
+/* Separadores unificados */
+.unified-divider {
+    height: 1px;
+    background: var(--arc-border-color);
+    margin: var(--arc-spacing-lg) 0;
+}
+
+.unified-divider-thick {
+    height: 2px;
+    background: var(--arc-border-color);
+    margin: var(--arc-spacing-xl) 0;
+}
+
+/* Meta información unificada */
+.unified-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    font-size: 0.875rem;
+    color: var(--arc-text-secondary);
+}
+
+.unified-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.unified-meta-item i {
+    font-size: 0.75rem;
+    color: var(--arc-color-primary);
+}
+
+/* Alineación de texto unificada */
+.unified-text-left { text-align: left; }
+.unified-text-center { text-align: center; }
+.unified-text-right { text-align: right; }
+
+/* Truncado de texto unificado */
+.unified-text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.unified-text-truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.unified-text-truncate-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 /* ===== CARDS GLOBALES ===== */

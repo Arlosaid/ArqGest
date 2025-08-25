@@ -41,7 +41,8 @@
     overflow: hidden;
 }
 
-/* ===== HEADER SECTION ===== */
+/* ===== HEADER SECTION - COMENTADO PARA USAR ESTILOS UNIFICADOS DE base.css ===== */
+/*
 .header-section {
     margin-bottom: 3rem;
 }
@@ -79,6 +80,7 @@
     font-size: 2rem;
     font-weight: 700;
 }
+*/
 
 /* ===== USER DETAIL HERO SECTION ===== */
 .user-detail-hero {
