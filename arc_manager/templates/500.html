@@ -13,6 +13,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         .error-container {
             background: white;
@@ -20,7 +21,8 @@
             border-radius: 15px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             text-align: center;
-            max-width: 500px;
+            max-width: 600px;
+            width: 100%;
         }
         .error-icon {
             font-size: 4rem;
@@ -38,18 +40,107 @@
             margin-bottom: 2rem;
             line-height: 1.6;
         }
-        .btn-home {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            padding: 12px 30px;
-            border-radius: 25px;
-            color: white;
-            text-decoration: none;
-            transition: transform 0.3s ease;
+        .error-details {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            text-align: left;
         }
-        .btn-home:hover {
+        .error-details p {
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .error-details code {
+            background: #e9ecef;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        .recovery-actions {
+            margin: 2rem 0;
+        }
+        .btn {
+            margin: 0.5rem;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: none;
+        }
+        .btn:hover {
             transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+        }
+        .btn-outline-primary {
+            border: 2px solid #667eea;
+            color: #667eea;
+        }
+        .btn-outline-primary:hover {
+            background: #667eea;
+            color: white;
+        }
+        .btn-outline-secondary {
+            border: 2px solid #6c757d;
+            color: #6c757d;
+        }
+        .btn-outline-secondary:hover {
+            background: #6c757d;
+            color: white;
+        }
+        .support-info {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            text-align: left;
+        }
+        .support-info h6 {
+            color: #1976d2;
+            margin-bottom: 1rem;
+        }
+        .support-info ul {
+            margin-bottom: 0;
+        }
+        .support-info li {
+            margin-bottom: 0.5rem;
+        }
+        .support-info a {
+            color: #1976d2;
+            text-decoration: none;
+        }
+        .support-info a:hover {
+            text-decoration: underline;
+        }
+        .error-log {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 1.5rem;
+        }
+        .error-log summary {
+            cursor: pointer;
+            color: #856404;
+            font-weight: 500;
+        }
+        .error-log pre {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .timestamp {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 1rem;
         }
     </style>
 </head>
@@ -64,15 +155,98 @@
             <p>Hemos experimentado un error interno del servidor. Nuestro equipo técnico ha sido notificado y está trabajando para resolver el problema.</p>
             <p>Por favor, inténtalo de nuevo en unos minutos.</p>
         </div>
-        <a href="/" class="btn btn-home">
-            <i class="fas fa-home me-2"></i>
-            Volver al Inicio
-        </a>
-        <div class="mt-4">
-            <small class="text-muted">
-                Si el problema persiste, contacta con soporte técnico.
-            </small>
+
+        <!-- Información contextual del error -->
+        <div class="error-details">
+            <p><strong><i class="fas fa-link me-2"></i>URL:</strong> <code id="error-url">{{ request.path|default:"N/A" }}</code></p>
+            <p><strong><i class="fas fa-user me-2"></i>Usuario:</strong> <span id="error-user">{{ request.user.username|default:"No autenticado" }}</span></p>
+            <p><strong><i class="fas fa-building me-2"></i>Organización:</strong> <span id="error-org">{{ request.user.organization.name|default:"N/A" }}</span></p>
+            <p><strong><i class="fas fa-clock me-2"></i>Timestamp:</strong> <span id="error-time">{{ timestamp|default:"N/A" }}</span></p>
+        </div>
+
+        <!-- Acciones de recuperación -->
+        <div class="recovery-actions">
+            <button onclick="window.history.back()" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i>Volver atrás
+            </button>
+            <button onclick="window.location.reload()" class="btn btn-outline-secondary">
+                <i class="fas fa-redo me-2"></i>Recargar página
+            </button>
+            <a href="/" class="btn btn-primary">
+                <i class="fas fa-home me-2"></i>Ir al inicio
+            </a>
+        </div>
+
+        <!-- Información de soporte -->
+        <div class="support-info">
+            <h6><i class="fas fa-life-ring me-2"></i>¿Necesitas ayuda?</h6>
+            <p>Si el problema persiste, contacta con soporte:</p>
+            <ul class="list-unstyled">
+                <li><i class="fas fa-envelope me-2"></i><a href="mailto:soporte@arcmanager.com">soporte@arcmanager.com</a></li>
+                <li><i class="fas fa-phone me-2"></i>+1 (555) 123-4567</li>
+                <li><i class="fas fa-ticket-alt me-2"></i><a href="/support">Crear ticket de soporte</a></li>
+            </ul>
+        </div>
+
+        <!-- Logs de error para administradores -->
+        {% if request.user.is_staff %}
+        <div class="error-log">
+            <details>
+                <summary><i class="fas fa-bug me-2"></i>Detalles técnicos (solo para administradores)</summary>
+                <pre id="error-log-content">{{ error_log|default:"No disponible" }}</pre>
+            </details>
+        </div>
+        {% endif %}
+
+        <div class="timestamp">
+            <i class="fas fa-info-circle me-1"></i>
+            Error ID: <span id="error-id">{{ error_id|default:"N/A" }}</span>
         </div>
     </div>
+
+    <script>
+        // Actualizar timestamp en tiempo real
+        document.getElementById('error-time').textContent = new Date().toLocaleString('es-ES');
+        
+        // Generar ID de error único
+        document.getElementById('error-id').textContent = 'ERR-' + Date.now();
+        
+        // Actualizar URL si no está disponible
+        if (document.getElementById('error-url').textContent === 'N/A') {
+            document.getElementById('error-url').textContent = window.location.pathname;
+        }
+        
+        // Actualizar usuario si no está disponible
+        if (document.getElementById('error-user').textContent === 'N/A') {
+            // Intentar obtener del localStorage o sessionStorage si está disponible
+            const storedUser = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
+            if (storedUser) {
+                try {
+                    const userData = JSON.parse(storedUser);
+                    document.getElementById('error-user').textContent = userData.username || 'Usuario almacenado';
+                } catch (e) {
+                    document.getElementById('error-user').textContent = 'Usuario en sesión';
+                }
+            }
+        }
+        
+        // Integración con el sistema de notificaciones global
+        if (typeof window.showGlobalNotification === 'function') {
+            setTimeout(() => {
+                window.showGlobalNotification(
+                    'Ha ocurrido un error del servidor. Nuestro equipo técnico ha sido notificado.',
+                    'error'
+                );
+            }, 1000);
+        }
+        
+        // Log del error para debugging
+        console.error('Error 500 detectado:', {
+            url: window.location.pathname,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            referrer: document.referrer
+        });
+    </script>
 </body>
 </html> 

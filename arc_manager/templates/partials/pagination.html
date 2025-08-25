@@ -4,16 +4,17 @@ Uso:
 {% endcomment %}
 
 {% if page_obj and page_obj.paginator.num_pages > 1 %}
+{% with effective_page_param=page_param|default:'page' %}
 <div class="pagination-container">
 	<div class="pagination-info">
 		<span>Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} {{ item_label|default:'elementos' }}</span>
 	</div>
 	<div class="pagination">
 		{% if page_obj.has_previous %}
-			<a href="?{% if extra_params %}{{ extra_params }}{% endif %}{{ page_param|default:'page' }}=1{% if anchor %}#{{ anchor }}{% endif %}" class="pagination-btn">
+			<a href="?{% if extra_params %}{{ extra_params }}{% endif %}{{ effective_page_param }}=1{% if anchor %}#{{ anchor }}{% endif %}" class="pagination-btn">
 				<i class="fas fa-angle-double-left"></i>
 			</a>
-			<a href="?{% if extra_params %}{{ extra_params }}{% endif %}{{ page_param|default:'page' }}={{ page_obj.previous_page_number }}{% if anchor %}#{{ anchor }}{% endif %}" class="pagination-btn">
+			<a href="?{% if extra_params %}{{ extra_params }}{% endif %}{{ effective_page_param }}={{ page_obj.previous_page_number }}{% if anchor %}#{{ anchor }}{% endif %}" class="pagination-btn">
 				<i class="fas fa-chevron-left"></i>
 				Anterior
 			</a>
@@ -22,16 +23,15 @@ Uso:
 		<span class="pagination-current">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
 
 		{% if page_obj.has_next %}
-			<a href="?{% if extra_params %}{{ extra_params }}{% endif %}{{ page_param|default:'page' }}={{ page_obj.next_page_number }}{% if anchor %}#{{ anchor }}{% endif %}" class="pagination-btn">
+			<a href="?{% if extra_params %}{{ extra_params }}{% endif %}{{ effective_page_param }}={{ page_obj.next_page_number }}{% if anchor %}#{{ anchor }}{% endif %}" class="pagination-btn">
 				Siguiente
 				<i class="fas fa-chevron-right"></i>
 			</a>
-			<a href="?{% if extra_params %}{{ extra_params }}{% endif %}{{ page_param|default:'page' }}={{ page_obj.paginator.num_pages }}{% if anchor %}#{{ anchor }}{% endif %}" class="pagination-btn">
+			<a href="?{% if extra_params %}{{ extra_params }}{% endif %}{{ effective_page_param }}={{ page_obj.paginator.num_pages }}{% if anchor %}#{{ anchor }}{% endif %}" class="pagination-btn">
 				<i class="fas fa-angle-double-right"></i>
 			</a>
 		{% endif %}
 	</div>
 </div>
+{% endwith %}
 {% endif %}
-
-

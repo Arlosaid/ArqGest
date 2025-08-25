@@ -20,6 +20,48 @@ class BaseAnimation {
     static animateCard() { /* deshabilitada intencionalmente */ }
 }
 
+// Función global para abrir modal de tareas
+window.openTaskModal = function(type, taskId) {
+    const modal = new bootstrap.Modal(document.getElementById('taskUniversalModal'));
+    const modalContent = document.getElementById('taskUniversalContent');
+    const modalTitle = document.getElementById('taskUniversalModalLabel');
+    
+    if (type === 'edit') modalTitle.textContent = 'Editar Tarea';
+    else if (type === 'detail') modalTitle.textContent = 'Detalles de la Tarea';
+    
+    modalContent.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><p class="mt-2 text-muted">Cargando...</p></div>';
+    modal.show();
+    
+    let url = '';
+    try {
+        if (type === 'edit') {
+            url = `/projects/tasks/${taskId}/edit/`;
+        } else if (type === 'detail') {
+            url = `/projects/tasks/${taskId}/`;
+        }
+    } catch (error) {
+        console.error('Error building URL:', error);
+    }
+    
+    if (!url) {
+        modalContent.innerHTML = '<div class="text-center p-4 text-danger"><i class="fas fa-exclamation-triangle fa-2x mb-3"></i><h5>Error</h5><p class="text-muted">No se pudo determinar la URL.</p></div>';
+        return;
+    }
+    
+    fetch(url)
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.text();
+        })
+        .then(html => {
+            modalContent.innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error loading modal content:', error);
+            modalContent.innerHTML = '<div class="text-center p-4 text-danger"><i class="fas fa-exclamation-triangle fa-2x mb-3"></i><h5>Error al cargar</h5><p class="text-muted">No se pudo cargar el contenido. Inténtalo de nuevo.</p></div>';
+        });
+};
+
 // Inicializar animaciones base cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
     // Inicializar animaciones base

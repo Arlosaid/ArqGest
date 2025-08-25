@@ -18,36 +18,52 @@ class ProjectsManager {
     }
 
     setupEventListeners() {
-        // Búsqueda simplificada
-        const searchInput = document.querySelector('.search-input-modern');
+        // Search functionality for new design
+        const searchInput = document.querySelector('.table-search-input');
+        const clearBtn = document.querySelector('.clear-search-btn');
 
         if (searchInput) {
             searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
             searchInput.addEventListener('keyup', (e) => this.handleSearch(e.target.value));
         }
 
-        // Botones de acción
-        const actionButtons = document.querySelectorAll('.btn-action-modern');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                searchInput.value = '';
+                this.handleSearch('');
+                clearBtn.style.display = 'none';
+            });
+        }
+
+        // Action buttons
+        const actionButtons = document.querySelectorAll('.action-btn');
         actionButtons.forEach(button => {
             button.addEventListener('click', (e) => this.handleActionClick(e));
         });
     }
 
     setupSearchAndFilters() {
-        // Búsqueda en tiempo real
+        // Real-time search with debouncing
         let searchTimeout;
-        const searchInput = document.querySelector('.search-input-modern');
+        const searchInput = document.querySelector('.table-search-input');
+        const clearBtn = document.querySelector('.clear-search-btn');
         
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 clearTimeout(searchTimeout);
                 const searchTerm = e.target.value.trim();
                 
-                // Búsqueda inmediata para términos cortos
+                // Show/hide clear button
+                if (clearBtn) {
+                    clearBtn.style.display = searchTerm.length > 0 ? 'block' : 'none';
+                }
+                
+                // Immediate search for short terms
                 if (searchTerm.length <= 2) {
                     this.performSearch(searchTerm);
                 } else {
-                    // Debounce para términos más largos
+                    // Debounce for longer terms
                     searchTimeout = setTimeout(() => {
                         this.performSearch(searchTerm);
                     }, 200);
@@ -66,18 +82,30 @@ class ProjectsManager {
     }
 
     handleSearch(searchTerm) {
-        const cards = document.querySelectorAll('.project-card-modern');
+        const cards = document.querySelectorAll('.project-card');
         let visibleCount = 0;
 
         cards.forEach(card => {
-            const title = card.querySelector('.project-card-title-modern').textContent.toLowerCase();
+            const title = card.querySelector('.project-title').textContent.toLowerCase();
+            const clientName = card.dataset.clientName || '';
+            const projectName = card.dataset.projectName || '';
             const searchLower = searchTerm.toLowerCase();
 
-            if (searchLower === '' || title.includes(searchLower)) {
+            const matches = searchLower === '' || 
+                          title.includes(searchLower) || 
+                          clientName.includes(searchLower) ||
+                          projectName.includes(searchLower);
+
+            if (matches) {
                 card.style.display = 'block';
+                card.classList.remove('filtering-out');
                 visibleCount++;
             } else {
-                card.style.display = 'none';
+                card.classList.add('filtering-out');
+                setTimeout(() => {
+                    card.style.display = 'none';
+                    card.classList.remove('filtering-out');
+                }, 300);
             }
         });
 
@@ -85,15 +113,22 @@ class ProjectsManager {
     }
 
     performSearch(searchTerm) {
-        // Búsqueda por nombre de proyecto
-        const cards = document.querySelectorAll('.project-card-modern');
+        // Search by project name and client
+        const cards = document.querySelectorAll('.project-card');
         const results = [];
 
         cards.forEach(card => {
-            const title = card.querySelector('.project-card-title-modern').textContent;
+            const title = card.querySelector('.project-title').textContent;
+            const clientName = card.dataset.clientName || '';
+            const projectName = card.dataset.projectName || '';
             const searchLower = searchTerm.toLowerCase();
             
-            if (searchLower === '' || title.toLowerCase().includes(searchLower)) {
+            const matches = searchLower === '' || 
+                          title.toLowerCase().includes(searchLower) || 
+                          clientName.includes(searchLower) ||
+                          projectName.includes(searchLower);
+            
+            if (matches) {
                 results.push(card);
             }
         });
@@ -102,13 +137,18 @@ class ProjectsManager {
     }
 
     displaySearchResults(results) {
-        const cards = document.querySelectorAll('.project-card-modern');
+        const cards = document.querySelectorAll('.project-card');
         
         cards.forEach(card => {
             if (results.includes(card)) {
                 card.style.display = 'block';
+                card.classList.remove('filtering-out');
             } else {
-                card.style.display = 'none';
+                card.classList.add('filtering-out');
+                setTimeout(() => {
+                    card.style.display = 'none';
+                    card.classList.remove('filtering-out');
+                }, 300);
             }
         });
 
@@ -116,7 +156,7 @@ class ProjectsManager {
     }
 
     updateResultsCounter(visible, total) {
-        const counter = document.querySelector('.search-results-counter');
+        const counter = document.querySelector('.result-count');
         if (counter) {
             if (visible === total) {
                 counter.style.display = 'none';
@@ -136,9 +176,9 @@ class ProjectsManager {
     }
 
     getActionType(button) {
-        if (button.classList.contains('btn-view-modern')) return 'view';
-        if (button.classList.contains('btn-edit-modern')) return 'edit';
-        if (button.classList.contains('btn-delete-modern')) return 'delete';
+        if (button.classList.contains('view')) return 'view';
+        if (button.classList.contains('edit')) return 'edit';
+        if (button.classList.contains('delete')) return 'delete';
         return 'unknown';
     }
 

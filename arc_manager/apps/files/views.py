@@ -28,21 +28,29 @@ def upload_file(request, project_id, phase_id):
 
     if not request.FILES.getlist('files'):
         # This case might not be hit if the input is 'required', but it's good practice.
-        messages.error(request, _("No files were selected."))
+        messages.error(request, "No se seleccionaron archivos.")
+        if request.headers.get('HX-Request') == 'true':
+            return JsonResponse({"error": "No se seleccionaron archivos."}, status=400)
         return HttpResponse(status=400)
 
     # Validaciones básicas en servidor (mientras no haya upload directo a R2)
     MAX_FILE_SIZE_MB = int(os.environ.get('MAX_FILE_SIZE_MB', '600'))
-    ALLOWED_EXTENSIONS = set(os.environ.get('ALLOWED_EXTENSIONS', 'PDF,JPG,JPEG,PNG,GIF,DWG,DXF,RVT,SKP,ZIP,RAR,TIFF').split(','))
+    ALLOWED_EXTENSIONS = set(os.environ.get('ALLOWED_EXTENSIONS', 'PDF,JPG,JPEG,PNG,GIF,DWG,DXF,RVT,SKP,ZIP,RAR,TIFF,DOC,DOCX,XLS,XLSX,PPT,PPTX,TXT,MD').split(','))
 
     for uploaded_file in request.FILES.getlist('files'):
         size_mb = (uploaded_file.size or 0) / (1024 * 1024)
         ext = os.path.splitext(uploaded_file.name)[1].replace('.', '').upper()
         if ext not in ALLOWED_EXTENSIONS:
-            messages.error(request, _("File type not allowed: %s") % ext)
+            error_msg = f"Tipo de archivo no permitido: {ext}"
+            messages.error(request, error_msg)
+            if request.headers.get('HX-Request') == 'true':
+                return JsonResponse({"error": error_msg}, status=400)
             return HttpResponse(status=400)
         if size_mb > MAX_FILE_SIZE_MB:
-            messages.error(request, _("File exceeds the size limit (%s MB)") % MAX_FILE_SIZE_MB)
+            error_msg = f"El archivo excede el límite de tamaño ({MAX_FILE_SIZE_MB} MB)"
+            messages.error(request, error_msg)
+            if request.headers.get('HX-Request') == 'true':
+                return JsonResponse({"error": error_msg}, status=413)
             return HttpResponse(status=413)
 
         instance = ProjectFile.objects.create(
@@ -62,12 +70,37 @@ def upload_file(request, project_id, phase_id):
         except Exception:
             pass
     
-    messages.success(request, _("File(s) uploaded successfully."))
+    messages.success(request, "Archivo(s) subido(s) exitosamente.")
 
     # Si es una petición HTMX, devolvemos solo la lista actualizada
     if request.headers.get('HX-Request') == 'true':
-        files = phase.files.all()
-        return render(request, 'projects/partials/file_list.html', {'files': files})
+        # Determinar qué template usar basado en el target
+        hx_target = request.headers.get('HX-Target', '')
+        if 'files-container' in hx_target:
+            # Redirigir a la vista paginada para mantener consistencia
+            from django.shortcuts import redirect
+            from django.urls import reverse
+            redirect_url = reverse('projects:phase-files-paginated', kwargs={
+                'project_id': phase.project.id,
+                'phase_id': phase.id
+            }) + '?page=1'
+            return redirect(redirect_url)
+        elif 'files-table' in hx_target:
+            # Si el target es una tabla, devolver el template de tabla simplificado
+            from apps.projects.models import Project
+            
+            project = phase.project
+            
+            # Contexto simplificado sin paginación
+            context = {
+                'phase': phase,
+                'project': project,
+            }
+            return render(request, 'projects/partials/files_table.html', context)
+        else:
+            # Target por defecto: lista de archivos
+            files = phase.files.all()
+            return render(request, 'projects/partials/file_list.html', {'files': files})
 
     # En formularios normales, redirigir al detalle del proyecto (pestaña Archivos)
     project_url = reverse('projects:project-detail', kwargs={'pk': phase.project_id})
@@ -84,7 +117,7 @@ def delete_file(request, file_id):
     project_file = get_object_or_404(ProjectFile, id=file_id)
     
     if request.user.organization != project_file.phase.project.organization:
-        return HttpResponseForbidden(_("You do not have permission to access this resource."))
+        return HttpResponseForbidden("No tienes permiso para acceder a este recurso.")
 
     project_file.file.delete(save=False)
     project_file.delete()
@@ -105,18 +138,18 @@ def get_presigned_upload(request, project_id, phase_id):
     Requiere ENABLE_STORAGES=true y variables AWS/R2 configuradas.
     """
     if os.environ.get('ENABLE_STORAGES', 'false').lower() != 'true':
-        return JsonResponse({"error": "storages not enabled"}, status=400)
+        return JsonResponse({"error": "almacenamiento no habilitado"}, status=400)
     if boto3 is None:
-        return JsonResponse({"error": "boto3 not available"}, status=500)
+        return JsonResponse({"error": "boto3 no disponible"}, status=500)
 
     phase = get_object_or_404(Phase, id=phase_id, project_id=project_id)
     if request.user.organization != phase.project.organization:
-        return HttpResponseForbidden(_("You do not have permission to access this resource."))
+        return HttpResponseForbidden("No tienes permiso para acceder a este recurso.")
 
     filename = request.POST.get('filename') or (request.body and (json.loads(request.body).get('filename')))
     content_type = request.POST.get('content_type') or (request.body and (json.loads(request.body).get('content_type')))
     if not filename:
-        return JsonResponse({"error": "filename required"}, status=400)
+        return JsonResponse({"error": "nombre de archivo requerido"}, status=400)
 
     # Construir key de almacenamiento
     dummy = ProjectFile(phase=phase)
@@ -152,7 +185,7 @@ def confirm_upload(request):
     Requiere storages habilitado.
     """
     if os.environ.get('ENABLE_STORAGES', 'false').lower() != 'true':
-        return JsonResponse({"error": "storages not enabled"}, status=400)
+        return JsonResponse({"error": "almacenamiento no habilitado"}, status=400)
 
     data = request.POST.dict()
     if not data and request.body:
@@ -167,11 +200,11 @@ def confirm_upload(request):
     size_bytes = int(data.get('size_bytes') or 0)
     content_type = data.get('content_type') or ''
     if not (key and project_id and phase_id):
-        return JsonResponse({"error": "key, project_id, phase_id required"}, status=400)
+        return JsonResponse({"error": "clave, project_id, phase_id requeridos"}, status=400)
 
     phase = get_object_or_404(Phase, id=phase_id, project_id=project_id)
     if request.user.organization != phase.project.organization:
-        return HttpResponseForbidden(_("You do not have permission to access this resource."))
+        return HttpResponseForbidden("No tienes permiso para acceder a este recurso.")
 
     instance = ProjectFile(phase=phase, uploaded_by=request.user, size_bytes=size_bytes, content_type=content_type)
     # Asignar el key directamente al FileField (django-storages S3)

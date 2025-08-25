@@ -24,6 +24,9 @@
     <!-- Sistema de Notificaciones Moderno -->
     <link href="{% static 'css/notifications.css' %}?v=1.0" rel="stylesheet">
     
+    <!-- Modal de Detalles de Tareas con Estilos Mejorados -->
+    <link href="{% static 'css/task_detail_modal.css' %}?v=4.0" rel="stylesheet">
+    
     <!-- Estilos adicionales específicos por página -->
     {% block extra_css %}{% endblock %}
 </head>
@@ -66,6 +69,9 @@
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     <script src="{% static 'js/htmx_csrf.js' %}"></script>
     
+    <!-- Manejador global de errores HTMX -->
+    <script src="{% static 'js/htmx_error_handler.js' %}"></script>
+    
     <!-- Scripts base -->
     <script src="{% static 'js/base.js' %}"></script>
     
@@ -84,6 +90,9 @@
     <!-- Notificaciones Automáticas de Suscripción -->
     <script src="{% static 'js/subscription-notifications.js' %}?v=1.0"></script>
     
+    <!-- Modal de Edición de Tareas -->
+    <script src="{% static 'js/task_edit_modal.js' %}?v=2.0"></script>
+    
     <!-- Scripts adicionales específicos por página -->
     {% block extra_js %}{% endblock %}
 
@@ -100,6 +109,21 @@
           <div class="modal-footer" id="appModalFooter" style="display:none;"></div>
         </div>
       </div>
+    </div>
+
+    <!-- Modal Universal para Tareas (Detalles y Edición) -->
+    <div class="modal fade" id="taskUniversalModal" tabindex="-1" aria-labelledby="taskUniversalModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="taskUniversalModalLabel">Tarea</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="taskUniversalContent">
+                    <!-- El contenido se carga dinámicamente -->
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="{% static 'js/modal_helpers.js' %}"></script>

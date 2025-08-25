@@ -6,9 +6,9 @@
         <h6 class="m-0 font-weight-bold text-primary">{% trans "Archivos del Proyecto" %}</h6>
     </div>
     <div class="card-body">
-        {% if files_phases_page_obj %}
+        {% if phases %}
         <div class="accordion" id="filesAccordion">
-            {% for phase in files_phases_page_obj.object_list %}
+            {% for phase in phases %}
             <div class="accordion-item mb-3 file-phase-item">
                 <h2 class="accordion-header" id="heading-{{ phase.id }}">
                     <button class="accordion-button file-phase-header collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ phase.id }}" aria-expanded="false" aria-controls="collapse-{{ phase.id }}">
@@ -22,75 +22,77 @@
                 </h2>
                 <div id="collapse-{{ phase.id }}" class="accordion-collapse collapse{% if open_phase|default:'' == phase.id|stringformat:'s' %} show{% endif %}" aria-labelledby="heading-{{ phase.id }}" data-bs-parent="#filesAccordion">
                     <div class="accordion-body">
-                        <form class="mb-3" action="{% url 'files:upload_file' project_id=project.pk phase_id=phase.pk %}" method="post" enctype="multipart/form-data">
+                        <form class="mb-3 file-upload-form" 
+                              hx-post="{% url 'files:upload_file' project_id=project.pk phase_id=phase.pk %}"
+                              hx-target="#files-container-{{ phase.id }}"
+                              hx-swap="innerHTML"
+                              hx-encoding="multipart/form-data"
+                              enctype="multipart/form-data">
                             {% csrf_token %}
                             <div class="input-group">
                                 <input type="file" name="files" class="form-control" multiple required>
-                                <button class="btn btn-primary" type="submit"><i class="fas fa-upload"></i> {% trans "Subir archivo" %}</button>
+                                <button class="btn btn-primary" type="submit">
+                                    <i class="fas fa-upload"></i> {% trans "Subir archivo" %}
+                                </button>
                             </div>
                         </form>
 
-                        {% with phase.files_page_obj as phase_files_page %}
-                        {% if phase_files_page %}
-                        <div id="files-table-{{ phase.id }}" class="table-responsive">
-                            <table class="modern-table file-list-table" width="100%">
-                                <thead>
-                                    <tr>
-                                        <th style="min-width:260px;">{% trans "Archivo" %}</th>
-                                        <th class="text-center" style="width:120px;">{% trans "Tipo" %}</th>
-                                        <th class="text-center" style="width:160px;">{% trans "Subido por" %}</th>
-                                        <th class="text-center" style="width:140px;">{% trans "Fecha" %}</th>
-                                        <th class="text-center" style="width:120px;">{% trans "Tamaño" %}</th>
-                                        <th class="text-right">{% trans "Acciones" %}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                {% for file in phase_files_page.object_list %}
-                                    <tr id="file-{{ file.id }}" class="file-row">
-                                        <td>
-                                            <a href="{{ file.file.url }}" target="_blank" class="d-flex align-items-center gap-2 text-decoration-none">
-                                                {% if file.extension == 'JPG' or file.extension == 'JPEG' or file.extension == 'PNG' or file.extension == 'GIF' %}
-                                                    <i class="fas fa-file-image text-primary"></i>
-                                                {% elif file.extension == 'PDF' %}
-                                                    <i class="fas fa-file-pdf text-danger"></i>
-                                                {% elif file.extension == 'DWG' or file.extension == 'DXF' %}
-                                                    <i class="fas fa-drafting-compass text-info"></i>
-                                                {% elif file.extension == 'DOC' or file.extension == 'DOCX' %}
-                                                    <i class="fas fa-file-word text-primary"></i>
-                                                {% elif file.extension == 'XLS' or file.extension == 'XLSX' %}
-                                                    <i class="fas fa-file-excel text-success"></i>
-                                                {% else %}
-                                                    <i class="fas fa-file text-secondary"></i>
-                                                {% endif %}
-                                                <span class="fw-semibold text-truncate" style="max-width:420px;">{{ file.filename }}</span>
-                                            </a>
-                                        </td>
-                                        <td class="text-center text-muted">{{ file.extension }}</td>
-                                        <td class="text-center">{{ file.uploaded_by.get_full_name|default:"N/A" }}</td>
-                                        <td class="text-center">{{ file.uploaded_at|date:"d/m/Y H:i" }}</td>
-                                        <td class="text-center">{{ file.size|filesizeformat }}</td>
-                                        <td class="text-right d-flex gap-2 justify-content-end">
-                                            <a href="{{ file.file.url }}" class="btn btn-sm btn-primary" download>{% trans "Descargar" %}</a>
-                                            <button class="btn btn-sm btn-outline-danger file-delete-btn"
-                                                    hx-post="{% url 'files:delete_file' file.id %}"
-                                                    hx-confirm="{% trans '¿Seguro que deseas eliminar este archivo?' %}"
-                                                    hx-target="#file-{{ file.id }}"
-                                                    hx-swap="outerHTML">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                {% empty %}
-                                    <tr>
-                                        <td colspan="5">{% trans "Aún no se han subido archivos para esta fase." %}</td>
-                                    </tr>
-                                {% endfor %}
-                                </tbody>
-                            </table>
+                        {% with phase_files=phase.files.all %}
+                        {% if phase_files %}
+                        <!-- Controles de archivo mejorados -->
+                        <div class="mb-3">
+                            <div class="row g-2">
+                                <div class="col-12 col-md-auto">
+                                    <select class="form-select form-select-sm" id="fileTypeFilter-{{ phase.id }}" 
+                                            onchange="filterFiles({{ phase.id }})">
+                                        <option value="">{% trans "Todos los tipos" %}</option>
+                                        <option value="PDF">📄 PDF</option>
+                                        <option value="JPG,JPEG,PNG,GIF,TIFF">🖼️ {% trans "Imágenes" %}</option>
+                                        <option value="DWG,DXF,RVT,SKP">📐 {% trans "CAD/Diseño" %}</option>
+                                        <option value="DOC,DOCX">📝 Word</option>
+                                        <option value="XLS,XLSX">📊 Excel</option>
+                                        <option value="PPT,PPTX">📊 PowerPoint</option>
+                                        <option value="ZIP,RAR">📦 {% trans "Comprimidos" %}</option>
+                                        <option value="TXT,MD">📋 {% trans "Texto" %}</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-auto">
+                                    <select class="form-select form-select-sm" id="fileDateFilter-{{ phase.id }}"
+                                            onchange="filterFiles({{ phase.id }})">
+                                        <option value="">{% trans "Todas las fechas" %}</option>
+                                        <option value="today">📅 {% trans "Hoy" %}</option>
+                                        <option value="week">📅 {% trans "Esta semana" %}</option>
+                                        <option value="month">📅 {% trans "Este mes" %}</option>
+                                        <option value="older">📅 {% trans "Más antiguo" %}</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-auto">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                            id="clearFilters-{{ phase.id }}"
+                                            onclick="clearFilters({{ phase.id }})">
+                                        <i class="fas fa-times"></i> {% trans "Limpiar" %}
+                                    </button>
+                                </div>
+                                <div class="col-12 col-md-auto ms-auto">
+                                    <small class="text-muted">
+                                        <i class="fas fa-filter"></i> {% trans "Filtros disponibles" %}
+                                    </small>
+                                </div>
+                            </div>
                         </div>
-                        {% with file_page_param='file_page_'|add:phase.id|stringformat:'s' %}
-                        {% include 'partials/pagination.html' with page_obj=phase_files_page page_param=file_page_param extra_params='tab=files&files_phases_page='|add:files_phases_page_obj.number|stringformat:'s'|add:'&open_phase='|add:phase.id|stringformat:'s'|add:'&' item_label='archivos' anchor='files' %}
-                        {% endwith %}
+                        
+                        <!-- Contenedor de archivos paginados -->
+                        <div id="files-container-{{ phase.id }}" 
+                             hx-get="{% url 'projects:phase-files-paginated' project_id=project.id phase_id=phase.id %}?page=1"
+                             hx-trigger="load, fileUploaded from:body"
+                             hx-swap="innerHTML">
+                            <!-- Los archivos se cargan aquí dinámicamente -->
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">{% trans "Cargando archivos..." %}</span>
+                                </div>
+                            </div>
+                        </div>
                         {% else %}
                             <div class="text-muted">{% trans "Aún no se han subido archivos para esta fase." %}</div>
                         {% endif %}
@@ -100,10 +102,44 @@
             </div>
             {% endfor %}
         </div>
-        {% include 'partials/pagination.html' with page_obj=files_phases_page_obj page_param='files_phases_page' extra_params='tab=files&' item_label='fases' anchor='files' %}
         {% else %}
             <div class="text-center text-muted">{% trans "Primero crea una fase para poder subir archivos." %}</div>
         {% endif %}
     </div>
 </div>
+
+<script>
+// Función para filtrar archivos
+function filterFiles(phaseId) {
+    const typeFilter = document.getElementById(`fileTypeFilter-${phaseId}`).value;
+    const dateFilter = document.getElementById(`fileDateFilter-${phaseId}`).value;
+    
+    // Construir URL con filtros
+    let url = `{% url 'projects:phase-files-paginated' project_id=project.id phase_id=0 %}`.replace('0', phaseId);
+    url += '?page=1';
+    if (typeFilter) url += `&type=${encodeURIComponent(typeFilter)}`;
+    if (dateFilter) url += `&date=${encodeURIComponent(dateFilter)}`;
+    
+    // Cargar archivos filtrados
+    htmx.ajax('GET', url, {
+        target: `#files-container-${phaseId}`,
+        swap: 'innerHTML'
+    });
+}
+
+// Función para limpiar filtros
+function clearFilters(phaseId) {
+    document.getElementById(`fileTypeFilter-${phaseId}`).value = '';
+    document.getElementById(`fileDateFilter-${phaseId}`).value = '';
+    filterFiles(phaseId);
+}
+
+// Trigger personalizado para recargar archivos después de subir
+document.body.addEventListener('htmx:afterRequest', function(evt) {
+    if (evt.detail.xhr.status === 200 && evt.detail.requestConfig.path.includes('/files/upload/')) {
+        // Disparar evento personalizado para recargar archivos
+        document.body.dispatchEvent(new CustomEvent('fileUploaded'));
+    }
+});
+</script>
 

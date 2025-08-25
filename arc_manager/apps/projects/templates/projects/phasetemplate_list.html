@@ -59,7 +59,7 @@
                     </tbody>
                 </table>
                 {% if is_paginated %}
-                    {% include 'partials/pagination.html' with page_obj=page_obj item_label='plantillas' %}
+                    {% include 'partials/pagination.html' with page_obj=page_obj page_param='page' item_label='plantillas' %}
                 {% endif %}
             </div>
         </div>

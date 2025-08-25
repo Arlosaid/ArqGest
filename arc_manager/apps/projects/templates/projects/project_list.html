@@ -5,499 +5,12 @@
 {% block title %}{% trans "Mis Proyectos" %}{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/projects.css' %}?v=2.5" rel="stylesheet">
-<link href="{% static 'css/project_list.css' %}?v=1.0" rel="stylesheet">
-{#
-<style>
-    /* Estilos elegantes y profesionales para la lista de proyectos */
-    .projects-hero-section {
-        background: linear-gradient(135deg, var(--arc-color-primary) 0%, var(--arc-color-info) 100%);
-        border-radius: var(--arc-border-radius);
-        padding: 2rem 2rem;
-        margin-bottom: 2rem;
-        color: white;
-        text-align: center;
-        position: relative;
-        overflow: hidden;
-        box-shadow: var(--arc-shadow-lg);
-    }
-    
-    .projects-hero-section::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: url('{% static "images/auth/planos.jpg" %}') center/cover;
-        opacity: 0.15;
-        filter: brightness(0.8);
-    }
-    
-    .projects-hero-content {
-        position: relative;
-        z-index: 1;
-    }
-    
-    .projects-hero-title {
-        font-size: 1.75rem;
-        font-weight: 700;
-        margin: 0 0 0.75rem 0;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        letter-spacing: -0.02em;
-    }
-    
-    .projects-hero-subtitle {
-        font-size: 1rem;
-        margin: 0 0 1.5rem 0;
-        opacity: 0.9;
-        font-weight: 300;
-        line-height: 1.5;
-    }
-    
-    .projects-hero-stats {
-        display: flex;
-        justify-content: center;
-        gap: 2rem;
-        flex-wrap: wrap;
-    }
-    
-    .hero-stat {
-        text-align: center;
-        background: rgba(255, 255, 255, 0.15);
-        backdrop-filter: blur(10px);
-        border-radius: var(--arc-border-radius);
-        padding: 1rem 1.25rem;
-        min-width: 120px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    
-    .hero-stat-number {
-        font-size: 1.75rem;
-        font-weight: 700;
-        display: block;
-        margin-bottom: 0.25rem;
-        color: white;
-    }
-    
-    .hero-stat-label {
-        font-size: 0.75rem;
-        opacity: 0.9;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        font-weight: 500;
-    }
-    
-    .projects-filters-modern {
-        background: transparent;
-        border-radius: 0;
-        padding: 0;
-        margin-bottom: 2rem;
-        box-shadow: none;
-        border: none;
-    }
-    
-    .filters-header-modern {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-    
-    .filters-title-modern {
-        font-size: 1rem;
-        font-weight: 400;
-        color: #6c757d;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-    
-    .search-box-modern {
-        position: relative;
-        max-width: 400px;
-    }
-    
-    .search-input-modern {
-        width: 100%;
-        padding: 0.75rem 0.75rem 0.75rem 2.5rem;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        font-size: 0.875rem;
-        transition: all 0.2s ease;
-        background: #ffffff;
-        color: #495057;
-    }
-    
-    .search-input-modern:focus {
-        outline: none;
-        border-color: #007bff;
-        background: #ffffff;
-        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
-    }
-    
-    .search-box-modern::before {
-        content: '';
-        position: absolute;
-        left: 0.75rem;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 16px;
-        height: 16px;
-        background: #6c757d;
-        mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'/%3E%3C/svg%3E") center/contain;
-        mask-repeat: no-repeat;
-        opacity: 0.6;
-    }
-    
-    .projects-grid-modern {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-        gap: 2rem;
-        margin-bottom: 2rem;
-    }
-    
-    /* NUEVA PROPUESTA VISUAL PARA LAS TARJETAS */
-    .project-card-modern {
-        background: #FFFFFF;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        border: none;
-    }
-    
-    /* Desactivar transformaciones en hover para mejorar rendimiento */
-    .project-card-modern:hover {
-        transform: none;
-        box-shadow: none;
-    }
-    
-    .project-card-modern:hover .project-card-image {
-        transform: none;
-    }
-    
-    /* Imagen del proyecto - 50% superior sin overlay degradado */
-    .project-card-image {
-        height: 200px;
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        position: relative;
-        display: flex;
-        align-items: flex-start;
-        padding: 16px;
-        transition: none;
-        border-radius: 0;
-    }
-    
-    .project-card-image::before {
-        display: none;
-    }
-    
-    /* Etiqueta de estado en esquina superior izquierda con transparencia */
-    .project-status-modern {
-        padding: 8px 16px;
-        border-radius: 8px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        position: relative;
-        z-index: 1;
-        color: white;
-        border: none;
-        background: rgba(13, 71, 161, 0.8);
-        backdrop-filter: blur(10px);
-    }
-    
-    .project-status-modern.planificación {
-        background: rgba(108, 117, 125, 0.8);
-    }
-    
-    .project-status-modern.diseño {
-        background: rgba(108, 117, 125, 0.8);
-    }
-    
-    .project-status-modern.construcción {
-        background: rgba(108, 117, 125, 0.8);
-    }
-    
-    .project-status-modern.finalización {
-        background: rgba(108, 117, 125, 0.8);
-    }
-    
-    .project-status-modern.en-progreso {
-        background: rgba(13, 71, 161, 0.8);
-    }
-    
-    /* Código de proyecto para toque técnico */
-    .project-code {
-        display: none;
-    }
-    
-    .project-card-body-modern {
-        padding: 20px;
-    }
-    
-    /* Nombre del proyecto con tipografía regular */
-    .project-card-title-modern {
-        font-size: 1.125rem;
-        font-weight: 400;
-        color: #2c3e50;
-        margin: 0 0 16px 0;
-        line-height: 1.3;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    }
-    
-    /* Información del proyecto en formato de lista vertical */
-    .project-card-info-modern {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        margin-bottom: 20px;
-    }
-    
-    .info-row {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 0;
-        background: transparent;
-        border: none;
-        transition: none;
-    }
-    
-    .info-row:hover {
-        background: transparent;
-        border: none;
-        transform: none;
-    }
-    
-    .info-icon {
-        width: 16px;
-        height: 16px;
-        color: #6c757d;
-        flex-shrink: 0;
-    }
-    
-    .info-content {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        flex: 1;
-    }
-    
-    .info-label-modern {
-        font-size: 0.75rem;
-        color: #6c757d;
-        font-weight: 500;
-        text-transform: none;
-        letter-spacing: normal;
-    }
-    
-    .info-value-modern {
-        font-size: 0.875rem;
-        color: #6c757d;
-        font-weight: 400;
-    }
-    
-    /* Barra de progreso delgada con color azul */
-    .project-card-progress-modern {
-        margin-bottom: 20px;
-        background: transparent;
-        padding: 0;
-        border: none;
-    }
-    
-    .progress-header-modern {
-        display: none;
-    }
-    
-    .progress-bar-modern {
-        width: 100%;
-        height: 4px;
-        background: #e9ecef;
-        border-radius: 2px;
-        overflow: hidden;
-        position: relative;
-    }
-    
-    .progress-fill-modern {
-        height: 100%;
-        background: #0d47a1;
-        border-radius: 2px;
-        transition: width 0.8s ease;
-        position: relative;
-    }
-    
-    /* Footer con botones más sobrios y colores sólidos */
-    .project-card-footer-modern {
-        padding: 20px;
-        background: transparent;
-        border-top: 1px solid #f8f9fa;
-    }
-    
-    .project-actions-modern {
-        display: flex;
-        gap: 12px;
-    }
-    
-    .btn-view-modern {
-        flex: 2;
-        background: #0d47a1;
-        color: white;
-        padding: 10px 16px;
-        border-radius: 8px;
-        font-weight: 500;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        transition: all 0.2s ease;
-        border: none;
-        cursor: pointer;
-        font-size: 0.875rem;
-        box-shadow: none;
-    }
-    
-    .btn-view-modern:hover {
-        background: #0a3d8f;
-        color: white;
-        text-decoration: none;
-        transform: none;
-        box-shadow: none;
-    }
-    
-    .btn-edit-modern {
-        flex: 1;
-        background: #f8f9fa;
-        color: #6c757d;
-        padding: 10px 16px;
-        border-radius: 8px;
-        font-weight: 500;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        transition: all 0.2s ease;
-        border: none;
-        cursor: pointer;
-        font-size: 0.875rem;
-        box-shadow: none;
-    }
-    
-    .btn-edit-modern:hover {
-        background: #e9ecef;
-        color: #495057;
-        text-decoration: none;
-        transform: none;
-        box-shadow: none;
-    }
-    
-    .btn-delete-modern {
-        flex: 1;
-        background: #ff6b9d;
-        color: white;
-        padding: 10px 16px;
-        border-radius: 8px;
-        font-weight: 500;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        transition: all 0.2s ease;
-        border: none;
-        cursor: pointer;
-        font-size: 0.875rem;
-        box-shadow: none;
-    }
-    
-    .btn-delete-modern:hover {
-        background: #ff5a8c;
-        color: white;
-        text-decoration: none;
-        transform: none;
-        box-shadow: none;
-    }
-    
-    .empty-projects-state {
-        grid-column: 1 / -1;
-        text-align: center;
-        padding: 3rem 2rem;
-        background: var(--arc-bg-primary);
-        border-radius: var(--arc-border-radius);
-        border: 2px dashed var(--arc-border-color);
-        color: var(--arc-text-muted);
-    }
-    
-    .empty-projects-state i {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        opacity: 0.5;
-        color: var(--arc-color-primary);
-    }
-    
-    .empty-projects-state h3 {
-        font-size: 1.25rem;
-        margin-bottom: 0.75rem;
-        color: var(--arc-text-secondary);
-        font-weight: 600;
-    }
-    
-    .empty-projects-state p {
-        font-size: 1rem;
-        margin: 0 0 1.5rem 0;
-        color: var(--arc-text-muted);
-        line-height: 1.5;
-    }
-    
-    .empty-projects-state .btn-primary-modern {
-        display: inline-flex;
-        padding: 0.875rem 1.5rem;
-        font-size: 0.875rem;
-    }
-    
-    @media (max-width: 768px) {
-        .projects-hero-section {
-            padding: 1.5rem 1rem;
-        }
-        
-        .projects-hero-title {
-            font-size: 1.5rem;
-        }
-        
-        .projects-hero-stats {
-            gap: 1rem;
-        }
-        
-        .projects-grid-modern {
-            grid-template-columns: 1fr;
-            gap: 1.5rem;
-        }
-        
-        .project-actions-modern {
-            flex-direction: column;
-        }
-        
-        .btn-view-modern,
-        .btn-edit-modern,
-        .btn-delete-modern {
-            flex: none;
-        }
-    }
-</style>
-#}
+<link href="{% static 'css/project_list.css' %}?v=4.0" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
 <div class="page-container">
-    <!-- Header Section Moderno -->
+    <!-- Header Section -->
     <div class="header-section">
         <div class="header-content">
             <div class="header-title">
@@ -506,129 +19,134 @@
                 </div>
                 <h1>{% trans "Mis Proyectos" %}</h1>
             </div>
-            <a href="{% url 'projects:project-create' %}" class="btn-primary-prominent">
+            <a href="{% url 'projects:project-create' %}" class="btn-primary">
                 <i class="fas fa-plus"></i>
                 {% trans "Crear Nuevo Proyecto" %}
             </a>
         </div>
     </div>
 
-    <!-- Hero Section Compacto -->
-    <div class="projects-hero-section">
-        <div class="projects-hero-content">
-            <h2 class="projects-hero-title">Gestión Profesional de Proyectos</h2>
-            <p class="projects-hero-subtitle">Organiza, planifica y ejecuta tus proyectos arquitectónicos con herramientas profesionales</p>
-            <div class="projects-hero-stats">
-                <div class="hero-stat">
-                    <span class="hero-stat-number">{% if is_paginated %}{{ page_obj.paginator.count }}{% else %}{{ projects|length }}{% endif %}</span>
-                    <span class="hero-stat-label">Proyectos</span>
-                </div>
-                <div class="hero-stat">
-                    <span class="hero-stat-number">{{ active_projects_count|default:"0" }}</span>
-                    <span class="hero-stat-label">Activos</span>
-                </div>
-                <div class="hero-stat">
-                    <span class="hero-stat-number">{% if total_projects %}{% widthratio completed_projects_count|default:0 total_projects 100 %}{% else %}0{% endif %}</span>
-                    <span class="hero-stat-label">% Completado</span>
-                </div>
+    <!-- Quick Stats -->
+    <div class="stats-grid-mini">
+        <div class="stat-card-mini">
+            <div class="stat-icon-mini total">
+                <i class="fas fa-folder"></i>
             </div>
+            <div class="stat-number-mini">{% if is_paginated %}{{ page_obj.paginator.count }}{% else %}{{ projects|length }}{% endif %}</div>
+            <div class="stat-label-mini">Total Proyectos</div>
+        </div>
+        <div class="stat-card-mini">
+            <div class="stat-icon-mini active">
+                <i class="fas fa-play-circle"></i>
+            </div>
+            <div class="stat-number-mini">{{ active_projects_count|default:"0" }}</div>
+            <div class="stat-label-mini">Activos</div>
+        </div>
+        <div class="stat-card-mini">
+            <div class="stat-icon-mini completed">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-number-mini">{% if total_projects %}{% widthratio completed_projects_count|default:0 total_projects 100 %}{% else %}0{% endif %}%</div>
+            <div class="stat-label-mini">Completado</div>
         </div>
     </div>
 
-    <!-- Filtro Compacto -->
-    <div class="projects-filters-modern">
-        <div class="filters-header-modern">
-            <h3 class="filters-title-modern">
-                <i class="fas fa-filter"></i>
-                {% trans "Filtros y Búsqueda" %}
-            </h3>
-            <span class="search-results-counter" style="display: none;"></span>
+    <!-- Search and Filters -->
+    <div class="table-search-container">
+        <div class="table-search-box">
+            <i class="fas fa-search table-search-icon"></i>
+            <input type="text" 
+                   class="table-search-input" 
+                   placeholder="{% trans 'Buscar proyectos por nombre, cliente...' %}" 
+                   name="search">
+            <a href="#" class="clear-search-btn" style="display: none;">
+                <i class="fas fa-times"></i>
+            </a>
         </div>
-        <form class="filters-form-modern">
-            <div class="search-box-modern">
-                <input type="text" class="search-input-modern" placeholder="{% trans 'Buscar proyectos por nombre, cliente o fase...' %}" name="search">
-            </div>
-        </form>
+        <div class="result-count" style="display: none;"></div>
     </div>
 
-    <!-- Grid de Proyectos con Nueva Propuesta Visual -->
-    <div class="projects-grid-modern">
+    <!-- Projects Grid -->
+    <div class="projects-grid">
         {% for project in projects %}
-        <div class="project-card-modern" data-project-date="{{ project.created_at|date:'Y-m-d' }}">
-            <!-- Imagen del proyecto sin overlay degradado -->
-            <div class="project-card-image" style="background-image: url('{% static 'images/auth/planos.jpg' %}');">
-                <!-- Etiqueta de estado en esquina superior izquierda -->
-                <span class="project-status-modern en-progreso">
-                    En Progreso
-                </span>
-            </div>
+        <div class="project-card" data-project-name="{{ project.name|lower }}" data-client-name="{% if project.client %}{{ project.client.name|lower }}{% endif %}">
             
-            <div class="project-card-body-modern">
-                <h3 class="project-card-title-modern">{{ project.name }}</h3>
-                
-                <!-- Información del proyecto con iconos -->
-                <div class="project-card-info-modern">
-                    <div class="info-row">
-                        <i class="fas fa-user info-icon"></i>
-                        <div class="info-content">
-                            <span class="info-label-modern">Cliente</span>
-                            <span class="info-value-modern" title="{{ project.client.name|default:'No asignado' }}">{{ project.client.name|default:"No asignado" }}</span>
-                        </div>
-                    </div>
-                    <div class="info-row">
-                        <i class="fas fa-layer-group info-icon"></i>
-                        <div class="info-content">
-                            <span class="info-label-modern">Fase</span>
-                            <span class="info-value-modern" title="{{ project.get_phase_display }}">{{ project.get_phase_display }}</span>
-                        </div>
-                    </div>
-                    <div class="info-row">
-                        <i class="fas fa-calendar-alt info-icon"></i>
-                        <div class="info-content">
-                            <span class="info-label-modern">Fecha de inicio</span>
-                            <span class="info-value-modern">{{ project.created_at|date:"d/m/Y" }}</span>
-                        </div>
-                    </div>
-                    <div class="info-row">
-                        <i class="fas fa-clock info-icon"></i>
-                        <div class="info-content">
-                            <span class="info-label-modern">Última actualización</span>
-                            <span class="info-value-modern">{{ project.updated_at|date:"d/m/Y" }}</span>
-                        </div>
-                    </div>
+            <!-- Card Header -->
+            <div class="project-card-header">
+                <div class="project-icon">
+                    <i class="fas fa-building"></i>
                 </div>
-                
-                <!-- Barra de progreso delgada -->
-                <div class="project-card-progress-modern">
-                    <div class="progress-bar-modern">
-                        <div class="progress-fill-modern" style="width: {{ project.progress|default:'25' }}%"></div>
-                    </div>
+                <div class="project-status status-{{ project.status|lower }}">
+                    {{ project.get_status_display }}
                 </div>
             </div>
-            
-            <div class="project-card-footer-modern">
-                <div class="project-actions-modern">
-                    <a href="{% url 'projects:project-detail' project.pk %}" class="btn-view-modern">
-                        <i class="fas fa-eye"></i>
-                        {% trans "Ver Proyecto" %}
-                    </a>
-                    <a href="{% url 'projects:project-update' project.pk %}" class="btn-edit-modern">
-                        <i class="fas fa-edit"></i>
-                        {% trans "Editar" %}
-                    </a>
-                    <a href="{% url 'projects:project-delete' project.pk %}" class="btn-delete-modern">
-                        <i class="fas fa-trash"></i>
-                        {% trans "Eliminar" %}
-                    </a>
+
+            <!-- Card Body -->
+            <div class="project-card-body">
+                <h3 class="project-title">{{ project.name }}</h3>
+                
+                <div class="project-client">
+                    {% if project.client %}
+                        <div class="client-avatar">{{ project.client.name|first|upper }}</div>
+                        <span class="client-name">{{ project.client.name }}</span>
+                    {% else %}
+                        <div class="client-avatar no-client">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <span class="client-name no-client">Sin cliente asignado</span>
+                    {% endif %}
                 </div>
+
+                <!-- Progress Section -->
+                <div class="progress-container">
+                    <div class="progress-info">
+                        <span class="progress-label">Progreso</span>
+                        <span class="progress-percentage">{{ project.progress_percentage|default:0 }}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ project.progress_percentage|default:0 }}%;"></div>
+                    </div>
+                </div>
+
+                <!-- Project Stats -->
+                <div class="project-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ project.phases.count|default:0 }}</div>
+                        <div class="stat-label">Fases</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ project.total_tasks_count|default:0 }}</div>
+                        <div class="stat-label">Tareas</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ project.pending_tasks_count|default:0 }}</div>
+                        <div class="stat-label">Pendientes</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Footer -->
+            <div class="project-card-footer">
+                <a href="{% url 'projects:project-detail' project.pk %}" class="btn-primary btn-block">
+                    <i class="fas fa-eye"></i>
+                    Ver Proyecto
+                </a>
+                <a href="{% url 'projects:project-update' project.pk %}" class="action-btn edit" title="Editar">
+                    <i class="fas fa-edit"></i>
+                </a>
+                <a href="{% url 'projects:project-delete' project.pk %}" class="action-btn delete" title="Eliminar">
+                    <i class="fas fa-trash"></i>
+                </a>
             </div>
         </div>
         {% empty %}
-        <div class="empty-projects-state">
-            <i class="fas fa-folder-open"></i>
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-folder-open"></i>
+            </div>
             <h3>No hay proyectos disponibles</h3>
             <p>Comienza creando tu primer proyecto para organizar y gestionar tus trabajos arquitectónicos de manera profesional.</p>
-            <a href="{% url 'projects:project-create' %}" class="btn-primary-modern">
+            <a href="{% url 'projects:project-create' %}" class="btn-primary">
                 <i class="fas fa-plus"></i>
                 {% trans "Crear Mi Primer Proyecto" %}
             </a>
@@ -637,11 +155,17 @@
     </div>
 
     {% if is_paginated %}
-        {% include 'partials/pagination.html' with page_obj=page_obj item_label='proyectos' %}
+        {% include 'partials/pagination.html' with page_obj=page_obj page_param='page' item_label='proyectos' %}
     {% endif %}
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/projects.js' %}?v=2.5"></script>
+<script src="{% static 'js/projects.js' %}?v=3.0" defer></script>
+<script>
+// Initialize Projects Manager
+document.addEventListener('DOMContentLoaded', function() {
+    new ProjectsManager();
+});
+</script>
 {% endblock %}

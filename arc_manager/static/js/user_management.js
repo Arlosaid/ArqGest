@@ -1,6 +1,11 @@
 // Gestión de Usuarios - JavaScript Moderno con UX Mejorado
 class UserManagement {
     constructor() {
+        // Solo inicializar si estamos en la página de gestión de usuarios
+        if (!document.querySelector('.user-management-page')) {
+            return;
+        }
+        
         this.searchInput = document.querySelector('.table-search-input');
         this.checkboxes = document.querySelectorAll('.checkbox');
         this.actionButtons = document.querySelectorAll('.action-btn');

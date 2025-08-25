@@ -1,123 +1,64 @@
 {% load i18n %}
 {% load static %}
 
-<div class="task-detail-professional">
-    <!-- Header profesional con título y badges -->
-    <div class="task-detail-header">
-        <div class="task-title-section">
-            <h4 class="task-title">{{ task.title }}</h4>
-            <div class="task-badges-row">
-                <span class="status-badge status-{{ task.status|lower }}">
-                    <i class="fas fa-circle"></i>
-                    {{ task.get_status_display }}
-                </span>
-                <span class="priority-badge priority-{{ task.priority|lower }}">
-                    <i class="fas fa-flag"></i>
-                    {{ task.get_priority_display }}
-                </span>
-            </div>
+<div class="task-detail-simple">
+    <!-- Header simple con título y badges -->
+    <div class="task-header-simple">
+        <h5 class="task-title-simple">{{ task.title }}</h5>
+        <div class="task-badges-simple">
+            <span class="badge-status status-{{ task.status|lower }}">{{ task.get_status_display }}</span>
+            <span class="badge-priority priority-{{ task.priority|lower }}">{{ task.get_priority_display }}</span>
         </div>
     </div>
 
-    <!-- Contenido principal -->
-    <div class="task-detail-body">
+    <!-- Descripción principal -->
+    <div class="task-body-simple">
         {% if task.description %}
-        <div class="task-description-card">
-            <div class="card-header">
-                <h6><i class="fas fa-file-text"></i> {% trans "Descripción" %}</h6>
-            </div>
-            <div class="card-content">
-                <p>{{ task.description|linebreaks }}</p>
-            </div>
+        <div class="task-description-simple">
+            <h6 class="description-title">{% trans "¿Qué se debe hacer?" %}</h6>
+            <p class="description-text">{{ task.description|linebreaks }}</p>
+        </div>
+        {% else %}
+        <div class="task-description-simple">
+            <h6 class="description-title">{% trans "¿Qué se debe hacer?" %}</h6>
+            <p class="description-text text-muted">{% trans "No hay descripción disponible" %}</p>
         </div>
         {% endif %}
 
-        <!-- Grid de información -->
-        <div class="task-info-grid">
-            <div class="info-card">
-                <div class="info-icon">
-                    <i class="fas fa-project-diagram"></i>
-                </div>
-                <div class="info-content">
-                    <label>{% trans "Proyecto" %}</label>
-                    <value>{{ task.phase.project.name }}</value>
-                </div>
+        <!-- Información básica en línea -->
+        <div class="task-info-simple">
+            <div class="info-item">
+                <i class="fas fa-user"></i>
+                <span>
+                    {% if task.assigned_to %}
+                        {{ task.assigned_to.get_full_name|default:task.assigned_to.username }}
+                    {% else %}
+                        {% trans "Sin asignar" %}
+                    {% endif %}
+                </span>
             </div>
-            
-            <div class="info-card">
-                <div class="info-icon">
-                    <i class="fas fa-layer-group"></i>
-                </div>
-                <div class="info-content">
-                    <label>{% trans "Fase" %}</label>
-                    <value>{{ task.phase.name }}</value>
-                </div>
+            <div class="info-item">
+                <i class="fas fa-layer-group"></i>
+                <span>{{ task.phase.name }}</span>
             </div>
-            
-            <div class="info-card">
-                <div class="info-icon">
-                    <i class="fas fa-user-circle"></i>
-                </div>
-                <div class="info-content">
-                    <label>{% trans "Asignado a" %}</label>
-                    <value>
-                        {% if task.assigned_to %}
-                            {{ task.assigned_to.get_full_name|default:task.assigned_to.username }}
-                        {% else %}
-                            <span class="text-muted">{% trans "Sin asignar" %}</span>
-                        {% endif %}
-                    </value>
-                </div>
-            </div>
-            
             {% if task.due_date %}
-            <div class="info-card">
-                <div class="info-icon">
-                    <i class="fas fa-calendar-alt"></i>
-                </div>
-                <div class="info-content">
-                    <label>{% trans "Vencimiento" %}</label>
-                    <value class="{% if task.due_date < today %}text-danger fw-bold{% endif %}">
-                        {{ task.due_date|date:"d/m/Y" }}
-                        {% if task.due_date < today %}
-                            <small class="text-danger">({% trans "Vencida" %})</small>
-                        {% endif %}
-                    </value>
-                </div>
+            <div class="info-item {% if task.due_date < today %}overdue{% endif %}">
+                <i class="fas fa-calendar"></i>
+                <span>{{ task.due_date|date:"d/m/Y" }}</span>
             </div>
             {% endif %}
-            
-            <div class="info-card">
-                <div class="info-icon">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <div class="info-content">
-                    <label>{% trans "Creado" %}</label>
-                    <value>{{ task.created_at|date:"d/m/Y H:i" }}</value>
-                </div>
-            </div>
         </div>
     </div>
 
     <!-- Footer con acciones -->
-    <div class="task-detail-footer">
-        <div class="footer-meta">
-            <small class="text-muted">
-                <i class="fas fa-info-circle"></i>
-                {% trans "Información de solo lectura" %}
-            </small>
-        </div>
-        <div class="footer-actions">
-            <button type="button" class="btn btn-outline-primary btn-sm" onclick="openTaskModal('edit', {{ task.pk }})">
-                <i class="fas fa-edit"></i> {% trans "Editar" %}
-            </button>
-            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
-                <i class="fas fa-times"></i> {% trans "Cerrar" %}
-            </button>
-        </div>
+    <div class="task-footer-simple">
+        <button type="button" class="btn btn-primary btn-sm" onclick="openTaskModal('edit', {{ task.pk }})">
+            <i class="fas fa-edit me-1"></i>{% trans "Editar" %}
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+            {% trans "Cerrar" %}
+        </button>
     </div>
 </div>
-
-<link href="{% static 'css/task_detail_modal.css' %}?v=1.0" rel="stylesheet">
 
 

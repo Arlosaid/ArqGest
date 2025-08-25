@@ -9,6 +9,7 @@ from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from .models import Project, Task, Phase, PhaseTemplate
 from apps.files.models import ProjectFile
 from .forms import ProjectForm, TaskForm, PhaseTemplateForm, PhaseFormSet
@@ -67,7 +68,7 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         
         # Obtener fases del proyecto con sus archivos y tareas (optimizado)
         phases = project.phases.prefetch_related(
-            'files', 'files__uploaded_by',
+            'files__uploaded_by',
             'tasks', 'tasks__assigned_to'
         ).order_by('order')
         
@@ -94,9 +95,8 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         phases_page_obj = build_page(phases, 6, 'phases_page')
         context['phases_page_obj'] = phases_page_obj
 
-        # Paginación: pestaña Archivos → listado de fases (4 por página)
-        files_phases_page_obj = build_page(phases, 4, 'files_phases_page')
-        context['files_phases_page_obj'] = files_phases_page_obj
+        # Simplificado: mostrar todas las fases para archivos (sin paginación)
+        context['files_phases_page_obj'] = None  # Ya no necesitamos paginación
 
         # Centro de tareas: métricas y listas rápidas (optimizado con agregaciones)
         from django.db.models import Count, Q
@@ -123,8 +123,8 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         )
         context['tasks_recent'] = list(tasks_qs.order_by('-created_at')[:8])
 
-        # Centro de tareas (pestaña interna): paginar 10 por página
-        tasks_page_obj = build_page(tasks_qs.order_by('due_date', 'priority'), 10, 'tasks_page')
+        # Centro de tareas (pestaña interna): paginar 12 por página
+        tasks_page_obj = build_page(tasks_qs.order_by('due_date', 'priority'), 12, 'tasks_page')
         context['tasks_page_obj'] = tasks_page_obj
 
         # Contadores por fase (para el sub-tab "Por fases") sin consultas extra
@@ -142,10 +142,8 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
             phase_task_counts[phase.id] = counts
         context['phase_task_counts'] = phase_task_counts
 
-        # Paginación de archivos por fase dentro de la pestaña Archivos (5 por página por fase mostrada)
-        for phase in getattr(files_phases_page_obj, 'object_list', []):
-            files_qs = getattr(phase, 'files').all()
-            setattr(phase, 'files_page_obj', build_page(files_qs, 5, f'file_page_{phase.id}'))
+        # Simplificado: sin paginación de archivos, mostrar todos
+        # Los archivos se cargan mediante la relación phase.files.all() en el template
         
         return context
 
@@ -281,7 +279,12 @@ def project_kanban(request, pk):
         # Traer todas las tareas y agrupar en memoria para evitar N consultas
         tasks_list = list(base_qs)
         for code, _label in status_choices:
-            tasks_by_status[code] = [t for t in tasks_list if t.status == code]
+            filtered_tasks = [t for t in tasks_list if t.status == code]
+            # Crear un diccionario con las tareas y el contador
+            tasks_by_status[code] = {
+                'tasks': filtered_tasks,
+                'count': len(filtered_tasks)
+            }
 
     # Obtener usuarios de la organización para asignación (excluir solo superusuarios)
     users = []
@@ -466,25 +469,86 @@ class MyTaskListView(LoginRequiredMixin, PageSizeMixin, ListView):
     model = Task
     template_name = 'projects/my_tasks.html'
     context_object_name = 'tasks'
-    paginate_by = 8
+    paginate_by = 12
 
     def get_queryset(self):
-        return Task.objects.filter(
+        queryset = Task.objects.filter(
             phase__project__organization=self.request.user.organization,
             assigned_to=self.request.user
         ).select_related('phase__project', 'assigned_to').order_by('due_date', 'priority')
+        
+        # Aplicar filtros si están presentes
+        status_filter = self.request.GET.get('status')
+        priority_filter = self.request.GET.get('priority')
+        search_filter = self.request.GET.get('search')
+        
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        if priority_filter:
+            queryset = queryset.filter(priority=priority_filter)
+            
+        if search_filter:
+            queryset = queryset.filter(
+                Q(title__icontains=search_filter) | 
+                Q(phase__project__name__icontains=search_filter) |
+                Q(phase__name__icontains=search_filter)
+            )
+        
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        
+        # Obtener todas las tareas del usuario sin filtros
         all_tasks = Task.objects.filter(
             phase__project__organization=self.request.user.organization,
             assigned_to=self.request.user
         )
-        context['total_tasks'] = all_tasks.count()
-        context['tasks_todo'] = all_tasks.filter(status='TODO').count()
-        context['tasks_in_progress'] = all_tasks.filter(status='IN_PROGRESS').count()
-        context['tasks_paused'] = all_tasks.filter(status='PAUSED').count()
-        context['tasks_done'] = all_tasks.filter(status='DONE').count()
+        
+        # Obtener el queryset filtrado completo (todas las páginas)
+        filtered_queryset = self.get_queryset()
+        
+        # Verificar si hay filtros activos
+        has_filters = any([
+            self.request.GET.get('status'),
+            self.request.GET.get('priority'), 
+            self.request.GET.get('search')
+        ])
+        
+        if has_filters:
+            # Contadores basados en todas las tareas filtradas (no solo la página actual)
+            context['total_tasks'] = filtered_queryset.count()
+            context['tasks_todo'] = filtered_queryset.filter(status='TODO').count()
+            context['tasks_in_progress'] = filtered_queryset.filter(status='IN_PROGRESS').count()
+            context['tasks_paused'] = filtered_queryset.filter(status='PAUSED').count()
+            context['tasks_done'] = filtered_queryset.filter(status='DONE').count()
+            context['showing_filtered'] = True
+            # Información adicional sobre el total sin filtros
+            context['all_total_tasks'] = all_tasks.count()
+            context['all_tasks_todo'] = all_tasks.filter(status='TODO').count()
+            context['all_tasks_in_progress'] = all_tasks.filter(status='IN_PROGRESS').count()
+            context['all_tasks_paused'] = all_tasks.filter(status='PAUSED').count()
+            context['all_tasks_done'] = all_tasks.filter(status='DONE').count()
+        else:
+            # Sin filtros, usar todas las tareas para los contadores
+            context['total_tasks'] = all_tasks.count()
+            context['tasks_todo'] = all_tasks.filter(status='TODO').count()
+            context['tasks_in_progress'] = all_tasks.filter(status='IN_PROGRESS').count()
+            context['tasks_paused'] = all_tasks.filter(status='PAUSED').count()
+            context['tasks_done'] = all_tasks.filter(status='DONE').count()
+            context['showing_filtered'] = False
+        
+        # Construir parámetros de filtro para la paginación
+        filter_params = ""
+        if self.request.GET.get('status'):
+            filter_params += f"status={self.request.GET.get('status')}&"
+        if self.request.GET.get('priority'):
+            filter_params += f"priority={self.request.GET.get('priority')}&"
+        if self.request.GET.get('search'):
+            filter_params += f"search={self.request.GET.get('search')}&"
+        
+        context['filter_params'] = filter_params
         context['today'] = timezone.now().date()
         return context
 
@@ -564,9 +628,15 @@ def task_edit(request, pk):
         assigned_to_id = request.POST.get('assigned_to')
         phase_id = request.POST.get('phase')
         
+        # Debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Task edit - POST data: title='{title}', description='{description}', priority='{priority}'")
+        
         if title:
-            task.title = title
-            task.description = description
+            task.title = title.strip()
+            # Asegurar que la descripción se guarde correctamente, incluso si está vacía
+            task.description = description.strip() if description else ''
             task.status = status
             task.priority = priority
             task.due_date = due_date if due_date else None
@@ -580,12 +650,25 @@ def task_edit(request, pk):
                     task.assigned_to_id = assigned_to_id
                 else:
                     task.assigned_to = None
+            else:
+                # Si assigned_to_id está vacío, desasignar la tarea
+                task.assigned_to = None
             if phase_id and str(task.phase_id) != str(phase_id):
                 try:
                     task.phase = Phase.objects.get(pk=phase_id, project=task.phase.project)
                 except Phase.DoesNotExist:
                     pass
             task.save()
+            
+            # Verificar y forzar actualización si es necesario
+            task.refresh_from_db()
+            if task.description != (description.strip() if description else ''):
+                Task.objects.filter(pk=task.pk).update(description=description.strip() if description else '')
+                task.refresh_from_db()
+                logger.info(f"Forced description update for task {task.id}")
+            
+            # Debug logging después de guardar
+            logger.info(f"Task saved - ID: {task.id}, title: '{task.title}', description: '{task.description}'")
             
             # Respuesta para htmx: devolver JSON para actualizar la tarjeta y cerrar modal
             # Solo mostrar mensaje Django para peticiones normales (no AJAX)
@@ -630,6 +713,69 @@ def task_delete(request, pk):
     task = get_object_or_404(Task, pk=pk, phase__project__organization=request.user.organization)
     task.delete()
     return JsonResponse({'success': True})
+
+@login_required
+def phase_files_paginated(request, project_id, phase_id):
+    """Vista para cargar archivos de una fase con paginación HTMX."""
+    phase = get_object_or_404(Phase, id=phase_id, project_id=project_id, project__organization=request.user.organization)
+    
+    # Parámetros de paginación
+    page = int(request.GET.get('page', 1))
+    per_page = int(request.GET.get('per_page', 12))  # 12 archivos por página
+    load_more = request.GET.get('load_more', 'false') == 'true'
+    
+    # Filtros
+    file_type_filter = request.GET.get('type', '')
+    date_filter = request.GET.get('date', '')
+    
+    # Queryset base
+    files_qs = phase.files.select_related('uploaded_by').order_by('-uploaded_at')
+    
+    # Aplicar filtros
+    if file_type_filter:
+        file_types = file_type_filter.split(',')
+        files_qs = files_qs.filter(ext_upper__in=[ft.upper() for ft in file_types])
+    
+    if date_filter:
+        from datetime import datetime, timedelta
+        today = datetime.now().date()
+        if date_filter == 'today':
+            files_qs = files_qs.filter(uploaded_at__date=today)
+        elif date_filter == 'week':
+            week_ago = today - timedelta(days=7)
+            files_qs = files_qs.filter(uploaded_at__date__gte=week_ago)
+        elif date_filter == 'month':
+            month_ago = today - timedelta(days=30)
+            files_qs = files_qs.filter(uploaded_at__date__gte=month_ago)
+        elif date_filter == 'older':
+            month_ago = today - timedelta(days=30)
+            files_qs = files_qs.filter(uploaded_at__date__lt=month_ago)
+    
+    # Paginación
+    paginator = Paginator(files_qs, per_page)
+    try:
+        files_page = paginator.page(page)
+    except (PageNotAnInteger, EmptyPage):
+        files_page = paginator.page(1)
+    
+    context = {
+        'phase': phase,
+        'files_page': files_page,
+        'files': files_page.object_list,
+        'has_more': files_page.has_next(),
+        'next_page': files_page.next_page_number() if files_page.has_next() else None,
+        'current_filters': {
+            'type': file_type_filter,
+            'date': date_filter,
+        },
+        'load_more': load_more
+    }
+    
+    # Si es una solicitud de "cargar más", solo devolver los elementos adicionales
+    if load_more:
+        return render(request, 'projects/partials/files_load_more.html', context)
+    
+    return render(request, 'projects/partials/files_paginated.html', context)
 
 # PhaseTemplate Views
 class PhaseTemplateListView(LoginRequiredMixin, PageSizeMixin, ListView):
