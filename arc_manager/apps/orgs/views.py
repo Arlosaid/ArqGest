@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.generic import ListView, CreateView, UpdateView, DetailView, DeleteView
 from django.db.utils import IntegrityError
+from django.db.models import Q
 from core.mixins import PageSizeMixin
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
@@ -22,11 +23,38 @@ class ClientListView(LoginRequiredMixin, PageSizeMixin, ListView):
 
     def get_queryset(self):
         """
-        Return clients that belong to the user's organization.
+        Return clients that belong to the user's organization with search functionality.
         """
         if hasattr(self.request.user, 'organization') and self.request.user.organization:
-            return Client.objects.filter(organization=self.request.user.organization)
+            queryset = Client.objects.filter(organization=self.request.user.organization)
+            
+            # Filtro de búsqueda
+            search = self.request.GET.get('search', '')
+            if search:
+                queryset = queryset.filter(
+                    Q(name__icontains=search) |
+                    Q(email__icontains=search) |
+                    Q(phone_number__icontains=search)
+                )
+            
+            return queryset.order_by('-created_at')
         return Client.objects.none()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Pasar búsqueda al contexto
+        context['search'] = self.request.GET.get('search', '')
+        
+        # Construir extra_params para el partial de paginación (preserva filtros)
+        params = self.request.GET.copy()
+        params.pop('page', None)
+        extra_params = params.urlencode()
+        if extra_params:
+            extra_params = f"{extra_params}&"
+        context['extra_params'] = extra_params
+        
+        return context
 
 class ClientDetailView(LoginRequiredMixin, ClientOwnerMixin, DetailView):
     model = Client

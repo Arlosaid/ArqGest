@@ -47,9 +47,9 @@ class UserManagement {
     }
 
     setupEventListeners() {
-        // Búsqueda en tiempo real
+        // Búsqueda del servidor - enviar formulario automáticamente después de un delay
         if (this.searchInput) {
-            this.searchInput.addEventListener('input', this.debounce(this.handleSearch.bind(this), 300));
+            this.searchInput.addEventListener('input', this.debounce(this.handleServerSearch.bind(this), 500));
         }
 
         // Botones de acción
@@ -142,31 +142,35 @@ class UserManagement {
         */
     }
 
-    handleSearch(event) {
-        const searchTerm = event.target.value.toLowerCase();
-        const rows = document.querySelectorAll('tbody tr');
-        let visibleCount = 0;
+    handleServerSearch(event) {
+        const searchTerm = event.target.value.trim();
+        const form = event.target.closest('form');
+        
+        if (!form) {
+            console.log('No se encontró formulario de búsqueda');
+            return;
+        }
 
-        rows.forEach(row => {
-            const text = row.textContent.toLowerCase();
-            const isVisible = text.includes(searchTerm);
-            
-            row.style.display = isVisible ? '' : 'none';
-            if (isVisible) visibleCount++;
-            
-            // DESHABILITADO: Animación suave
-            /*
-            if (isVisible) {
-                row.style.opacity = '0';
-                setTimeout(() => {
-                    row.style.transition = 'opacity 0.3s ease';
-                    row.style.opacity = '1';
-                }, 50);
-            }
-            */
-        });
+        console.log('Enviando búsqueda de usuarios al servidor:', searchTerm);
+        
+        // Mostrar indicador de carga
+        this.showSearchLoading();
+        
+        // Enviar formulario automáticamente
+        form.submit();
+    }
 
-        this.updateResultCount(visibleCount, searchTerm);
+    showSearchLoading() {
+        const searchInput = this.searchInput;
+        const searchIcon = document.querySelector('.table-search-icon');
+        
+        if (searchInput) {
+            searchInput.disabled = true;
+        }
+        
+        if (searchIcon) {
+            searchIcon.className = 'fas fa-spinner fa-spin table-search-icon';
+        }
     }
 
     handleActionClick(event) {
@@ -258,16 +262,7 @@ class UserManagement {
         console.log(`${checkedBoxes.length} usuarios seleccionados`);
     }
 
-    updateResultCount(count, searchTerm) {
-        const resultCountElement = document.querySelector('.result-count');
-        if (resultCountElement) {
-            if (searchTerm) {
-                resultCountElement.textContent = `${count} resultado${count !== 1 ? 's' : ''} para "${searchTerm}"`;
-            } else {
-                resultCountElement.textContent = `Mostrando 1-${count} de ${count} resultados`;
-            }
-        }
-    }
+    // El conteo de resultados ahora lo maneja el servidor
 
     showUserDetails(userName) {
         this.showNotification(`Mostrando detalles de ${userName}`, 'info');
