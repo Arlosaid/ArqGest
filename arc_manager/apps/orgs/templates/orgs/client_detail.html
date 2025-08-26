@@ -21,7 +21,7 @@
                     <div class="user-status-indicator {% if client.is_active %}active{% else %}inactive{% endif %}"></div>
                 </div>
                 <div class="hero-info">
-                    <h1 class="user-hero-name">{{ client.name }}</h1>
+                    <h1 class="user-hero-name unified-title-primary">{{ client.name }}</h1>
                     <div class="hero-badges">
                         {% if client.is_active %}
                             <span class="hero-badge">Cliente Activo</span>
@@ -51,7 +51,7 @@
         <div class="left-content">
             <div class="card">
                 <div class="card-header">
-                    <h3>Información del Cliente</h3>
+                    <h3 class="unified-title-tertiary">Información del Cliente</h3>
                 </div>
                 <div class="card-body">
                     <div class="info-row">

@@ -39,7 +39,8 @@
     padding: 1.5rem;
 }
 
-/* Header Section Moderno */
+/* Header Section Moderno - COMENTADO PARA USAR ESTILOS UNIFICADOS DE base.css */
+/*
 .header-section {
     background: linear-gradient(135deg, #f8faff 0%, #eef5ff 100%);
     border-radius: 16px;
@@ -83,6 +84,7 @@
     margin: 0;
     line-height: 1.2;
 }
+*/
 
 /* Hero Section Compacto */
 .projects-hero-section {

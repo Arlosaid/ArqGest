@@ -23,7 +23,7 @@
                 </div>
                 
                 <div class="hero-info">
-                    <h1 class="user-hero-name">{{ user_to_view.first_name }} {{ user_to_view.last_name }}</h1>
+                    <h1 class="user-hero-name unified-title-primary">{{ user_to_view.first_name }} {{ user_to_view.last_name }}</h1>
                     
                     <div class="hero-badges">
                         <span class="hero-badge {% if user_to_view.is_active %}status-active{% else %}status-inactive{% endif %}">
@@ -63,7 +63,7 @@
             <div class="card-header">
                 <div class="d-flex align-items-center gap-2">
                     <i class="fas fa-address-card"></i>
-                    <h3>Información Personal</h3>
+                    <h3 class="unified-title-tertiary">Información Personal</h3>
                 </div>
             </div>
             <div class="card-body">
