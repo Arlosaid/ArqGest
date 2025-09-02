@@ -1,11 +1,13 @@
 from django.shortcuts import render, redirect
 from django.views import View
 from django.contrib.auth.views import LoginView, PasswordResetView
-from django.contrib.auth import logout, login
+from django.contrib.auth import logout, login, update_session_auth_hash
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
 from django.urls import reverse_lazy
 from django.core.cache import cache
-from .forms import CustomAuthenticationForm
+from .forms import CustomAuthenticationForm, ForcePasswordChangeForm
 import logging
 
 logger = logging.getLogger('app')
@@ -43,7 +45,13 @@ class CustomLoginView(LoginView):
             # El mensaje se mostrará en el admin mediante el middleware
             return redirect('/admin/')
         
-        # Para usuarios normales y org_admin, proceder con el login normal
+        # Para usuarios normales y org_admin, verificar si necesita cambio de contraseña
+        if getattr(user, 'password_change_required', False):
+            # Hacer login primero
+            login(self.request, user)
+            # Redirigir al cambio forzado de contraseña
+            return redirect('/accounts/force-password-change/')
+        
         user_info = {
             'username': user.username or user.email,
             'role': user.role_display(),
@@ -125,3 +133,40 @@ class SecurePasswordResetView(PasswordResetView):
         cache.set(cache_key, True, timeout=900)
         
         return super().form_valid(form)
+
+
+@method_decorator(login_required, name='dispatch')
+class ForcePasswordChangeView(View):
+    """Vista para forzar cambio de contraseña en el primer login"""
+    template_name = 'auth/force_password_change.html'
+    
+    def get(self, request):
+        # Si el usuario no necesita cambiar contraseña, redirigir al dashboard
+        if not getattr(request.user, 'password_change_required', False):
+            return redirect('/')
+        
+        form = ForcePasswordChangeForm(user=request.user)
+        return render(request, self.template_name, {'form': form})
+    
+    def post(self, request):
+        # Si el usuario no necesita cambiar contraseña, redirigir al dashboard
+        if not getattr(request.user, 'password_change_required', False):
+            return redirect('/')
+        
+        form = ForcePasswordChangeForm(user=request.user, data=request.POST)
+        if form.is_valid():
+            # Cambiar la contraseña
+            user = request.user
+            user.set_password(form.cleaned_data['new_password1'])
+            user.password_change_required = False  # Ya no necesita cambiar contraseña
+            user.save()
+            
+            # Mantener la sesión activa después del cambio de contraseña
+            update_session_auth_hash(request, user)
+            
+            messages.success(request, '¡Contraseña cambiada exitosamente! Ahora puedes acceder a todas las funciones del sistema.')
+            
+            # Redirigir al dashboard principal
+            return redirect('/')
+        
+        return render(request, self.template_name, {'form': form})

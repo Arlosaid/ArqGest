@@ -18,6 +18,9 @@ load_dotenv(BASE_DIR.parent / '.env')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
+# Forzar DEBUG=True para desarrollo local (temporal)
+DEBUG = True
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY', '')
 if not SECRET_KEY:
@@ -92,6 +95,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'axes.middleware.AxesMiddleware',
     'apps.accounts.middleware.LoginRequiredMiddleware',
+    'apps.accounts.middleware.PasswordChangeRequiredMiddleware',
     'apps.accounts.middleware.SuperuserRestrictMiddleware',
     'apps.orgs.middleware.OrganizationContextMiddleware',
     'apps.accounts.middleware.ErrorHandlingMiddleware',
@@ -209,7 +213,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
 LANGUAGE_CODE = 'es'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Mexico_City'  # Zona horaria de México (UTC-6)
 USE_I18N = True
 USE_TZ = True
 
@@ -266,6 +270,7 @@ LOGIN_EXEMPT_URLS = [
     r'^accounts/password_reset/done/?$',
     r'^accounts/reset/(.+)/(.+)/?$',
     r'^accounts/reset/done/?$',
+    r'^accounts/force-password-change/?$',
     r'^admin/.*$',
     r'^static/.*$',
     r'^media/.*$',

@@ -5,6 +5,7 @@ from django.shortcuts import redirect
 from django.conf.urls.static import static
 from django.http import JsonResponse
 from apps.plans.views import SubscriptionInfoAPIView
+from apps.main.admin import financial_dashboard_view
 
 def root_redirect(request):
     if not request.user.is_authenticated:
@@ -16,6 +17,7 @@ def health_check(request):
     return JsonResponse({'status': 'healthy', 'service': 'arc-manager'})
 
 urlpatterns = [
+    path('admin/financial-dashboard/', financial_dashboard_view, name='admin_financial_dashboard'),
     path('admin/', admin.site.urls),
     path('accounts/', include('apps.accounts.urls')),
     path('main/', include('apps.main.urls')),

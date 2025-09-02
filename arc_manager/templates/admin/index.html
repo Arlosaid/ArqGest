@@ -1,0 +1,543 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static admin_urls %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .admin-dashboard {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+    }
+    
+    .dashboard-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .dashboard-header h1 {
+        color: #2c3e50;
+        margin: 0;
+        font-size: 28px;
+    }
+    
+    .dashboard-header p {
+        color: #7f8c8d;
+        margin: 10px 0 0 0;
+        font-size: 16px;
+    }
+    
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .metric-card {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        border-left: 4px solid #3498db;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        color: inherit;
+        text-decoration: none;
+    }
+    
+    .metric-card.users {
+        border-left-color: #667eea;
+    }
+    
+    .metric-card.orgs {
+        border-left-color: #e74c3c;
+    }
+    
+    .metric-card.financial {
+        border-left-color: #27ae60;
+    }
+    
+    .metric-card.subscriptions {
+        border-left-color: #3498db;
+    }
+    
+    .metric-value {
+        font-size: 36px;
+        font-weight: bold;
+        margin: 10px 0 5px 0;
+        color: #2c3e50;
+    }
+    
+    .metric-label {
+        font-size: 16px;
+        color: #2c3e50;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    
+    .metric-detail {
+        font-size: 14px;
+        color: #7f8c8d;
+        margin-top: 5px;
+    }
+    
+    .metric-icon {
+        font-size: 28px;
+        margin-bottom: 15px;
+    }
+    
+    .section {
+        margin: 30px 0;
+    }
+    
+    .section h3 {
+        color: #2c3e50;
+        margin-bottom: 20px;
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .quick-access-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .quick-access-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        text-decoration: none;
+        color: #2c3e50;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        border-left: 4px solid #3498db;
+        transition: all 0.2s ease;
+        display: block;
+    }
+    
+    .quick-access-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        color: #2c3e50;
+        text-decoration: none;
+    }
+    
+    .quick-access-card.financial {
+        border-left-color: #27ae60;
+    }
+    
+    .quick-access-card.upgrades {
+        border-left-color: #9b59b6;
+    }
+    
+    .quick-access-card.subscriptions {
+        border-left-color: #3498db;
+    }
+    
+    .quick-access-card.users {
+        border-left-color: #667eea;
+    }
+    
+    .quick-access-card.orgs {
+        border-left-color: #e74c3c;
+    }
+    
+    .quick-access-card.payments {
+        border-left-color: #f39c12;
+    }
+    
+    .quick-access-icon {
+        font-size: 24px;
+        margin-bottom: 10px;
+    }
+    
+    .quick-access-title {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    
+    .quick-access-desc {
+        font-size: 14px;
+        color: #7f8c8d;
+    }
+    
+    .alerts-section {
+        margin: 30px 0;
+    }
+    
+    .alerts-section h3 {
+        color: #2c3e50;
+        margin-bottom: 20px;
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .alerts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 15px;
+    }
+    
+    .alert-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        border-left: 4px solid #f39c12;
+    }
+    
+    .alert-card.danger {
+        border-left-color: #e74c3c;
+    }
+    
+    .alert-card.warning {
+        border-left-color: #f39c12;
+    }
+    
+    .alert-card.priority {
+        border-left-color: #e67e22;
+        background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        50% { box-shadow: 0 4px 20px rgba(230, 126, 34, 0.3); }
+        100% { box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    }
+    
+    .alert-icon {
+        font-size: 24px;
+        flex-shrink: 0;
+    }
+    
+    .alert-content {
+        flex: 1;
+    }
+    
+    .alert-title {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 5px;
+    }
+    
+    .alert-description {
+        font-size: 14px;
+        color: #7f8c8d;
+        margin-bottom: 10px;
+    }
+    
+    .alert-action {
+        background: #3498db;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 500;
+        transition: background 0.2s ease;
+    }
+    
+    .alert-action:hover {
+        background: #2980b9;
+        color: white;
+    }
+    
+
+    
+    .admin-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 15px;
+        margin: 30px 0;
+    }
+    
+    .admin-action {
+        background: white;
+        color: #2c3e50;
+        text-decoration: none;
+        padding: 24px 20px;
+        border-radius: 12px;
+        text-align: center;
+        transition: all 0.3s ease;
+        font-weight: 500;
+        border: 2px solid #e8ecf0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .admin-action::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: #3498db;
+        transition: all 0.3s ease;
+    }
+    
+    .admin-action:hover {
+        color: #2c3e50;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        border-color: #3498db;
+    }
+    
+    .admin-action:hover::before {
+        height: 6px;
+        background: #2980b9;
+    }
+    
+    .admin-action.users::before {
+        background: #667eea;
+    }
+    
+    .admin-action.users:hover::before {
+        background: #5a6fd8;
+    }
+    
+    .admin-action.orgs::before {
+        background: #e74c3c;
+    }
+    
+    .admin-action.orgs:hover::before {
+        background: #c0392b;
+    }
+    
+    .admin-action.subs::before {
+        background: #3498db;
+    }
+    
+    .admin-action.subs:hover::before {
+        background: #2980b9;
+    }
+    
+    .admin-action.support::before {
+        background: #27ae60;
+    }
+    
+    .admin-action.support:hover::before {
+        background: #229954;
+    }
+    
+    .admin-action[style*="border-color: #27ae60"]::before {
+        background: #27ae60;
+    }
+    
+    .admin-action[style*="border-color: #27ae60"]:hover::before {
+        background: #229954;
+    }
+    
+    .support-summary {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        border-left: 4px solid #9b59b6;
+    }
+    
+    .support-summary h3 {
+        color: #2c3e50;
+        margin: 0 0 20px 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .support-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #ecf0f1;
+    }
+    
+    .support-item:last-child {
+        border-bottom: none;
+    }
+    
+    .support-action {
+        background: #3498db;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 20px;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    
+    .support-action:hover {
+        background: #2980b9;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if show_dashboard and dashboard_stats %}
+<div class="admin-dashboard">
+    <div class="dashboard-header">
+        <h1>🏗️ Panel de Administración ARC Manager</h1>
+        <p>Métricas administrativas, financieras y notificaciones del sistema</p>
+    </div>
+    
+    {% if dashboard_stats.error %}
+        <div class="messagelist">
+            <div class="error">
+                ⚠️ Error cargando métricas: {{ dashboard_stats.error }}
+            </div>
+        </div>
+    {% endif %}
+    
+    <!-- Métricas Principales -->
+    <div class="metrics-grid">
+        <!-- Métricas de Usuarios -->
+        <a href="{% url 'admin:accounts_user_changelist' %}" class="metric-card users">
+            <div class="metric-icon">👥</div>
+            <div class="metric-value">{{ dashboard_stats.users.total }}</div>
+            <div class="metric-label">Total Usuarios</div>
+            <div class="metric-detail">{{ dashboard_stats.users.active }} activos</div>
+        </a>
+        
+        <!-- Métricas de Organizaciones -->
+        <a href="{% url 'admin:orgs_organization_changelist' %}" class="metric-card orgs">
+            <div class="metric-icon">🏢</div>
+            <div class="metric-value">{{ dashboard_stats.organizations.total }}</div>
+            <div class="metric-label">Organizaciones</div>
+            <div class="metric-detail">{{ dashboard_stats.organizations.active }} activas</div>
+        </a>
+        
+        <!-- Métricas Financieras -->
+        <a href="{% url 'admin_financial_dashboard' %}" class="metric-card financial">
+            <div class="metric-icon">💰</div>
+            <div class="metric-value">${{ dashboard_stats.financial.total_revenue|default:"0" }}</div>
+            <div class="metric-label">Ingresos Totales</div>
+            <div class="metric-detail">${{ dashboard_stats.financial.monthly_revenue|default:"0" }} este mes</div>
+        </a>
+        
+        <!-- Métricas de Suscripciones -->
+        <a href="{% url 'admin:plans_subscription_changelist' %}" class="metric-card subscriptions">
+            <div class="metric-icon">💳</div>
+            <div class="metric-value">{{ dashboard_stats.subscriptions.active }}</div>
+            <div class="metric-label">Suscripciones Activas</div>
+            <div class="metric-detail">{{ dashboard_stats.subscriptions.basic }} básicas, {{ dashboard_stats.subscriptions.trial }} trial</div>
+        </a>
+    </div>
+    
+    <!-- Accesos Directos Importantes -->
+    <div class="section">
+        <h3>🚀 Accesos Directos</h3>
+        <div class="quick-access-grid">
+            <a href="{% url 'admin_financial_dashboard' %}" class="quick-access-card financial">
+                <div class="quick-access-icon">💰</div>
+                <div class="quick-access-title">Dashboard Financiero</div>
+                <div class="quick-access-desc">Métricas detalladas de ingresos</div>
+            </a>
+            
+            <a href="{% url 'admin:plans_upgraderequest_changelist' %}?status=pending" class="quick-access-card upgrades">
+                <div class="quick-access-icon">⬆️</div>
+                <div class="quick-access-title">Upgrades Pendientes</div>
+                <div class="quick-access-desc">{{ dashboard_stats.notifications.pending_upgrades }} solicitudes</div>
+            </a>
+            
+            <a href="{% url 'admin:plans_subscription_changelist' %}" class="quick-access-card subscriptions">
+                <div class="quick-access-icon">💳</div>
+                <div class="quick-access-title">Gestionar Suscripciones</div>
+                <div class="quick-access-desc">Ver y administrar planes</div>
+            </a>
+            
+            <a href="{% url 'admin:accounts_user_add' %}" class="quick-access-card users">
+                <div class="quick-access-icon">👤</div>
+                <div class="quick-access-title">Crear Usuario</div>
+                <div class="quick-access-desc">Agregar nuevo usuario</div>
+            </a>
+            
+            <a href="{% url 'admin:orgs_organization_add' %}" class="quick-access-card orgs">
+                <div class="quick-access-icon">🏢</div>
+                <div class="quick-access-title">Crear Organización</div>
+                <div class="quick-access-desc">Agregar nueva organización</div>
+            </a>
+            
+            <a href="{% url 'admin:plans_payment_changelist' %}" class="quick-access-card payments">
+                <div class="quick-access-icon">💵</div>
+                <div class="quick-access-title">Historial de Pagos</div>
+                <div class="quick-access-desc">Ver todos los pagos</div>
+            </a>
+        </div>
+    </div>
+    
+    <!-- Alertas y Notificaciones -->
+    {% if dashboard_stats.notifications.pending_upgrades > 0 or dashboard_stats.notifications.expiring_soon > 0 or dashboard_stats.notifications.in_grace_period > 0 %}
+    <div class="alerts-section">
+        <h3>🚨 Alertas y Notificaciones</h3>
+        <div class="alerts-grid">
+            {% if dashboard_stats.notifications.pending_upgrades > 0 %}
+            <div class="alert-card warning priority">
+                <div class="alert-icon">⬆️</div>
+                <div class="alert-content">
+                    <div class="alert-title">{{ dashboard_stats.notifications.pending_upgrades }} Solicitudes de Upgrade</div>
+                    <div class="alert-description">Pendientes de revisión - Acción requerida</div>
+                    <a href="{% url 'admin:plans_upgraderequest_changelist' %}?status=pending" class="alert-action">Revisar Ahora</a>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if dashboard_stats.notifications.expiring_soon > 0 %}
+            <div class="alert-card danger">
+                <div class="alert-icon">⏰</div>
+                <div class="alert-content">
+                    <div class="alert-title">{{ dashboard_stats.notifications.expiring_soon }} Suscripciones</div>
+                    <div class="alert-description">Expiran en los próximos 7 días</div>
+                    <a href="{% url 'admin:plans_subscription_changelist' %}" class="alert-action">Revisar</a>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if dashboard_stats.notifications.in_grace_period > 0 %}
+            <div class="alert-card warning">
+                <div class="alert-icon">⚠️</div>
+                <div class="alert-content">
+                    <div class="alert-title">{{ dashboard_stats.notifications.in_grace_period }} Organizaciones</div>
+                    <div class="alert-description">En período de gracia</div>
+                    <a href="{% url 'admin:plans_subscription_changelist' %}?subscription_status=basic_grace" class="alert-action">Gestionar</a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
+
+</div>
+
+<hr style="margin: 30px 0; opacity: 0.3;">
+{% endif %}
+
+<!-- Usar el contenido por defecto de Django Admin -->
+{{ block.super }}
+{% endblock %}

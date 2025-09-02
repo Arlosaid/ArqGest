@@ -180,7 +180,8 @@ class SimpleUserCreateForm(forms.Form):
             is_active=self.cleaned_data.get('is_active', True),
             is_org_admin=is_org_admin,
             is_superuser=is_superuser,
-            is_staff=is_staff
+            is_staff=is_staff,
+            password_change_required=True  # Forzar cambio de contraseña en primer login
         )
         
         # Enviar credenciales

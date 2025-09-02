@@ -1,0 +1,157 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    /* Ocultar elementos repetitivos del sidebar */
+    .module h2 {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 15px;
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .module {
+        margin-bottom: 20px;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    /* Simplificar la navegación del sidebar */
+    #content-related .module:not(:first-child) {
+        display: none; /* Ocultar módulos duplicados */
+    }
+    
+    /* Mejorar el aspecto de los enlaces en el sidebar */
+    .module table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .module table th,
+    .module table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #f0f0f1;
+    }
+    
+    .module table th {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    
+    .module table tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .module table a {
+        color: #3498db;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .module table a:hover {
+        color: #2980b9;
+        text-decoration: underline;
+    }
+    
+    /* Mejorar botones de acción */
+    .addlink, .changelink, .viewlink {
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .addlink {
+        background: #27ae60;
+        color: white !important;
+    }
+    
+    .addlink:hover {
+        background: #229954;
+        color: white !important;
+    }
+    
+    .changelink {
+        background: #3498db;
+        color: white !important;
+    }
+    
+    .changelink:hover {
+        background: #2980b9;
+        color: white !important;
+    }
+    
+    .viewlink {
+        background: #95a5a6;
+        color: white !important;
+    }
+    
+    .viewlink:hover {
+        background: #7f8c8d;
+        color: white !important;
+    }
+    
+    /* Personalizar header */
+    #header {
+        background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+        color: white;
+    }
+    
+    #header h1 {
+        color: white;
+    }
+    
+    #header h1 a {
+        color: white;
+    }
+    
+    /* Personalizar breadcrumbs */
+    .breadcrumbs {
+        background: #ecf0f1;
+        padding: 10px 20px;
+        font-size: 13px;
+    }
+    
+    .breadcrumbs a {
+        color: #3498db;
+        text-decoration: none;
+    }
+    
+    .breadcrumbs a:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">
+        🏗️ ARC Manager
+    </a>
+</h1>
+{% endblock %}
+
+{% block nav-global %}
+<div style="background: rgba(255,255,255,0.1); padding: 12px 20px; font-size: 13px; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <strong>Panel de Administración Ejecutivo</strong> - Gestión integral del sistema
+    </div>
+    <div style="margin-left: 20px;">
+        <a href="/" style="background: #27ae60; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; box-shadow: 0 3px 6px rgba(0,0,0,0.15); transition: all 0.2s ease;">
+            🏠 Ir al Inicio
+        </a>
+    </div>
+</div>
+{% endblock %}

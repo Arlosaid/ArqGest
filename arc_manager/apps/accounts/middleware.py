@@ -47,6 +47,38 @@ class LoginRequiredMiddleware:
         return response
 
 
+class PasswordChangeRequiredMiddleware:
+    """
+    Middleware que intercepta usuarios que necesiten cambiar su contraseña.
+    Redirige a la página de cambio forzado de contraseña.
+    """
+    
+    def __init__(self, get_response):
+        self.get_response = get_response
+        # URLs que están exentas de la verificación de cambio de contraseña
+        self.exempt_urls = [
+            '/accounts/login/',
+            '/accounts/logout/',
+            '/accounts/force-password-change/',
+            '/admin/',  # Para que los admins puedan cambiar contraseñas desde el panel
+            '/static/',
+            '/media/',
+        ]
+
+    def __call__(self, request):
+        # Solo verificar si el usuario está autenticado
+        if request.user.is_authenticated and hasattr(request.user, 'password_change_required'):
+            # Si necesita cambiar contraseña y no está en una URL exenta
+            if (request.user.password_change_required and 
+                not any(request.path.startswith(url) for url in self.exempt_urls)):
+                
+                # Redirigir a la página de cambio forzado de contraseña
+                return redirect('/accounts/force-password-change/')
+
+        response = self.get_response(request)
+        return response
+
+
 class SuperuserRestrictMiddleware:
     """
     Middleware para restringir acceso al admin panel solo a superusers.

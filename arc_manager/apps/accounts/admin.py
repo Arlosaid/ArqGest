@@ -11,7 +11,7 @@ from django.utils.html import format_html
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from .models import User
-from apps.users.utils import send_welcome_reminder_email
+from apps.users.utils import send_welcome_reminder_email, send_new_user_email, generate_random_password
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 
@@ -26,12 +26,19 @@ class UserResource(resources.ModelResource):
 # --- Formularios ---
 
 class UserCreationForm(forms.ModelForm):
-    """Formulario para crear nuevos usuarios."""
+    """Formulario para crear nuevos usuarios con contraseña automática."""
     email = forms.EmailField(required=True, label="Correo electrónico")
     first_name = forms.CharField(required=True, label="Nombre")
     last_name = forms.CharField(required=True, label="Apellido")
-    password1 = forms.CharField(label='Contraseña', widget=forms.PasswordInput)
-    password2 = forms.CharField(label='Confirmar contraseña', widget=forms.PasswordInput)
+    
+    # Campo informativo para mostrar que se generará automáticamente
+    password_info = forms.CharField(
+        label="Contraseña",
+        initial="Se generará automáticamente y se enviará por correo",
+        widget=forms.TextInput(attrs={'readonly': 'readonly', 'class': 'form-control-plaintext'}),
+        required=False,
+        help_text="La contraseña se generará automáticamente y se enviará al usuario por correo electrónico."
+    )
 
     class Meta:
         model = User
@@ -43,18 +50,23 @@ class UserCreationForm(forms.ModelForm):
             raise ValidationError("Este correo electrónico ya está registrado.")
         return email
 
-    def clean_password2(self):
-        password1 = self.cleaned_data.get("password1")
-        password2 = self.cleaned_data.get("password2")
-        if password1 and password2 and password1 != password2:
-            raise ValidationError("Las contraseñas no coinciden")
-        return password2
-
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.set_password(self.cleaned_data["password1"])
+        # Generar contraseña automáticamente
+        password = generate_random_password()
+        user.set_password(password)
+        # Forzar cambio de contraseña en primer login
+        user.password_change_required = True
         if commit:
             user.save()
+            # Enviar credenciales por email automáticamente
+            try:
+                send_new_user_email(user, password)
+            except Exception as e:
+                # Log el error pero no fallar la creación del usuario
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error enviando credenciales a {user.email}: {str(e)}")
         return user
 
 
@@ -65,7 +77,7 @@ class UserChangeForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ('email', 'first_name', 'last_name', 'password', 'is_active', 'is_staff', 
-                   'is_org_admin', 'organization')
+                   'is_org_admin', 'password_change_required', 'organization')
 
     def clean_password(self):
         return self.initial["password"]
@@ -89,7 +101,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         ('Información personal', {'fields': ('first_name', 'last_name')}),
         ('Organización', {'fields': ('organization',)}),
         ('Permisos', {
-            'fields': ('is_active', 'is_staff', 'is_superuser', 'is_org_admin'),
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'is_org_admin', 'password_change_required'),
             'description': 'is_org_admin: Administrador de su organización | is_staff: Acceso al admin | is_superuser: Admin total'
         }),
         ('Información del sistema', {
@@ -101,7 +113,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'first_name', 'last_name', 'password1', 'password2'),
+            'fields': ('email', 'first_name', 'last_name', 'password_info'),
         }),
         ('Organización', {
             'fields': ('organization',),
@@ -185,14 +197,28 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         success_count = 0
         error_count = 0
         for user in queryset:
-            if send_welcome_reminder_email(user, request):
-                success_count += 1
-            else:
+            try:
+                # Generar nueva contraseña temporal
+                new_password = generate_random_password()
+                user.set_password(new_password)
+                # Forzar cambio de contraseña en próximo login
+                user.password_change_required = True
+                user.save()
+                
+                # Enviar credenciales completas
+                if send_new_user_email(user, new_password, request):
+                    success_count += 1
+                else:
+                    error_count += 1
+            except Exception as e:
                 error_count += 1
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error reenviando credenciales a {user.email}: {str(e)}")
         
         if success_count > 0:
-            self.message_user(request, f"✅ Se enviaron {success_count} correos de bienvenida.", messages.SUCCESS)
+            self.message_user(request, f"✅ Se enviaron {success_count} correos con nuevas credenciales.", messages.SUCCESS)
         if error_count > 0:
-            self.message_user(request, f"❌ Falló el envío de {error_count} correos de bienvenida.", messages.ERROR)
+            self.message_user(request, f"❌ Falló el envío de {error_count} correos de credenciales.", messages.ERROR)
             
-    resend_welcome_email.short_description = "📧 Reenviar correo de bienvenida"
+    resend_welcome_email.short_description = "📧 Reenviar credenciales de acceso"

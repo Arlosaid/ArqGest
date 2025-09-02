@@ -1,35 +1,26 @@
 {% extends "admin/base_site.html" %}
-{% load i18n static %}
+{% load i18n %}
 
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}">{% endblock %}
+{% block title %}Cambiar Plan{% endblock %}
 
 {% block content %}
-<form method="post">
-    {% csrf_token %}
-    <div>
-        <h2>{% trans 'Cambiar Plan de Suscripción' %}</h2>
-        <p>{% blocktrans %}Está a punto de cambiar el plan para las siguientes suscripciones:{% endblocktrans %}</p>
-        <ul>
-            {% for subscription in subscriptions %}
-            <li>{{ subscription.organization.name }} (Plan Actual: {{ subscription.plan.display_name }})</li>
-            {% endfor %}
-        </ul>
-
-        <fieldset class="module aligned">
-            <div class="form-row">
-                {{ form.plan.label_tag }} {{ form.plan }}
-                {% if form.plan.help_text %}
-                <div class="help">{{ form.plan.help_text|safe }}</div>
-                {% endif %}
-            </div>
-        </fieldset>
-
+<div class="module">
+    <h1>🔄 Cambiar Plan de Suscripciones</h1>
+    
+    <p>Se va a cambiar el plan de las siguientes suscripciones:</p>
+    <ul>
+        {% for subscription in subscriptions %}
+        <li><strong>{{ subscription.organization.name }}</strong> - Plan actual: {{ subscription.plan.display_name }}</li>
+        {% endfor %}
+    </ul>
+    
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
         <div class="submit-row">
-            <input type="hidden" name="action" value="change_plan_action">
-            <input type="submit" name="apply" value="{% trans 'Aplicar Cambio de Plan' %}">
+            <input type="submit" value="Cambiar Plan" name="apply" class="default">
+            <a href="javascript:history.back();" class="button">Cancelar</a>
         </div>
-    </div>
-</form>
+    </form>
+</div>
 {% endblock %}
- 
-
