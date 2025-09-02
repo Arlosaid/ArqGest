@@ -1,41 +1,26 @@
 {% extends "admin/base_site.html" %}
-{% load i18n static %}
+{% load i18n %}
 
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}">{% endblock %}
+{% block title %}Extender Suscripciones{% endblock %}
 
 {% block content %}
-<form method="post">
-    {% csrf_token %}
-    <div>
-        <h2>{% trans 'Extender Suscripción' %}</h2>
-        <p>{% blocktrans %}Está a punto de extender las siguientes suscripciones:{% endblocktrans %}</p>
-        <ul>
-            {% for subscription in subscriptions %}
-            <li>{{ subscription.organization.name }} (Plan: {{ subscription.plan.display_name }})</li>
-            {% endfor %}
-        </ul>
-
-        <fieldset class="module aligned">
-            <div class="form-row">
-                {{ form.days.label_tag }} {{ form.days }}
-                {% if form.days.help_text %}
-                <div class="help">{{ form.days.help_text|safe }}</div>
-                {% endif %}
-            </div>
-            <div class="form-row">
-                {{ form.reason.label_tag }} {{ form.reason }}
-                {% if form.reason.help_text %}
-                <div class="help">{{ form.reason.help_text|safe }}</div>
-                {% endif %}
-            </div>
-        </fieldset>
-
+<div class="module">
+    <h1>🗓️ Extender Suscripciones</h1>
+    
+    <p>Se van a extender las siguientes suscripciones:</p>
+    <ul>
+        {% for subscription in subscriptions %}
+        <li><strong>{{ subscription.organization.name }}</strong> - Plan: {{ subscription.plan.display_name }}</li>
+        {% endfor %}
+    </ul>
+    
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
         <div class="submit-row">
-            <input type="hidden" name="action" value="extend_subscription_action">
-            <input type="submit" name="apply" value="{% trans 'Aplicar Extensión' %}">
+            <input type="submit" value="Extender Suscripciones" name="apply" class="default">
+            <a href="javascript:history.back();" class="button">Cancelar</a>
         </div>
-    </div>
-</form>
+    </form>
+</div>
 {% endblock %}
- 
-

@@ -39,6 +39,11 @@ class User(AbstractUser):
     first_name = models.CharField("Nombre", max_length=150)
     last_name = models.CharField("Apellido", max_length=150)
     is_org_admin = models.BooleanField("Administrador de organización", default=False)
+    password_change_required = models.BooleanField(
+        "Cambio de contraseña requerido", 
+        default=False,
+        help_text="Si está marcado, el usuario deberá cambiar su contraseña en el próximo login."
+    )
     organization = models.ForeignKey(
         'orgs.Organization', 
         on_delete=models.SET_NULL, 

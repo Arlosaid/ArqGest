@@ -4,6 +4,7 @@ import logging
 from django.core.mail import send_mail, EmailMultiAlternatives
 from django.conf import settings
 from django.template.loader import render_to_string
+from django.urls import reverse
 
 logger = logging.getLogger(__name__)
 

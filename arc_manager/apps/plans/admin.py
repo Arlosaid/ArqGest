@@ -4,6 +4,8 @@ from django.contrib import admin, messages
 from django.shortcuts import render, redirect
 from django.utils.html import format_html
 from django.urls import reverse, path
+from django.utils import timezone
+from datetime import timedelta
 from .models import Plan, Subscription, UpgradeRequest, Payment
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
@@ -26,6 +28,8 @@ class SubscriptionResource(resources.ModelResource):
         export_order = fields
 
 # --- Formularios para Acciones ---
+
+# Formulario simplificado removido para evitar conflictos
 
 class ExtendSubscriptionForm(forms.Form):
     days = forms.IntegerField(
@@ -96,20 +100,48 @@ class SubscriptionAdmin(ImportExportModelAdmin):
     
     inlines = [PaymentInline]
     actions = ['process_selected_payments', 'extend_subscription_action', 'change_plan_action']
+    
+    def get_form(self, request, obj=None, **kwargs):
+        """Personalizar el formulario para establecer valores por defecto"""
+        form = super().get_form(request, obj, **kwargs)
+        
+        # Si es una nueva suscripción, establecer default de 30 días
+        if obj is None:
+            now = timezone.localtime(timezone.now())
+            default_end_date = now + timedelta(days=30)
+            form.base_fields['end_date'].initial = default_end_date
+            form.base_fields['end_date'].help_text = (
+                "Fecha y hora de vencimiento de la suscripción. "
+                f"Se ha establecido por defecto a 30 días desde ahora ({default_end_date.strftime('%d/%m/%Y %H:%M')} México)."
+            )
+        
+        return form
 
     def get_fieldsets(self, request, obj=None):
-        # Simplificado para mostrar los mismos campos en add y change
-        return (
-            ("Información General", {
-                'fields': ('organization', 'plan', 'subscription_status')
-            }),
-            ("Fechas Clave", {
-                'fields': ('start_date', 'end_date', 'grace_end_date', 'days_remaining_display')
-            }),
-            ("Timestamps", {
-                'fields': ('created_at', 'updated_at')
-            }),
-        )
+        # Configuración diferente para crear vs editar
+        if obj:  # Editando suscripción existente
+            return (
+                ("Información General", {
+                    'fields': ('organization', 'plan', 'subscription_status')
+                }),
+                ("Fechas Clave", {
+                    'fields': ('start_date', 'end_date', 'grace_end_date', 'days_remaining_display'),
+                    'description': 'Todas las fechas se muestran en zona horaria de México (UTC-6)'
+                }),
+                ("Timestamps", {
+                    'fields': ('created_at', 'updated_at')
+                }),
+            )
+        else:  # Creando nueva suscripción
+            return (
+                ("Información General", {
+                    'fields': ('organization', 'plan')
+                }),
+                ("Configuración de Fechas", {
+                    'fields': ('end_date',),
+                    'description': 'La fecha de vencimiento se establece por defecto a 30 días desde ahora en zona horaria de México (UTC-6)'
+                }),
+            )
 
     def get_readonly_fields(self, request, obj=None):
         if obj:
@@ -143,7 +175,9 @@ class SubscriptionAdmin(ImportExportModelAdmin):
     @admin.display(description="Fecha de Vencimiento", ordering='end_date')
     def end_date_formatted(self, obj):
         if obj.end_date:
-            return obj.end_date.strftime('%d de %b de %Y, %H:%M')
+            # Convertir a zona horaria local para mostrar
+            local_time = timezone.localtime(obj.end_date)
+            return f"{local_time.strftime('%d de %b de %Y, %H:%M')} (México)"
         return "N/A"
 
     @admin.display(description="Días Restantes")
