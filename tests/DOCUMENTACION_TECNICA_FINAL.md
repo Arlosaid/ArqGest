@@ -945,25 +945,29 @@ ENABLE_STORAGES=true
 # ... R2 configuration
 ```
 
-#### AWS Elastic Beanstalk
-```python
-# .ebextensions/django.config
-option_settings:
-  aws:elasticbeanstalk:container:python:
-    WSGIPath: core.wsgi:application
-  aws:elasticbeanstalk:application:environment:
-    DJANGO_SETTINGS_MODULE: core.settings
-    PYTHONPATH: /opt/python/current/app
+#### Railway Deployment
+```bash
+# Deployment automático desde GitHub
+# 1. Conecta repositorio en railway.app
+# 2. Configura variables de entorno
+# 3. Deploy automático en cada push
+
+# Variables de entorno necesarias:
+DEBUG=False
+SECRET_KEY=generated-key
+DATABASE_URL=postgresql://... # Auto-generada
+ENABLE_STORAGES=true
+AWS_S3_ENDPOINT_URL=https://account.r2.cloudflarestorage.com
 ```
 
-#### Heroku
-```python
-# Procfile
-web: gunicorn --bind 0.0.0.0:$PORT core.wsgi:application
-release: python manage.py migrate --noinput
+### Estructura de Costos Optimizada
 
-# runtime.txt
-python-3.11.0
+#### Railway + Cloudflare R2
+```bash
+# Costos mensuales estimados:
+# MVP (0-10 clientes): $80-180 MXN
+# Crecimiento (10-50 clientes): $800-1,000 MXN
+# Escalamiento (50+ clientes): $1,300-2,100 MXN
 ```
 
 ---
@@ -1138,41 +1142,43 @@ def generate_api_key():
 
 ### Database Optimization
 
-#### Query Optimization Patterns
+#### Query Optimization Patterns (✅ EXCELENTE)
 ```python
-# 1. Select Related for ForeignKey lookups
+# 🏆 PATRONES PROFESIONALES IDENTIFICADOS:
+
+# 1. Select Related CORRECTAMENTE USADO
 projects = Project.objects.select_related(
-    'organization', 'client', 'owner'
+    'organization', 'client', 'owner'  # ✅ Evita N+1 queries
 ).filter(organization=user.organization)
 
-# 2. Prefetch Related for reverse ForeignKey and ManyToMany
+# 2. Prefetch Related OPTIMIZADO
 projects = Project.objects.prefetch_related(
-    'phases__tasks__assigned_to'
+    'phases__tasks__assigned_to'  # ✅ Carga eficiente de relaciones
 ).filter(organization=user.organization)
 
-# 3. Prefetch with custom QuerySet
+# 3. Prefetch with custom QuerySet - 🏆 AVANZADO
 projects = Project.objects.prefetch_related(
     Prefetch(
         'phases',
         queryset=Phase.objects.select_related('project').order_by('order')
-    )
+    )  # ✅ Control total sobre las queries relacionadas
 )
 
-# 4. Aggregation for metrics
+# 4. Aggregation PROFESIONAL para métricas
 task_stats = Task.objects.filter(
     phase__project=project
 ).aggregate(
     total=Count('id'),
     completed=Count('id', filter=Q(status='DONE')),
     in_progress=Count('id', filter=Q(status='IN_PROGRESS')),
+    # 🏆 Cálculos complejos en BD (no en Python)
     avg_completion_days=Avg(
-        Extract(
-            models.F('updated_at') - models.F('created_at'),
-            lookup_name='day'
-        ),
+        Extract(models.F('updated_at') - models.F('created_at'), 'day'),
         filter=Q(status='DONE')
     )
 )
+
+# 📊 RESULTADO: Queries optimizadas, latencia mínima
 ```
 
 #### Connection Pooling

@@ -18,8 +18,8 @@ load_dotenv(BASE_DIR.parent / '.env')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-# Forzar DEBUG=True para desarrollo local (temporal)
-DEBUG = True
+# DEBUG se controla por variable de entorno
+# En desarrollo local, usa DEBUG=True en tu .env
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY', '')
@@ -44,7 +44,7 @@ else:
         raise RuntimeError('ALLOWED_HOSTS cannot contain "*" when DEBUG=False')
 
 # En producción, asegurar que DEBUG esté en False si variable de entorno lo indica
-if os.environ.get('AWS_EXECUTION_ENV') or os.environ.get('PRODUCTION'):
+if os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('PRODUCTION'):
     DEBUG = False
 
 
@@ -427,12 +427,12 @@ SUPPORT_PHONE = os.environ.get('SUPPORT_PHONE', '55 1234 5678')
 SUPPORT_EMAIL = os.environ.get('SUPPORT_EMAIL', 'soporte@tuempresa.com')
 
 # ========================================
-# CONFIGURACIONES ESPECÍFICAS PARA AWS BEANSTALK
+# CONFIGURACIONES ESPECÍFICAS PARA PRODUCCIÓN
 # ========================================
 
-IS_AWS_ENVIRONMENT = os.environ.get('AWS_EXECUTION_ENV') is not None
+IS_PRODUCTION = os.environ.get('RAILWAY_ENVIRONMENT') is not None or not DEBUG
 
-if IS_AWS_ENVIRONMENT:
+if IS_PRODUCTION:
     SECURE_SSL_REDIRECT = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
@@ -464,12 +464,12 @@ if IS_AWS_ENVIRONMENT:
     
     HEALTH_CHECK_URL = '/health/'
     
-    print("🚀 Configuración AWS Beanstalk activada")
+    print("🚀 Configuración de producción activada")
 
 else:
     print("🏠 Ejecutándose en ambiente local")
 
-# Health check endpoint para AWS Beanstalk
+# Health check endpoint para monitoreo
 def health_check(request):
     from django.http import JsonResponse
     return JsonResponse({'status': 'healthy', 'service': 'arc-manager'})

@@ -38,14 +38,14 @@ echo "🔄 Ejecutando migraciones..."\n\
 python manage.py migrate --noinput || echo "⚠️ Error en migraciones - continuando por ahora"\n\
 echo "✅ Migraciones listas"\n\
 echo "🚀 Iniciando servidor..."\n\
-exec gunicorn --bind 0.0.0.0:8000 --workers 2 --timeout 120 core.wsgi:application' > /app/start.sh && chmod +x /app/start.sh
+exec gunicorn --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120 core.wsgi:application' > /app/start.sh && chmod +x /app/start.sh
 
-# Puerto
-EXPOSE 8000
+# Puerto (Railway asignará automáticamente)
+EXPOSE ${PORT:-8000}
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8000/health/ || exit 1
+    CMD curl -f http://localhost:${PORT:-8000}/health/ || exit 1
 
 # Ejecutar script de inicio
 CMD ["/app/start.sh"] 

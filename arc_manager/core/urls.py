@@ -13,7 +13,7 @@ def root_redirect(request):
     return redirect('main:dashboard')
 
 def health_check(request):
-    """Endpoint for AWS Beanstalk health check"""
+    """Endpoint for health check (Railway, monitoring services, etc.)"""
     return JsonResponse({'status': 'healthy', 'service': 'arc-manager'})
 
 urlpatterns = [

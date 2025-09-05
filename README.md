@@ -273,54 +273,53 @@ docker-compose exec -T db psql -U postgres arc_manager_dev < backup.sql
 
 ## 🌐 Despliegue en Producción
 
-### 🚀 AWS Elastic Beanstalk (Recomendado)
+### 🚀 Railway (Recomendado para MVP)
 
 #### 1. Configuración inicial
 ```bash
-# Instalar EB CLI
-pip install awsebcli
+# Instalar Railway CLI (opcional)
+npm install -g @railway/cli
 
-# Configurar proyecto
-eb init
+# Login
+railway login
 
-# Crear environment
-eb create --single-instance
+# Deploy desde GitHub (recomendado)
+# 1. Conecta tu repositorio en railway.app
+# 2. Railway detecta automáticamente Django
+# 3. Agrega PostgreSQL y Redis desde el dashboard
 ```
 
-#### 2. Variables de entorno (AWS Console)
-Configura estas variables en el panel de Elastic Beanstalk:
+#### 2. Variables de entorno (Railway Dashboard)
+Configura estas variables en Railway > Settings > Variables:
 ```
-DATABASE_URL=postgresql://user:pass@host:5432/db
-SECRET_KEY=tu-clave-secreta-muy-segura
 DEBUG=False
-ALLOWED_HOSTS=tu-dominio.com,*.elasticbeanstalk.com
+SECRET_KEY=tu-clave-secreta-muy-segura
+DATABASE_URL=postgresql://... # Auto-generada por Railway
+ALLOWED_HOSTS=*.up.railway.app,tu-dominio.com
+ENABLE_STORAGES=true
+# ... configuración R2
 ```
 
-#### 3. Desplegar
+#### 3. Deploy automático
 ```bash
-# Despliegue automático
-./deploy.sh
+# Cada push a main despliega automáticamente
+git push origin main
 
-# Despliegue manual
-eb deploy
+# Ver logs en tiempo real
+railway logs
 ```
 
-#### 4. Comandos útiles EB
+#### 4. Comandos útiles Railway
 ```bash
-# Ver estado
-eb status
+# Ver estado del servicio
+railway status
 
-# Ver logs
-eb logs
+# Ejecutar comandos en producción
+railway run python manage.py migrate
+railway run python manage.py createsuperuser
 
 # Abrir aplicación
-eb open
-
-# Conectar por SSH
-eb ssh
-
-# Configurar variables de entorno
-eb setenv VARIABLE=valor
+railway open
 ```
 
 ### 🐳 Docker en servidor (VPS/Servidor propio)
@@ -366,24 +365,12 @@ railway login
 railway deploy
 ```
 
-#### Heroku
+#### Alternativas (no recomendadas para MVP)
 ```bash
-# Instalar Heroku CLI
-# Crear aplicación
-heroku create tu-app
-
-# Configurar variables
-heroku config:set SECRET_KEY=tu-clave
-heroku config:set DEBUG=False
-
-# Desplegar
-git push heroku main
-```
-
-#### DigitalOcean App Platform
-```bash
-# Usar el archivo docker-compose.yml
-# Configurar desde la interfaz web
+# Otras opciones más costosas:
+# - Heroku: $7-31/mes + add-ons
+# - DigitalOcean App Platform: $12+/mes
+# - AWS/GCP: $20-50/mes + configuración compleja
 ```
 
 ### 📋 Checklist de despliegue
@@ -418,19 +405,19 @@ Antes de desplegar a producción:
 
 ### 💰 Costos estimados
 
-**AWS Elastic Beanstalk (Primer año gratis):**
-- EC2 t2.micro: $0 (750 horas/mes)
-- RDS db.t2.micro: $0 (750 horas/mes)
-- Después: ~$20-30/mes
+**Railway (Recomendado):**
+- Hobby Plan: $0-5/mes (incluye PostgreSQL + Redis)
+- Pro Plan: $20/mes (para producción)
+- Escalamiento automático
 
-**VPS básico:**
-- DigitalOcean: $5-10/mes
-- Linode: $5-10/mes
-- Vultr: $5-10/mes
+**Alternativas más caras:**
+- VPS básico: $5-15/mes (requiere configuración manual)
+- Heroku: $7-31/mes (más caro que Railway)
+- DigitalOcean Apps: $12+/mes
 
-**Opciones gratuitas:**
-- Railway: $0-5/mes
-- Heroku: $0-7/mes (hobby tier)
+**✅ Railway (Recomendado):**
+- Hobby: $0-5/mes (incluye PostgreSQL + Redis)
+- Pro: $20/mes (producción)
 
 ## 🔍 Troubleshooting
 
