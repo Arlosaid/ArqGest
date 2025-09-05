@@ -224,10 +224,30 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Configuración mejorada de WhiteNoise para archivos estáticos
+if DEBUG:
+    # En desarrollo, usar el backend estándar
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+else:
+    # En producción, usar WhiteNoise más estable
+    # CompressedManifestStaticFilesStorage puede fallar si hay archivos faltantes
+    # Usar CompressedStaticFilesStorage que es más robusto
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Configuración adicional de WhiteNoise
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_AUTOREFRESH = DEBUG
+
+# Configuración de cache para archivos estáticos en producción
+if not DEBUG:
+    # Cache estático por 1 año para archivos con hash
+    WHITENOISE_MAX_AGE = 31536000
+    # Configurar headers de cache específicos
+    WHITENOISE_STATIC_PREFIX = '/static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
