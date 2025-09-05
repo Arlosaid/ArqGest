@@ -32,9 +32,6 @@ RUN mkdir -p /app/arc_manager/staticfiles \
 # Directorio Django
 WORKDIR /app/arc_manager
 
-# Recolectar archivos estáticos
-RUN python manage.py collectstatic --noinput --clear
-
 # Crear script de inicio
 RUN echo '#!/bin/bash\n\
 echo "🔄 Ejecutando migraciones..."\n\
