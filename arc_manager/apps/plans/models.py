@@ -199,6 +199,10 @@ class Subscription(models.Model):
         self.subscription_status = f'{self.plan.name}_active'
         self.grace_end_date = None # Reiniciar el periodo de gracia
         
+        # Asegurar que las fechas sean timezone-aware antes de crear el Payment
+        safe_old_end_date = timezone.make_aware(old_end_date) if old_end_date and old_end_date.tzinfo is None else old_end_date
+        safe_new_end_date = timezone.make_aware(self.end_date) if self.end_date and self.end_date.tzinfo is None else self.end_date
+        
         payment = Payment.objects.create(
             subscription=self,
             amount=amount,
@@ -208,8 +212,8 @@ class Subscription(models.Model):
             processed_by=processed_by,
             description=f'Pago procesado para extender el plan {self.plan.display_name}',
             days_added=self.plan.billing_cycle_days,
-            old_end_date=old_end_date,
-            new_end_date=self.end_date
+            old_end_date=safe_old_end_date,
+            new_end_date=safe_new_end_date
         )
         self.save()
         return {'success': True, 'payment_id': payment.id}
@@ -232,6 +236,10 @@ class Subscription(models.Model):
         if reason:
             description += f' Razón: {reason}'
 
+        # Asegurar que las fechas sean timezone-aware antes de crear el Payment
+        safe_old_end_date = timezone.make_aware(old_end_date) if old_end_date and old_end_date.tzinfo is None else old_end_date
+        safe_new_end_date = timezone.make_aware(self.end_date) if self.end_date and self.end_date.tzinfo is None else self.end_date
+        
         payment = Payment.objects.create(
             subscription=self,
             amount=0,  # No hay un pago monetario directo para esta acción
@@ -241,8 +249,8 @@ class Subscription(models.Model):
             processed_by=processed_by,
             description=description,
             days_added=days,
-            old_end_date=old_end_date,
-            new_end_date=self.end_date
+            old_end_date=safe_old_end_date,
+            new_end_date=safe_new_end_date
         )
         self.save()
         return {'success': True, 'payment_id': payment.id}
