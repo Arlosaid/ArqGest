@@ -46,6 +46,7 @@ class SubscriptionService:
                     processed_by='system',
                     description=f'Activación de trial automática - {trial_plan.display_name}',
                     days_added=trial_plan.trial_days or 30
+                    # created_at se asigna automáticamente con timezone.now() por auto_now_add=True
                 )
             
             logger.info(f"Suscripción trial creada exitosamente para {organization.name}")
