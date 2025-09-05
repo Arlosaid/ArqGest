@@ -424,16 +424,16 @@ if DEBUG:
     EMAIL_HOST = 'localhost'
     DEFAULT_FROM_EMAIL = 'ARC MANAGER <noreply@archmanager.local>'
 else:
-    # Configuración flexible: SMTP (recomendado) o AWS SES
+    # Configuración flexible: SMTP (SendGrid, SMTP2GO, Gmail) o AWS SES
     email_backend = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
     
     if 'smtp' in email_backend.lower():
-        # Configuración SMTP (SMTP2GO recomendado)
+        # Configuración SMTP (SendGrid recomendado para testing)
         EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-        EMAIL_HOST = os.environ.get('EMAIL_HOST', 'mail.smtp2go.com')
+        EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.sendgrid.net')
         EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
         EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
-        EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+        EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'apikey')
         EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
         DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@tudominio.com')
         SERVER_EMAIL = DEFAULT_FROM_EMAIL
