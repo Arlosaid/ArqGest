@@ -18,6 +18,10 @@ load_dotenv(BASE_DIR.parent / '.env')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
+# En producción, asegurar que DEBUG esté en False si variable de entorno lo indica
+if os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('PRODUCTION'):
+    DEBUG = False
+
 # DEBUG se controla por variable de entorno
 # En desarrollo local, usa DEBUG=True en tu .env
 
@@ -42,10 +46,6 @@ else:
     # En producción, prohibir comodín
     if '*' in ALLOWED_HOSTS:
         raise RuntimeError('ALLOWED_HOSTS cannot contain "*" when DEBUG=False')
-
-# En producción, asegurar que DEBUG esté en False si variable de entorno lo indica
-if os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('PRODUCTION'):
-    DEBUG = False
 
 
 # Application definition
