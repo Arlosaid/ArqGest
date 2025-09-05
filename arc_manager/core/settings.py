@@ -333,17 +333,21 @@ LOGGING = {
     'filters': {
         'require_debug_true': {'()': 'django.utils.log.RequireDebugTrue'},
         'require_debug_false': {'()': 'django.utils.log.RequireDebugFalse'},
+        'ignore_timezone_warnings': {
+            '()': 'django.utils.log.CallbackFilter',
+            'callback': lambda record: 'DateTimeField' not in record.getMessage() or 'received a naive datetime' not in record.getMessage()
+        },
     },
     'handlers': {
         'console': {
             'level': 'INFO',
-            'filters': ['require_debug_true'],
+            'filters': ['require_debug_true', 'ignore_timezone_warnings'],
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
         'console_prod': {
             'level': 'INFO',
-            'filters': ['require_debug_false'],
+            'filters': ['require_debug_false', 'ignore_timezone_warnings'],
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
@@ -420,15 +424,30 @@ if DEBUG:
     EMAIL_HOST = 'localhost'
     DEFAULT_FROM_EMAIL = 'ARC MANAGER <noreply@archmanager.local>'
 else:
-    EMAIL_BACKEND = 'django_ses.SESBackend'
-    AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
-    AWS_SES_REGION_NAME = os.environ.get('AWS_SES_REGION', 'us-east-1')
-    AWS_SES_REGION_ENDPOINT = f'email.{AWS_SES_REGION_NAME}.amazonaws.com'
-    AWS_SES_AUTO_THROTTLE = 0.5
-    AWS_SES_CONFIGURATION_SET = os.environ.get('AWS_SES_CONFIGURATION_SET')
-    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@localhost')
-    SERVER_EMAIL = DEFAULT_FROM_EMAIL
+    # Configuración flexible: SMTP (recomendado) o AWS SES
+    email_backend = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+    
+    if 'smtp' in email_backend.lower():
+        # Configuración SMTP (SMTP2GO recomendado)
+        EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+        EMAIL_HOST = os.environ.get('EMAIL_HOST', 'mail.smtp2go.com')
+        EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+        EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
+        EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+        EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+        DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@tudominio.com')
+        SERVER_EMAIL = DEFAULT_FROM_EMAIL
+    else:
+        # Configuración AWS SES (fallback)
+        EMAIL_BACKEND = 'django_ses.SESBackend'
+        AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+        AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+        AWS_SES_REGION_NAME = os.environ.get('AWS_SES_REGION', 'us-east-1')
+        AWS_SES_REGION_ENDPOINT = f'email.{AWS_SES_REGION_NAME}.amazonaws.com'
+        AWS_SES_AUTO_THROTTLE = 0.5
+        AWS_SES_CONFIGURATION_SET = os.environ.get('AWS_SES_CONFIGURATION_SET')
+        DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@localhost')
+        SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 # Configuración para el sistema de pagos
 PAYMENT_BANK_INFO = {
@@ -465,13 +484,7 @@ if IS_PRODUCTION:
     }
     LOGGING['loggers']['django']['handlers'].append('cloudwatch')
     
-    EMAIL_BACKEND = 'django_ses.SESBackend'
-    AWS_SES_REGION_NAME = os.environ.get('AWS_SES_REGION', 'us-east-1')
-    AWS_SES_REGION_ENDPOINT = f'email.{AWS_SES_REGION_NAME}.amazonaws.com'
-    AWS_SES_AUTO_THROTTLE = 0.5
-    
-    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@localhost')
-    SERVER_EMAIL = DEFAULT_FROM_EMAIL
+    # Email ya configurado arriba - no duplicar configuración
     
     if os.environ.get('REDIS_ENDPOINT'):
         CACHES = {
