@@ -391,8 +391,8 @@ LOGGING = {
 }
 
 # Configuración del sitio
-SITE_NAME = 'ARC Manager'
-SITE_DOMAIN = 'localhost:8000'
+SITE_NAME = os.environ.get('SITE_NAME', 'ARC Manager')
+SITE_DOMAIN = os.environ.get('SITE_DOMAIN', 'localhost:8000')
 
 
 if DEBUG:
@@ -407,20 +407,20 @@ else:
     AWS_SES_REGION_ENDPOINT = f'email.{AWS_SES_REGION_NAME}.amazonaws.com'
     AWS_SES_AUTO_THROTTLE = 0.5
     AWS_SES_CONFIGURATION_SET = os.environ.get('AWS_SES_CONFIGURATION_SET')
-    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@tudominio.com')
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@localhost')
     SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 # Configuración para el sistema de pagos
 PAYMENT_BANK_INFO = {
-    'bank_name': 'Banco BBVA',
-    'account_holder': 'TU EMPRESA SA DE CV',
-    'account_number': '0123456789',
-    'clabe': '012345678901234567',
-    'concept_prefix': 'Upgrade-Plan'
+    'bank_name': os.environ.get('PAYMENT_BANK_NAME', 'Banco BBVA'),
+    'account_holder': os.environ.get('PAYMENT_ACCOUNT_HOLDER', 'TU EMPRESA SA DE CV'),
+    'account_number': os.environ.get('PAYMENT_ACCOUNT_NUMBER', '0123456789'),
+    'clabe': os.environ.get('PAYMENT_CLABE', '012345678901234567'),
+    'concept_prefix': os.environ.get('PAYMENT_CONCEPT_PREFIX', 'Upgrade-Plan')
 }
 
-ADMIN_EMAIL = 'admin@tudominio.com'
-SITE_URL = 'http://localhost:8000' if DEBUG else 'https://tudominio.com'
+ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@tudominio.com')
+SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000' if DEBUG else 'https://tudominio.com')
 
 # Información de contacto de soporte
 SUPPORT_PHONE = os.environ.get('SUPPORT_PHONE', '55 1234 5678')
@@ -450,7 +450,7 @@ if IS_PRODUCTION:
     AWS_SES_REGION_ENDPOINT = f'email.{AWS_SES_REGION_NAME}.amazonaws.com'
     AWS_SES_AUTO_THROTTLE = 0.5
     
-    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@tudominio.com')
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@localhost')
     SERVER_EMAIL = DEFAULT_FROM_EMAIL
     
     if os.environ.get('REDIS_ENDPOINT'):
