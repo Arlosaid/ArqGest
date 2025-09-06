@@ -455,6 +455,7 @@ else:
         EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
         EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'apikey')
         EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+
         # Configuración de timeouts para evitar cuelgues
         EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', '30'))  # 30 segundos por defecto
         DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'adroal08@gmail.com')

@@ -194,6 +194,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
     force_password_reset.short_description = "🔑 Forzar cambio de contraseña"
 
     def resend_welcome_email(self, request, queryset):
+
         import time
         import logging
         logger = logging.getLogger(__name__)
@@ -208,6 +209,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         for i, user in enumerate(queryset, 1):
             try:
                 logger.info(f"📧 Procesando usuario {i}/{total_users}: {user.email}")
+
                 
                 # Generar nueva contraseña temporal
                 new_password = generate_random_password()
@@ -216,6 +218,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
                 user.password_change_required = True
                 user.save()
                 
+
                 # Enviar credenciales completas con timeout
                 start_time = time.time()
                 email_sent = send_new_user_email(user, new_password, request)
@@ -238,9 +241,12 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         
         # Mostrar resumen detallado
         logger.info(f"📊 Resumen: {success_count} exitosos, {error_count + timeout_count} fallidos")
+
         
+        # Mensajes de resultado
         if success_count > 0:
             self.message_user(request, f"✅ Se enviaron {success_count} correos con nuevas credenciales.", messages.SUCCESS)
+
         if timeout_count > 0:
             self.message_user(request, f"⏱️ {timeout_count} correos fallaron por timeout (>15s). Revisa la configuración de SendGrid.", messages.WARNING)
         if error_count > 0:

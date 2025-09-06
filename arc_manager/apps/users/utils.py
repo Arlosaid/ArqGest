@@ -43,7 +43,21 @@ def send_new_user_email(user, password, request=None):
     Envía un email al nuevo usuario con sus credenciales de acceso.
     Retorna True si el email se envió correctamente, False en caso contrario.
     """
+    import time
+    from django.core.mail import get_connection
+    
+    logger.info(f"🚀 Iniciando envío de credenciales para {user.email}")
+    
     try:
+        # Verificar configuración de email antes de proceder
+        email_backend = getattr(settings, 'EMAIL_BACKEND', 'No configurado')
+        email_host = getattr(settings, 'EMAIL_HOST', 'No configurado')
+        default_from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'No configurado')
+        
+        logger.info(f"📧 Configuración EMAIL_BACKEND: {email_backend}")
+        logger.info(f"📧 Configuración EMAIL_HOST: {email_host}")
+        logger.info(f"📧 Configuración DEFAULT_FROM_EMAIL: {default_from_email}")
+        
         # Obtener el site_name de manera segura
         site_name = getattr(settings, 'SITE_NAME', 'ARC Manager')
         
@@ -54,6 +68,8 @@ def send_new_user_email(user, password, request=None):
             base_url = getattr(settings, 'SITE_URL', 'http://localhost:8000')
             login_url = f"{base_url}/accounts/login/"
         
+        logger.info(f"🔗 URL de login generada: {login_url}")
+        
         # Preparar el contexto para el template
         context = {
             'user': user,
@@ -62,8 +78,10 @@ def send_new_user_email(user, password, request=None):
             'login_url': login_url
         }
         
+        logger.info(f"📝 Renderizando template HTML...")
         # Renderizar los templates HTML y texto plano
         html_message = render_to_string('users/emails/new_user_credentials.html', context)
+        logger.info(f"✅ Template HTML renderizado correctamente")
         
         # Determinar el nombre para mostrar
         display_name = f"{user.first_name} {user.last_name}".strip()
@@ -107,6 +125,7 @@ Este mensaje fue generado automáticamente, por favor no respondas a este email.
         from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@localhost')
         to_emails = [user.email]
         
+
         # Logging detallado para debugging
         logger.info(f"🔗 URL de login generada: {login_url}")
         logger.info(f"📝 Renderizando template HTML...")
@@ -156,9 +175,16 @@ Este mensaje fue generado automáticamente, por favor no respondas a este email.
         finally:
             # Asegurar que se restaure el timeout
             socket.setdefaulttimeout(default_timeout)
+
         
     except Exception as e:
-        logger.error(f"Error enviando email a {user.email}: {str(e)}")
+        logger.error(f"❌ Error general enviando email a {user.email}: {str(e)}")
+        logger.error(f"❌ Tipo de error: {type(e).__name__}")
+        
+        # Log adicional para debugging
+        import traceback
+        logger.error(f"❌ Traceback completo: {traceback.format_exc()}")
+        
         return False
 
 def send_welcome_reminder_email(user, request=None):
