@@ -36,6 +36,18 @@ if not SECRET_KEY:
 # Configuración mejorada de ALLOWED_HOSTS
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
+# En Railway, agregar automáticamente el dominio de Railway si no está configurado
+if os.environ.get('RAILWAY_ENVIRONMENT'):
+    railway_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
+    if railway_domain and railway_domain not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(railway_domain)
+    
+    # También permitir subdominios de railway.app
+    railway_subdomain = f"{os.environ.get('RAILWAY_SERVICE_NAME', 'app')}.railway.app"
+    if railway_subdomain not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(railway_subdomain)
+        ALLOWED_HOSTS.append('*.railway.app')
+
 TESTING = bool(os.environ.get('TESTING')) or ('test' in sys.argv)
 
 # En desarrollo o testing se permite configuración laxa
@@ -105,6 +117,10 @@ MIDDLEWARE = [
 # Insertar Debug Toolbar Middleware si DEBUG está activado
 if DEBUG:
     MIDDLEWARE.insert(0, 'debug_toolbar.middleware.DebugToolbarMiddleware')
+else:
+    # Remover debug_toolbar de INSTALLED_APPS en producción para evitar warnings
+    if 'debug_toolbar' in INSTALLED_APPS:
+        INSTALLED_APPS.remove('debug_toolbar')
 
 
 ROOT_URLCONF = 'core.urls'
@@ -337,17 +353,21 @@ LOGGING = {
             '()': 'django.utils.log.CallbackFilter',
             'callback': lambda record: 'DateTimeField' not in record.getMessage() or 'received a naive datetime' not in record.getMessage()
         },
+        'ignore_payment_warnings': {
+            '()': 'django.utils.log.CallbackFilter',
+            'callback': lambda record: 'Payment.created_at' not in record.getMessage()
+        },
     },
     'handlers': {
         'console': {
             'level': 'INFO',
-            'filters': ['require_debug_true', 'ignore_timezone_warnings'],
+            'filters': ['require_debug_true', 'ignore_timezone_warnings', 'ignore_payment_warnings'],
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
         'console_prod': {
             'level': 'INFO',
-            'filters': ['require_debug_false', 'ignore_timezone_warnings'],
+            'filters': ['require_debug_false', 'ignore_timezone_warnings', 'ignore_payment_warnings'],
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
@@ -435,6 +455,8 @@ else:
         EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
         EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'apikey')
         EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+        # Configuración de timeouts para evitar cuelgues
+        EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', '30'))  # 30 segundos por defecto
         DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@tudominio.com')
         SERVER_EMAIL = DEFAULT_FROM_EMAIL
     else:
@@ -470,6 +492,15 @@ SUPPORT_EMAIL = os.environ.get('SUPPORT_EMAIL', 'soporte@tuempresa.com')
 # ========================================
 
 IS_PRODUCTION = os.environ.get('RAILWAY_ENVIRONMENT') is not None or not DEBUG
+
+# Forzar el uso de nuestras páginas de error personalizadas en producción
+if not DEBUG:
+    # Asegurar que Django no use páginas de error por defecto
+    USE_THOUSAND_SEPARATOR = True
+    
+    # Configuración adicional para handlers de error
+    APPEND_SLASH = True
+    PREPEND_WWW = False
 
 if IS_PRODUCTION:
     SECURE_SSL_REDIRECT = True

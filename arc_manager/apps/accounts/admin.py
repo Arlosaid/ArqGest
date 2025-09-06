@@ -194,10 +194,21 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
     force_password_reset.short_description = "🔑 Forzar cambio de contraseña"
 
     def resend_welcome_email(self, request, queryset):
+        import time
+        import logging
+        logger = logging.getLogger(__name__)
+        
         success_count = 0
         error_count = 0
-        for user in queryset:
+        timeout_count = 0
+        
+        total_users = queryset.count()
+        logger.info(f"🚀 Iniciando envío de credenciales a {total_users} usuarios")
+        
+        for i, user in enumerate(queryset, 1):
             try:
+                logger.info(f"📧 Procesando usuario {i}/{total_users}: {user.email}")
+                
                 # Generar nueva contraseña temporal
                 new_password = generate_random_password()
                 user.set_password(new_password)
@@ -205,20 +216,34 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
                 user.password_change_required = True
                 user.save()
                 
-                # Enviar credenciales completas
-                if send_new_user_email(user, new_password, request):
+                # Enviar credenciales completas con timeout
+                start_time = time.time()
+                email_sent = send_new_user_email(user, new_password, request)
+                elapsed_time = time.time() - start_time
+                
+                if email_sent:
                     success_count += 1
+                    logger.info(f"✅ Email enviado a {user.email} en {elapsed_time:.1f}s")
                 else:
-                    error_count += 1
+                    if elapsed_time > 15:  # Si tardó más de 15 segundos, considerarlo timeout
+                        timeout_count += 1
+                        logger.error(f"❌ Timeout enviando email a {user.email} (>{elapsed_time:.0f}s)")
+                    else:
+                        error_count += 1
+                        logger.error(f"❌ Error enviando email a {user.email}")
+                        
             except Exception as e:
                 error_count += 1
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Error reenviando credenciales a {user.email}: {str(e)}")
+                logger.error(f"❌ Excepción reenviando credenciales a {user.email}: {str(e)}")
+        
+        # Mostrar resumen detallado
+        logger.info(f"📊 Resumen: {success_count} exitosos, {error_count + timeout_count} fallidos")
         
         if success_count > 0:
             self.message_user(request, f"✅ Se enviaron {success_count} correos con nuevas credenciales.", messages.SUCCESS)
+        if timeout_count > 0:
+            self.message_user(request, f"⏱️ {timeout_count} correos fallaron por timeout (>15s). Revisa la configuración de SendGrid.", messages.WARNING)
         if error_count > 0:
-            self.message_user(request, f"❌ Falló el envío de {error_count} correos de credenciales.", messages.ERROR)
+            self.message_user(request, f"❌ {error_count} correos fallaron por otros errores. Revisa los logs.", messages.ERROR)
             
     resend_welcome_email.short_description = "📧 Reenviar credenciales de acceso"

@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils.deprecation import MiddlewareMixin
 from django.contrib import messages
-from django.http import HttpResponseServerError
+from django.http import HttpResponseServerError, JsonResponse
 from django.template import loader
 import logging
 import re
@@ -116,6 +116,7 @@ class SuperuserRestrictMiddleware:
 class ErrorHandlingMiddleware(MiddlewareMixin):
     """
     Middleware para manejo de errores en producción.
+    Asegura que nunca se muestren errores genéricos de Railway.
     """
     
     def process_exception(self, request, exception):
@@ -126,13 +127,53 @@ class ErrorHandlingMiddleware(MiddlewareMixin):
                 extra={
                     'request': request,
                     'user': request.user if hasattr(request, 'user') else None,
+                    'path': request.path,
+                    'method': request.method,
+                    'user_agent': request.META.get('HTTP_USER_AGENT', ''),
+                    'referer': request.META.get('HTTP_REFERER', ''),
                 }
             )
             
+            # Para requests AJAX, devolver JSON
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'error': 'Error interno del servidor',
+                    'status': 500
+                }, status=500)
+            
+            # Para requests normales, usar template personalizado
             try:
                 template = loader.get_template('500.html')
                 return HttpResponseServerError(template.render({}))
-            except Exception:
-                return HttpResponseServerError("<h1>Error del Servidor</h1><p>Ha ocurrido un error interno.</p>")
+            except Exception as e:
+                # Fallback si no se puede cargar el template
+                logger.error(f"No se pudo cargar template 500.html: {str(e)}")
+                return HttpResponseServerError(
+                    """
+                    <!DOCTYPE html>
+                    <html lang="es">
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>Error del Servidor - ARC Manager</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f8f9fa; }
+                            .error { max-width: 400px; margin: 0 auto; }
+                            h1 { color: #dc3545; font-size: 3rem; }
+                            p { color: #6c757d; margin: 1rem 0; }
+                            .btn { display: inline-block; padding: 10px 20px; background: #007bff; color: white; 
+                                   text-decoration: none; border-radius: 5px; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="error">
+                            <h1>500</h1>
+                            <h2>Error del servidor</h2>
+                            <p>Algo salió mal. Por favor, inténtalo de nuevo más tarde.</p>
+                            <a href="/" class="btn">Ir al inicio</a>
+                        </div>
+                    </body>
+                    </html>
+                    """
+                )
         
         return None
