@@ -45,7 +45,7 @@ class AdminDashboard:
             ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
             
             # Ingresos del mes actual
-            current_month = datetime.now().replace(day=1)
+            current_month = timezone.now().replace(day=1)
             monthly_revenue = Payment.objects.filter(
                 status='completed',
                 payment_type='subscription',

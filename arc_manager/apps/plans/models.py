@@ -313,17 +313,6 @@ class Payment(models.Model):
         verbose_name_plural = "Pagos"
         ordering = ['-created_at']
 
-    def save(self, *args, **kwargs):
-        """Asegurar que todas las fechas sean timezone-aware"""
-        if self.created_at and self.created_at.tzinfo is None:
-            # Si created_at es naive, convertirla a timezone-aware
-            self.created_at = timezone.make_aware(self.created_at)
-        if self.old_end_date and self.old_end_date.tzinfo is None:
-            self.old_end_date = timezone.make_aware(self.old_end_date)
-        if self.new_end_date and self.new_end_date.tzinfo is None:
-            self.new_end_date = timezone.make_aware(self.new_end_date)
-        super().save(*args, **kwargs)
-
     def __str__(self):
         return f"{self.subscription.organization.name} - ${self.amount} ({self.get_status_display()})"
 
