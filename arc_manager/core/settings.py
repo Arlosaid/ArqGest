@@ -445,7 +445,7 @@ if DEBUG:
     DEFAULT_FROM_EMAIL = 'ARC MANAGER <noreply@archmanager.local>'
 else:
     # Configuración de SendGrid a través de Web API (preferido en producción)
-    EMAIL_BACKEND = 'sendgrid_django.SendGridBackend'
+    EMAIL_BACKEND = 'sendgrid_v5.backends.SendGridBackend'
     SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
     DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'adroal08@gmail.com')
     SERVER_EMAIL = DEFAULT_FROM_EMAIL
