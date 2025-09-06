@@ -40,9 +40,9 @@ echo "✅ Migraciones listas"\n\
 echo "📦 Recolectando archivos estáticos..."\n\
 python manage.py collectstatic --noinput --clear || echo "⚠️ Error en collectstatic - continuando"\n\
 echo "✅ Archivos estáticos listos"\n\
-echo "🔍 Ejecutando diagnóstico de conexión SMTP..."\n\
-python manage.py check_smtp_connection\n\
-echo "✅ Diagnóstico finalizado"\n\
+# echo "🔍 Ejecutando diagnóstico de conexión SMTP..."\n\
+# python manage.py check_smtp_connection\n\
+# echo "✅ Diagnóstico finalizado"\n\
 echo "🚀 Iniciando servidor..."\n\
 exec gunicorn --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120 core.wsgi:application' > /app/start.sh && chmod +x /app/start.sh
 
