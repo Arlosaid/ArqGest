@@ -125,41 +125,57 @@ Este mensaje fue generado automáticamente, por favor no respondas a este email.
         from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@localhost')
         to_emails = [user.email]
         
+
+        # Logging detallado para debugging
+        logger.info(f"🔗 URL de login generada: {login_url}")
+        logger.info(f"📝 Renderizando template HTML...")
+        logger.info(f"✅ Template HTML renderizado correctamente")
         logger.info(f"📬 Preparando email: {subject}")
         logger.info(f"📤 De: {from_email} -> Para: {user.email}")
         
-        # Usar conexión con timeout personalizado
+        # Usar EmailMultiAlternatives para enviar tanto HTML como texto plano
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=text_message,
+            from_email=from_email,
+            to=to_emails
+        )
+        email.attach_alternative(html_message, "text/html")
+        
+        logger.info(f"🔌 Estableciendo conexión SMTP...")
+        logger.info(f"📨 Enviando email...")
+        
+        # Enviar con timeout personalizado
+        import socket
+        import time
+        
+        start_time = time.time()
         try:
-            logger.info(f"🔌 Estableciendo conexión SMTP...")
-            start_time = time.time()
+            # Configurar timeout de socket específicamente para el envío
+            default_timeout = socket.getdefaulttimeout()
+            socket.setdefaulttimeout(30)  # 30 segundos timeout
             
-            # Crear conexión con timeout
-            connection = get_connection()
-            connection.timeout = 30  # 30 segundos timeout
-            
-            # Usar EmailMultiAlternatives para enviar tanto HTML como texto plano
-            email = EmailMultiAlternatives(
-                subject=subject,
-                body=text_message,
-                from_email=from_email,
-                to=to_emails,
-                connection=connection
-            )
-            email.attach_alternative(html_message, "text/html")
-            
-            logger.info(f"📨 Enviando email...")
             email.send()
             
-            end_time = time.time()
-            duration = end_time - start_time
+            # Restaurar timeout original
+            socket.setdefaulttimeout(default_timeout)
             
-            logger.info(f"✅ Email de credenciales enviado exitosamente a {user.email} en {duration:.2f} segundos")
+            elapsed_time = time.time() - start_time
+            logger.info(f"✅ Email enviado exitosamente en {elapsed_time:.2f}s a {user.email}")
             return True
             
+        except socket.timeout:
+            elapsed_time = time.time() - start_time
+            logger.error(f"❌ Timeout enviando email a {user.email} ({elapsed_time:.0f}s)")
+            return False
         except Exception as smtp_error:
-            logger.error(f"❌ Error SMTP enviando email a {user.email}: {str(smtp_error)}")
-            logger.error(f"❌ Tipo de error SMTP: {type(smtp_error).__name__}")
-            raise smtp_error
+            elapsed_time = time.time() - start_time
+            logger.error(f"❌ Error SMTP enviando email a {user.email} ({elapsed_time:.0f}s): {str(smtp_error)}")
+            return False
+        finally:
+            # Asegurar que se restaure el timeout
+            socket.setdefaulttimeout(default_timeout)
+
         
     except Exception as e:
         logger.error(f"❌ Error general enviando email a {user.email}: {str(e)}")

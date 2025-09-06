@@ -40,9 +40,19 @@ if settings.DEBUG:
     urlpatterns = [
         path('__debug__/', include('debug_toolbar.urls')),
     ] + urlpatterns
+    
+    # Rutas de test para errores (solo en desarrollo)
+    from .test_views import test_400, test_403, test_404, test_500
+    urlpatterns += [
+        path('test-400/', test_400, name='test_400'),
+        path('test-403/', test_403, name='test_403'),
+        path('test-404/', test_404, name='test_404'),
+        path('test-500/', test_500, name='test_500'),
+    ]
 
 # Custom error handlers for production
-handler500 = 'django.views.defaults.server_error'
-handler404 = 'django.views.defaults.page_not_found'
-handler403 = 'django.views.defaults.permission_denied'
-handler400 = 'django.views.defaults.bad_request'
+# Estos handlers aseguran que se muestren nuestras páginas de error personalizadas
+handler400 = 'core.error_handlers.custom_400_view'
+handler403 = 'core.error_handlers.custom_403_view'
+handler404 = 'core.error_handlers.custom_404_view'
+handler500 = 'core.error_handlers.custom_500_view'

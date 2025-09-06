@@ -194,28 +194,22 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
     force_password_reset.short_description = "🔑 Forzar cambio de contraseña"
 
     def resend_welcome_email(self, request, queryset):
+
+        import time
         import logging
-        from django.conf import settings
         logger = logging.getLogger(__name__)
-        
-        logger.info(f"🚀 Iniciando reenvío de credenciales para {queryset.count()} usuario(s)")
-        
-        # Verificar configuración de email ANTES de proceder
-        email_password = getattr(settings, 'EMAIL_HOST_PASSWORD', None)
-        if not email_password:
-            error_msg = "❌ EMAIL_HOST_PASSWORD no está configurado en las variables de entorno. Configure el email en Railway primero."
-            logger.error(error_msg)
-            self.message_user(request, error_msg, messages.ERROR)
-            self.message_user(request, "💡 Revisa la documentación CONFIGURACION_EMAIL.md para configurar el email.", messages.WARNING)
-            return
         
         success_count = 0
         error_count = 0
-        detailed_errors = []
+        timeout_count = 0
         
-        for user in queryset:
+        total_users = queryset.count()
+        logger.info(f"🚀 Iniciando envío de credenciales a {total_users} usuarios")
+        
+        for i, user in enumerate(queryset, 1):
             try:
-                logger.info(f"📧 Procesando usuario: {user.email}")
+                logger.info(f"📧 Procesando usuario {i}/{total_users}: {user.email}")
+
                 
                 # Generar nueva contraseña temporal
                 new_password = generate_random_password()
@@ -224,80 +218,38 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
                 user.password_change_required = True
                 user.save()
                 
-                logger.info(f"🔑 Contraseña actualizada para {user.email}")
+
+                # Enviar credenciales completas con timeout
+                start_time = time.time()
+                email_sent = send_new_user_email(user, new_password, request)
+                elapsed_time = time.time() - start_time
                 
-                # Enviar credenciales con timeout estricto
-                try:
-                    import signal
-                    import threading
-                    import time
-                    
-                    email_sent = False
-                    exception_caught = None
-                    
-                    def send_email_with_timeout():
-                        nonlocal email_sent, exception_caught
-                        try:
-                            email_sent = send_new_user_email(user, new_password, request)
-                        except Exception as e:
-                            exception_caught = e
-                    
-                    # Crear thread para envío con timeout de 15 segundos
-                    email_thread = threading.Thread(target=send_email_with_timeout)
-                    email_thread.daemon = True
-                    email_thread.start()
-                    email_thread.join(timeout=15.0)
-                    
-                    if email_thread.is_alive():
-                        # Thread aún corriendo = timeout
-                        error_msg = f"Timeout enviando email a {user.email} (>15s)"
-                        detailed_errors.append(error_msg)
-                        logger.error(f"❌ {error_msg}")
-                        error_count += 1
-                    elif exception_caught:
-                        # Excepción en el thread
-                        error_msg = f"Error enviando email a {user.email}: {str(exception_caught)}"
-                        detailed_errors.append(error_msg)
-                        logger.error(f"❌ {error_msg}")
-                        error_count += 1
-                    elif email_sent:
-                        success_count += 1
-                        logger.info(f"✅ Credenciales enviadas exitosamente a {user.email}")
+                if email_sent:
+                    success_count += 1
+                    logger.info(f"✅ Email enviado a {user.email} en {elapsed_time:.1f}s")
+                else:
+                    if elapsed_time > 15:  # Si tardó más de 15 segundos, considerarlo timeout
+                        timeout_count += 1
+                        logger.error(f"❌ Timeout enviando email a {user.email} (>{elapsed_time:.0f}s)")
                     else:
-                        error_msg = f"Error desconocido enviando email a {user.email}"
-                        detailed_errors.append(error_msg)
-                        logger.error(f"❌ {error_msg}")
                         error_count += 1
+                        logger.error(f"❌ Error enviando email a {user.email}")
                         
-                except Exception as timeout_error:
-                    error_count += 1
-                    error_msg = f"Error en timeout para {user.email}: {str(timeout_error)}"
-                    detailed_errors.append(error_msg)
-                    logger.error(f"❌ {error_msg}")
-                    
             except Exception as e:
                 error_count += 1
-                error_msg = f"Error procesando {user.email}: {str(e)}"
-                detailed_errors.append(error_msg)
-                logger.error(f"❌ Error reenviando credenciales a {user.email}: {str(e)}")
+                logger.error(f"❌ Excepción reenviando credenciales a {user.email}: {str(e)}")
+        
+        # Mostrar resumen detallado
+        logger.info(f"📊 Resumen: {success_count} exitosos, {error_count + timeout_count} fallidos")
+
         
         # Mensajes de resultado
         if success_count > 0:
             self.message_user(request, f"✅ Se enviaron {success_count} correos con nuevas credenciales.", messages.SUCCESS)
-            
+
+        if timeout_count > 0:
+            self.message_user(request, f"⏱️ {timeout_count} correos fallaron por timeout (>15s). Revisa la configuración de SendGrid.", messages.WARNING)
         if error_count > 0:
-            error_summary = f"❌ Falló el envío de {error_count} correos de credenciales."
-            if detailed_errors:
-                error_summary += f" Errores: {'; '.join(detailed_errors[:2])}"  # Mostrar solo los primeros 2
-                if len(detailed_errors) > 2:
-                    error_summary += f" y {len(detailed_errors) - 2} más..."
-            
-            self.message_user(request, error_summary, messages.ERROR)
-            
-            # Mensaje adicional con solución
-            if any('timeout' in error.lower() or 'smtp' in error.lower() for error in detailed_errors):
-                self.message_user(request, "💡 Si hay timeouts, verifica la configuración de email en Railway o usa el comando: python manage.py test_email", messages.INFO)
-            
-        logger.info(f"📊 Resumen: {success_count} exitosos, {error_count} fallidos")
+            self.message_user(request, f"❌ {error_count} correos fallaron por otros errores. Revisa los logs.", messages.ERROR)
             
     resend_welcome_email.short_description = "📧 Reenviar credenciales de acceso"
