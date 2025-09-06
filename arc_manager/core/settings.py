@@ -406,7 +406,7 @@ LOGGING = {
         'django': {
             'handlers': ['console', 'console_prod', 'error_file'],
             'level': 'INFO',
-            'propagate': True,
+            'propagate': False,
         },
         'django.request': {
             'handlers': ['error_file', 'mail_admins'],
@@ -421,7 +421,7 @@ LOGGING = {
         'apps': {
             'handlers': ['console', 'console_prod', 'error_file', 'debug_file'],
             'level': 'INFO',
-            'propagate': True,
+            'propagate': False,
         },
         'apps.plans': {
             'level': 'DEBUG',
@@ -457,7 +457,7 @@ else:
         EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
         # Configuración de timeouts para evitar cuelgues
         EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', '30'))  # 30 segundos por defecto
-        DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@tudominio.com')
+        DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'adroal08@gmail.com')
         SERVER_EMAIL = DEFAULT_FROM_EMAIL
     else:
         # Configuración AWS SES (fallback)

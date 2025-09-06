@@ -738,7 +738,7 @@ def phase_files_paginated(request, project_id, phase_id):
     
     if date_filter:
         from datetime import datetime, timedelta
-        today = datetime.now().date()
+        today = timezone.now().date()
         if date_filter == 'today':
             files_qs = files_qs.filter(uploaded_at__date=today)
         elif date_filter == 'week':
