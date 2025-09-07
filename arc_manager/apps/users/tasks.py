@@ -1,4 +1,4 @@
-from celery import shared_task
+import django_rq
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
@@ -8,8 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
-@shared_task(bind=True, max_retries=3)
-def send_user_credentials_email(self, user_id, password, request_data=None):
+def send_user_credentials_email(user_id, password, request_data=None):
     """
     Tarea asíncrona para enviar credenciales de usuario por email.
     
@@ -160,13 +159,11 @@ Este mensaje fue generado automáticamente, por favor no respondas a este email.
         except socket.timeout:
             elapsed_time = time.time() - start_time
             logger.error(f"❌ [ASYNC] Timeout enviando email a {user.email} ({elapsed_time:.0f}s)")
-            # Reintentar la tarea
-            raise self.retry(countdown=60, exc=socket.timeout)
+            return False
         except Exception as smtp_error:
             elapsed_time = time.time() - start_time
             logger.error(f"❌ [ASYNC] Error SMTP enviando email a {user.email} ({elapsed_time:.0f}s): {str(smtp_error)}")
-            # Reintentar la tarea
-            raise self.retry(countdown=60, exc=smtp_error)
+            return False
         finally:
             # Asegurar que se restaure el timeout
             socket.setdefaulttimeout(default_timeout)
@@ -178,15 +175,11 @@ Este mensaje fue generado automáticamente, por favor no respondas a este email.
         logger.error(f"❌ [ASYNC] Error general enviando email a usuario {user_id}: {str(e)}")
         logger.error(f"❌ [ASYNC] Tipo de error: {type(e).__name__}")
         
-        # Reintentar la tarea si no es el último intento
-        if self.request.retries < self.max_retries:
-            logger.info(f"🔄 [ASYNC] Reintentando envío de email (intento {self.request.retries + 1}/{self.max_retries})")
-            raise self.retry(countdown=60, exc=e)
+        # Con RQ no manejamos reintentos automáticos aquí
         
         return False
 
-@shared_task(bind=True, max_retries=3)
-def send_bulk_user_credentials(self, user_data_list, request_data=None):
+def send_bulk_user_credentials(user_data_list, request_data=None):
     """
     Tarea asíncrona para enviar credenciales a múltiples usuarios.
     
@@ -210,12 +203,13 @@ def send_bulk_user_credentials(self, user_data_list, request_data=None):
             
             logger.info(f"📧 [ASYNC] Procesando usuario {i}/{total_users}: ID {user_id}")
             
-            # Enviar email individual
-            result = send_user_credentials_email.delay(user_id, password, request_data)
+            # Enviar email individual usando RQ
+            queue = django_rq.get_queue('default')
+            job = queue.enqueue(send_user_credentials_email, user_id, password, request_data)
             
-            if result.get():
+            if job:
                 success_count += 1
-                logger.info(f"✅ [ASYNC] Email programado para usuario {user_id}")
+                logger.info(f"✅ [ASYNC] Email programado para usuario {user_id} (Job ID: {job.id})")
             else:
                 error_count += 1
                 logger.error(f"❌ [ASYNC] Error programando email para usuario {user_id}")

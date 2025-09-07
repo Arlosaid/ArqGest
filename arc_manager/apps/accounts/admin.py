@@ -196,6 +196,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
     def resend_welcome_email(self, request, queryset):
         import time
         import logging
+        import django_rq
         from apps.users.tasks import send_user_credentials_email
         
         logger = logging.getLogger(__name__)
@@ -223,13 +224,14 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
                 user.password_change_required = True
                 user.save()
                 
-                # Enviar credenciales de forma ASÍNCRONA
+                # Enviar credenciales de forma ASÍNCRONA usando RQ
                 start_time = time.time()
-                task = send_user_credentials_email.delay(user.id, new_password, request_data)
+                queue = django_rq.get_queue('default')
+                job = queue.enqueue(send_user_credentials_email, user.id, new_password, request_data)
                 elapsed_time = time.time() - start_time
                 
                 success_count += 1
-                logger.info(f"✅ Email programado para {user.email} en {elapsed_time:.3f}s (Task ID: {task.id})")
+                logger.info(f"✅ Email programado para {user.email} en {elapsed_time:.3f}s (Job ID: {job.id})")
                         
             except Exception as e:
                 error_count += 1
