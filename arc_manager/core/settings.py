@@ -89,8 +89,6 @@ INSTALLED_APPS = [
     'apps.projects',
     'apps.files',
     
-    # Django-RQ para tareas asíncronas
-    'django_rq',
 ]
 
 # Activar django-storages solo si está habilitado por entorno
@@ -164,23 +162,11 @@ AXES_LOCKOUT_CALLABLE = None
 AXES_VERBOSE = True
 
 
-# Configuración de Redis para cache y RQ
-REDIS_URL = os.environ.get('REDIS_URL', 'redis://redis:6379/0')
-
+# Configuración de cache (usando base de datos)
 CACHES = {
     'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': REDIS_URL,
-        'OPTIONS': {},
-        'KEY_PREFIX': 'arc_manager',
-        'TIMEOUT': 300,
-    },
-    'sessions': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': REDIS_URL,
-        'OPTIONS': {},
-        'KEY_PREFIX': 'arc_sessions',
-        'TIMEOUT': 86400,
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'cache_table',
     }
 }
 
@@ -282,9 +268,8 @@ if os.environ.get('DEFAULT_FILE_STORAGE'):
     AWS_S3_SIGNATURE_VERSION = os.environ.get('AWS_S3_SIGNATURE_VERSION', 's3v4')
     AWS_DEFAULT_ACL = None
 
-# Configuración de sesiones con Redis
-SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
-SESSION_CACHE_ALIAS = 'sessions'
+# Configuración de sesiones (usando base de datos)
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_SAVE_EVERY_REQUEST = False
 
 # Configuración de la cookie de sesión
@@ -473,30 +458,6 @@ else:
     EMAIL_USE_LOCALTIME = False
     EMAIL_FILE_PATH = None  # No usar archivos para emails
 
-# Configuración de Django-RQ
-RQ_QUEUES = {
-    'default': {
-        'HOST': os.environ.get('REDIS_HOST', 'redis'),
-        'PORT': int(os.environ.get('REDIS_PORT', '6379')),
-        'DB': 0,
-        'PASSWORD': os.environ.get('REDIS_PASSWORD', None),
-        'DEFAULT_TIMEOUT': 300,  # 5 minutos
-    },
-    'high': {
-        'HOST': os.environ.get('REDIS_HOST', 'redis'),
-        'PORT': int(os.environ.get('REDIS_PORT', '6379')),
-        'DB': 0,
-        'PASSWORD': os.environ.get('REDIS_PASSWORD', None),
-        'DEFAULT_TIMEOUT': 500,  # 8 minutos
-    },
-    'low': {
-        'HOST': os.environ.get('REDIS_HOST', 'redis'),
-        'PORT': int(os.environ.get('REDIS_PORT', '6379')),
-        'DB': 0,
-        'PASSWORD': os.environ.get('REDIS_PASSWORD', None),
-        'DEFAULT_TIMEOUT': 600,  # 10 minutos
-    }
-}
 
 # Configuración para el sistema de pagos
 PAYMENT_BANK_INFO = {
@@ -544,14 +505,7 @@ if IS_PRODUCTION:
     
     # Email ya configurado arriba - no duplicar configuración
     
-    if os.environ.get('REDIS_ENDPOINT'):
-        CACHES = {
-            'default': {
-                'BACKEND': 'django_redis.cache.RedisCache',
-                'LOCATION': f"redis://{os.environ.get('REDIS_ENDPOINT')}:6379/1",
-                'OPTIONS': {'CLIENT_CLASS': 'django_redis.client.DefaultClient'}
-            }
-        }
+    # Cache ya configurado arriba
     
     HEALTH_CHECK_URL = '/health/'
     

@@ -25,9 +25,6 @@ django-ses==3.5.2
 django-crispy-forms==2.1
 crispy-bootstrap5==2024.2
 
-# RQ para tareas asíncronas (más simple que Celery)
-django-rq==2.10.2
-rq==1.16.1
 
 # Desarrollo (opcionales)
 django-debug-toolbar==4.2.0

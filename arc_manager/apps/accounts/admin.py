@@ -194,10 +194,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
     force_password_reset.short_description = "🔑 Forzar cambio de contraseña"
 
     def resend_welcome_email(self, request, queryset):
-        import time
         import logging
-        import django_rq
-        from apps.users.tasks import send_user_credentials_email
         
         logger = logging.getLogger(__name__)
         
@@ -205,13 +202,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         error_count = 0
         
         total_users = queryset.count()
-        logger.info(f"🚀 Iniciando envío ASÍNCRONO de credenciales a {total_users} usuarios")
-        
-        # Preparar datos de la request para la tarea asíncrona
-        request_data = {
-            'HTTP_HOST': request.get_host(),
-            'is_secure': request.is_secure(),
-        }
+        logger.info(f"🚀 Iniciando envío directo de credenciales a {total_users} usuarios")
         
         for i, user in enumerate(queryset, 1):
             try:
@@ -224,28 +215,27 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
                 user.password_change_required = True
                 user.save()
                 
-                # Enviar credenciales de forma ASÍNCRONA usando RQ
-                start_time = time.time()
-                queue = django_rq.get_queue('default')
-                job = queue.enqueue(send_user_credentials_email, user.id, new_password, request_data)
-                elapsed_time = time.time() - start_time
-                
-                success_count += 1
-                logger.info(f"✅ Email programado para {user.email} en {elapsed_time:.3f}s (Job ID: {job.id})")
+                # Enviar credenciales usando la función directa de utils
+                if send_new_user_email(user, new_password, request):
+                    success_count += 1
+                    logger.info(f"✅ Email enviado exitosamente para {user.email}")
+                else:
+                    error_count += 1
+                    logger.error(f"❌ Error enviando email para {user.email}")
                         
             except Exception as e:
                 error_count += 1
-                logger.error(f"❌ Excepción programando email para {user.email}: {str(e)}")
+                logger.error(f"❌ Error procesando usuario {user.email}: {str(e)}")
         
         # Mostrar resumen detallado
-        logger.info(f"📊 Resumen: {success_count} programados, {error_count} fallidos")
+        logger.info(f"📊 Resumen: {success_count} exitosos, {error_count} fallidos")
 
         
         # Mensajes de resultado
         if success_count > 0:
-            self.message_user(request, f"✅ Se programaron {success_count} correos para envío asíncrono.", messages.SUCCESS)
+            self.message_user(request, f"✅ Se enviaron {success_count} correos exitosamente.", messages.SUCCESS)
 
         if error_count > 0:
-            self.message_user(request, f"❌ {error_count} correos fallaron al programarse. Revisa los logs.", messages.ERROR)
+            self.message_user(request, f"❌ {error_count} correos fallaron al enviarse. Revisa los logs.", messages.ERROR)
             
     resend_welcome_email.short_description = "📧 Reenviar credenciales de acceso"
