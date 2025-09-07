@@ -25,6 +25,10 @@ django-ses==3.5.2
 django-crispy-forms==2.1
 crispy-bootstrap5==2024.2
 
+# Celery para tareas asíncronas
+celery==5.3.4
+django-celery-beat==2.5.0
+
 # Desarrollo (opcionales)
 django-debug-toolbar==4.2.0
 django-import-export==4.0.0
