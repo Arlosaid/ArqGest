@@ -145,17 +145,36 @@ Este mensaje fue generado automáticamente, por favor no respondas a este email.
         logger.info(f"🔌 Estableciendo conexión SMTP...")
         logger.info(f"📨 Enviando email...")
         
-        # Enviar con timeout personalizado
+        # Enviar con timeout optimizado y conexión persistente
         import socket
         import time
+        from django.core.mail import get_connection
         
         start_time = time.time()
         try:
-            # Configurar timeout de socket específicamente para el envío
-            default_timeout = socket.getdefaulttimeout()
-            socket.setdefaulttimeout(30)  # 30 segundos timeout
+            # Usar conexión SMTP con timeout optimizado
+            connection = get_connection(
+                backend=settings.EMAIL_BACKEND,
+                host=settings.EMAIL_HOST,
+                port=settings.EMAIL_PORT,
+                username=settings.EMAIL_HOST_USER,
+                password=settings.EMAIL_HOST_PASSWORD,
+                use_tls=settings.EMAIL_USE_TLS,
+                use_ssl=settings.EMAIL_USE_SSL,
+                timeout=getattr(settings, 'EMAIL_TIMEOUT', 60),  # Usar timeout de settings
+                fail_silently=False
+            )
             
+            # Configurar timeout de socket más agresivo
+            default_timeout = socket.getdefaulttimeout()
+            socket.setdefaulttimeout(60)  # 60 segundos timeout
+            
+            # Enviar usando la conexión optimizada
+            email.connection = connection
             email.send()
+            
+            # Cerrar conexión
+            connection.close()
             
             # Restaurar timeout original
             socket.setdefaulttimeout(default_timeout)

@@ -88,6 +88,9 @@ INSTALLED_APPS = [
     'apps.plans',
     'apps.projects',
     'apps.files',
+    
+    # Celery
+    'django_celery_beat',
 ]
 
 # Activar django-storages solo si está habilitado por entorno
@@ -161,8 +164,10 @@ AXES_LOCKOUT_CALLABLE = None
 AXES_VERBOSE = True
 
 
-# Configuración de Redis para cache
+# Configuración de Redis para cache y Celery
 REDIS_URL = os.environ.get('REDIS_URL', 'redis://redis:6379/0')
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
 
 CACHES = {
     'default': {
@@ -459,8 +464,28 @@ else:
     SERVER_EMAIL = DEFAULT_FROM_EMAIL
     
     # Configuración adicional para AWS SES
-    EMAIL_TIMEOUT = 30
+    EMAIL_TIMEOUT = 60  # Timeout optimizado a 1 minuto
     EMAIL_USE_SSL = False  # Usar TLS en lugar de SSL
+    
+    # Configuración adicional para mejorar rendimiento
+    EMAIL_CONNECTION_TIMEOUT = 30
+    EMAIL_READ_TIMEOUT = 30
+    
+    # Configuración específica para AWS SES
+    EMAIL_USE_LOCALTIME = False
+    EMAIL_FILE_PATH = None  # No usar archivos para emails
+
+# Configuración de Celery
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_ENABLE_UTC = True
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 300  # 5 minutos máximo por tarea
+CELERY_TASK_SOFT_TIME_LIMIT = 240  # 4 minutos soft limit
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
 
 # Configuración para el sistema de pagos
 PAYMENT_BANK_INFO = {
