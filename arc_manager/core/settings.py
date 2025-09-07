@@ -444,40 +444,23 @@ if DEBUG:
     EMAIL_HOST = 'localhost'
     DEFAULT_FROM_EMAIL = 'ARC MANAGER <noreply@archmanager.local>'
 else:
-    # Configuración de SendGrid a través de Web API (preferido en producción)
-    EMAIL_BACKEND = 'sendgrid_v5.backends.SendGridBackend'
-    SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
-    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'adroal08@gmail.com')
-    SERVER_EMAIL = DEFAULT_FROM_EMAIL
-
-    # Configuración SMTP (comentada, como fallback o referencia)
-    # email_backend = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+    # Configuración AWS SES usando las variables de Railway
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     
-    # if 'smtp' in email_backend.lower():
-    #     # Configuración SMTP (SendGrid recomendado para testing)
-    #     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    #     EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.sendgrid.net')
-    #     EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
-    #     EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
-    #     EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'False').lower() == 'true'
-    #     EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'apikey')
-    #     EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
-
-    #     # Configuración de timeouts para evitar cuelgues
-    #     EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', '30'))  # 30 segundos por defecto
-    #     DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'adroal08@gmail.com')
-    #     SERVER_EMAIL = DEFAULT_FROM_EMAIL
-    # else:
-    #     # Configuración AWS SES (fallback)
-    #     EMAIL_BACKEND = 'django_ses.SESBackend'
-    #     AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
-    #     AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
-    #     AWS_SES_REGION_NAME = os.environ.get('AWS_SES_REGION', 'us-east-1')
-    #     AWS_SES_REGION_ENDPOINT = f'email.{AWS_SES_REGION_NAME}.amazonaws.com'
-    #     AWS_SES_AUTO_THROTTLE = 0.5
-    #     AWS_SES_CONFIGURATION_SET = os.environ.get('AWS_SES_CONFIGURATION_SET')
-    #     DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@localhost')
-    #     SERVER_EMAIL = DEFAULT_FROM_EMAIL
+    # Variables de AWS SES configuradas en Railway
+    EMAIL_HOST = os.environ.get('AWS_SES_HOST', 'email-smtp.us-east-1.amazonaws.com')
+    EMAIL_PORT = int(os.environ.get('AWS_SES_PORT', '587'))
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = os.environ.get('AWS_SES_USER')  # Tu Access Key ID
+    EMAIL_HOST_PASSWORD = os.environ.get('AWS_SES_PASS')  # Tu SMTP Password
+    
+    # Email de remitente (debe estar verificado en AWS SES)
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@tudominio.com')
+    SERVER_EMAIL = DEFAULT_FROM_EMAIL
+    
+    # Configuración adicional para AWS SES
+    EMAIL_TIMEOUT = 30
+    EMAIL_USE_SSL = False  # Usar TLS en lugar de SSL
 
 # Configuración para el sistema de pagos
 PAYMENT_BANK_INFO = {

@@ -32,4 +32,3 @@ django-storages==1.14.2
 django-tables2
 django-widget-tweaks
 sentry-sdk
-django-sendgrid-v5
