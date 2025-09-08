@@ -12,13 +12,11 @@ from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from .models import User
 from apps.users.utils import (
-    send_welcome_reminder_email, 
     send_new_user_email, 
-    generate_random_password,
-    send_user_credentials_email,
-    send_welcome_email,
-    test_email_configuration
+    generate_random_password
 )
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 
@@ -41,10 +39,10 @@ class UserCreationForm(forms.ModelForm):
     # Campo informativo para mostrar que se generará automáticamente
     password_info = forms.CharField(
         label="Contraseña",
-        initial="Se generará automáticamente y se enviará por correo",
+        initial="Se generará automáticamente y se enviará por email",
         widget=forms.TextInput(attrs={'readonly': 'readonly', 'class': 'form-control-plaintext'}),
         required=False,
-        help_text="La contraseña se generará automáticamente y se enviará al usuario por correo electrónico."
+        help_text="La contraseña se generará automáticamente y se enviará al usuario por email al crear la cuenta."
     )
 
     class Meta:
@@ -66,9 +64,45 @@ class UserCreationForm(forms.ModelForm):
         user.password_change_required = True
         if commit:
             user.save()
-            # Enviar credenciales por email automáticamente
+            # Enviar credenciales automáticamente con la función simple
             try:
-                send_new_user_email(user, password)
+                from django.core.mail import send_mail
+                from django.conf import settings
+                
+                full_name = f"{user.first_name} {user.last_name}".strip() or user.email.split('@')[0]
+                username = user.username or user.first_name or user.email.split('@')[0]
+                
+                login_url = f"{getattr(settings, 'SITE_URL', 'http://localhost:8000')}/accounts/login/"
+                site_name = getattr(settings, 'SITE_NAME', 'ARC Manager')
+                
+                message = f"""
+🎉 ¡Bienvenido a {site_name}!
+
+Hola {full_name},
+
+Se ha creado tu cuenta. Aquí tienes tus credenciales de acceso:
+
+📧 Email: {user.email}
+👤 Usuario: {username}
+🔒 Contraseña: {password}
+
+🚀 Acceder: {login_url}
+
+💡 Por seguridad, cambia esta contraseña después de tu primer acceso.
+
+---
+{site_name} - Sistema de Gestión
+Este mensaje fue generado automáticamente.
+                """
+                
+                send_mail(
+                    subject=f'Bienvenido a {site_name} - Tus credenciales',
+                    message=message,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                    fail_silently=True  # No fallar la creación si hay error de email
+                )
+                
             except Exception as e:
                 # Log el error pero no fallar la creación del usuario
                 import logging
@@ -106,11 +140,8 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         'deactivate_users', 
         'make_org_admin', 
         'remove_org_admin', 
-        'force_password_reset', 
-        'send_credentials_production_ready',
-        'send_welcome_emails_production_ready',
-        'test_email_config_action',
-        'resend_welcome_email'  # Mantener la acción original como fallback
+        'force_password_reset',
+        'send_credentials_simple'
     ]
     
     fieldsets = (
@@ -210,267 +241,137 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
             
     force_password_reset.short_description = "🔑 Forzar cambio de contraseña"
 
-    def resend_welcome_email(self, request, queryset):
+    def send_credentials_simple(self, request, queryset):
+        """
+        📧 Envío simple y directo de credenciales sin threads
+        Optimizado para Railway con timeouts cortos
+        """
         import logging
+        from django.conf import settings
         
         logger = logging.getLogger(__name__)
         
+        # Límite de seguridad
+        users_count = queryset.count()
+        if users_count > 5:
+            self.message_user(
+                request,
+                f"⚠️ Por seguridad, máximo 5 usuarios por vez. Seleccionaste {users_count}.",
+                level=messages.WARNING
+            )
+            return
+        
+        # Verificar configuración básica
+        if not all([
+            getattr(settings, 'EMAIL_HOST', None),
+            getattr(settings, 'EMAIL_HOST_USER', None),
+            getattr(settings, 'EMAIL_HOST_PASSWORD', None),
+            getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+        ]):
+            self.message_user(
+                request,
+                "❌ Configuración de email incompleta. Revisa las variables de entorno.",
+                level=messages.ERROR
+            )
+            return
+        
+        logger.info(f"📧 [ADMIN_SIMPLE] Iniciando envío a {users_count} usuarios")
+        
         success_count = 0
         error_count = 0
+        processed_emails = []
+        error_details = []
         
-        total_users = queryset.count()
-        logger.info(f"🚀 Iniciando envío directo de credenciales a {total_users} usuarios")
-        
-        for i, user in enumerate(queryset, 1):
+        for user in queryset:
             try:
-                logger.info(f"📧 Procesando usuario {i}/{total_users}: {user.email}")
-
-                # Generar nueva contraseña temporal
+                # Validar email
+                if not user.email or '@' not in user.email:
+                    error_count += 1
+                    error_details.append(f"{user.first_name or 'Usuario'} - sin email válido")
+                    continue
+                
+                # Generar nueva contraseña
                 new_password = generate_random_password()
                 user.set_password(new_password)
-                # Forzar cambio de contraseña en próximo login
                 user.password_change_required = True
-                user.save()
+                user.save(update_fields=['password', 'password_change_required'])
                 
-                # Enviar credenciales usando la función directa de utils
-                if send_new_user_email(user, new_password, request):
+                # Preparar contenido del email
+                full_name = f"{user.first_name} {user.last_name}".strip() or user.email.split('@')[0]
+                username = user.username or user.first_name or user.email.split('@')[0]
+                
+                login_url = f"{getattr(settings, 'SITE_URL', request.build_absolute_uri('/'))}/accounts/login/"
+                site_name = getattr(settings, 'SITE_NAME', 'ARC Manager')
+                
+                # Email en texto plano simple
+                message = f"""
+🎉 ¡Bienvenido a {site_name}!
+
+Hola {full_name},
+
+Se han actualizado tus credenciales de acceso:
+
+📧 Email: {user.email}
+👤 Usuario: {username}
+🔒 Nueva contraseña: {new_password}
+
+🚀 Acceder: {login_url}
+
+💡 Por seguridad, cambia esta contraseña después de tu primer acceso.
+
+---
+{site_name} - Sistema de Gestión
+Este mensaje fue generado automáticamente.
+                """
+                
+                # Enviar email simple y directo
+                logger.info(f"📤 [ADMIN_SIMPLE] Enviando a {user.email}...")
+                
+                result = send_mail(
+                    subject=f'Credenciales actualizadas - {site_name}',
+                    message=message,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                    fail_silently=False
+                )
+                
+                if result:
                     success_count += 1
-                    logger.info(f"✅ Email enviado exitosamente para {user.email}")
+                    processed_emails.append(user.email)
+                    logger.info(f"✅ [ADMIN_SIMPLE] Enviado a {user.email}")
                 else:
                     error_count += 1
-                    logger.error(f"❌ Error enviando email para {user.email}")
-                        
+                    error_details.append(f"{user.email} - send_mail retornó 0")
+                    logger.error(f"❌ [ADMIN_SIMPLE] Falló envío a {user.email}")
+                    
             except Exception as e:
                 error_count += 1
-                logger.error(f"❌ Error procesando usuario {user.email}: {str(e)}")
+                error_details.append(f"{user.email} - {str(e)[:50]}...")
+                logger.error(f"❌ [ADMIN_SIMPLE] Error con {user.email}: {str(e)}")
         
-        # Mostrar resumen detallado
-        logger.info(f"📊 Resumen: {success_count} exitosos, {error_count} fallidos")
-
-        
-        # Mensajes de resultado
+        # Mostrar resultados
         if success_count > 0:
-            self.message_user(request, f"✅ Se enviaron {success_count} correos exitosamente.", messages.SUCCESS)
-
+            email_list = ', '.join(processed_emails)
+            self.message_user(
+                request,
+                f"✅ Credenciales enviadas exitosamente a {success_count} usuarios: {email_list}",
+                level=messages.SUCCESS
+            )
+        
         if error_count > 0:
-            self.message_user(request, f"❌ {error_count} correos fallaron al enviarse. Revisa los logs.", messages.ERROR)
+            error_summary = '; '.join(error_details[:3])
+            if len(error_details) > 3:
+                error_summary += f"... (+{len(error_details)-3} más)"
             
-    resend_welcome_email.short_description = "📧 Reenviar credenciales de acceso"
-
-    # ========================================
-    # 🚀 NUEVAS ACCIONES PRODUCTION-READY
-    # ========================================
-
-    def send_credentials_production_ready(self, request, queryset):
-        """
-        🚀 Versión final de envío de credenciales con todas las optimizaciones
-        """
-        from django.db import transaction
-        
-        # Verificar configuración antes de empezar
-        if not test_email_configuration():
             self.message_user(
                 request,
-                "❌ Error de configuración de email. Revisa las variables de entorno AWS SES.",
-                level=messages.ERROR
-            )
-            return
-        
-        users_count = queryset.count()
-        
-        # Límite de seguridad
-        if users_count > 20:
-            self.message_user(
-                request,
-                f"⚠️ Límite de seguridad: máximo 20 usuarios por lote. Seleccionaste {users_count}.",
-                level=messages.WARNING
-            )
-            return
-        
-        logger.info(f"🚀 [ADMIN] Iniciando envío de credenciales a {users_count} usuarios")
-        
-        processed_users = []
-        skipped_users = []
-        error_users = []
-        
-        # Procesar usuarios con transacción
-        with transaction.atomic():
-            for user in queryset:
-                try:
-                    # Validar email
-                    if not user.email or '@' not in user.email:
-                        skipped_users.append(f"{user.username or user.first_name or 'Usuario'} (sin email válido)")
-                        logger.warning(f"⚠️ [ADMIN] Usuario {user.username} sin email válido")
-                        continue
-                    
-                    # Generar contraseña segura
-                    temp_password = generate_random_password(length=12)
-                    
-                    # Actualizar contraseña
-                    user.set_password(temp_password)
-                    user.password_change_required = True  # Forzar cambio
-                    user.save(update_fields=['password', 'password_change_required'])
-                    
-                    # Enviar email (asíncrono) - pasando el objeto user completo
-                    username = user.username or user.first_name or user.email.split('@')[0]
-                    success = send_user_credentials_email(
-                        user_email=user.email,
-                        password=temp_password,
-                        username=username,
-                        user_obj=user  # Pasar el objeto user completo para usar tus templates
-                    )
-                    
-                    if success:
-                        processed_users.append({
-                            'username': username,
-                            'email': user.email
-                        })
-                        logger.info(f"✅ [ADMIN] Usuario {username} procesado - Email programado")
-                    else:
-                        error_users.append(f"{username} (error de envío)")
-                        logger.error(f"❌ [ADMIN] Error programando email para {username}")
-                        
-                except Exception as e:
-                    username = user.username or user.first_name or user.email
-                    error_users.append(f"{username} (excepción: {str(e)})")
-                    logger.error(f"❌ [ADMIN] Excepción procesando {username}: {e}")
-        
-        # Mostrar resultados
-        success_count = len(processed_users)
-        skip_count = len(skipped_users)
-        error_count = len(error_users)
-        
-        if success_count > 0:
-            success_emails = [u['email'] for u in processed_users]
-            if success_count <= 3:
-                email_list = ', '.join(success_emails)
-            else:
-                email_list = f"{', '.join(success_emails[:3])}... (+{success_count-3} más)"
-                
-            self.message_user(
-                request,
-                f"✅ Credenciales actualizadas y emails programados para {success_count} usuarios: {email_list}",
-                level=messages.SUCCESS
-            )
-        
-        if skip_count > 0:
-            self.message_user(
-                request,
-                f"⚠️ {skip_count} usuarios omitidos: {', '.join(skipped_users[:3])}{'...' if skip_count > 3 else ''}",
-                level=messages.WARNING
-            )
-        
-        if error_count > 0:
-            self.message_user(
-                request,
-                f"❌ {error_count} errores: {', '.join(error_users[:3])}{'...' if error_count > 3 else ''}",
+                f"❌ {error_count} errores: {error_summary}",
                 level=messages.ERROR
             )
         
-        # Mensaje informativo
-        if success_count > 0:
-            self.message_user(
-                request,
-                f"📡 Los {success_count} emails se están enviando en segundo plano. "
-                f"Revisa los logs del servidor para seguimiento detallado.",
-                level=messages.INFO
-            )
-
-    send_credentials_production_ready.short_description = "📧 Enviar credenciales (Production Ready)"
-
-    def send_welcome_emails_production_ready(self, request, queryset):
-        """
-        🎉 Versión optimizada de emails de bienvenida
-        """
-        # Filtrar usuarios con email válido
-        users_with_email = []
-        for user in queryset:
-            if user.email and '@' in user.email:
-                users_with_email.append(user)
+        logger.info(f"📊 [ADMIN_SIMPLE] Resumen: {success_count} éxitos, {error_count} errores")
         
-        users_count = len(users_with_email)
-        
-        if users_count == 0:
-            self.message_user(
-                request,
-                "⚠️ Ningún usuario seleccionado tiene email válido configurado",
-                level=messages.WARNING
-            )
-            return
-        
-        if users_count > 15:
-            self.message_user(
-                request,
-                f"⚠️ Límite para emails de bienvenida: máximo 15 usuarios. Seleccionaste {users_count}.",
-                level=messages.WARNING
-            )
-            return
-        
-        logger.info(f"🎉 [ADMIN] Iniciando envío de bienvenida a {users_count} usuarios")
-        
-        processed_emails = []
-        error_emails = []
-        
-        for user in users_with_email:
-            try:
-                username = user.username or user.first_name or user.email.split('@')[0]
-                success = send_welcome_email(user.email, username)
-                
-                if success:
-                    processed_emails.append(user.email)
-                    logger.info(f"🎉 [ADMIN] Bienvenida programada para {username}")
-                else:
-                    error_emails.append(user.email)
-                    logger.error(f"❌ [ADMIN] Error programando bienvenida para {username}")
-                    
-            except Exception as e:
-                error_emails.append(user.email)
-                logger.error(f"❌ [ADMIN] Excepción en bienvenida para {user.username}: {e}")
-        
-        # Mostrar resultados
-        success_count = len(processed_emails)
-        error_count = len(error_emails)
-        
-        if success_count > 0:
-            self.message_user(
-                request,
-                f"🎉 Emails de bienvenida programados para {success_count} usuarios. "
-                f"Se enviarán en segundo plano.",
-                level=messages.SUCCESS
-            )
-        
-        if error_count > 0:
-            self.message_user(
-                request,
-                f"❌ {error_count} errores en el envío de bienvenida",
-                level=messages.ERROR
-            )
-
-    send_welcome_emails_production_ready.short_description = "🎉 Enviar emails de bienvenida"
-
-    def test_email_config_action(self, request, queryset):
-        """
-        🧪 Acción para testing de configuración de email
-        """
-        logger.info("🧪 [ADMIN] Test de configuración solicitado")
-        
-        # Test de configuración
-        config_ok = test_email_configuration()
-        
-        if config_ok:
-            self.message_user(
-                request,
-                "✅ Configuración de email correcta. Revisa logs para detalles.",
-                level=messages.SUCCESS
-            )
-        else:
-            self.message_user(
-                request,
-                "❌ Problemas en configuración de email. Revisa logs para detalles.",
-                level=messages.ERROR
-            )
-
-    test_email_config_action.short_description = "🧪 Test configuración de email"
+    send_credentials_simple.short_description = "📧 Enviar credenciales (Simple)"
 
     def email_status_display(self, obj):
         """

@@ -453,21 +453,22 @@ else:
     DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@tudominio.com')
     SERVER_EMAIL = DEFAULT_FROM_EMAIL
     
-    # ⚡ Configuración de rendimiento optimizada
-    EMAIL_TIMEOUT = 20  # Timeout reducido para Railway
-    EMAIL_CONNECTION_TIMEOUT = 15  # Timeout de conexión
-    EMAIL_READ_TIMEOUT = 15  # Timeout de lectura
+    # ⚡ Configuración de rendimiento optimizada para Railway
+    EMAIL_TIMEOUT = 10  # Timeout muy corto para evitar problemas
+    EMAIL_CONNECTION_TIMEOUT = 8  # Timeout de conexión reducido
+    EMAIL_READ_TIMEOUT = 8  # Timeout de lectura reducido
     
     # 🔧 Configuración adicional para AWS SES
     EMAIL_USE_LOCALTIME = False
     EMAIL_FILE_PATH = None
     
-    # 📊 Configuración de logging para emails (usar print en settings)
-    print("📧 Configuración AWS SES activada:")
-    print(f"   🌎 HOST: {EMAIL_HOST}")
-    print(f"   🔌 PORT: {EMAIL_PORT}")
-    print(f"   📮 FROM: {DEFAULT_FROM_EMAIL}")
-    print(f"   ⏱️ TIMEOUT: {EMAIL_TIMEOUT}s")
+    # 📊 Configuración de logging para emails (mostrar solo una vez)
+    if not os.environ.get('DISABLE_EMAIL_CONFIG_LOG'):
+        print("📧 Configuración AWS SES activada:")
+        print(f"   🌎 HOST: {EMAIL_HOST}")
+        print(f"   🔌 PORT: {EMAIL_PORT}")
+        print(f"   📮 FROM: {DEFAULT_FROM_EMAIL}")
+        print(f"   ⏱️ TIMEOUT: {EMAIL_TIMEOUT}s")
 
 
 # Configuración para el sistema de pagos
