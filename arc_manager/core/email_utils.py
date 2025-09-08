@@ -10,6 +10,39 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
+def validate_resend_config():
+    """
+    Valida la configuración de Resend antes de enviar emails
+    
+    Returns:
+        tuple: (is_valid, error_message)
+    """
+    try:
+        api_key = getattr(settings, 'RESEND_API_KEY', None)
+        
+        if not api_key:
+            return False, "RESEND_API_KEY no está configurado en las variables de entorno"
+        
+        if not api_key.startswith('re_'):
+            return False, f"API Key inválida - debe comenzar con 're_', actual: {api_key[:10]}..."
+        
+        if len(api_key) < 20:
+            return False, f"API Key muy corta - longitud actual: {len(api_key)}"
+        
+        # Verificar email origen
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+        if not from_email:
+            return False, "DEFAULT_FROM_EMAIL no está configurado"
+        
+        if '@resend.dev' not in from_email and '@' not in from_email:
+            return False, f"Email origen inválido: {from_email}"
+        
+        return True, "Configuración válida"
+        
+    except Exception as e:
+        return False, f"Error validando configuración: {e}"
+
+
 def send_resend_email(to_email, subject, html_content, text_content=None):
     """
     Envía un email usando la API de Resend (simple y directo)
@@ -24,12 +57,14 @@ def send_resend_email(to_email, subject, html_content, text_content=None):
         dict: Respuesta de Resend API o None si hay error
     """
     try:
+        # Validar configuración primero
+        is_valid, error_message = validate_resend_config()
+        if not is_valid:
+            logger.error(f"❌ Configuración inválida: {error_message}")
+            return None
+        
         # Configurar API key
         api_key = getattr(settings, 'RESEND_API_KEY', None)
-        if not api_key:
-            logger.error("❌ RESEND_API_KEY no está configurado")
-            return None
-            
         logger.info(f"🔑 Configurando Resend con API key: {api_key[:10]}...")
         resend.api_key = api_key
         
@@ -76,6 +111,22 @@ def send_resend_email(to_email, subject, html_content, text_content=None):
         logger.error(f"❌ Error enviando email a {to_email}: {e}")
         logger.error(f"🔍 Tipo de excepción: {type(e)}")
         logger.error(f"🔍 Detalles completos: {repr(e)}")
+        
+        # Manejo específico para ResendError
+        if hasattr(e, 'code'):
+            logger.error(f"🔍 Código de error Resend: {e.code}")
+        if hasattr(e, 'message'):
+            logger.error(f"🔍 Mensaje de error Resend: {e.message}")
+        if hasattr(e, 'error_type'):
+            logger.error(f"🔍 Tipo de error Resend: {e.error_type}")
+        if hasattr(e, 'response'):
+            logger.error(f"🔍 Respuesta HTTP Resend: {e.response}")
+        
+        # Información adicional sobre los datos enviados
+        logger.error(f"🔍 API Key usado: {api_key[:10] if api_key else 'NONE'}...")
+        logger.error(f"🔍 Email destino: {to_email}")
+        logger.error(f"🔍 Email origen: {email_data.get('from', 'NO SET')}")
+        
         import traceback
         logger.error(f"🔍 Traceback: {traceback.format_exc()}")
         return None
@@ -126,3 +177,67 @@ def send_credentials_email(user_email, username, password):
     """
     
     return send_resend_email(user_email, subject, html_content, text_content)
+
+
+def test_resend_connection():
+    """
+    Función para probar la conexión con Resend API
+    
+    Returns:
+        dict: Resultado del test con información detallada
+    """
+    logger.info("🧪 Iniciando test de conexión con Resend...")
+    
+    # Validar configuración
+    is_valid, error_message = validate_resend_config()
+    if not is_valid:
+        return {
+            'success': False,
+            'error': 'Configuración inválida',
+            'details': error_message
+        }
+    
+    try:
+        # Configurar Resend
+        api_key = getattr(settings, 'RESEND_API_KEY', None)
+        resend.api_key = api_key
+        
+        # Intentar enviar un email de test muy simple
+        test_email = "test@example.com"  # Email que no existe, solo para test de API
+        
+        email_data = {
+            "from": getattr(settings, 'DEFAULT_FROM_EMAIL', 'ARC Manager <onboarding@resend.dev>'),
+            "to": [test_email],
+            "subject": "Test de conexión - ARC Manager",
+            "html": "<p>Test de conexión</p>"
+        }
+        
+        logger.info("🧪 Intentando conectar con Resend API...")
+        
+        # Esto debería fallar por el email inválido, pero nos dará información sobre la API
+        response = resend.Emails.send(email_data)
+        
+        return {
+            'success': True,
+            'message': 'Conexión exitosa',
+            'response': response
+        }
+        
+    except Exception as e:
+        # Analizar el tipo de error
+        error_info = {
+            'success': False,
+            'error_type': str(type(e)),
+            'error_message': str(e),
+            'api_key_format': f"{api_key[:10]}..." if api_key else "NONE"
+        }
+        
+        if hasattr(e, 'code'):
+            error_info['resend_code'] = e.code
+        if hasattr(e, 'message'):
+            error_info['resend_message'] = e.message
+        if hasattr(e, 'error_type'):
+            error_info['resend_error_type'] = e.error_type
+            
+        logger.error(f"🧪 Test falló: {error_info}")
+        return error_info

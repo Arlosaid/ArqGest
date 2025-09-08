@@ -140,10 +140,13 @@ def send_new_user_email(user, password, request=None, background=True):
     """
     📧 Envía email de credenciales a nuevo usuario (SIMPLE)
     """
+    # Usar el nombre completo o email como username para el email
+    username_for_email = user.full_name or user.email
+    
     return send_user_credentials_email(
         user_email=user.email,
         password=password,
-        username=user.username,
+        username=username_for_email,
         user_obj=user
     )
 
@@ -152,7 +155,10 @@ def send_welcome_reminder_email(user, request=None):
     """
     🎉 Envía recordatorio de bienvenida (SIMPLE)
     """
+    # Usar el nombre completo o email como username para el email
+    username_for_email = user.full_name or user.email
+    
     return send_welcome_email(
         user_email=user.email,
-        username=user.username or user.first_name or 'Usuario'
+        username=username_for_email
     )
