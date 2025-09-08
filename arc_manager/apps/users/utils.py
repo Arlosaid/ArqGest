@@ -338,7 +338,7 @@ def send_welcome_email(user_email, username, subject=None):
             else:
                 logger.error(f"❌ [EMAIL] Error enviando bienvenida a {user_email}")
         
-    except Exception as e:
+        except Exception as e:
             logger.error(f"❌ [EMAIL] Excepción en bienvenida para {user_email}: {e}")
     
     thread = threading.Thread(target=_send_welcome, daemon=True)
