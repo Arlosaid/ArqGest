@@ -61,14 +61,15 @@ def send_resend_email(to_email, subject, html_content, text_content=None):
         logger.info(f"📨 Respuesta de Resend: {response}")
         logger.info(f"📨 Tipo de respuesta: {type(response)}")
         
-        if response and hasattr(response, 'get'):
-            logger.info(f"✅ Email enviado exitosamente - ID: {response.get('id', 'N/A')}")
+        # Resend retorna un dict con 'id' cuando es exitoso
+        if response and isinstance(response, dict) and 'id' in response:
+            logger.info(f"✅ Email enviado exitosamente - ID: {response.get('id')}")
             return response
         elif response:
             logger.info(f"✅ Email enviado - Respuesta: {response}")
             return response
         else:
-            logger.error(f"❌ Resend retornó None - posible problema con API key o datos")
+            logger.error(f"❌ Resend retornó None o respuesta inválida")
             return None
         
     except Exception as e:
