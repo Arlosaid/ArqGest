@@ -74,6 +74,10 @@ def send_resend_email(to_email, subject, html_content, text_content=None):
         
     except Exception as e:
         logger.error(f"❌ Error enviando email a {to_email}: {e}")
+        logger.error(f"🔍 Tipo de excepción: {type(e)}")
+        logger.error(f"🔍 Detalles completos: {repr(e)}")
+        import traceback
+        logger.error(f"🔍 Traceback: {traceback.format_exc()}")
         return None
 
 
