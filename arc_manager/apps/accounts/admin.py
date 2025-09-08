@@ -15,8 +15,6 @@ from apps.users.utils import (
     send_new_user_email, 
     generate_random_password
 )
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 
@@ -64,49 +62,9 @@ class UserCreationForm(forms.ModelForm):
         user.password_change_required = True
         if commit:
             user.save()
-            # Enviar credenciales automáticamente con la función simple
+            # Enviar credenciales automáticamente usando la función existente
             try:
-                from django.core.mail import send_mail
-                from django.conf import settings
-                
-                full_name = f"{user.first_name} {user.last_name}".strip() or user.email.split('@')[0]
-                username = user.username or user.first_name or user.email.split('@')[0]
-                
-                login_url = f"{getattr(settings, 'SITE_URL', 'http://localhost:8000')}/accounts/login/"
-                site_name = getattr(settings, 'SITE_NAME', 'ARC Manager')
-                
-                message = f"""
-🎉 ¡Bienvenido a {site_name}!
-
-Hola {full_name},
-
-Se ha creado tu cuenta. Aquí tienes tus credenciales de acceso:
-
-📧 Email: {user.email}
-👤 Usuario: {username}
-🔒 Contraseña: {password}
-
-🚀 Acceder: {login_url}
-
-💡 Por seguridad, cambia esta contraseña después de tu primer acceso.
-
----
-{site_name} - Sistema de Gestión
-Este mensaje fue generado automáticamente.
-                """
-                
-                from django.core.mail import EmailMessage
-                
-                email = EmailMessage(
-                    subject=f'Bienvenido a {site_name} - Tus credenciales',
-                    body=message,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    to=[user.email],
-                    reply_to=[getattr(settings, 'REPLY_TO_EMAIL', 'adroal08@gmail.com')]
-                )
-                
-                email.send(fail_silently=True)  # No fallar la creación si hay error de email
-                
+                send_new_user_email(user, password)
             except Exception as e:
                 # Log el error pero no fallar la creación del usuario
                 import logging
@@ -247,11 +205,9 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
 
     def send_credentials_simple(self, request, queryset):
         """
-        📧 Envío simple y directo de credenciales sin threads
-        Optimizado para Railway con timeouts cortos
+        📧 Envío simple y directo de credenciales usando funciones existentes
         """
         import logging
-        from django.conf import settings
         
         logger = logging.getLogger(__name__)
         
@@ -265,20 +221,6 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
             )
             return
         
-        # Verificar configuración básica
-        if not all([
-            getattr(settings, 'EMAIL_HOST', None),
-            getattr(settings, 'EMAIL_HOST_USER', None),
-            getattr(settings, 'EMAIL_HOST_PASSWORD', None),
-            getattr(settings, 'DEFAULT_FROM_EMAIL', None)
-        ]):
-            self.message_user(
-                request,
-                "❌ Configuración de email incompleta. Revisa las variables de entorno.",
-                level=messages.ERROR
-            )
-            return
-        
         logger.info(f"📧 [ADMIN_SIMPLE] Iniciando envío a {users_count} usuarios")
         
         success_count = 0
@@ -286,83 +228,42 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         processed_emails = []
         error_details = []
         
-            for user in queryset:
-                try:
-                    # Validar email
-                    if not user.email or '@' not in user.email:
+        for user in queryset:
+            try:
+                # Validar email
+                if not user.email or '@' not in user.email:
                     error_count += 1
                     error_details.append(f"{user.first_name or 'Usuario'} - sin email válido")
-                        continue
-                    
+                    continue
+                
                 # Generar nueva contraseña
                 new_password = generate_random_password()
                 user.set_password(new_password)
                 user.password_change_required = True
-                    user.save(update_fields=['password', 'password_change_required'])
-                    
-                # Preparar contenido del email
-                full_name = f"{user.first_name} {user.last_name}".strip() or user.email.split('@')[0]
-                    username = user.username or user.first_name or user.email.split('@')[0]
+                user.save(update_fields=['password', 'password_change_required'])
                 
-                login_url = f"{getattr(settings, 'SITE_URL', request.build_absolute_uri('/'))}/accounts/login/"
-                site_name = getattr(settings, 'SITE_NAME', 'ARC Manager')
-                
-                # Email en texto plano simple
-                message = f"""
-🎉 ¡Bienvenido a {site_name}!
-
-Hola {full_name},
-
-Se han actualizado tus credenciales de acceso:
-
-📧 Email: {user.email}
-👤 Usuario: {username}
-🔒 Nueva contraseña: {new_password}
-
-🚀 Acceder: {login_url}
-
-💡 Por seguridad, cambia esta contraseña después de tu primer acceso.
-
----
-{site_name} - Sistema de Gestión
-Este mensaje fue generado automáticamente.
-                """
-                
-                # Enviar email simple y directo
-                logger.info(f"📤 [ADMIN_SIMPLE] Enviando a {user.email}...")
-                
-                from django.core.mail import EmailMessage
-                
-                email = EmailMessage(
-                    subject=f'Credenciales actualizadas - {site_name}',
-                    body=message,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    to=[user.email],
-                    reply_to=[getattr(settings, 'REPLY_TO_EMAIL', 'adroal08@gmail.com')]
-                )
-                
-                result = email.send(fail_silently=False)
-                
-                if result:
+                # Usar la función existente que ya maneja Resend/SES
+                try:
+                    send_new_user_email(user, new_password)
                     success_count += 1
                     processed_emails.append(user.email)
                     logger.info(f"✅ [ADMIN_SIMPLE] Enviado a {user.email}")
-                else:
+                except Exception as e:
                     error_count += 1
-                    error_details.append(f"{user.email} - send_mail retornó 0")
-                    logger.error(f"❌ [ADMIN_SIMPLE] Falló envío a {user.email}")
+                    error_details.append(f"{user.email} - {str(e)[:50]}...")
+                    logger.error(f"❌ [ADMIN_SIMPLE] Error con {user.email}: {str(e)}")
                     
             except Exception as e:
                 error_count += 1
                 error_details.append(f"{user.email} - {str(e)[:50]}...")
-                logger.error(f"❌ [ADMIN_SIMPLE] Error con {user.email}: {str(e)}")
+                logger.error(f"❌ [ADMIN_SIMPLE] Error procesando {user.email}: {str(e)}")
         
         # Mostrar resultados
         if success_count > 0:
             email_list = ', '.join(processed_emails)
             self.message_user(
                 request,
-                f"✅ Credenciales enviadas exitosamente a {success_count} usuarios: {email_list}",
+                f"✅ Credenciales enviadas a {success_count} usuarios: {email_list}",
                 level=messages.SUCCESS
             )
         
