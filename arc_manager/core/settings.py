@@ -454,9 +454,7 @@ else:
         DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'adroal08@gmail.com')
         SERVER_EMAIL = DEFAULT_FROM_EMAIL
         
-        print("📧 Configuración Resend API activada (Railway bloquea SMTP):")
-        print(f"   🚀 API KEY configurada")
-        print(f"   📮 FROM: {DEFAULT_FROM_EMAIL}")
+        print("📧 Email configurado (temporalmente deshabilitado)")
     
     if not RESEND_API_KEY:
         # 🔄 Fallback a AWS SES (si no hay Resend configurado)
@@ -478,9 +476,7 @@ else:
         EMAIL_CONNECTION_TIMEOUT = 8
         EMAIL_READ_TIMEOUT = 8
         
-        print("📧 Configuración AWS SES (fallback):")
-        print(f"   🌎 HOST: {EMAIL_HOST}")
-        print(f"   📮 FROM: {DEFAULT_FROM_EMAIL}")
+        print("📧 AWS SES configurado (fallback)")
 
 
 # Configuración para el sistema de pagos

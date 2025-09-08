@@ -17,6 +17,10 @@ from apps.users.utils import (
 )
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
+import logging
+
+# Configurar logger
+logger = logging.getLogger(__name__)
 
 # --- Recurso para Import/Export ---
 

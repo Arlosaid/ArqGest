@@ -43,22 +43,18 @@ def send_user_credentials_email(user_email, password, username, subject=None, us
     """
     🚀 Función principal para enviar credenciales de usuario (TEMPORALMENTE DESHABILITADO)
     """
-    logger.info(f"⏸️ [EMAIL] Envío de emails DESHABILITADO temporalmente para {user_email}")
-    logger.info(f"🔑 [EMAIL] Usa 'Generar y mostrar contraseñas' desde el admin como respaldo")
-    
     # TODO: Reactivar cuando tengas dominio propio
     # Validaciones básicas
     if not user_email or '@' not in user_email:
-        logger.error(f"❌ [EMAIL] Email inválido: {user_email}")
+        logger.error(f"❌ Email inválido: {user_email}")
         return False
         
     if not password or not username:
-        logger.error(f"❌ [EMAIL] Datos faltantes para {user_email}")
+        logger.error(f"❌ Datos faltantes para {user_email}")
         return False
     
     # TEMPORALMENTE DESHABILITADO - No enviar emails hasta tener dominio
-    logger.warning(f"📧 [EMAIL] Email preparado pero no enviado (función deshabilitada)")
-    logger.info(f"📧 [EMAIL] Datos que se enviarían: {username} -> {user_email}")
+    logger.info(f"📧 Email deshabilitado - usar 'Generar y mostrar contraseñas' en admin")
     
     # Simular éxito para no romper el flujo
     return True

@@ -65,7 +65,6 @@ def send_resend_email(to_email, subject, html_content, text_content=None):
         
         # Configurar API key
         api_key = getattr(settings, 'RESEND_API_KEY', None)
-        logger.info(f"🔑 Configurando Resend con API key: {api_key[:10]}...")
         resend.api_key = api_key
         
         # Preparar datos del email
@@ -87,50 +86,27 @@ def send_resend_email(to_email, subject, html_content, text_content=None):
         if reply_to:
             email_data["reply_to"] = [reply_to]
         
-        # Log de los datos que vamos a enviar
-        logger.info(f"📧 Enviando email a {to_email}")
-        logger.info(f"📋 Datos del email: from={email_data['from']}, to={email_data['to']}, subject={email_data['subject']}")
-        
         # Enviar usando Resend API
         response = resend.Emails.send(email_data)
         
-        # Log detallado de la respuesta
-        logger.info(f"📨 Respuesta de Resend: {response}")
-        logger.info(f"📨 Tipo de respuesta: {type(response)}")
-        
         # Resend retorna un dict con 'id' cuando es exitoso
         if response and isinstance(response, dict) and 'id' in response:
-            logger.info(f"✅ Email enviado exitosamente - ID: {response.get('id')}")
+            logger.info(f"✅ Email enviado exitosamente")
             return response
         elif response:
-            logger.info(f"✅ Email enviado - Respuesta: {response}")
+            logger.info(f"✅ Email enviado")
             return response
         else:
-            logger.error(f"❌ Resend retornó None o respuesta inválida")
+            logger.error(f"❌ Error: respuesta inválida")
             return None
         
     except Exception as e:
-        logger.error(f"❌ Error enviando email a {to_email}: {e}")
-        logger.error(f"🔍 Tipo de excepción: {type(e)}")
-        logger.error(f"🔍 Detalles completos: {repr(e)}")
+        logger.error(f"❌ Error enviando email: {e}")
         
-        # Manejo específico para ResendError
+        # Solo mostrar código de error si es ResendError
         if hasattr(e, 'code'):
-            logger.error(f"🔍 Código de error Resend: {e.code}")
-        if hasattr(e, 'message'):
-            logger.error(f"🔍 Mensaje de error Resend: {e.message}")
-        if hasattr(e, 'error_type'):
-            logger.error(f"🔍 Tipo de error Resend: {e.error_type}")
-        if hasattr(e, 'response'):
-            logger.error(f"🔍 Respuesta HTTP Resend: {e.response}")
+            logger.error(f"Código: {e.code}")
         
-        # Información adicional sobre los datos enviados
-        logger.error(f"🔍 API Key usado: {api_key[:10] if api_key else 'NONE'}...")
-        logger.error(f"🔍 Email destino: {to_email}")
-        logger.error(f"🔍 Email origen: {email_data.get('from', 'NO SET')}")
-        
-        import traceback
-        logger.error(f"🔍 Traceback: {traceback.format_exc()}")
         return None
 
 
