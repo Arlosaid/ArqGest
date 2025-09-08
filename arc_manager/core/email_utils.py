@@ -30,6 +30,7 @@ def send_resend_email(to_email, subject, html_content, text_content=None):
             logger.error("❌ RESEND_API_KEY no está configurado")
             return None
             
+        logger.info(f"🔑 Configurando Resend con API key: {api_key[:10]}...")
         resend.api_key = api_key
         
         # Preparar datos del email
@@ -49,12 +50,26 @@ def send_resend_email(to_email, subject, html_content, text_content=None):
         if reply_to:
             email_data["reply_to"] = [reply_to]
         
+        # Log de los datos que vamos a enviar
+        logger.info(f"📧 Enviando email a {to_email}")
+        logger.info(f"📋 Datos del email: from={email_data['from']}, to={email_data['to']}, subject={email_data['subject']}")
+        
         # Enviar usando Resend API
-        logger.info(f"📧 Enviando email a {to_email} - {subject}")
         response = resend.Emails.send(email_data)
         
-        logger.info(f"✅ Email enviado exitosamente - ID: {response.get('id', 'N/A')}")
-        return response
+        # Log detallado de la respuesta
+        logger.info(f"📨 Respuesta de Resend: {response}")
+        logger.info(f"📨 Tipo de respuesta: {type(response)}")
+        
+        if response and hasattr(response, 'get'):
+            logger.info(f"✅ Email enviado exitosamente - ID: {response.get('id', 'N/A')}")
+            return response
+        elif response:
+            logger.info(f"✅ Email enviado - Respuesta: {response}")
+            return response
+        else:
+            logger.error(f"❌ Resend retornó None - posible problema con API key o datos")
+            return None
         
     except Exception as e:
         logger.error(f"❌ Error enviando email a {to_email}: {e}")
