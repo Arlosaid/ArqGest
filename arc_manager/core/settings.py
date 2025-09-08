@@ -441,20 +441,17 @@ else:
     RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
     
     if RESEND_API_KEY:
-        # 📧 Usar Resend (recomendado para Railway)
-        EMAIL_BACKEND = 'resend.django.EmailBackend'
+        # 📧 Railway bloquea SMTP, usamos API de Resend
+        # Mantenemos el backend console para compatibilidad con Django
+        EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
         
         # 📮 Email de remitente con dominio temporal de Resend
         DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'ARC Manager <onboarding@resend.dev>')
         SERVER_EMAIL = DEFAULT_FROM_EMAIL
         
-        # 🔧 Reply-To para que respondan a tu Gmail
-        REPLY_TO_EMAIL = os.environ.get('REPLY_TO_EMAIL', 'adroal08@gmail.com')
-        
-        print("📧 Configuración Resend activada:")
-        print(f"   🚀 BACKEND: Resend API")
+        print("📧 Configuración Resend API activada (Railway bloquea SMTP):")
+        print(f"   🚀 API KEY configurada")
         print(f"   📮 FROM: {DEFAULT_FROM_EMAIL}")
-        print(f"   📧 REPLY-TO: {REPLY_TO_EMAIL}")
     
     if not RESEND_API_KEY:
         # 🔄 Fallback a AWS SES (si no hay Resend configurado)
