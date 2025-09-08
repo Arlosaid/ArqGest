@@ -455,8 +455,8 @@ else:
         print(f"   🚀 BACKEND: Resend API")
         print(f"   📮 FROM: {DEFAULT_FROM_EMAIL}")
         print(f"   📧 REPLY-TO: {REPLY_TO_EMAIL}")
-        
-    else:
+    
+    if not RESEND_API_KEY:
         # 🔄 Fallback a AWS SES (si no hay Resend configurado)
         EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
         
