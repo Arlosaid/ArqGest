@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -461,12 +462,12 @@ else:
     EMAIL_USE_LOCALTIME = False
     EMAIL_FILE_PATH = None
     
-    # 📊 Configuración de logging para emails
-    logger.info("📧 Configuración AWS SES activada:")
-    logger.info(f"   🌎 HOST: {EMAIL_HOST}")
-    logger.info(f"   🔌 PORT: {EMAIL_PORT}")
-    logger.info(f"   📮 FROM: {DEFAULT_FROM_EMAIL}")
-    logger.info(f"   ⏱️ TIMEOUT: {EMAIL_TIMEOUT}s")
+    # 📊 Configuración de logging para emails (usar print en settings)
+    print("📧 Configuración AWS SES activada:")
+    print(f"   🌎 HOST: {EMAIL_HOST}")
+    print(f"   🔌 PORT: {EMAIL_PORT}")
+    print(f"   📮 FROM: {DEFAULT_FROM_EMAIL}")
+    print(f"   ⏱️ TIMEOUT: {EMAIL_TIMEOUT}s")
 
 
 # Configuración para el sistema de pagos
