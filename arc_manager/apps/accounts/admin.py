@@ -95,13 +95,17 @@ Se ha creado tu cuenta. Aquí tienes tus credenciales de acceso:
 Este mensaje fue generado automáticamente.
                 """
                 
-                send_mail(
+                from django.core.mail import EmailMessage
+                
+                email = EmailMessage(
                     subject=f'Bienvenido a {site_name} - Tus credenciales',
-                    message=message,
+                    body=message,
                     from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[user.email],
-                    fail_silently=True  # No fallar la creación si hay error de email
+                    to=[user.email],
+                    reply_to=[getattr(settings, 'REPLY_TO_EMAIL', 'adroal08@gmail.com')]
                 )
+                
+                email.send(fail_silently=True)  # No fallar la creación si hay error de email
                 
             except Exception as e:
                 # Log el error pero no fallar la creación del usuario
@@ -140,7 +144,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         'deactivate_users', 
         'make_org_admin', 
         'remove_org_admin', 
-        'force_password_reset',
+        'force_password_reset', 
         'send_credentials_simple'
     ]
     
@@ -282,23 +286,23 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         processed_emails = []
         error_details = []
         
-        for user in queryset:
-            try:
-                # Validar email
-                if not user.email or '@' not in user.email:
+            for user in queryset:
+                try:
+                    # Validar email
+                    if not user.email or '@' not in user.email:
                     error_count += 1
                     error_details.append(f"{user.first_name or 'Usuario'} - sin email válido")
-                    continue
-                
+                        continue
+                    
                 # Generar nueva contraseña
                 new_password = generate_random_password()
                 user.set_password(new_password)
                 user.password_change_required = True
-                user.save(update_fields=['password', 'password_change_required'])
-                
+                    user.save(update_fields=['password', 'password_change_required'])
+                    
                 # Preparar contenido del email
                 full_name = f"{user.first_name} {user.last_name}".strip() or user.email.split('@')[0]
-                username = user.username or user.first_name or user.email.split('@')[0]
+                    username = user.username or user.first_name or user.email.split('@')[0]
                 
                 login_url = f"{getattr(settings, 'SITE_URL', request.build_absolute_uri('/'))}/accounts/login/"
                 site_name = getattr(settings, 'SITE_NAME', 'ARC Manager')
@@ -327,13 +331,17 @@ Este mensaje fue generado automáticamente.
                 # Enviar email simple y directo
                 logger.info(f"📤 [ADMIN_SIMPLE] Enviando a {user.email}...")
                 
-                result = send_mail(
+                from django.core.mail import EmailMessage
+                
+                email = EmailMessage(
                     subject=f'Credenciales actualizadas - {site_name}',
-                    message=message,
+                    body=message,
                     from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[user.email],
-                    fail_silently=False
+                    to=[user.email],
+                    reply_to=[getattr(settings, 'REPLY_TO_EMAIL', 'adroal08@gmail.com')]
                 )
+                
+                result = email.send(fail_silently=False)
                 
                 if result:
                     success_count += 1

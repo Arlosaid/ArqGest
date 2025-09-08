@@ -9,6 +9,9 @@ dj-database-url==2.2.0
 # Archivos estáticos en producción
 whitenoise==6.6.0
 
+# Email service - Resend (reemplaza AWS SES)
+resend==0.6.0
+
 # Cache Redis (opcional)
 redis==5.0.3
 django-redis==5.4.0

@@ -434,41 +434,51 @@ if DEBUG:
     DEFAULT_FROM_EMAIL = 'ARC MANAGER <noreply@archmanager.local>'
 else:
     # ========================================
-    # 🚀 CONFIGURACIÓN AWS SES OPTIMIZADA PARA MÉXICO
+    # 🚀 CONFIGURACIÓN RESEND (REEMPLAZA AWS SES)
     # ========================================
     
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    # Verificar si tenemos API key de Resend
+    RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
     
-    # 🌎 Región us-west-1 (California) - Optimizada para México
-    EMAIL_HOST = os.environ.get('AWS_SES_HOST', 'email-smtp.us-west-1.amazonaws.com')
-    EMAIL_PORT = int(os.environ.get('AWS_SES_PORT', '587'))
-    EMAIL_USE_TLS = True
-    EMAIL_USE_SSL = False
-    
-    # 🔐 Credenciales AWS SES (configurar en Railway)
-    EMAIL_HOST_USER = os.environ.get('AWS_SES_USER')  # SMTP Username de AWS
-    EMAIL_HOST_PASSWORD = os.environ.get('AWS_SES_PASS')  # SMTP Password de AWS
-    
-    # 📧 Email de remitente (debe estar verificado en AWS SES)
-    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@tudominio.com')
-    SERVER_EMAIL = DEFAULT_FROM_EMAIL
-    
-    # ⚡ Configuración de rendimiento optimizada para Railway
-    EMAIL_TIMEOUT = 10  # Timeout muy corto para evitar problemas
-    EMAIL_CONNECTION_TIMEOUT = 8  # Timeout de conexión reducido
-    EMAIL_READ_TIMEOUT = 8  # Timeout de lectura reducido
-    
-    # 🔧 Configuración adicional para AWS SES
-    EMAIL_USE_LOCALTIME = False
-    EMAIL_FILE_PATH = None
-    
-    # 📊 Configuración de logging para emails (mostrar solo una vez)
-    if not os.environ.get('DISABLE_EMAIL_CONFIG_LOG'):
-        print("📧 Configuración AWS SES activada:")
-        print(f"   🌎 HOST: {EMAIL_HOST}")
-        print(f"   🔌 PORT: {EMAIL_PORT}")
+    if RESEND_API_KEY:
+        # 📧 Usar Resend (recomendado para Railway)
+        EMAIL_BACKEND = 'resend.django.EmailBackend'
+        
+        # 📮 Email de remitente con dominio temporal de Resend
+        DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'ARC Manager <onboarding@resend.dev>')
+        SERVER_EMAIL = DEFAULT_FROM_EMAIL
+        
+        # 🔧 Reply-To para que respondan a tu Gmail
+        REPLY_TO_EMAIL = os.environ.get('REPLY_TO_EMAIL', 'adroal08@gmail.com')
+        
+        print("📧 Configuración Resend activada:")
+        print(f"   🚀 BACKEND: Resend API")
         print(f"   📮 FROM: {DEFAULT_FROM_EMAIL}")
-        print(f"   ⏱️ TIMEOUT: {EMAIL_TIMEOUT}s")
+        print(f"   📧 REPLY-TO: {REPLY_TO_EMAIL}")
+        
+    else:
+        # 🔄 Fallback a AWS SES (si no hay Resend configurado)
+        EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+        
+        EMAIL_HOST = os.environ.get('AWS_SES_HOST', 'email-smtp.us-west-1.amazonaws.com')
+        EMAIL_PORT = int(os.environ.get('AWS_SES_PORT', '587'))
+        EMAIL_USE_TLS = True
+        EMAIL_USE_SSL = False
+        
+        EMAIL_HOST_USER = os.environ.get('AWS_SES_USER')
+        EMAIL_HOST_PASSWORD = os.environ.get('AWS_SES_PASS')
+        
+        DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@tudominio.com')
+        SERVER_EMAIL = DEFAULT_FROM_EMAIL
+        
+        # Timeouts cortos para Railway
+        EMAIL_TIMEOUT = 10
+        EMAIL_CONNECTION_TIMEOUT = 8
+        EMAIL_READ_TIMEOUT = 8
+        
+        print("📧 Configuración AWS SES (fallback):")
+        print(f"   🌎 HOST: {EMAIL_HOST}")
+        print(f"   📮 FROM: {DEFAULT_FROM_EMAIL}")
 
 
 # Configuración para el sistema de pagos
