@@ -432,31 +432,41 @@ if DEBUG:
     EMAIL_HOST = 'localhost'
     DEFAULT_FROM_EMAIL = 'ARC MANAGER <noreply@archmanager.local>'
 else:
-    # Configuración AWS SES usando las variables de Railway
+    # ========================================
+    # 🚀 CONFIGURACIÓN AWS SES OPTIMIZADA PARA MÉXICO
+    # ========================================
+    
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     
-    # Variables de AWS SES configuradas en Railway
-    EMAIL_HOST = os.environ.get('AWS_SES_HOST', 'email-smtp.us-east-1.amazonaws.com')
+    # 🌎 Región us-west-1 (California) - Optimizada para México
+    EMAIL_HOST = os.environ.get('AWS_SES_HOST', 'email-smtp.us-west-1.amazonaws.com')
     EMAIL_PORT = int(os.environ.get('AWS_SES_PORT', '587'))
     EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = os.environ.get('AWS_SES_USER')  # Tu Access Key ID
-    EMAIL_HOST_PASSWORD = os.environ.get('AWS_SES_PASS')  # Tu SMTP Password
+    EMAIL_USE_SSL = False
     
-    # Email de remitente (debe estar verificado en AWS SES)
+    # 🔐 Credenciales AWS SES (configurar en Railway)
+    EMAIL_HOST_USER = os.environ.get('AWS_SES_USER')  # SMTP Username de AWS
+    EMAIL_HOST_PASSWORD = os.environ.get('AWS_SES_PASS')  # SMTP Password de AWS
+    
+    # 📧 Email de remitente (debe estar verificado en AWS SES)
     DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@tudominio.com')
     SERVER_EMAIL = DEFAULT_FROM_EMAIL
     
-    # Configuración adicional para AWS SES
-    EMAIL_TIMEOUT = 60  # Timeout optimizado a 1 minuto
-    EMAIL_USE_SSL = False  # Usar TLS en lugar de SSL
+    # ⚡ Configuración de rendimiento optimizada
+    EMAIL_TIMEOUT = 20  # Timeout reducido para Railway
+    EMAIL_CONNECTION_TIMEOUT = 15  # Timeout de conexión
+    EMAIL_READ_TIMEOUT = 15  # Timeout de lectura
     
-    # Configuración adicional para mejorar rendimiento
-    EMAIL_CONNECTION_TIMEOUT = 30
-    EMAIL_READ_TIMEOUT = 30
-    
-    # Configuración específica para AWS SES
+    # 🔧 Configuración adicional para AWS SES
     EMAIL_USE_LOCALTIME = False
-    EMAIL_FILE_PATH = None  # No usar archivos para emails
+    EMAIL_FILE_PATH = None
+    
+    # 📊 Configuración de logging para emails
+    logger.info("📧 Configuración AWS SES activada:")
+    logger.info(f"   🌎 HOST: {EMAIL_HOST}")
+    logger.info(f"   🔌 PORT: {EMAIL_PORT}")
+    logger.info(f"   📮 FROM: {DEFAULT_FROM_EMAIL}")
+    logger.info(f"   ⏱️ TIMEOUT: {EMAIL_TIMEOUT}s")
 
 
 # Configuración para el sistema de pagos
