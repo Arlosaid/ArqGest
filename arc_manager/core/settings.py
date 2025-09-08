@@ -416,6 +416,11 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
+        'core': {
+            'handlers': ['console', 'console_prod', 'error_file', 'debug_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
     'root': {
         'handlers': ['console_prod', 'error_file'],
