@@ -1,0 +1,44 @@
+# ========================================
+# 🚀 VARIABLES DE ENTORNO PARA RAILWAY
+# ========================================
+# Copia estas variables en Railway → Settings → Variables
+
+# 🌎 AWS SES Configuración (Región us-west-1)
+AWS_SES_HOST=email-smtp.us-west-1.amazonaws.com
+AWS_SES_PORT=587
+AWS_SES_USER=AKIA... # Tu SMTP Username de AWS SES (reemplazar con el tuyo)
+AWS_SES_PASS=B... # Tu SMTP Password de AWS SES (reemplazar con el tuyo)
+
+# 📧 Email de remitente (debe estar verificado en AWS SES)
+DEFAULT_FROM_EMAIL=tu_email@gmail.com # Reemplazar con tu email verificado
+
+# 🔧 Configuración del sitio
+SITE_NAME=ARC Manager
+SITE_URL=https://tu-proyecto.up.railway.app # Reemplazar con tu dominio de Railway
+
+# ========================================
+# 📋 PASOS PARA CONFIGURAR:
+# ========================================
+
+# 1. Ve a Railway → Settings → Variables
+# 2. Agrega cada variable una por una
+# 3. Haz redeploy del proyecto
+# 4. Verifica que funcione con la acción "Test configuración de email"
+
+# ========================================
+# 🧪 TESTING:
+# ========================================
+
+# Después de configurar:
+# 1. Ve al admin de Django → Usuarios
+# 2. Selecciona un usuario de prueba
+# 3. Usa la acción "🧪 Test configuración de email"
+# 4. Si sale ✅, usa "📧 Enviar credenciales (Production Ready)"
+
+# ========================================
+# 🔐 SEGURIDAD:
+# ========================================
+
+# ⚠️ NUNCA subas estas credenciales a Git
+# ⚠️ Usa solo las variables de entorno en Railway
+# ⚠️ Verifica que tu email esté verificado en AWS SES
