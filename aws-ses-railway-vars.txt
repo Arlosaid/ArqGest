@@ -7,7 +7,7 @@
 RESEND_API_KEY=re_tu_api_key_aqui # Obtener de https://resend.com/api-keys
 
 # 📮 Email configuración
-DEFAULT_FROM_EMAIL=ARC Manager <onboarding@resend.dev>
+DEFAULT_FROM_EMAIL=ARC Manager <adroal08@gmail.com>
 REPLY_TO_EMAIL=adroal08@gmail.com
 
 # 🔄 AWS SES (FALLBACK - opcional, solo si no usas Resend)
@@ -28,7 +28,7 @@ SITE_URL=https://tu-proyecto.up.railway.app # Reemplazar con tu dominio de Railw
 # 2. 🔑 Ve a "API Keys" → "Create API Key" → Copia la key
 # 3. 🚀 En Railway → Settings → Variables → Agrega:
 #    RESEND_API_KEY=re_tu_api_key_aqui
-#    DEFAULT_FROM_EMAIL=ARC Manager <onboarding@resend.dev>
+#    DEFAULT_FROM_EMAIL=ARC Manager <adroal08@gmail.com>
 #    REPLY_TO_EMAIL=adroal08@gmail.com
 # 4. 🔄 Haz redeploy del proyecto
 # 5. ✅ ¡Listo! Los emails funcionarán instantáneamente

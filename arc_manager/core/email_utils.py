@@ -70,7 +70,7 @@ def send_resend_email(to_email, subject, html_content, text_content=None):
         
         # Preparar datos del email
         email_data = {
-            "from": getattr(settings, 'DEFAULT_FROM_EMAIL', 'ARC Manager <onboarding@resend.dev>'),
+            "from": getattr(settings, 'DEFAULT_FROM_EMAIL', 'ARC Manager <adroal08@gmail.com>'),
             "to": [to_email],
             "subject": subject,
             "html": html_content

@@ -450,8 +450,8 @@ else:
         # Mantenemos el backend console para compatibilidad con Django
         EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
         
-        # 📮 Email de remitente con dominio temporal de Resend
-        DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'ARC Manager <onboarding@resend.dev>')
+        # 📮 Email de remitente - usar dominio verificado
+        DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'ARC Manager <adroal08@gmail.com>')
         SERVER_EMAIL = DEFAULT_FROM_EMAIL
         
         print("📧 Configuración Resend API activada (Railway bloquea SMTP):")
