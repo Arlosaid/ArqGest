@@ -103,7 +103,8 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         'make_org_admin', 
         'remove_org_admin', 
         'force_password_reset', 
-        'send_credentials_simple'
+        'send_credentials_simple',
+        'generate_and_show_passwords'
     ]
     
     fieldsets = (
@@ -279,8 +280,84 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
             )
         
         logger.info(f"📊 [ADMIN_SIMPLE] Resumen: {success_count} éxitos, {error_count} errores")
-        
+    
     send_credentials_simple.short_description = "📧 Enviar credenciales (Simple)"
+
+    def generate_and_show_passwords(self, request, queryset):
+        """
+        🔑 Generar nuevas contraseñas y mostrarlas en pantalla (respaldo cuando falla email)
+        """
+        logger.info(f"🔑 [ADMIN_BACKUP] Iniciando generación de contraseñas para {queryset.count()} usuarios")
+        
+        if queryset.count() > 10:
+            self.message_user(
+                request,
+                "⚠️ Por seguridad, máximo 10 usuarios a la vez para mostrar contraseñas",
+                level=messages.WARNING
+            )
+            return
+        
+        passwords_generated = []
+        error_count = 0
+        
+        for user in queryset:
+            try:
+                # Validar usuario
+                if not user.email or '@' not in user.email:
+                    error_count += 1
+                    continue
+                
+                # Generar nueva contraseña
+                new_password = generate_random_password()
+                user.set_password(new_password)
+                user.password_change_required = True
+                user.save(update_fields=['password', 'password_change_required'])
+                
+                passwords_generated.append({
+                    'name': user.full_name,
+                    'email': user.email,
+                    'password': new_password
+                })
+                
+                logger.info(f"🔑 [ADMIN_BACKUP] Contraseña generada para {user.email}")
+                
+            except Exception as e:
+                error_count += 1
+                logger.error(f"❌ [ADMIN_BACKUP] Error con {user.email}: {str(e)}")
+        
+        # Mostrar contraseñas en pantalla
+        if passwords_generated:
+            # Crear mensaje HTML con las contraseñas
+            password_list = []
+            for item in passwords_generated:
+                password_list.append(
+                    f"<strong>{item['name']}</strong> ({item['email']})<br>"
+                    f"📧 Email: {item['email']}<br>"
+                    f"🔑 Contraseña: <code style='background:#f0f0f0;padding:2px 4px;'>{item['password']}</code><br><br>"
+                )
+            
+            password_html = "".join(password_list)
+            
+            from django.utils.safestring import mark_safe
+            self.message_user(
+                request,
+                mark_safe(
+                    f"🔑 <strong>CONTRASEÑAS GENERADAS</strong> (cópialas ahora, no se mostrarán de nuevo):<br><br>"
+                    f"{password_html}"
+                    f"⚠️ <strong>Importante:</strong> Los usuarios deberán cambiar estas contraseñas en su primer login."
+                ),
+                level=messages.SUCCESS
+            )
+            
+            logger.info(f"📊 [ADMIN_BACKUP] {len(passwords_generated)} contraseñas mostradas, {error_count} errores")
+        else:
+            self.message_user(
+                request,
+                "❌ No se pudieron generar contraseñas para ningún usuario",
+                level=messages.ERROR
+            )
+    
+    generate_and_show_passwords.short_description = "🔑 Generar y mostrar contraseñas (Respaldo)"
 
     def email_status_display(self, obj):
         """

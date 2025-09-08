@@ -1,52 +1,35 @@
 # ========================================
-# 🚀 VARIABLES DE ENTORNO PARA RAILWAY - RESEND
+# 🚀 VARIABLES DE ENTORNO PARA RAILWAY
 # ========================================
 # Copia estas variables en Railway → Settings → Variables
-
-# 📧 RESEND (RECOMENDADO - reemplaza AWS SES)
-RESEND_API_KEY=re_tu_api_key_aqui # Obtener de https://resend.com/api-keys
-
-# 📮 Email configuración
-DEFAULT_FROM_EMAIL=ARC Manager <adroal08@gmail.com>
-REPLY_TO_EMAIL=adroal08@gmail.com
-
-# 🔄 AWS SES (FALLBACK - opcional, solo si no usas Resend)
-# AWS_SES_HOST=email-smtp.us-west-1.amazonaws.com
-# AWS_SES_PORT=587
-# AWS_SES_USER=AKIA... # Tu SMTP Username de AWS SES
-# AWS_SES_PASS=B... # Tu SMTP Password de AWS SES
 
 # 🔧 Configuración del sitio
 SITE_NAME=ARC Manager
 SITE_URL=https://tu-proyecto.up.railway.app # Reemplazar con tu dominio de Railway
 
 # ========================================
-# 📋 PASOS PARA CONFIGURAR RESEND:
+# 📧 EMAIL (TEMPORALMENTE DESHABILITADO)
 # ========================================
+# Los emails están deshabilitados hasta tener dominio propio
+# Usar "🔑 Generar y mostrar contraseñas" desde el admin como respaldo
 
-# 1. 🌐 Crear cuenta en https://resend.com (usa tu Gmail)
-# 2. 🔑 Ve a "API Keys" → "Create API Key" → Copia la key
-# 3. 🚀 En Railway → Settings → Variables → Agrega:
-#    RESEND_API_KEY=re_tu_api_key_aqui
-#    DEFAULT_FROM_EMAIL=ARC Manager <adroal08@gmail.com>
-#    REPLY_TO_EMAIL=adroal08@gmail.com
-# 4. 🔄 Haz redeploy del proyecto
-# 5. ✅ ¡Listo! Los emails funcionarán instantáneamente
+# Para reactivar emails en el futuro:
+# RESEND_API_KEY=tu_api_key_aqui
+# DEFAULT_FROM_EMAIL=noreply@tudominio.com
+# REPLY_TO_EMAIL=admin@tudominio.com
 
 # ========================================
-# 🧪 TESTING:
+# 🔑 SISTEMA DE RESPALDO PARA CONTRASEÑAS
 # ========================================
-
-# Después de configurar:
 # 1. Ve al admin de Django → Usuarios
-# 2. Selecciona un usuario de prueba
-# 3. Usa la acción "📧 Enviar credenciales (Simple)"
-# 4. ✅ ¡Debería funcionar al instante sin timeouts!
+# 2. Selecciona usuarios (máximo 10)
+# 3. Usa la acción "🔑 Generar y mostrar contraseñas (Respaldo)"
+# 4. Copia las contraseñas mostradas en pantalla
+# 5. Compártelas manualmente con los usuarios
 
 # ========================================
 # 🔐 SEGURIDAD:
 # ========================================
-
-# ⚠️ NUNCA subas estas credenciales a Git
-# ⚠️ Usa solo las variables de entorno en Railway
-# ⚠️ Verifica que tu email esté verificado en AWS SES
+# ⚠️ NUNCA subas credenciales a Git
+# ⚠️ Las contraseñas se muestran solo una vez
+# ⚠️ Los usuarios deben cambiar la contraseña en primer login

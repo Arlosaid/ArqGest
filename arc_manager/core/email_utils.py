@@ -69,8 +69,10 @@ def send_resend_email(to_email, subject, html_content, text_content=None):
         resend.api_key = api_key
         
         # Preparar datos del email
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'adroal08@gmail.com')
+        
         email_data = {
-            "from": getattr(settings, 'DEFAULT_FROM_EMAIL', 'ARC Manager <adroal08@gmail.com>'),
+            "from": from_email,
             "to": [to_email],
             "subject": subject,
             "html": html_content

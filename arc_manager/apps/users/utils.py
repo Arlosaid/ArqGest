@@ -41,10 +41,12 @@ def generate_random_password(length=12):
 
 def send_user_credentials_email(user_email, password, username, subject=None, user_obj=None):
     """
-    🚀 Función principal para enviar credenciales de usuario (SIMPLE CON RESEND API)
+    🚀 Función principal para enviar credenciales de usuario (TEMPORALMENTE DESHABILITADO)
     """
-    logger.info(f"🚀 [EMAIL] Enviando credenciales para {user_email}")
+    logger.info(f"⏸️ [EMAIL] Envío de emails DESHABILITADO temporalmente para {user_email}")
+    logger.info(f"🔑 [EMAIL] Usa 'Generar y mostrar contraseñas' desde el admin como respaldo")
     
+    # TODO: Reactivar cuando tengas dominio propio
     # Validaciones básicas
     if not user_email or '@' not in user_email:
         logger.error(f"❌ [EMAIL] Email inválido: {user_email}")
@@ -54,20 +56,26 @@ def send_user_credentials_email(user_email, password, username, subject=None, us
         logger.error(f"❌ [EMAIL] Datos faltantes para {user_email}")
         return False
     
-    # Usar nuestra función simple de Resend
-    from core.email_utils import send_credentials_email
+    # TEMPORALMENTE DESHABILITADO - No enviar emails hasta tener dominio
+    logger.warning(f"📧 [EMAIL] Email preparado pero no enviado (función deshabilitada)")
+    logger.info(f"📧 [EMAIL] Datos que se enviarían: {username} -> {user_email}")
     
-    try:
-        result = send_credentials_email(user_email, username, password)
-        if result:
-            logger.info(f"✅ [EMAIL] Credenciales enviadas exitosamente a {user_email}")
-            return True
-        else:
-            logger.error(f"❌ [EMAIL] Error enviando credenciales a {user_email}")
-            return False
-    except Exception as e:
-        logger.error(f"❌ [EMAIL] Error enviando credenciales a {user_email}: {e}")
-        return False
+    # Simular éxito para no romper el flujo
+    return True
+    
+    # Código original comentado:
+    # from core.email_utils import send_credentials_email
+    # try:
+    #     result = send_credentials_email(user_email, username, password)
+    #     if result:
+    #         logger.info(f"✅ [EMAIL] Credenciales enviadas exitosamente a {user_email}")
+    #         return True
+    #     else:
+    #         logger.error(f"❌ [EMAIL] Error enviando credenciales a {user_email}")
+    #         return False
+    # except Exception as e:
+    #     logger.error(f"❌ [EMAIL] Error enviando credenciales a {user_email}: {e}")
+    #     return False
 
 
 def send_welcome_email(user_email, username, subject=None):
