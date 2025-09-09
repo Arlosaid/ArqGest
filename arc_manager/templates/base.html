@@ -3,7 +3,7 @@
 <html lang="es" class="reduced-motion">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>{% block title %}Arc Manager{% endblock %}</title>
     
     <!-- Bootstrap CSS -->
@@ -16,10 +16,10 @@
     <link href="{% static 'css/base.css' %}?v=1.6" rel="stylesheet">
     
     <!-- Navbar CSS específico con cache-busting -->
-    <link href="{% static 'css/navbar.css' %}?v=1.4" rel="stylesheet">
+    <link href="{% static 'css/navbar.css' %}?v=2.0" rel="stylesheet">
     
     <!-- Sidebar CSS específico con cache-busting -->
-    <link href="{% static 'css/sidebar.css' %}?v=1.5" rel="stylesheet">
+    <link href="{% static 'css/sidebar.css' %}?v=2.0" rel="stylesheet">
     
     <!-- Sistema de Notificaciones Moderno -->
     <link href="{% static 'css/notifications.css' %}?v=1.0" rel="stylesheet">
@@ -128,7 +128,7 @@
 
     <script src="{% static 'js/modal_helpers.js' %}"></script>
     
-    <!-- JavaScript optimizado para el menú mobile responsive -->
+    <!-- JavaScript optimizado para el menú mobile responsive - Producción móvil -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const mobileMenuToggle = document.getElementById('mobileMenuToggle');
@@ -142,43 +142,54 @@
         }
         
         let isTransitioning = false;
+        let isOpen = false;
         
         // Función para abrir el sidebar
         function openSidebar() {
-            if (isTransitioning) return;
+            if (isTransitioning || isOpen) return;
             isTransitioning = true;
+            isOpen = true;
             
+            // Aplicar clases de manera síncrona
             sidebar.classList.add('sidebar-open');
             sidebarOverlay.classList.add('overlay-active');
             mobileMenuToggle.classList.add('active');
             body.classList.add('sidebar-mobile-open');
             
+            // Forzar reflow para asegurar que las clases se apliquen
+            sidebar.offsetHeight;
+            
             setTimeout(() => {
                 isTransitioning = false;
-            }, 300);
+            }, 250); // Reducido para mejor respuesta
         }
         
         // Función para cerrar el sidebar
         function closeSidebar() {
-            if (isTransitioning) return;
+            if (isTransitioning || !isOpen) return;
             isTransitioning = true;
+            isOpen = false;
             
+            // Remover clases de manera síncrona
             sidebar.classList.remove('sidebar-open');
             sidebarOverlay.classList.remove('overlay-active');
             mobileMenuToggle.classList.remove('active');
             body.classList.remove('sidebar-mobile-open');
             
+            // Forzar reflow
+            sidebar.offsetHeight;
+            
             setTimeout(() => {
                 isTransitioning = false;
-            }, 300);
+            }, 250);
         }
         
-        // Toggle del menú al hacer clic en el botón hamburguesa
+        // Toggle del menú - Mejorado para móviles
         mobileMenuToggle.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
             
-            if (sidebar.classList.contains('sidebar-open')) {
+            if (isOpen) {
                 closeSidebar();
             } else {
                 openSidebar();
@@ -186,67 +197,70 @@
         });
         
         // Cerrar sidebar al hacer clic en overlay
-        sidebarOverlay.addEventListener('click', function() {
+        sidebarOverlay.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
             closeSidebar();
         });
         
-        // Mejorar manejo de clics en mobile - JavaScript optimizado
+        // Manejo optimizado de clics en enlaces de navegación
         const navLinks = document.querySelectorAll('.sidebar .nav-link');
         
         navLinks.forEach(link => {
-            // Añadir event listeners específicos para mobile
-            link.addEventListener('touchstart', function(e) {
-                // Prevenir el delay de 300ms en mobile
-                if (window.innerWidth <= 991.98) {
-                    e.preventDefault();
-                    // Cerrar sidebar inmediatamente
-                    closeSidebar();
-                    // Simular click para navegación
+            // Evento táctil optimizado para móviles
+            link.addEventListener('touchend', function(e) {
+                if (window.innerWidth <= 991.98 && isOpen) {
+                    // Cerrar sidebar después de un pequeño delay para permitir navegación
                     setTimeout(() => {
-                        this.click();
+                        closeSidebar();
                     }, 100);
                 }
-            }, { passive: false });
+            }, { passive: true });
             
-            // También manejar clics normales
+            // Click normal - IMPORTANTE: No prevenir la navegación
             link.addEventListener('click', function(e) {
-                console.log('Link clicked:', this.getAttribute('href') || this.getAttribute('data-href'));
+                console.log('Navegando a:', this.getAttribute('href') || this.getAttribute('data-href'));
                 
-                // Si estamos en mobile, cerrar el sidebar
-                if (window.innerWidth <= 991.98) {
-                    closeSidebar();
+                // Si estamos en móvil, cerrar el sidebar después de un delay
+                if (window.innerWidth <= 991.98 && isOpen) {
+                    setTimeout(() => {
+                        closeSidebar();
+                    }, 100);
                 }
-                // La navegación ocurre normalmente
+                // NO hacer e.preventDefault() aquí - permitir navegación normal
             });
         });
         
-        // Cerrar sidebar al redimensionar la ventana si se vuelve desktop
+        // Cerrar sidebar al redimensionar si se vuelve desktop
         let resizeTimeout;
         window.addEventListener('resize', function() {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
-                if (window.innerWidth > 991.98) {
+                if (window.innerWidth > 991.98 && isOpen) {
                     closeSidebar();
                 }
-            }, 250);
+            }, 150);
         });
         
-        // Manejar la tecla Escape para cerrar el sidebar
+        // Tecla Escape para cerrar
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && sidebar.classList.contains('sidebar-open')) {
+            if (e.key === 'Escape' && isOpen) {
                 e.preventDefault();
                 closeSidebar();
             }
         });
         
-        // Prevenir scroll en el fondo cuando el menú está abierto
+        // Prevenir scroll del fondo en móvil cuando está abierto
+        document.addEventListener('touchmove', function(e) {
+            if (isOpen && !sidebar.contains(e.target)) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        // Permitir scroll dentro del sidebar
         sidebar.addEventListener('touchmove', function(e) {
             e.stopPropagation();
-        });
-        
-        sidebarOverlay.addEventListener('touchmove', function(e) {
-            e.preventDefault();
-        });
+        }, { passive: true });
     });
     </script>
 </body>

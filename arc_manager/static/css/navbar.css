@@ -34,9 +34,10 @@
     right: 0;
     width: 100%;
     height: var(--nav-layout-height);
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.95);
+    /* Eliminar backdrop-filter problemático en móviles */
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     box-shadow: none;
     border: none !important;
     border-radius: 0;
