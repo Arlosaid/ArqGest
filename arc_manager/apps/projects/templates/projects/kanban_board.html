@@ -110,11 +110,11 @@
                                     
                                     <!-- Meta información optimizada y bien estructurada -->
                                     <div class="task-meta">
-                                        <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}{% else %}Sin asignar{% endif %}">
+                                        <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.email }}{% else %}Sin asignar{% endif %}">
                                             <i class="fas fa-user-circle"></i>
                                             <span class="small">
                                                 {% if task.assigned_to %}
-                                                    {{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:task.assigned_to|truncatechars:10 }}
+                                                    {{ task.assigned_to.get_full_name|default:task.assigned_to.email|default:task.assigned_to|truncatechars:10 }}
                                                 {% else %}
                                                     {% trans "Sin asig." %}
                                                 {% endif %}
@@ -189,11 +189,11 @@
                                     
                                     <!-- Meta información optimizada y bien estructurada -->
                                     <div class="task-meta">
-                                        <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}{% else %}Sin asignar{% endif %}">
+                                        <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.email }}{% else %}Sin asignar{% endif %}">
                                             <i class="fas fa-user-circle"></i>
                                             <span class="small">
                                                 {% if task.assigned_to %}
-                                                    {{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:task.assigned_to|truncatechars:10 }}
+                                                    {{ task.assigned_to.get_full_name|default:task.assigned_to.email|default:task.assigned_to|truncatechars:10 }}
                                                 {% else %}
                                                     {% trans "Sin asig." %}
                                                 {% endif %}
@@ -268,11 +268,11 @@
                                     
                                     <!-- Meta información optimizada y bien estructurada -->
                                     <div class="task-meta">
-                                        <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}{% else %}Sin asignar{% endif %}">
+                                        <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.email }}{% else %}Sin asignar{% endif %}">
                                             <i class="fas fa-user-circle"></i>
                                             <span class="small">
                                                 {% if task.assigned_to %}
-                                                    {{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:task.assigned_to|truncatechars:10 }}
+                                                    {{ task.assigned_to.get_full_name|default:task.assigned_to.email|default:task.assigned_to|truncatechars:10 }}
                                                 {% else %}
                                                     {% trans "Sin asig." %}
                                                 {% endif %}
@@ -347,11 +347,11 @@
                                     
                                     <!-- Meta información optimizada y bien estructurada -->
                                     <div class="task-meta">
-                                        <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}{% else %}Sin asignar{% endif %}">
+                                        <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.email }}{% else %}Sin asignar{% endif %}">
                                             <i class="fas fa-user-circle"></i>
                                             <span class="small">
                                                 {% if task.assigned_to %}
-                                                    {{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:task.assigned_to|truncatechars:10 }}
+                                                    {{ task.assigned_to.get_full_name|default:task.assigned_to.email|default:task.assigned_to|truncatechars:10 }}
                                                 {% else %}
                                                     {% trans "Sin asig." %}
                                                 {% endif %}
@@ -435,7 +435,7 @@
                             <select class="form-select" id="assigned_to" name="assigned_to">
                                 <option value="">{% trans "Sin asignar" %}</option>
                                 {% for user in users %}
-                                    <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
+                                    <option value="{{ user.id }}">{{ user.get_full_name|default:user.email }}</option>
                                 {% endfor %}
                             </select>
                         </div>

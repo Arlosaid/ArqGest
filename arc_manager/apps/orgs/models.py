@@ -2,6 +2,7 @@
 from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
+from django.core.cache import cache
 
 class Organization(models.Model):
     """Modelo simplificado de organización"""
@@ -54,16 +55,31 @@ class Organization(models.Model):
         return subscription.plan.max_users if subscription else 1
     
     def get_user_count(self):
-        """Retorna el total de usuarios"""
-        return self.users.count()
+        """Retorna el total de usuarios (con cache)"""
+        cache_key = f"org_user_count:{self.id}"
+        count = cache.get(cache_key)
+        if count is None:
+            count = self.users.count()
+            cache.set(cache_key, count, 300)  # 5 minutos
+        return count
     
     def get_active_user_count(self):
-        """Retorna solo usuarios activos"""
-        return self.users.filter(is_active=True).count()
+        """Retorna solo usuarios activos (con cache)"""
+        cache_key = f"org_active_users:{self.id}"
+        count = cache.get(cache_key)
+        if count is None:
+            count = self.users.filter(is_active=True).count()
+            cache.set(cache_key, count, 300)  # 5 minutos
+        return count
     
     def get_inactive_user_count(self):
-        """Retorna usuarios inactivos"""
-        return self.users.filter(is_active=False).count()
+        """Retorna usuarios inactivos (con cache)"""
+        cache_key = f"org_inactive_users:{self.id}"
+        count = cache.get(cache_key)
+        if count is None:
+            count = self.users.filter(is_active=False).count()
+            cache.set(cache_key, count, 300)  # 5 minutos
+        return count
     
     def can_add_user(self):
         """Verifica si se puede agregar un usuario"""
@@ -105,6 +121,17 @@ class Organization(models.Model):
             return 0
         except:
             return 0
+    
+    def invalidate_user_cache(self):
+        """Invalida el cache de contadores de usuarios cuando se agregan/quitan usuarios"""
+        cache_keys = [
+            f"org_user_count:{self.id}",
+            f"org_active_users:{self.id}",
+            f"org_inactive_users:{self.id}",
+            f"org_subscription:{self.id}",
+            f"dashboard_stats:{self.id}"
+        ]
+        cache.delete_many(cache_keys)
     
     def get_admins(self):
         """Retorna usuarios administradores"""

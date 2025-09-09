@@ -357,7 +357,7 @@ class UpgradeRequest(models.Model):
         try:
             with transaction.atomic():
                 self.status = 'approved'
-                self.approved_by = approved_by_user.username
+                self.approved_by = f"{approved_by_user.email} (ID: {approved_by_user.pk})"
                 self.save()
                 
                 # Asegurar que la organización tenga suscripción antes de cambiar el plan
@@ -397,7 +397,7 @@ class UpgradeRequest(models.Model):
         try:
             self.status = 'rejected'
             # Reutilizamos el campo approved_by para almacenar el usuario que procesó
-            self.approved_by = rejected_by_user.username
+            self.approved_by = f"{rejected_by_user.email} (ID: {rejected_by_user.pk})"
             self.save(update_fields=['status', 'approved_by', 'updated_at'])
             logger.info(f"Solicitud de upgrade {self.id} rechazada por {self.approved_by}.")
             return {'success': True}

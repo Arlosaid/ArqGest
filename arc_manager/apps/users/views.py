@@ -44,8 +44,7 @@ class UserListView(LoginRequiredMixin, PageSizeMixin, ListView):
             queryset = queryset.filter(
                 Q(first_name__icontains=search) |
                 Q(last_name__icontains=search) |
-                Q(email__icontains=search) |
-                Q(username__icontains=search)
+                Q(email__icontains=search)
             )
         
         return queryset.order_by('-date_joined')

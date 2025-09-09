@@ -231,18 +231,24 @@ function shakeElement(element) {
         .input-wrapper.has-error::after {
             content: '!';
             position: absolute;
-            right: -20px;
+            right: 12px;
             top: 50%;
             transform: translateY(-50%);
-            color: var(--danger);
+            color: #dc3545;
             font-weight: bold;
             font-size: 14px;
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
             text-align: center;
-            line-height: 16px;
+            line-height: 18px;
             border-radius: 50%;
-            border: 1px solid var(--danger);
+            background-color: rgba(220, 53, 69, 0.1);
+            border: 1px solid #dc3545;
+        }
+        
+        .input-wrapper.has-error input {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.1) !important;
         }
         
         .has-value .input-icon {

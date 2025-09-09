@@ -196,7 +196,7 @@ class SubscriptionAdmin(ImportExportModelAdmin):
             try:
                 payment_result = subscription.process_payment(
                     amount=subscription.plan.price,
-                    processed_by=request.user.username
+                    processed_by=f"{request.user.email} (ID: {request.user.pk})"
                 )
                 if payment_result.get('success'):
                     processed_count += 1
@@ -219,7 +219,7 @@ class SubscriptionAdmin(ImportExportModelAdmin):
                     try:
                         subscription.extend_subscription(
                             days=days,
-                            processed_by=request.user.username,
+                            processed_by=f"{request.user.email} (ID: {request.user.pk})",
                             reason=reason
                         )
                         extended_count += 1
@@ -252,7 +252,7 @@ class SubscriptionAdmin(ImportExportModelAdmin):
                     try:
                         subscription.switch_plan(
                             new_plan=new_plan,
-                            processed_by=request.user.username
+                            processed_by=f"{request.user.email} (ID: {request.user.pk})"
                         )
                         changed_count += 1
                     except Exception as e:

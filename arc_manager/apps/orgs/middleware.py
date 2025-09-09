@@ -1,5 +1,6 @@
 # arc_manager/apps/orgs/middleware.py
 from django.utils.deprecation import MiddlewareMixin
+from django.core.cache import cache
 
 class OrganizationContextMiddleware(MiddlewareMixin):
     """
@@ -15,7 +16,15 @@ class OrganizationContextMiddleware(MiddlewareMixin):
             organization = getattr(request.user, 'organization', None)
             if organization:
                 request.organization = organization
-                # La función get_subscription() debería estar cacheada en el modelo Organization
-                request.subscription = organization.get_subscription()
+                
+                # Cache de suscripción por 15 minutos para evitar consultas repetidas
+                subscription_cache_key = f"org_subscription:{organization.id}"
+                subscription = cache.get(subscription_cache_key)
+                
+                if subscription is None:
+                    subscription = organization.get_subscription()
+                    cache.set(subscription_cache_key, subscription, 900)  # 15 minutos
+                
+                request.subscription = subscription
         
         return None
