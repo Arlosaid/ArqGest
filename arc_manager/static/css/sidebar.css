@@ -378,19 +378,22 @@
   letter-spacing: 0.05em;
 }
 
-/* Sidebar overlay para móvil */
+/* Sidebar overlay para móvil - Mejorado para producción móvil */
 .sidebar-overlay {
   display: none;
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.4);
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5); /* Más opaco para mejor visibilidad */
   z-index: 1040; /* Z-index jerarquía: Overlay por debajo del sidebar */
   opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: auto; /* Permitir clics para cerrar */
+  transition: opacity 0.25s ease;
+  pointer-events: auto;
+  /* Eliminar efectos de blur problemáticos en mobile */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* Tooltips */
@@ -444,19 +447,23 @@
 @media (max-width: 768px) {
   .sidebar {
       transform: translateX(-100%);
-      width: 55vw; /* Un poco más en pantallas pequeñas */
-      max-width: 300px;
-      min-width: 240px;
+      width: 75vw; /* Más ancho para mejor usabilidad en móvil */
+      max-width: 320px;
+      min-width: 280px;
       box-shadow: none;
+      /* Eliminar efectos problemáticos */
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      /* Asegurar posicionamiento correcto */
+      top: 0;
+      left: 0;
+      height: 100vh;
+      border-top-right-radius: 0; /* Sin bordes redondeados en móvil */
   }
   
   .sidebar.sidebar-open {
       transform: translateX(0);
-      box-shadow: 5px 0 20px rgba(0, 0, 0, 0.25);
-  }
-  
-  .sidebar-toggle {
-      display: block;
+      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15); /* Sombra más suave */
   }
   
   .sidebar-overlay.show,
@@ -472,38 +479,37 @@
 
 @media (max-width: 480px) {
   .sidebar {
-      width: 70vw; /* 70% del ancho en pantallas muy pequeñas */
-      max-width: 280px;
-      min-width: 220px;
+      width: 85vw; /* Casi toda la pantalla en dispositivos pequeños */
+      max-width: 300px;
+      min-width: 260px;
   }
   
   .sidebar-brand {
-      padding: 24px 20px;
+      padding: 28px 24px; /* Más padding para mejor toque */
   }
   
   .brand-text {
-      font-size: 16px;
+      font-size: 17px;
+      font-weight: 600;
   }
   
   .sidebar .nav-link {
-      padding: 14px 20px !important;
-      font-size: 15px !important; /* Texto más grande en mobile */
-      min-height: 48px !important; /* Área de toque más grande */
+      padding: 16px 24px !important; /* Más padding para mejor área de toque */
+      font-size: 16px !important; /* Texto más grande y legible */
+      min-height: 52px !important; /* Área de toque aún más grande */
       display: flex !important;
       align-items: center !important;
-      touch-action: manipulation !important; /* Mejor respuesta táctil */
+      touch-action: manipulation !important;
+      -webkit-tap-highlight-color: rgba(59, 130, 246, 0.1) !important;
+  }
+  
+  .nav-icon {
+      font-size: 18px !important; /* Iconos más grandes */
+      margin-right: 16px !important;
   }
   
   .sidebar-footer {
-      padding: 20px;
-  }
-  
-  .sidebar-toggle {
-      top: 20px;
-      left: 20px;
-      width: 40px;
-      height: 40px;
-      font-size: 16px;
+      padding: 24px;
   }
 }
 
@@ -570,30 +576,46 @@
   pointer-events: auto; /* Permitir clics para cerrar */
 }
 
-/* Estados del sidebar en mobile */
+/* Estados del sidebar en mobile - Optimizado para producción */
 @media (max-width: 991.98px) {
   .sidebar {
     transform: translateX(-100%);
-    width: 50vw; /* Ocupa solo la mitad de la pantalla */
-    max-width: 280px; /* Máximo 280px para pantallas grandes */
-    min-width: 250px; /* Mínimo 250px para pantallas pequeñas */
+    width: 70vw; /* Ancho optimizado para móviles */
+    max-width: 320px;
+    min-width: 280px;
     border-radius: 0;
-    z-index: 1001;
-    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.2); /* Sombra más suave */
+    z-index: 1050; /* Z-index consistente */
+    box-shadow: none; /* Sin sombra inicial */
+    /* Eliminar efectos problemáticos en mobile */
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    /* Posicionamiento absoluto y correcto */
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
   }
   
-  /* Mejorar contraste en mobile */
+  /* Mejorar contraste y visibilidad en mobile */
   .sidebar .nav-link {
-    color: #f1f5f9 !important; /* Color más claro en mobile */
+    color: #f8fafc !important; /* Color más claro y visible */
+    font-weight: 500 !important;
   }
   
   .sidebar .nav-link:hover {
     color: #ffffff !important;
-    background: rgba(59, 130, 246, 0.15) !important; /* Hover más visible */
+    background: rgba(59, 130, 246, 0.2) !important; /* Hover más visible */
+    transform: none !important; /* Sin transformaciones problemáticas */
+  }
+  
+  .sidebar .nav-link:active {
+    background: rgba(59, 130, 246, 0.25) !important;
+    transform: none !important;
   }
   
   .sidebar.sidebar-open {
     transform: translateX(0);
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
   }
   
   .sidebar-overlay.overlay-active {
@@ -632,21 +654,29 @@
 /* Prevenir scroll del body cuando el sidebar está abierto en mobile */
 body.sidebar-mobile-open {
   overflow: hidden;
-  /* Eliminado position: fixed que causaba problemas de interacción */
+  /* Solución optimizada sin position fixed problemático */
+  height: 100vh;
+  touch-action: none; /* Prevenir scroll en dispositivos táctiles */
 }
 
 @media (max-width: 991.98px) {
   body.sidebar-mobile-open {
     overflow: hidden;
-    /* Eliminado position: fixed que causaba problemas de interacción */
+    height: 100vh;
+    touch-action: none;
   }
   
-  /* Asegurar que el sidebar esté por encima de todo con jerarquía clara */
+  /* Z-index jerarquía clara y consistente */
   .sidebar.sidebar-open {
-    z-index: 1050; /* Consistente con la jerarquía */
+    z-index: 1050;
   }
   
   .sidebar-overlay.overlay-active {
-    z-index: 1040; /* Consistente con la jerarquía */
+    z-index: 1040;
+  }
+  
+  /* Asegurar que el navbar no interfiera */
+  .main-navbar {
+    z-index: 999;
   }
 }
