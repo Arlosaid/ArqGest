@@ -56,18 +56,13 @@
                     {% for project in active_projects %}
                     <div class="project-card-mini">
                         <div class="project-image-mini">
-                            {% if forloop.counter0 == 0 %}
-                            <img src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=400&h=200&fit=crop&q=80" alt="{{ project.name }}" loading="lazy">
-                            {% elif forloop.counter0 == 1 %}
-                            <img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&h=200&fit=crop&q=80" alt="{{ project.name }}" loading="lazy">
-                            {% elif forloop.counter0 == 2 %}
-                            <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&h=200&fit=crop&q=80" alt="{{ project.name }}" loading="lazy">
-                            {% elif forloop.counter0 == 3 %}
-                            <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=200&fit=crop&q=80" alt="{{ project.name }}" loading="lazy">
-                            {% elif forloop.counter0 == 4 %}
-                            <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&h=200&fit=crop&q=80" alt="{{ project.name }}" loading="lazy">
+                            {% if project.image %}
+                            <img src="{{ project.image.url }}" alt="{{ project.name }}" loading="lazy">
                             {% else %}
-                            <img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&h=200&fit=crop&q=80" alt="{{ project.name }}" loading="lazy">
+                            <div class="project-placeholder">
+                                <i class="fas fa-building"></i>
+                                <span>{{ project.name|first|upper }}</span>
+                            </div>
                             {% endif %}
                             <div class="project-status-mini {{ project.status }}">{{ project.get_status_display }}</div>
                         </div>
