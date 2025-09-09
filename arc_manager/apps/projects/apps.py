@@ -7,3 +7,4 @@ class ProjectsConfig(AppConfig):
 
     def ready(self):
         import apps.projects.signals
+        import apps.projects.cache_signals  # Importar signals de cache

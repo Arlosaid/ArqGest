@@ -26,7 +26,7 @@
                 <select name="assigned_to" id="id_assigned_to" class="form-select border-2">
                     <option value="">{% trans "Sin asignar" %}</option>
                     {% for u in users %}
-                        <option value="{{ u.id }}" {% if task.assigned_to and task.assigned_to.id == u.id %}selected{% endif %}>{{ u.get_full_name|default:u.username }}</option>
+                        <option value="{{ u.id }}" {% if task.assigned_to and task.assigned_to.id == u.id %}selected{% endif %}>{{ u.get_full_name|default:u.email }}</option>
                     {% endfor %}
                 </select>
             </div>

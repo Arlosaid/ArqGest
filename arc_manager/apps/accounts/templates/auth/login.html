@@ -5,7 +5,14 @@
 
 {% block auth_content %}
 <div class="login-form-wrapper">
-    <h1 class="login-title">¡Bienvenido!</h1>
+    <!-- Branding de la aplicación -->
+    <div class="auth-branding">
+        <img src="{% static 'images/logo.png' %}" alt="ArcManager Logo" class="auth-logo">
+        <h1 class="auth-app-name">ArcManager</h1>
+        <p class="auth-tagline">Gestión de Proyectos Arquitectónicos</p>
+    </div>
+    
+    <h2 class="login-title">¡Bienvenido!</h2>
 
     {% if request.GET.locked %}
         <div class="alert alert-danger" role="alert">

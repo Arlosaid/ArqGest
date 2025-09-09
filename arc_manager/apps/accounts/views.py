@@ -9,15 +9,31 @@ from django.urls import reverse_lazy
 from django.core.cache import cache
 from .forms import CustomAuthenticationForm, ForcePasswordChangeForm
 import logging
+from django.contrib.auth import get_user_model
+from django.utils import timezone
 
-logger = logging.getLogger('app')
+logger = logging.getLogger('apps.accounts')
+User = get_user_model()
 
 class CustomLoginView(LoginView):
     template_name = 'auth/login.html'
     authentication_form = CustomAuthenticationForm
     
+    def dispatch(self, request, *args, **kwargs):
+        """Log cuando se accede a la página de login"""
+        client_ip = self.get_client_ip()
+        if request.method == 'GET':
+            logger.debug(f"Página de login solicitada - IP: {client_ip}")
+        elif request.method == 'POST':
+            logger.info(f"Intento de login iniciado - IP: {client_ip}")
+        return super().dispatch(request, *args, **kwargs)
+    
     def form_valid(self, form):
         user = form.get_user()
+        client_ip = self.get_client_ip()
+        user_agent = self.request.META.get('HTTP_USER_AGENT', '')[:200]  # Limitar longitud
+        
+        logger.info(f"Intento de login exitoso - Usuario: {user.email}, IP: {client_ip}, User-Agent: {user_agent[:50]}...")
         
         # Limpiar cualquier flag de sesión anterior (para evitar mensajes cruzados)
         session_keys_to_clear = [
@@ -38,8 +54,8 @@ class CustomLoginView(LoginView):
             # Hacer login primero
             login(self.request, user)
             
-            # NO agregar mensaje aquí - se mostrará en el admin
-            logger.info(f"Superuser {user.email} intentó acceder a la app - redirigido a admin")
+            # Log de seguridad para superusuarios
+            logger.info(f"Superuser login - Usuario: {user.email}, IP: {client_ip}, Redirigido a admin")
             
             # Redirigir directamente al admin sin mensaje
             # El mensaje se mostrará en el admin mediante el middleware
@@ -49,11 +65,13 @@ class CustomLoginView(LoginView):
         if getattr(user, 'password_change_required', False):
             # Hacer login primero
             login(self.request, user)
+            logger.info(f"Usuario {user.email} requiere cambio de contraseña - Redirigido a force-password-change")
             # Redirigir al cambio forzado de contraseña
             return redirect('/accounts/force-password-change/')
         
         user_info = {
-            'username': user.username or user.email,
+            'email': user.email,
+            'id': user.pk,
             'role': user.role_display(),
             'organization': user.get_organization_name()
         }
@@ -61,15 +79,51 @@ class CustomLoginView(LoginView):
         # Proceder con el login normal
         response = super().form_valid(form)
         
-        # Registrar login exitoso
-        logger.info(f"Login exitoso - Usuario: {user_info['username']}, Rol: {user_info['role']}, Organización: {user_info['organization']}")
+        # Registrar login exitoso con información completa
+        logger.info(
+            f"Login exitoso - Usuario: {user_info['email']} (ID: {user_info['id']}), "
+            f"Rol: {user_info['role']}, Organización: {user_info['organization']}, "
+            f"IP: {client_ip}, Sesión: {self.request.session.session_key}"
+        )
+        
+        # Log de seguridad adicional para admins
+        if user.is_org_admin:
+            logger.info(f"Admin login - {user.email} accedió con permisos administrativos")
+        
         return response
     
     def form_invalid(self, form):
-        # Registrar intento de login fallido
+        # Registrar intento de login fallido con detalles de seguridad
         username = form.cleaned_data.get('username', 'No especificado')
-        logger.warning(f"Intento de login fallido para: {username}")
+        client_ip = self.get_client_ip()
+        user_agent = self.request.META.get('HTTP_USER_AGENT', '')[:100]
+        errors = form.errors.as_text() if form.errors else 'Errores no especificados'
+        
+        logger.warning(
+            f"Login fallido - Email: {username}, IP: {client_ip}, "
+            f"User-Agent: {user_agent}, Errores: {errors}"
+        )
+        
+        # Log adicional si el usuario existe pero la contraseña es incorrecta
+        try:
+            user_exists = User.objects.filter(email=username).exists()
+            if user_exists:
+                logger.warning(f"Login fallido - Usuario {username} existe pero contraseña incorrecta (IP: {client_ip})")
+            else:
+                logger.warning(f"Login fallido - Usuario {username} no existe (IP: {client_ip})")
+        except Exception as e:
+            logger.error(f"Error al verificar existencia de usuario {username}: {str(e)}")
+        
         return super().form_invalid(form)
+    
+    def get_client_ip(self):
+        """Obtener la IP real del cliente considerando proxies"""
+        x_forwarded_for = self.request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0].strip()
+        else:
+            ip = self.request.META.get('REMOTE_ADDR', 'Desconocida')
+        return ip
 
 class CustomLogoutView(View):
     """Vista personalizada para logout con logging"""
@@ -81,13 +135,19 @@ class CustomLogoutView(View):
         return self.logout_user(request)
     
     def logout_user(self, request):
-        # Capturar el nombre de usuario ANTES de hacer logout
+        # Capturar información del usuario ANTES de hacer logout
         if request.user.is_authenticated:
-            username = request.user.username or request.user.email
+            email = request.user.email
+            user_id = request.user.pk
             role = request.user.role_display()
             organization = request.user.get_organization_name()
+            client_ip = self.get_client_ip(request)
+            session_key = request.session.session_key
             
-            logger.info(f"Logout - Usuario: {username}, Rol: {role}, Organización: {organization}")
+            logger.info(
+                f"Logout - Usuario: {email} (ID: {user_id}), Rol: {role}, "
+                f"Organización: {organization}, IP: {client_ip}, Sesión: {session_key}"
+            )
         
         # Limpiar flags de sesión específicos antes del logout
         session_keys_to_clear = [
@@ -112,7 +172,17 @@ class CustomLogoutView(View):
         request.session.save()
         
         logout(request)
+        logger.info(f"Logout completado exitosamente - IP: {client_ip}")
         return redirect('accounts:login')
+    
+    def get_client_ip(self, request):
+        """Obtener la IP real del cliente considerando proxies"""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0].strip()
+        else:
+            ip = request.META.get('REMOTE_ADDR', 'Desconocida')
+        return ip
 
 class SecurePasswordResetView(PasswordResetView):
     template_name = 'auth/password_reset.html'
@@ -123,16 +193,39 @@ class SecurePasswordResetView(PasswordResetView):
     def form_valid(self, form):
         email = form.cleaned_data['email']
         cache_key = f"password_reset_{email}"
+        client_ip = self.get_client_ip()
+        
+        logger.info(f"Solicitud de reset de contraseña - Email: {email}, IP: {client_ip}")
         
         # Verificar si ya hay una solicitud reciente
         if cache.get(cache_key):
+            logger.warning(f"Reset de contraseña duplicado bloqueado - Email: {email}, IP: {client_ip}")
             messages.info(self.request, "Ya enviamos instrucciones. Revisa tu correo o espera 15 minutos para solicitar otro.", extra_tags='password_reset')
             return self.form_invalid(form)
+        
+        # Verificar si el usuario existe
+        try:
+            user_exists = User.objects.filter(email=email, is_active=True).exists()
+            if user_exists:
+                logger.info(f"Reset de contraseña procesado para usuario existente: {email}")
+            else:
+                logger.warning(f"Reset de contraseña solicitado para email no registrado: {email} (IP: {client_ip})")
+        except Exception as e:
+            logger.error(f"Error al verificar usuario para reset: {email} - {str(e)}")
         
         # Guardar en cache por 15 minutos
         cache.set(cache_key, True, timeout=900)
         
         return super().form_valid(form)
+    
+    def get_client_ip(self):
+        """Obtener la IP real del cliente considerando proxies"""
+        x_forwarded_for = self.request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0].strip()
+        else:
+            ip = self.request.META.get('REMOTE_ADDR', 'Desconocida')
+        return ip
 
 
 @method_decorator(login_required, name='dispatch')
@@ -143,30 +236,51 @@ class ForcePasswordChangeView(View):
     def get(self, request):
         # Si el usuario no necesita cambiar contraseña, redirigir al dashboard
         if not getattr(request.user, 'password_change_required', False):
+            logger.info(f"Usuario {request.user.email} accedió a force-password-change sin requerimiento")
             return redirect('/')
         
+        logger.info(f"Mostrando formulario de cambio forzado de contraseña para: {request.user.email}")
         form = ForcePasswordChangeForm(user=request.user)
         return render(request, self.template_name, {'form': form})
     
     def post(self, request):
+        client_ip = self.get_client_ip()
+        
         # Si el usuario no necesita cambiar contraseña, redirigir al dashboard
         if not getattr(request.user, 'password_change_required', False):
+            logger.warning(f"Usuario {request.user.email} intentó cambio de contraseña sin requerimiento (IP: {client_ip})")
             return redirect('/')
         
         form = ForcePasswordChangeForm(user=request.user, data=request.POST)
         if form.is_valid():
-            # Cambiar la contraseña
-            user = request.user
-            user.set_password(form.cleaned_data['new_password1'])
-            user.password_change_required = False  # Ya no necesita cambiar contraseña
-            user.save()
-            
-            # Mantener la sesión activa después del cambio de contraseña
-            update_session_auth_hash(request, user)
-            
-            messages.success(request, '¡Contraseña cambiada exitosamente! Ahora puedes acceder a todas las funciones del sistema.')
-            
-            # Redirigir al dashboard principal
-            return redirect('/')
+            try:
+                # Cambiar la contraseña
+                user = request.user
+                user.set_password(form.cleaned_data['new_password1'])
+                user.password_change_required = False  # Ya no necesita cambiar contraseña
+                user.save()
+                
+                # Mantener la sesión activa después del cambio de contraseña
+                update_session_auth_hash(request, user)
+                
+                logger.info(f"Cambio forzado de contraseña exitoso - Usuario: {user.email}, IP: {client_ip}")
+                messages.success(request, '¡Contraseña cambiada exitosamente! Ahora puedes acceder a todas las funciones del sistema.')
+                
+                # Redirigir al dashboard principal
+                return redirect('/')
+            except Exception as e:
+                logger.error(f"Error en cambio forzado de contraseña para {request.user.email}: {str(e)}")
+                messages.error(request, 'Ocurrió un error al cambiar la contraseña. Por favor inténtalo de nuevo.')
+        else:
+            logger.warning(f"Formulario inválido en cambio forzado de contraseña - Usuario: {request.user.email}, Errores: {form.errors.as_text()}")
         
         return render(request, self.template_name, {'form': form})
+    
+    def get_client_ip(self):
+        """Obtener la IP real del cliente considerando proxies"""
+        x_forwarded_for = self.request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0].strip()
+        else:
+            ip = self.request.META.get('REMOTE_ADDR', 'Desconocida')
+        return ip

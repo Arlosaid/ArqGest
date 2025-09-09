@@ -8,3 +8,4 @@ class AccountsConfig(AppConfig):
     
     def ready(self):
         import apps.accounts.signals
+        import apps.accounts.cache_signals  # Importar signals de cache

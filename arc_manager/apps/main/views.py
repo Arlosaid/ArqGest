@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.urls import reverse
+from django.core.cache import cache
 
 from apps.projects.models import Project, Task
 from apps.orgs.models import Client
@@ -35,15 +36,28 @@ def dashboard(request):
 
     # --- Widgets de Métricas para el Arquitecto ---
 
-    # --- Consultas optimizadas con agregaciones ---
+    # --- Consultas optimizadas con agregaciones y cache ---
     
-    # Obtener contadores en una sola consulta usando agregación
+    # Obtener contadores con cache (10 minutos)
     from django.db.models import Count, Q
     
-    # Contar proyectos y clientes de la organización
-    org_stats = organization.__dict__
-    total_projects = Project.objects.filter(organization=organization).count()
-    total_clients = Client.objects.filter(organization=organization).count()
+    cache_key = f"dashboard_stats:{organization.id}"
+    dashboard_stats = cache.get(cache_key)
+    
+    if dashboard_stats is None:
+        # Contar proyectos y clientes de la organización
+        total_projects = Project.objects.filter(organization=organization).count()
+        total_clients = Client.objects.filter(organization=organization).count()
+        
+        dashboard_stats = {
+            'total_projects': total_projects,
+            'total_clients': total_clients,
+        }
+        # Cache por 10 minutos
+        cache.set(cache_key, dashboard_stats, 600)
+    else:
+        total_projects = dashboard_stats['total_projects']
+        total_clients = dashboard_stats['total_clients']
     
     # 1. Widget "Mis Tareas" - optimizado con select_related
     my_tasks = Task.objects.filter(

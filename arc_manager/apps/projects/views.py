@@ -22,6 +22,7 @@ import json
 from django.utils import timezone
 from core.mixins import PageSizeMixin
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.cache import cache
 
 # Project Views
 class ProjectListView(LoginRequiredMixin, PageSizeMixin, ListView):
@@ -40,18 +41,31 @@ class ProjectListView(LoginRequiredMixin, PageSizeMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if hasattr(self.request.user, 'organization') and self.request.user.organization:
-            projects_all = Project.objects.filter(organization=self.request.user.organization)
-            # Contadores por estado básicos
-            context['total_projects'] = projects_all.count()
-            try:
-                context['active_projects_count'] = projects_all.filter(status='ACTIVE').count()
-                context['completed_projects_count'] = projects_all.filter(status='COMPLETED').count()
-                context['archived_projects_count'] = projects_all.filter(status='ARCHIVED').count()
-            except Exception:
-                # Si el modelo no tiene estos estados, degradar con cero
-                context.setdefault('active_projects_count', 0)
-                context.setdefault('completed_projects_count', 0)
-                context.setdefault('archived_projects_count', 0)
+            org_id = self.request.user.organization.id
+            cache_key = f"project_list_stats:{org_id}"
+            project_stats = cache.get(cache_key)
+            
+            if project_stats is None:
+                projects_all = Project.objects.filter(organization=self.request.user.organization)
+                # Contadores por estado básicos
+                project_stats = {
+                    'total_projects': projects_all.count(),
+                    'active_projects_count': 0,
+                    'completed_projects_count': 0,
+                    'archived_projects_count': 0
+                }
+                try:
+                    project_stats['active_projects_count'] = projects_all.filter(status='ACTIVE').count()
+                    project_stats['completed_projects_count'] = projects_all.filter(status='COMPLETED').count()
+                    project_stats['archived_projects_count'] = projects_all.filter(status='ARCHIVED').count()
+                except Exception:
+                    # Si el modelo no tiene estos estados, usar valores por defecto
+                    pass
+                
+                # Cache por 5 minutos
+                cache.set(cache_key, project_stats, 300)
+            
+            context.update(project_stats)
         return context
 
 class ProjectDetailView(LoginRequiredMixin, DetailView):
@@ -675,7 +689,7 @@ def task_edit(request, pk):
             if request.headers.get('HX-Request'):
                 assigned_name = ''
                 if task.assigned_to:
-                    assigned_name = task.assigned_to.get_full_name() or task.assigned_to.username or str(task.assigned_to)
+                    assigned_name = task.assigned_to.get_full_name() or task.assigned_to.email or str(task.assigned_to)
                 payload = {
                     'success': True,
                     'task': {

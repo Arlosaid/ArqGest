@@ -67,12 +67,73 @@ def validate_admin_without_org(sender, instance, **kwargs):
 def log_user_creation(sender, instance, created, **kwargs):
     """Log cuando se crea un usuario nuevo"""
     if created:
-        import logging
-        logger = logging.getLogger('arc_manager.users')
-        
         org_name = instance.organization.name if instance.organization else "Sin organización"
         role = "Superusuario" if instance.is_superuser else ("Admin de Org" if instance.is_org_admin else "Usuario")
         
         logger.info(
-            f"Usuario creado: {instance.email} ({role}) en {org_name}"
-        ) 
+            f"Usuario creado exitosamente: {instance.email} (ID: {instance.pk}, {role}) "
+            f"en {org_name} - Activo: {instance.is_active}"
+        )
+        
+        # Log adicional para superusuarios (seguridad)
+        if instance.is_superuser:
+            logger.info(
+                f"SUPERUSUARIO CREADO - Email: {instance.email}, "
+                f"Nombre: {instance.get_full_name()}, ID: {instance.pk}"
+            )
+        
+        # Log adicional para admins de organización
+        if instance.is_org_admin:
+            logger.info(
+                f"ADMIN DE ORGANIZACIÓN CREADO - Email: {instance.email}, "
+                f"Organización: {org_name}, ID: {instance.pk}"
+            )
+
+
+@receiver(pre_save, sender=User)
+def log_user_changes(sender, instance, **kwargs):
+    """Log cambios importantes en usuarios existentes"""
+    if instance.pk:  # Solo para usuarios existentes
+        try:
+            old_instance = User.objects.get(pk=instance.pk)
+            changes = []
+            
+            # Detectar cambios críticos
+            if old_instance.is_active != instance.is_active:
+                status = 'activado' if instance.is_active else 'desactivado'
+                changes.append(f"usuario {status}")
+                logger.info(f"Usuario {instance.email} ha sido {status}")
+            
+            if old_instance.is_org_admin != instance.is_org_admin:
+                role_change = 'promovido a admin' if instance.is_org_admin else 'removido como admin'
+                changes.append(f"rol: {role_change}")
+                logger.info(f"Usuario {instance.email} - {role_change}")
+            
+            if old_instance.organization != instance.organization:
+                old_org = old_instance.organization.name if old_instance.organization else 'Sin organización'
+                new_org = instance.organization.name if instance.organization else 'Sin organización'
+                changes.append(f"organización: {old_org} → {new_org}")
+                logger.info(
+                    f"Usuario {instance.email} transferido de {old_org} a {new_org}"
+                )
+            
+            if old_instance.password_change_required != instance.password_change_required:
+                pwd_status = 'requerido' if instance.password_change_required else 'no requerido'
+                changes.append(f"cambio de contraseña: {pwd_status}")
+                logger.info(
+                    f"Cambio de contraseña {pwd_status} para usuario: {instance.email}"
+                )
+            
+            # Log si hubo cambio de contraseña
+            if old_instance.password != instance.password:
+                logger.info(f"Contraseña cambiada para usuario: {instance.email}")
+                changes.append("contraseña actualizada")
+            
+            if changes:
+                logger.info(
+                    f"Usuario modificado: {instance.email} - Cambios: {', '.join(changes)}"
+                )
+                
+        except User.DoesNotExist:
+            logger.warning(f"Usuario con ID {instance.pk} no encontrado para comparación de cambios")
+

@@ -163,11 +163,32 @@ AXES_LOCKOUT_CALLABLE = None
 AXES_VERBOSE = True
 
 
-# Configuración de cache (usando base de datos)
+# Configuración de cache (usando Redis)
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://redis:6379/0')
+
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-        'LOCATION': 'cache_table',
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': REDIS_URL,
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+            'CONNECTION_POOL_KWARGS': {
+                'max_connections': 50,
+                'retry_on_timeout': True,
+            }
+        },
+        'KEY_PREFIX': 'arc_manager',
+        'TIMEOUT': 300,
+    },
+    'sessions': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': REDIS_URL,
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+        'KEY_PREFIX': 'arc_sessions',
+        'TIMEOUT': 86400,  # 24 hours
     }
 }
 
@@ -269,9 +290,10 @@ if os.environ.get('DEFAULT_FILE_STORAGE'):
     AWS_S3_SIGNATURE_VERSION = os.environ.get('AWS_S3_SIGNATURE_VERSION', 's3v4')
     AWS_DEFAULT_ACL = None
 
-# Configuración de sesiones (usando base de datos)
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_SAVE_EVERY_REQUEST = False
+# Configuración de sesiones (usando Redis)
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'sessions'
+SESSION_SAVE_EVERY_REQUEST = False  # Mejora de rendimiento
 
 # Configuración de la cookie de sesión
 SESSION_COOKIE_NAME = 'sessionid'
@@ -415,6 +437,11 @@ LOGGING = {
         'apps.plans': {
             'level': 'DEBUG',
             'propagate': True,
+        },
+        'apps.accounts': {
+            'handlers': ['console', 'console_prod', 'security_file', 'debug_file'],
+            'level': 'INFO',
+            'propagate': False,
         },
         'core': {
             'handlers': ['console', 'console_prod', 'error_file', 'debug_file'],
