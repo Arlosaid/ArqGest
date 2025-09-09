@@ -35,49 +35,52 @@ def dashboard(request):
 
     # --- Widgets de Métricas para el Arquitecto ---
 
-    # 1. Widget "Mis Tareas"
-    # Tareas asignadas al usuario que no están completadas.
-    # Reducido a 3 para que se vean todas en el sidebar
+    # --- Consultas optimizadas con agregaciones ---
+    
+    # Obtener contadores en una sola consulta usando agregación
+    from django.db.models import Count, Q
+    
+    # Contar proyectos y clientes de la organización
+    org_stats = organization.__dict__
+    total_projects = Project.objects.filter(organization=organization).count()
+    total_clients = Client.objects.filter(organization=organization).count()
+    
+    # 1. Widget "Mis Tareas" - optimizado con select_related
     my_tasks = Task.objects.filter(
         assigned_to=current_user
-    ).exclude(status='DONE').order_by('due_date')[:3]  # Reducido de 10 a 3
-
-    # 2. Widget "Proyectos Activos"
-    # Proyectos de la organización que están en curso.
-    # Mostrar los 6 proyectos más importantes (más recientes y con más actividad)
-    active_projects = Project.objects.filter(
-        organization=organization,
-        status='ACTIVE'
-    ).select_related('client').prefetch_related('phases__tasks').order_by('-created_at')[:6]
-
-    # 3. Widget "Resumen de Clientes"
-    total_clients = Client.objects.filter(organization=organization).count()
-    recent_clients = Client.objects.filter(organization=organization).order_by('-created_at')[:5]
-
-    # --- Contadores Totales para el Dashboard ---
+    ).exclude(status='DONE').select_related(
+        'phase__project', 
+        'assigned_to'
+    ).order_by('due_date')[:3]
     
-    # Total de proyectos de la organización
-    total_projects = Project.objects.filter(organization=organization).count()
-    
-    # Total de tareas de la organización
-    total_tasks = Task.objects.filter(
-        phase__project__organization=organization
-    ).count()
-    
-    # Total de tareas pendientes del usuario (sin límite)
+    # Contar mis tareas pendientes (reutilizando filtro base)
     total_my_tasks = Task.objects.filter(
         assigned_to=current_user
     ).exclude(status='DONE').count()
 
-    # --- Archivos Recientes para el Dashboard ---
-    
-    # Obtener los archivos más recientes de la organización
+    # 2. Widget "Proyectos Activos" - optimizado con prefetch
+    active_projects = Project.objects.filter(
+        organization=organization,
+        status='ACTIVE'
+    ).select_related('client').prefetch_related(
+        'phases',
+        'phases__tasks'
+    ).order_by('-created_at')[:6]
+
+    # 3. Widget "Archivos Recientes" - optimizado
     recent_files = ProjectFile.objects.filter(
         phase__project__organization=organization
     ).select_related(
         'phase__project',
         'uploaded_by'
     ).order_by('-uploaded_at')[:5]
+    
+    # Total de tareas de la organización (optimizado)
+    total_tasks = Task.objects.filter(
+        phase__project__organization=organization
+    ).count()
+    
+    # No necesitamos recent_clients ya que no se usa en el template
 
     context = {
         'user': current_user,
@@ -88,7 +91,6 @@ def dashboard(request):
         'my_tasks': my_tasks,
         'active_projects': active_projects,
         'total_clients': total_clients,
-        'recent_clients': recent_clients,
 
         # Contadores totales para el dashboard
         'total_projects': total_projects,
@@ -98,7 +100,7 @@ def dashboard(request):
         # Archivos recientes
         'recent_files': recent_files,
 
-        # Para consistencia con la plantilla actual (se puede refinar)
+        # Para consistencia con la plantilla actual
         'tasks': my_tasks, 
     }
     

@@ -127,5 +127,127 @@
     </div>
 
     <script src="{% static 'js/modal_helpers.js' %}"></script>
+    
+    <!-- JavaScript optimizado para el menú mobile responsive -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const body = document.body;
+        
+        if (!mobileMenuToggle || !sidebar || !sidebarOverlay) {
+            console.warn('Elementos del menú hamburguesa no encontrados');
+            return;
+        }
+        
+        let isTransitioning = false;
+        
+        // Función para abrir el sidebar
+        function openSidebar() {
+            if (isTransitioning) return;
+            isTransitioning = true;
+            
+            sidebar.classList.add('sidebar-open');
+            sidebarOverlay.classList.add('overlay-active');
+            mobileMenuToggle.classList.add('active');
+            body.classList.add('sidebar-mobile-open');
+            
+            setTimeout(() => {
+                isTransitioning = false;
+            }, 300);
+        }
+        
+        // Función para cerrar el sidebar
+        function closeSidebar() {
+            if (isTransitioning) return;
+            isTransitioning = true;
+            
+            sidebar.classList.remove('sidebar-open');
+            sidebarOverlay.classList.remove('overlay-active');
+            mobileMenuToggle.classList.remove('active');
+            body.classList.remove('sidebar-mobile-open');
+            
+            setTimeout(() => {
+                isTransitioning = false;
+            }, 300);
+        }
+        
+        // Toggle del menú al hacer clic en el botón hamburguesa
+        mobileMenuToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (sidebar.classList.contains('sidebar-open')) {
+                closeSidebar();
+            } else {
+                openSidebar();
+            }
+        });
+        
+        // Cerrar sidebar al hacer clic en overlay
+        sidebarOverlay.addEventListener('click', function() {
+            closeSidebar();
+        });
+        
+        // Mejorar manejo de clics en mobile - JavaScript optimizado
+        const navLinks = document.querySelectorAll('.sidebar .nav-link');
+        
+        navLinks.forEach(link => {
+            // Añadir event listeners específicos para mobile
+            link.addEventListener('touchstart', function(e) {
+                // Prevenir el delay de 300ms en mobile
+                if (window.innerWidth <= 991.98) {
+                    e.preventDefault();
+                    // Cerrar sidebar inmediatamente
+                    closeSidebar();
+                    // Simular click para navegación
+                    setTimeout(() => {
+                        this.click();
+                    }, 100);
+                }
+            }, { passive: false });
+            
+            // También manejar clics normales
+            link.addEventListener('click', function(e) {
+                console.log('Link clicked:', this.getAttribute('href') || this.getAttribute('data-href'));
+                
+                // Si estamos en mobile, cerrar el sidebar
+                if (window.innerWidth <= 991.98) {
+                    closeSidebar();
+                }
+                // La navegación ocurre normalmente
+            });
+        });
+        
+        // Cerrar sidebar al redimensionar la ventana si se vuelve desktop
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (window.innerWidth > 991.98) {
+                    closeSidebar();
+                }
+            }, 250);
+        });
+        
+        // Manejar la tecla Escape para cerrar el sidebar
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && sidebar.classList.contains('sidebar-open')) {
+                e.preventDefault();
+                closeSidebar();
+            }
+        });
+        
+        // Prevenir scroll en el fondo cuando el menú está abierto
+        sidebar.addEventListener('touchmove', function(e) {
+            e.stopPropagation();
+        });
+        
+        sidebarOverlay.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+        });
+    });
+    </script>
 </body>
 </html>

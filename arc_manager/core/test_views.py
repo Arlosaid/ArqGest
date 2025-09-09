@@ -65,3 +65,43 @@ def test_resend_api(request):
             'type': str(type(e)),
             'details': 'Ver logs para más información'
         })
+
+@staff_member_required
+@require_http_methods(["GET"])
+def test_400(request):
+    """
+    Vista para probar error 400
+    Acceso: /test-400/
+    """
+    from django.http import HttpResponseBadRequest
+    return HttpResponseBadRequest("Test 400 - Bad Request")
+
+@staff_member_required
+@require_http_methods(["GET"])
+def test_403(request):
+    """
+    Vista para probar error 403
+    Acceso: /test-403/
+    """
+    from django.http import HttpResponseForbidden
+    return HttpResponseForbidden("Test 403 - Forbidden")
+
+@staff_member_required
+@require_http_methods(["GET"])
+def test_404(request):
+    """
+    Vista para probar error 404
+    Acceso: /test-404/
+    """
+    from django.http import HttpResponseNotFound
+    return HttpResponseNotFound("Test 404 - Not Found")
+
+@staff_member_required
+@require_http_methods(["GET"])
+def test_500(request):
+    """
+    Vista para probar error 500
+    Acceso: /test-500/
+    """
+    from django.http import HttpResponseServerError
+    return HttpResponseServerError("Test 500 - Internal Server Error")

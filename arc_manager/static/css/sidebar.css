@@ -12,8 +12,8 @@
   
   /* Colores de texto */
   --side-text-primary: #ffffff;
-  --side-text-secondary: #9ca3af;
-  --side-text-muted: #4a5568;
+  --side-text-secondary: #e2e8f0; /* Más claro y visible */
+  --side-text-muted: #94a3b8;
   
   /* Colores de acento */
   --side-accent-primary: #3b82f6;
@@ -42,7 +42,7 @@
   background: var(--side-bg-primary);
   border-right: 1px solid var(--side-border-color);
   border-top-right-radius: 24px;
-  z-index: 1000;
+  z-index: 1050; /* Z-index jerarquía: Sidebar base */
   transition: var(--side-transition);
   overflow: hidden;
   transform: translateX(0);
@@ -196,14 +196,17 @@
   text-decoration: none !important;
   transition: var(--side-transition) !important;
   position: relative !important;
-  -webkit-font-smoothing: antialiased !important;
-  -moz-osx-font-smoothing: grayscale !important;
-  image-rendering: -webkit-optimize-contrast !important;
-  contain: layout style paint !important;
   border: none !important;
   box-shadow: none !important;
   background: transparent !important;
   gap: 12px !important;
+  cursor: pointer !important;
+  -webkit-tap-highlight-color: rgba(59, 130, 246, 0.1) !important;
+  /* Asegurar que los enlaces sean completamente funcionales */
+  pointer-events: auto !important;
+  z-index: 1060 !important; /* Z-index jerarquía: Enlaces por encima del sidebar */
+  min-height: 48px !important; /* Área de toque mínima para mobile */
+  touch-action: manipulation !important; /* Mejor respuesta táctil */
 }
 
 .sidebar .nav-link:hover {
@@ -212,6 +215,13 @@
   text-decoration: none !important;
   border: none !important;
   box-shadow: none !important;
+  transform: translateX(2px) !important; /* Pequeño desplazamiento en hover */
+}
+
+.sidebar .nav-link:active {
+  background: var(--side-active-bg) !important;
+  color: var(--side-text-primary) !important;
+  transform: translateX(0) !important;
 }
 
 .sidebar .nav-link.active {
@@ -260,6 +270,13 @@
   font-size: 16px;
   transition: var(--side-transition);
   color: inherit;
+  opacity: 0.9; /* Hacer los iconos más visibles */
+  pointer-events: none; /* Los clics pasan al enlace padre */
+}
+
+.sidebar .nav-link:hover .nav-icon {
+  opacity: 1;
+  color: var(--side-text-primary);
 }
 
 .nav-link.active .nav-icon {
@@ -272,6 +289,7 @@
   font-size: 14px;
   flex: 1;
   line-height: 1.2;
+  pointer-events: none; /* Los clics pasan al enlace padre */
 }
 
 /* Header y divisor de secciones dentro de la lista */
@@ -368,11 +386,11 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  z-index: 999;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1040; /* Z-index jerarquía: Overlay por debajo del sidebar */
   opacity: 0;
   transition: opacity 0.3s ease;
-  backdrop-filter: blur(4px);
+  pointer-events: auto; /* Permitir clics para cerrar */
 }
 
 /* Tooltips */
@@ -426,21 +444,23 @@
 @media (max-width: 768px) {
   .sidebar {
       transform: translateX(-100%);
-      width: 100%;
-      max-width: 320px;
+      width: 55vw; /* Un poco más en pantallas pequeñas */
+      max-width: 300px;
+      min-width: 240px;
       box-shadow: none;
   }
   
   .sidebar.sidebar-open {
       transform: translateX(0);
-      box-shadow: 0 0 50px rgba(0, 0, 0, 0.3);
+      box-shadow: 5px 0 20px rgba(0, 0, 0, 0.25);
   }
   
   .sidebar-toggle {
       display: block;
   }
   
-  .sidebar-overlay.show {
+  .sidebar-overlay.show,
+  .sidebar-overlay.overlay-active {
       display: block;
       opacity: 1;
   }
@@ -452,8 +472,9 @@
 
 @media (max-width: 480px) {
   .sidebar {
-      width: 100%;
-      max-width: 100%;
+      width: 70vw; /* 70% del ancho en pantallas muy pequeñas */
+      max-width: 280px;
+      min-width: 220px;
   }
   
   .sidebar-brand {
@@ -464,8 +485,13 @@
       font-size: 16px;
   }
   
-  .nav-link {
-      padding: 14px 20px;
+  .sidebar .nav-link {
+      padding: 14px 20px !important;
+      font-size: 15px !important; /* Texto más grande en mobile */
+      min-height: 48px !important; /* Área de toque más grande */
+      display: flex !important;
+      align-items: center !important;
+      touch-action: manipulation !important; /* Mejor respuesta táctil */
   }
   
   .sidebar-footer {
@@ -528,12 +554,99 @@
   outline-offset: 2px;
 }
 
+/* ===== MEJORAS RESPONSIVE PARA MOBILE ===== */
+
+/* Sidebar overlay para mobile */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1040; /* Z-index jerarquía: Overlay por debajo del sidebar */
+  transition: opacity 0.3s ease;
+  pointer-events: auto; /* Permitir clics para cerrar */
+}
+
+/* Estados del sidebar en mobile */
+@media (max-width: 991.98px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: 50vw; /* Ocupa solo la mitad de la pantalla */
+    max-width: 280px; /* Máximo 280px para pantallas grandes */
+    min-width: 250px; /* Mínimo 250px para pantallas pequeñas */
+    border-radius: 0;
+    z-index: 1001;
+    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.2); /* Sombra más suave */
+  }
+  
+  /* Mejorar contraste en mobile */
+  .sidebar .nav-link {
+    color: #f1f5f9 !important; /* Color más claro en mobile */
+  }
+  
+  .sidebar .nav-link:hover {
+    color: #ffffff !important;
+    background: rgba(59, 130, 246, 0.15) !important; /* Hover más visible */
+  }
+  
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+  
+  .sidebar-overlay.overlay-active {
+    display: block;
+    opacity: 1;
+  }
+  
+  /* Ajustar el contenido principal en mobile */
+  .main-content {
+    margin-left: 0 !important;
+  }
+}
+
+/* Animaciones suaves para el sidebar */
+.sidebar {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-overlay {
+  transition: opacity 0.3s ease;
+}
+
 /* Mejoras de performance */
 .sidebar {
   will-change: transform;
   contain: layout style paint;
 }
 
-.nav-link {
+.sidebar .nav-link {
   will-change: background-color, color;
+  /* Asegurar que los enlaces sean completamente clickeables */
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+
+/* Prevenir scroll del body cuando el sidebar está abierto en mobile */
+body.sidebar-mobile-open {
+  overflow: hidden;
+  /* Eliminado position: fixed que causaba problemas de interacción */
+}
+
+@media (max-width: 991.98px) {
+  body.sidebar-mobile-open {
+    overflow: hidden;
+    /* Eliminado position: fixed que causaba problemas de interacción */
+  }
+  
+  /* Asegurar que el sidebar esté por encima de todo con jerarquía clara */
+  .sidebar.sidebar-open {
+    z-index: 1050; /* Consistente con la jerarquía */
+  }
+  
+  .sidebar-overlay.overlay-active {
+    z-index: 1040; /* Consistente con la jerarquía */
+  }
 }
