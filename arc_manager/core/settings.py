@@ -252,15 +252,22 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Configuración mejorada de WhiteNoise para archivos estáticos
+# Configuración mejorada de WhiteNoise para archivos estáticos con Cache Busting
+# Django 4.2+ usa STORAGES en lugar de STATICFILES_STORAGE
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage" if not DEBUG else "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
+# Mantener compatibilidad con versiones anteriores
 if DEBUG:
-    # En desarrollo, usar el backend estándar
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 else:
-    # En producción, usar WhiteNoise más estable
-    # CompressedManifestStaticFilesStorage puede fallar si hay archivos faltantes
-    # Usar CompressedStaticFilesStorage que es más robusto
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -271,10 +278,16 @@ WHITENOISE_AUTOREFRESH = DEBUG
 
 # Configuración de cache para archivos estáticos en producción
 if not DEBUG:
-    # Cache estático por 1 año para archivos con hash
-    WHITENOISE_MAX_AGE = 31536000
-    # Configurar headers de cache específicos
+    # Cache estático por 1 año para archivos con hash (cache busting)
+    WHITENOISE_MAX_AGE = 31536000  # 1 año en segundos
+    
+    # Headers de cache específicos para diferentes tipos de archivos
     WHITENOISE_STATIC_PREFIX = '/static/'
+    
+    # Configuración avanzada de cache busting
+    # Los archivos con hash se cachean por mucho tiempo
+    # Los archivos sin hash (como HTML) tienen cache corto
+    WHITENOISE_IMMUTABLE_FILE_TEST = lambda path, url: True if '.css' in url or '.js' in url else False
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

@@ -37,9 +37,9 @@ RUN echo '#!/bin/bash\n\
 echo "🔄 Ejecutando migraciones..."\n\
 python manage.py migrate --noinput || echo "⚠️ Error en migraciones - continuando por ahora"\n\
 echo "✅ Migraciones listas"\n\
-echo "📦 Recolectando archivos estáticos..."\n\
-python manage.py collectstatic --noinput --clear || echo "⚠️ Error en collectstatic - continuando"\n\
-echo "✅ Archivos estáticos listos"\n\
+echo "📦 Desplegando archivos estáticos con cache busting..."\n\
+python manage.py deploy_static || echo "⚠️ Error en deploy_static - continuando"\n\
+echo "✅ Archivos estáticos con cache busting listos"\n\
 # echo "🔍 Ejecutando diagnóstico de conexión SMTP..."\n\
 # python manage.py check_smtp_connection\n\
 # echo "✅ Diagnóstico finalizado"\n\
