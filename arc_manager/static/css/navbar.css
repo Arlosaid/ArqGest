@@ -219,19 +219,22 @@
     border: 1px solid var(--nav-border-color);
     border-radius: var(--nav-border-radius);
     box-shadow: var(--nav-shadow);
-    padding: 8px;
+    padding: 8px; /* Vuelto a 8px para más espacio */
     position: absolute;
     top: 100%;
-    right: 0;
+    right: 0; /* Alineado con el borde derecho del botón */
     margin-top: 8px;
     z-index: 1002;
-    min-width: 180px;
-    max-width: 200px;
+    min-width: 180px; /* Aumentado para mejor legibilidad */
+    max-width: 220px; /* Aumentado para acomodar texto */
     display: none;
     opacity: 0;
     visibility: hidden;
     transform: translateY(-10px) scale(0.95);
     transition: var(--nav-transition);
+    /* Permitir que el texto se ajuste */
+    overflow: visible;
+    white-space: normal; /* Permitir wrap del texto */
 }
 
 .dropdown-menu.show {
@@ -250,13 +253,13 @@
 
 /* Información del usuario en el dropdown */
 .dropdown-user-info {
-    padding: 12px;
+    padding: 8px; /* Reducido de 12px a 8px */
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
     border-bottom: 1px solid #f1f5f9;
-    margin-bottom: 8px;
+    margin-bottom: 4px; /* Reducido de 8px a 4px */
 }
 
 .dropdown-user-details {
@@ -279,21 +282,24 @@
 }
 
 .dropdown-item {
-    padding: 8px 12px; /* Más compacto */
-    font-size: 13px; /* Más pequeño */
+    padding: 8px 10px; /* Aumentado para mejor legibilidad */
+    font-size: 13px; /* Vuelto a tamaño legible */
     color: #374151; /* Color oscuro para fondo blanco */
     font-weight: 400;
     transition: all 0.15s ease;
     display: flex; /* Para alinear iconos */
     align-items: center;
-    gap: 8px; /* Espacio entre icono y texto */
-    border-radius: 6px;
-    margin-bottom: 2px;
+    gap: 8px; /* Más espacio entre icono y texto */
+    border-radius: 6px; /* Bordes más grandes para mejor toque */
+    margin-bottom: 2px; /* Más espacio entre items */
     text-decoration: none;
     border: none;
     background: none;
     width: 100%;
     text-align: left;
+    /* Permitir que el texto se ajuste en múltiples líneas si es necesario */
+    white-space: normal;
+    word-wrap: break-word;
 }
 
 .dropdown-item:hover {
@@ -303,9 +309,10 @@
 }
 
 .dropdown-item i {
-    font-size: 14px;
+    font-size: 13px; /* Vuelto a tamaño legible */
     color: #6b7280;
     transition: color 0.15s ease;
+    flex-shrink: 0; /* Evitar que el icono se encoja */
 }
 
 .dropdown-item:hover i {
@@ -364,7 +371,7 @@
         right: 0; /* En móvil va hasta el borde */
         width: 100%; /* Asegurar que ocupe todo el ancho */
         padding: 0 16px; /* Padding normal en móvil */
-        height: 56px;
+        height: 56px; /* Consistente con --arc-layout-navbar-height */
     }
     
     .main-navbar::after {
@@ -406,13 +413,30 @@
         left: 16px !important;
         right: 16px !important;
         max-width: none;
+        transform: none !important; /* Eliminar transformaciones que pueden causar problemas */
+    }
+    
+    /* Ajustar posicionamiento del dropdown en móviles */
+    .dropdown-menu {
+        right: 0 !important; /* Alineado con el botón */
+        left: auto !important;
+        min-width: 180px !important; /* Aumentado para mejor legibilidad */
+        max-width: 200px !important; /* Más espacio para el texto */
+        margin-right: 0 !important;
+        /* Sin transform - alineado naturalmente */
+        transform: translateY(-10px) scale(0.95) !important; /* Solo la animación base */
+        white-space: normal !important; /* Permitir wrap del texto en móvil */
+    }
+    
+    .dropdown-menu.show {
+        transform: translateY(0) scale(1) !important; /* Animación al mostrar */
     }
 }
 
 @media (max-width: 480px) {
     .main-navbar {
         padding: 0 12px;
-        height: 52px;
+        height: 48px; /* Consistente con --arc-layout-navbar-height */
     }
     
     .navbar-right {
@@ -423,6 +447,51 @@
         width: 28px;
         height: 28px;
         font-size: 12px;
+    }
+    
+    /* Dropdown del usuario en pantallas muy pequeñas */
+    .user-dropdown {
+        width: calc(100vw - 24px) !important;
+        left: 12px !important;
+        right: 12px !important;
+        max-width: none !important;
+    }
+    
+    .dropdown-menu {
+        /* Posicionamiento específico para pantallas pequeñas */
+        position: absolute !important;
+        top: 100% !important;
+        bottom: auto !important;
+        right: 0 !important; /* Alineado con el botón */
+        left: auto !important;
+        min-width: 160px !important; /* Aumentado para mejor legibilidad */
+        max-width: 180px !important; /* Más espacio para texto */
+        margin-right: 0 !important;
+        /* Sin desplazamiento horizontal - alineado naturalmente */
+        margin-top: 4px !important;
+        transform: translateY(-10px) scale(0.95) !important; /* Solo animación base */
+        white-space: normal !important; /* Permitir wrap del texto */
+    }
+    
+    .dropdown-menu.show {
+        transform: translateY(0) scale(1) !important; /* Animación al mostrar */
+    }
+    
+    /* Asegurar que el dropdown esté posicionado correctamente */
+    .navbar-user {
+        position: relative !important; /* Cambiar a relative para mejor control */
+    }
+    
+    .navbar-user .dropdown-menu {
+        position: absolute !important;
+        right: 0 !important; /* Alineado con el borde derecho del botón */
+        left: auto !important;
+        /* Sin desplazamiento - alineado naturalmente */
+        transform: translateY(-10px) scale(0.95) !important;
+    }
+    
+    .navbar-user .dropdown-menu.show {
+        transform: translateY(0) scale(1) !important;
     }
 }
 

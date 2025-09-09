@@ -76,7 +76,7 @@
                                 <span class="progress-text-mini">{{ project.progress_percentage }}% completado</span>
                             </div>
                             <div class="project-meta-mini">
-                                <span><i class="fas fa-layer-group"></i> {{ project.phases.count }} fases • {{ project.active_phases_count }} activas</span>
+                                <span><i class="fas fa-layer-group"></i> {{ project.phases.count }} fases</span>
                                 <span><i class="fas fa-tasks"></i> {{ project.pending_tasks_count }}/{{ project.total_tasks_count }} tareas pendientes</span>
                                 {% if project.next_deadline %}
                                 <span><i class="fas fa-clock"></i> Próximo vencimiento: {{ project.next_deadline|date:"d M" }}</span>

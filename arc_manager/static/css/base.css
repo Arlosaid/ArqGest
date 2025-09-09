@@ -881,11 +881,22 @@ body.modal-open {
 }
 
 @media (max-width: 768px) {
+    :root {
+        --arc-layout-navbar-height: 56px; /* Reducido de 64px a 56px en móvil */
+    }
     .main-content {
         margin-left: 0 !important;
+        padding-top: 56px !important; /* Forzar el padding específico */
     }
     .page-container {
         padding: 1.25rem;
+        padding-top: 0.1rem; /* Reducir padding superior específicamente */
+    }
+    
+    /* Reducir margen del header del dashboard en móviles */
+    .dashboard-header-premium {
+        margin-top: 0 !important;
+        margin-bottom: 1.5rem !important;
     }
     .header-content {
         flex-direction: column;
@@ -921,11 +932,21 @@ body.modal-open {
 }
 
 @media (max-width: 480px) {
+    :root {
+        --arc-layout-navbar-height: 48px; /* Aún más reducido en pantallas pequeñas */
+    }
     .main-content {
-        padding-top: 60px;
+        padding-top: 48px !important; /* Consistente con la variable */
     }
     .page-container {
-        padding: 1rem;
+        padding: 0.75rem; /* Reducido de 1rem a 0.75rem */
+        padding-top: 0.1rem; /* Aún menos padding superior */
+    }
+    
+    /* Reducir aún más el margen del header en pantallas pequeñas */
+    .dashboard-header-premium {
+        margin-top: 0 !important;
+        margin-bottom: 1rem !important;
     }
     .card-body, .card-header {
         padding: var(--arc-spacing-sm);
