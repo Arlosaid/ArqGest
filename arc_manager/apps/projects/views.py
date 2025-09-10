@@ -10,6 +10,7 @@ from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
+import logging
 from .models import Project, Task, Phase, PhaseTemplate
 from apps.files.models import ProjectFile
 from .forms import ProjectForm, TaskForm, PhaseTemplateForm, PhaseFormSet
@@ -20,22 +21,28 @@ from django.db.utils import IntegrityError
 from datetime import datetime
 import json
 from django.utils import timezone
-from core.mixins import PageSizeMixin
+from core.mixins import PageSizeMixin, ProjectPageSizeMixin
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.cache import cache
 
+# Configure logger
+logger = logging.getLogger(__name__)
+
 # Project Views
-class ProjectListView(LoginRequiredMixin, PageSizeMixin, ListView):
+class ProjectListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
     model = Project
     template_name = 'projects/project_list.html'
     context_object_name = 'projects'
-    paginate_by = 6
+    paginate_by = 8
 
     def get_queryset(self):
         if hasattr(self.request.user, 'organization') and self.request.user.organization:
+            org_id = self.request.user.organization.id
+            logger.info(f"Fetching projects for organization {org_id} - User: {self.request.user.email}")
             return Project.objects.filter(
                 organization=self.request.user.organization
             ).select_related('client', 'owner').order_by('-created_at')
+        logger.warning(f"User {self.request.user.email} accessed project list without organization")
         return Project.objects.none()
 
     def get_context_data(self, **kwargs):
@@ -74,7 +81,12 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'project'
 
     def get_queryset(self):
-        return super().get_queryset().filter(organization=self.request.user.organization)
+        if hasattr(self.request.user, 'organization') and self.request.user.organization:
+            org_id = self.request.user.organization.id
+            logger.debug(f"Filtering project detail for organization {org_id}")
+            return super().get_queryset().filter(organization=self.request.user.organization)
+        logger.warning(f"User {self.request.user.email} attempted to access project detail without organization")
+        return super().get_queryset().none()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -105,8 +117,8 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
             except (PageNotAnInteger, EmptyPage):
                 return paginator.page(1)
 
-        # Paginación: pestaña Fases (6 por página)
-        phases_page_obj = build_page(phases, 6, 'phases_page')
+        # Paginación: pestaña Fases (8 por página)
+        phases_page_obj = build_page(phases, 8, 'phases_page')
         context['phases_page_obj'] = phases_page_obj
 
         # Simplificado: mostrar todas las fases para archivos (sin paginación)
@@ -185,8 +197,14 @@ class ProjectCreateView(LoginRequiredMixin, CreateView):
         context = self.get_context_data()
         phase_formset = context['phase_formset']
         creation_method = form.cleaned_data.get('phase_creation_method')
+        
+        project_name = form.cleaned_data.get('name')
+        org_id = self.request.user.organization.id if self.request.user.organization else 'None'
+        
+        logger.info(f"Starting project creation - Name: '{project_name}', Org: {org_id}, User: {self.request.user.email}, Method: {creation_method}")
 
         if creation_method == 'manual' and not phase_formset.is_valid():
+            logger.warning(f"Project creation failed - Invalid phase formset for project '{project_name}'")
             return self.form_invalid(form)
 
         form.instance.owner = self.request.user
@@ -194,17 +212,22 @@ class ProjectCreateView(LoginRequiredMixin, CreateView):
         
         try:
             self.object = form.save()
-        except IntegrityError:
-            # Nombre duplicado u otra restricción a nivel BD
+            logger.info(f"Project created successfully - ID: {self.object.id}, Name: '{project_name}', Owner: {self.request.user.email}")
+        except IntegrityError as e:
+            logger.error(f"Project creation failed - IntegrityError for '{project_name}': {str(e)}")
             form.add_error('name', _('Ya existe un proyecto con este nombre en tu organización.'))
             return self.form_invalid(form)
 
-        create_phases_for_project(
-            project=self.object,
-            creation_method=creation_method,
-            phase_template=form.cleaned_data.get('phase_template'),
-            phase_formset=phase_formset
-        )
+        try:
+            create_phases_for_project(
+                project=self.object,
+                creation_method=creation_method,
+                phase_template=form.cleaned_data.get('phase_template'),
+                phase_formset=phase_formset
+            )
+            logger.info(f"Phases created for project {self.object.id} using method: {creation_method}")
+        except Exception as e:
+            logger.error(f"Phase creation failed for project {self.object.id}: {str(e)}", exc_info=True)
 
         return redirect(self.get_success_url())
 
@@ -218,9 +241,16 @@ class ProjectUpdateView(LoginRequiredMixin, UpdateView):
         return super().get_queryset().filter(organization=self.request.user.organization)
 
     def form_valid(self, form):
+        project_name = form.cleaned_data.get('name')
+        project_id = self.object.id
+        logger.info(f"Updating project {project_id} - New name: '{project_name}', User: {self.request.user.email}")
+        
         try:
-            return super().form_valid(form)
-        except IntegrityError:
+            result = super().form_valid(form)
+            logger.info(f"Project {project_id} updated successfully")
+            return result
+        except IntegrityError as e:
+            logger.error(f"Project update failed for {project_id} - IntegrityError: {str(e)}")
             form.add_error('name', _('Ya existe un proyecto con este nombre en tu organización.'))
             return self.form_invalid(form)
 
@@ -231,6 +261,22 @@ class ProjectDeleteView(LoginRequiredMixin, DeleteView):
 
     def get_queryset(self):
         return super().get_queryset().filter(organization=self.request.user.organization)
+    
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        project_name = self.object.name
+        project_id = self.object.id
+        org_id = self.object.organization.id
+        
+        logger.warning(f"Deleting project {project_id} - Name: '{project_name}', Org: {org_id}, User: {request.user.email}")
+        
+        try:
+            result = super().delete(request, *args, **kwargs)
+            logger.info(f"Project {project_id} ('{project_name}') deleted successfully")
+            return result
+        except Exception as e:
+            logger.error(f"Failed to delete project {project_id}: {str(e)}", exc_info=True)
+            raise
 
 # Phase Views
 class PhaseDetailView(LoginRequiredMixin, DetailView):
@@ -372,6 +418,8 @@ def task_create(request, project_pk):
     """Crear una nueva tarea."""
     project = get_object_or_404(Project, pk=project_pk, organization=request.user.organization)
     
+    logger.debug(f"Task creation request for project {project_pk} by user {request.user.email}")
+    
     if request.method == 'POST':
         title = request.POST.get('title')
         description = request.POST.get('description', '')
@@ -404,6 +452,8 @@ def task_create(request, project_pk):
             try:
                 phase = Phase.objects.get(pk=phase_id, project=project)
                 
+                logger.info(f"Creating task '{title}' in project {project_pk}, phase {phase_id} by {request.user.email}")
+                
                 task = Task.objects.create(
                     phase=phase,
                     title=title,
@@ -426,8 +476,10 @@ def task_create(request, project_pk):
                     if assignee_exists:
                         task.assigned_to_id = assigned_to_id
                         task.save()
+                        logger.info(f"Task {task.id} assigned to user {assigned_to_id}")
                     else:
                         # Si el usuario no pertenece a la organización, no asignar y reportar
+                        logger.warning(f"Task creation - Invalid assignee {assigned_to_id} for task '{title}' in project {project_pk}")
                         error_msg = _('El usuario seleccionado no pertenece a tu organización.')
                         messages.error(request, error_msg)
                         accepts_json = 'application/json' in request.headers.get('Accept', '')
@@ -445,6 +497,7 @@ def task_create(request, project_pk):
                 
                 # Solo mostrar mensaje Django para peticiones normales (no AJAX)
                 messages.success(request, f'Tarea "{title}" creada exitosamente.')
+                logger.info(f"Task {task.id} created successfully - Title: '{title}', Project: {project_pk}")
 
                 # Redirecciones para peticiones normales
                 if 'kanban' in request.META.get('HTTP_REFERER', ''):
@@ -452,13 +505,16 @@ def task_create(request, project_pk):
                 return redirect('projects:project-detail', pk=project_pk)
                     
             except Phase.DoesNotExist:
+                logger.error(f"Task creation failed - Phase {phase_id} not found for project {project_pk}")
                 messages.error(request, 'La fase seleccionada no existe.')
         else:
+            logger.warning(f"Task creation failed - Missing title or phase for project {project_pk}")
             messages.error(request, 'El título y la fase son requeridos.')
     
     return redirect('projects:project-detail', pk=project_pk)
 
-class TaskListView(LoginRequiredMixin, PageSizeMixin, ListView):
+class TaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
+    paginate_by = 8
     model = Task
     template_name = 'projects/task_list.html'
     context_object_name = 'tasks'
@@ -479,11 +535,11 @@ class TaskListView(LoginRequiredMixin, PageSizeMixin, ListView):
         context['today'] = timezone.now().date()
         return context
 
-class MyTaskListView(LoginRequiredMixin, PageSizeMixin, ListView):
+class MyTaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
     model = Task
     template_name = 'projects/my_tasks.html'
     context_object_name = 'tasks'
-    paginate_by = 12
+    paginate_by = 8
 
     def get_queryset(self):
         queryset = Task.objects.filter(
@@ -572,6 +628,8 @@ def update_task_status(request, task_pk):
     """Actualizar el estado de una tarea."""
     try:
         task = get_object_or_404(Task, pk=task_pk, phase__project__organization=request.user.organization)
+        old_status = task.status
+        
         # Soportar JSON y x-www-form-urlencoded
         status = None
         if request.content_type and 'application/json' in request.content_type:
@@ -586,13 +644,13 @@ def update_task_status(request, task_pk):
         if status in dict(Task.Status.choices):
             task.status = status
             task.save()
+            logger.info(f"Task {task_pk} status updated - From '{old_status}' to '{status}' by {request.user.email}")
             return JsonResponse({'success': True})
         else:
+            logger.warning(f"Invalid status '{status}' provided for task {task_pk} by {request.user.email}")
             return JsonResponse({'success': False, 'error': 'Estado inválido'})
-    except Exception:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error('update_task_status failed', exc_info=True)
+    except Exception as e:
+        logger.error(f'update_task_status failed for task {task_pk}: {str(e)}', exc_info=True)
         return JsonResponse({'success': False, 'error': 'Unexpected error'})
 
 @login_required
@@ -601,6 +659,9 @@ def move_task(request, task_pk):
     """Mover una tarea a otra fase."""
     try:
         task = get_object_or_404(Task, pk=task_pk, phase__project__organization=request.user.organization)
+        old_phase_id = task.phase.id
+        old_phase_name = task.phase.name
+        
         # Soportar JSON y x-www-form-urlencoded
         phase_id = None
         if request.content_type and 'application/json' in request.content_type:
@@ -617,15 +678,16 @@ def move_task(request, task_pk):
                 new_phase = Phase.objects.get(pk=phase_id, project=task.phase.project)
                 task.phase = new_phase
                 task.save()
+                logger.info(f"Task {task_pk} moved - From phase '{old_phase_name}' (ID: {old_phase_id}) to '{new_phase.name}' (ID: {phase_id}) by {request.user.email}")
                 return JsonResponse({'success': True})
             except Phase.DoesNotExist:
+                logger.warning(f"Move task failed - Phase {phase_id} not found for task {task_pk}")
                 return JsonResponse({'success': False, 'error': 'Fase no encontrada'})
         else:
+            logger.warning(f"Move task failed - No phase_id provided for task {task_pk}")
             return JsonResponse({'success': False, 'error': 'ID de fase requerido'})
-    except Exception:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error('move_task failed', exc_info=True)
+    except Exception as e:
+        logger.error(f'move_task failed for task {task_pk}: {str(e)}', exc_info=True)
         return JsonResponse({'success': False, 'error': 'Unexpected error'})
 
 @login_required
@@ -642,10 +704,7 @@ def task_edit(request, pk):
         assigned_to_id = request.POST.get('assigned_to')
         phase_id = request.POST.get('phase')
         
-        # Debug logging
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info(f"Task edit - POST data: title='{title}', description='{description}', priority='{priority}'")
+        logger.info(f"Editing task {pk} - Title: '{title}', Status: {status}, Priority: {priority}, User: {request.user.email}")
         
         if title:
             task.title = title.strip()
@@ -673,16 +732,14 @@ def task_edit(request, pk):
                 except Phase.DoesNotExist:
                     pass
             task.save()
+            logger.info(f"Task {pk} updated successfully - New title: '{task.title}'")
             
             # Verificar y forzar actualización si es necesario
             task.refresh_from_db()
             if task.description != (description.strip() if description else ''):
                 Task.objects.filter(pk=task.pk).update(description=description.strip() if description else '')
                 task.refresh_from_db()
-                logger.info(f"Forced description update for task {task.id}")
-            
-            # Debug logging después de guardar
-            logger.info(f"Task saved - ID: {task.id}, title: '{task.title}', description: '{task.description}'")
+                logger.debug(f"Forced description update for task {pk}")
             
             # Respuesta para htmx: devolver JSON para actualizar la tarjeta y cerrar modal
             # Solo mostrar mensaje Django para peticiones normales (no AJAX)
@@ -703,6 +760,7 @@ def task_edit(request, pk):
             else:
                 return redirect('projects:project-detail', pk=task.phase.project.pk)
         else:
+            logger.warning(f"Task edit failed - Missing title for task {pk}")
             messages.error(request, 'El título es requerido.')
     
     # Para GET, mostrar formulario de edición
@@ -725,8 +783,18 @@ def task_edit(request, pk):
 def task_delete(request, pk):
     """Eliminar una tarea (JSON)."""
     task = get_object_or_404(Task, pk=pk, phase__project__organization=request.user.organization)
-    task.delete()
-    return JsonResponse({'success': True})
+    task_title = task.title
+    project_id = task.phase.project.id
+    
+    logger.warning(f"Deleting task {pk} - Title: '{task_title}', Project: {project_id}, User: {request.user.email}")
+    
+    try:
+        task.delete()
+        logger.info(f"Task {pk} ('{task_title}') deleted successfully")
+        return JsonResponse({'success': True})
+    except Exception as e:
+        logger.error(f"Failed to delete task {pk}: {str(e)}", exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Failed to delete task'})
 
 @login_required
 def phase_files_paginated(request, project_id, phase_id):
@@ -792,7 +860,8 @@ def phase_files_paginated(request, project_id, phase_id):
     return render(request, 'projects/partials/files_paginated.html', context)
 
 # PhaseTemplate Views
-class PhaseTemplateListView(LoginRequiredMixin, PageSizeMixin, ListView):
+class PhaseTemplateListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
+    paginate_by = 8
     model = PhaseTemplate
     template_name = 'projects/phasetemplate_list.html'
     context_object_name = 'templates'
