@@ -182,8 +182,22 @@ document.addEventListener('DOMContentLoaded', function () {
       });
       const ok = res.ok;
       if (ok) {
-        const row = document.querySelector(`tr[data-task-id="${taskId}"]`);
-        if (row) row.remove();
+        // Buscar el elemento de tarea (puede ser tr, div, etc.)
+        const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
+        if (taskElement) {
+          // Añadir animación de salida
+          taskElement.style.transition = 'all 0.3s ease';
+          taskElement.style.opacity = '0';
+          taskElement.style.transform = 'scale(0.8)';
+          setTimeout(() => taskElement.remove(), 300);
+        }
+        
+        // Disparar evento para actualizar otras vistas
+        document.dispatchEvent(new CustomEvent('taskDeleted', { detail: { taskId } }));
+        
+        if (window.notifications) {
+          window.notifications.success('Tarea eliminada correctamente');
+        }
       } else {
         if (window.notifications) {
           window.notifications.error('Error al eliminar');
@@ -197,16 +211,121 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  const phaseFilter = document.getElementById('phaseFilter');
-  if (phaseFilter) {
-    phaseFilter.addEventListener('change', () => {
-      const selected = phaseFilter.value;
-      const cards = document.querySelectorAll('#compactTasksGrid .task-compact-card');
-      cards.forEach(card => {
-        const phaseId = card.getAttribute('data-phase-id');
-        card.style.display = (!selected || selected === phaseId) ? '' : 'none';
+  // Configurar paginación de tareas responsive
+  function setupTasksPagination() {
+    const tasksContainer = document.getElementById('tasksContainer');
+    if (!tasksContainer) return;
+
+    const projectId = tasksContainer.getAttribute('data-project-id');
+    const paginatedUrl = tasksContainer.getAttribute('data-paginated-url');
+    if (!projectId || !paginatedUrl) return;
+
+    // Detectar si es móvil usando media query
+    const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+    
+    // Función para cargar página
+    async function loadTasksPage(page = 1, phaseFilter = '') {
+      const perPage = isMobile() ? 5 : 9;
+      const params = new URLSearchParams({
+        page: page,
+        per_page: perPage,
+        phase: phaseFilter
       });
+
+      try {
+        const response = await fetch(`${paginatedUrl}?${params}`);
+        if (!response.ok) throw new Error('Error en la respuesta');
+        
+        const html = await response.text();
+        tasksContainer.innerHTML = html;
+        
+        // Re-configurar event listeners después de cargar contenido
+        setupPaginationEvents();
+        
+      } catch (error) {
+        console.error('Error cargando tareas:', error);
+        if (window.notifications) {
+          window.notifications.error('Error cargando las tareas');
+        }
+      }
+    }
+
+    // Configurar event listeners de paginación
+    function setupPaginationEvents() {
+      // Enlaces de paginación
+      tasksContainer.querySelectorAll('.pagination .page-link[data-page]').forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const page = link.getAttribute('data-page');
+          const phaseFilter = document.getElementById('phaseFilter')?.value || '';
+          loadTasksPage(page, phaseFilter);
+        });
+      });
+    }
+
+    // Configurar filtro de fase con paginación
+    const phaseFilter = document.getElementById('phaseFilter');
+    if (phaseFilter) {
+      phaseFilter.addEventListener('change', () => {
+        const selected = phaseFilter.value;
+        loadTasksPage(1, selected); // Siempre volver a página 1 al filtrar
+      });
+    }
+
+    // Recargar cuando cambie el tamaño de pantalla (responsive)
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        const currentPage = document.querySelector('.pagination .page-item.active .page-link');
+        const page = currentPage ? currentPage.textContent.trim() : '1';
+        const phaseFilterValue = document.getElementById('phaseFilter')?.value || '';
+        loadTasksPage(page, phaseFilterValue);
+      }, 300);
     });
+
+    // Configurar eventos iniciales
+    setupPaginationEvents();
   }
+
+  // Ejecutar configuración de paginación
+  setupTasksPagination();
+
+  // También ejecutar cuando se actualice contenido HTMX o cuando se cree una nueva tarea
+  document.body.addEventListener('htmx:afterSwap', setupTasksPagination);
+  
+  // Función para recargar tareas (reutilizable)
+  function reloadTasks() {
+    const tasksContainer = document.getElementById('tasksContainer');
+    if (tasksContainer) {
+      const phaseFilter = document.getElementById('phaseFilter')?.value || '';
+      const projectId = tasksContainer.getAttribute('data-project-id');
+      const paginatedUrl = tasksContainer.getAttribute('data-paginated-url');
+      if (projectId && paginatedUrl) {
+        // Recargar primera página
+        const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+        const perPage = isMobile() ? 5 : 9;
+        const params = new URLSearchParams({
+          page: 1,
+          per_page: perPage,
+          phase: phaseFilter
+        });
+        
+        fetch(`${paginatedUrl}?${params}`)
+          .then(response => response.text())
+          .then(html => {
+            tasksContainer.innerHTML = html;
+            setupTasksPagination();
+          })
+          .catch(error => console.error('Error recargando tareas:', error));
+      }
+    }
+  }
+
+  // Recargar tareas después de crear una nueva tarea
+  document.addEventListener('taskCreated', reloadTasks);
+  
+  // Recargar tareas después de actualizar una tarea
+  document.addEventListener('taskUpdated', reloadTasks);
 });
 

@@ -22,22 +22,19 @@ class BaseAnimation {
 
 // Función global para abrir modal de tareas
 window.openTaskModal = function(type, taskId) {
-    const modal = new bootstrap.Modal(document.getElementById('taskUniversalModal'));
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('taskUniversalModal'));
     const modalContent = document.getElementById('taskUniversalContent');
     const modalTitle = document.getElementById('taskUniversalModalLabel');
     
-    if (type === 'edit') modalTitle.textContent = 'Editar Tarea';
-    else if (type === 'detail') modalTitle.textContent = 'Detalles de la Tarea';
+    if (type === 'detail') modalTitle.textContent = 'Detalles de la Tarea';
     
     modalContent.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><p class="mt-2 text-muted">Cargando...</p></div>';
     modal.show();
     
     let url = '';
     try {
-        if (type === 'edit') {
-            url = `/projects/tasks/${taskId}/edit/`;
-        } else if (type === 'detail') {
-            url = `/projects/tasks/${taskId}/`;
+        if (type === 'detail') {
+            url = (document.body.dataset.taskDetailUrlTemplate || '').replace('0', taskId);
         }
     } catch (error) {
         console.error('Error building URL:', error);

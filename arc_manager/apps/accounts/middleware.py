@@ -9,6 +9,7 @@ from django.template import loader
 import logging
 import re
 from django.utils import timezone
+from core.error_codes import log_operation, SystemErrorCodes
 
 logger = logging.getLogger('apps.accounts')
 User = get_user_model()
@@ -166,24 +167,35 @@ class ErrorHandlingMiddleware(MiddlewareMixin):
     def process_exception(self, request, exception):
         if not settings.DEBUG:
             client_ip = self.get_client_ip(request)
-            user_info = 'Anónimo'
+            user_email = 'anonymous'
             
             if hasattr(request, 'user') and request.user.is_authenticated:
-                user_info = f"{request.user.email} (ID: {request.user.pk})"
+                user_email = request.user.email
             
-            logger.error(
-                f"Error no manejado - Usuario: {user_info}, IP: {client_ip}, "
-                f"Path: {request.path}, Método: {request.method}, Error: {str(exception)}",
-                exc_info=True,
-                extra={
-                    'request': request,
-                    'user': request.user if hasattr(request, 'user') else None,
-                    'path': request.path,
-                    'method': request.method,
-                    'user_agent': request.META.get('HTTP_USER_AGENT', ''),
-                    'referer': request.META.get('HTTP_REFERER', ''),
-                    'client_ip': client_ip,
-                }
+            # Determinar el código de error según el tipo de excepción
+            error_code = SystemErrorCodes.SYSTEM_MIDDLEWARE_UNEXPECTED_ERROR
+            if 'DoesNotExist' in str(type(exception)):
+                error_code = SystemErrorCodes.SYSTEM_DB_INTEGRITY_ERROR
+            elif 'PermissionDenied' in str(type(exception)):
+                error_code = SystemErrorCodes.SYSTEM_MIDDLEWARE_PERMISSION_ERROR
+            elif 'ValidationError' in str(type(exception)):
+                error_code = SystemErrorCodes.SYSTEM_MIDDLEWARE_AUTH_ERROR
+            
+            # Log estructurado del error 500
+            log_operation(
+                'UNHANDLED_EXCEPTION',
+                user_email,
+                logger,
+                level='ERROR',
+                error_code=error_code,
+                path=request.path,
+                method=request.method,
+                client_ip=client_ip,
+                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                referer=request.META.get('HTTP_REFERER', ''),
+                exception_type=str(type(exception).__name__),
+                exception_message=str(exception),
+                exception=exception
             )
             
             # Para requests AJAX, devolver JSON

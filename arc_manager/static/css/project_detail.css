@@ -260,6 +260,31 @@
     font-weight: 500;
 }
 
+/* Estilos específicos para botones de acción */
+.task-action-view {
+    background-color: #10b981;
+    color: white;
+    border-color: #10b981;
+}
+
+.task-action-view:hover {
+    background-color: #059669;
+    color: white;
+    border-color: #059669;
+}
+
+.task-action-delete {
+    background-color: #ef4444;
+    color: white;
+    border-color: #ef4444;
+}
+
+.task-action-delete:hover {
+    background-color: #dc2626;
+    color: white;
+    border-color: #dc2626;
+}
+
 /* Responsive para botones de acción */
 @media (max-width: 768px) {
     .task-action-btn span {

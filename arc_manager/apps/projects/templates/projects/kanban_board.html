@@ -138,14 +138,18 @@
                                 
                                 <!-- Acciones mejoradas y bien alineadas -->
                                 <div class="task-actions">
-                                    <button class="btn btn-outline-primary" onclick="openTaskModal('edit', {{ task.pk }})"
-                                            title="{% trans 'Editar tarea' %}">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
                                     <button class="btn btn-outline-secondary" onclick="openTaskModal('detail', {{ task.pk }})"
                                             title="{% trans 'Ver detalles' %}">
                                         <i class="fas fa-eye"></i>
                                     </button>
+                                    {% if user.is_org_admin %}
+                                    <button class="btn btn-outline-danger" 
+                                            data-action="delete-task" 
+                                            data-task-id="{{ task.pk }}"
+                                            title="{% trans 'Eliminar tarea' %}">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -217,14 +221,18 @@
                                 
                                 <!-- Acciones mejoradas y bien alineadas -->
                                 <div class="task-actions">
-                                    <button class="btn btn-outline-primary" onclick="openTaskModal('edit', {{ task.pk }})"
-                                            title="{% trans 'Editar tarea' %}">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
                                     <button class="btn btn-outline-secondary" onclick="openTaskModal('detail', {{ task.pk }})"
                                             title="{% trans 'Ver detalles' %}">
                                         <i class="fas fa-eye"></i>
                                     </button>
+                                    {% if user.is_org_admin %}
+                                    <button class="btn btn-outline-danger" 
+                                            data-action="delete-task" 
+                                            data-task-id="{{ task.pk }}"
+                                            title="{% trans 'Eliminar tarea' %}">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -296,14 +304,18 @@
                                 
                                 <!-- Acciones mejoradas y bien alineadas -->
                                 <div class="task-actions">
-                                    <button class="btn btn-outline-primary" onclick="openTaskModal('edit', {{ task.pk }})"
-                                            title="{% trans 'Editar tarea' %}">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
                                     <button class="btn btn-outline-secondary" onclick="openTaskModal('detail', {{ task.pk }})"
                                             title="{% trans 'Ver detalles' %}">
                                         <i class="fas fa-eye"></i>
                                     </button>
+                                    {% if user.is_org_admin %}
+                                    <button class="btn btn-outline-danger" 
+                                            data-action="delete-task" 
+                                            data-task-id="{{ task.pk }}"
+                                            title="{% trans 'Eliminar tarea' %}">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -375,14 +387,18 @@
                                 
                                 <!-- Acciones mejoradas y bien alineadas -->
                                 <div class="task-actions">
-                                    <button class="btn btn-outline-primary" onclick="openTaskModal('edit', {{ task.pk }})"
-                                            title="{% trans 'Editar tarea' %}">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
                                     <button class="btn btn-outline-secondary" onclick="openTaskModal('detail', {{ task.pk }})"
                                             title="{% trans 'Ver detalles' %}">
                                         <i class="fas fa-eye"></i>
                                     </button>
+                                    {% if user.is_org_admin %}
+                                    <button class="btn btn-outline-danger" 
+                                            data-action="delete-task" 
+                                            data-task-id="{{ task.pk }}"
+                                            title="{% trans 'Eliminar tarea' %}">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -468,7 +484,6 @@
 {% block extra_js %}
 <script src="{% static 'js/kanban.js' %}?v=1.5"></script>
 <script>
-document.body.dataset.taskEditUrlTemplate = `{% url 'projects:task-edit' 0 %}`;
 document.body.dataset.taskDetailUrlTemplate = `{% url 'projects:task-detail' 0 %}`;
 document.body.dataset.updateTaskStatusUrlTemplate = `{% url 'projects:update-task-status' 0 %}`;
 </script>

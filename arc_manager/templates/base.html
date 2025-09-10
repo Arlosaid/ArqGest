@@ -25,7 +25,7 @@
     <link href="{% static 'css/notifications.css' %}?v=1.0" rel="stylesheet">
     
     <!-- Modal de Detalles de Tareas con Estilos Mejorados -->
-    <link href="{% static 'css/task_detail_modal.css' %}?v=4.0" rel="stylesheet">
+    <link href="{% static 'css/task_detail_modal.css' %}?v=5.1" rel="stylesheet">
     
     <!-- Estilos adicionales específicos por página -->
     {% block extra_css %}{% endblock %}
@@ -91,7 +91,6 @@
     <script src="{% static 'js/subscription-notifications.js' %}?v=1.0"></script>
     
     <!-- Modal de Edición de Tareas -->
-    <script src="{% static 'js/task_edit_modal.js' %}?v=2.0"></script>
     
     <!-- Scripts adicionales específicos por página -->
     {% block extra_js %}{% endblock %}
@@ -117,7 +116,6 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="taskUniversalModalLabel">Tarea</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" id="taskUniversalContent">
                     <!-- El contenido se carga dinámicamente -->

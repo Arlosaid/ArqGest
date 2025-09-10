@@ -112,6 +112,10 @@ MIDDLEWARE = [
     'apps.accounts.middleware.PasswordChangeRequiredMiddleware',
     'apps.accounts.middleware.SuperuserRestrictMiddleware',
     'apps.orgs.middleware.OrganizationContextMiddleware',
+    # Logging middlewares - DEBEN ir antes del ErrorHandlingMiddleware
+    'core.logging_middleware.Enhanced500LoggingMiddleware',
+    'core.logging_middleware.DatabaseErrorLoggingMiddleware',
+    'core.logging_middleware.PerformanceLoggingMiddleware',
     'apps.accounts.middleware.ErrorHandlingMiddleware',
     'core.mixins.PerformanceMiddleware',
 ]
@@ -381,17 +385,19 @@ LOGGING = {
             '()': 'django.utils.log.CallbackFilter',
             'callback': lambda record: 'Payment.created_at' not in record.getMessage()
         },
+        'clean_request_logs': {'()': 'core.logging_filters.RequestLoggingFilter'},
+        'filter_sensitive_data': {'()': 'core.logging_filters.SensitiveDataFilter'},
     },
     'handlers': {
         'console': {
             'level': 'INFO',
-            'filters': ['require_debug_true', 'ignore_timezone_warnings', 'ignore_payment_warnings'],
+            'filters': ['require_debug_true', 'ignore_timezone_warnings', 'ignore_payment_warnings', 'clean_request_logs', 'filter_sensitive_data'],
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
         'console_prod': {
             'level': 'INFO',
-            'filters': ['require_debug_false', 'ignore_timezone_warnings', 'ignore_payment_warnings'],
+            'filters': ['require_debug_false', 'ignore_timezone_warnings', 'ignore_payment_warnings', 'clean_request_logs', 'filter_sensitive_data'],
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
@@ -434,7 +440,7 @@ LOGGING = {
         },
         'django.request': {
             'handlers': ['error_file', 'mail_admins'],
-            'level': 'ERROR',
+            'level': 'INFO',
             'propagate': False,
         },
         'django.security': {
@@ -457,6 +463,11 @@ LOGGING = {
             'propagate': False,
         },
         'core': {
+            'handlers': ['console', 'console_prod', 'error_file', 'debug_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'core.error_handler': {
             'handlers': ['console', 'console_prod', 'error_file', 'debug_file'],
             'level': 'INFO',
             'propagate': False,

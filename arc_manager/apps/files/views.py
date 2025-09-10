@@ -8,9 +8,13 @@ from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from .models import ProjectFile, project_file_path
 from apps.projects.models import Phase
+from core.error_codes import log_operation, FileErrorCodes
 import os
 import hashlib
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 try:
     import boto3
@@ -24,10 +28,29 @@ def upload_file(request, project_id, phase_id):
     phase = get_object_or_404(Phase, id=phase_id, project_id=project_id)
     
     if request.user.organization != phase.project.organization:
+        log_operation(
+            'FILE_UPLOAD_ERROR',
+            request.user.email,
+            logger,
+            level='WARNING',
+            error_code=FileErrorCodes.FILE_UPLOAD_PERMISSION_DENIED,
+            project_id=project_id,
+            phase_id=phase_id
+        )
         return HttpResponseForbidden(_("You do not have permission to access this resource."))
 
     if not request.FILES.getlist('files'):
         # This case might not be hit if the input is 'required', but it's good practice.
+        log_operation(
+            'FILE_UPLOAD_ERROR',
+            request.user.email,
+            logger,
+            level='WARNING',
+            error_code=FileErrorCodes.FILE_UPLOAD_UNEXPECTED_ERROR,
+            project_id=project_id,
+            phase_id=phase_id,
+            reason='no_files_selected'
+        )
         messages.error(request, "No se seleccionaron archivos.")
         if request.headers.get('HX-Request') == 'true':
             return JsonResponse({"error": "No se seleccionaron archivos."}, status=400)
@@ -42,12 +65,35 @@ def upload_file(request, project_id, phase_id):
         ext = os.path.splitext(uploaded_file.name)[1].replace('.', '').upper()
         if ext not in ALLOWED_EXTENSIONS:
             error_msg = f"Tipo de archivo no permitido: {ext}"
+            log_operation(
+                'FILE_UPLOAD_ERROR',
+                request.user.email,
+                logger,
+                level='WARNING',
+                error_code=FileErrorCodes.FILE_UPLOAD_INVALID_TYPE,
+                project_id=project_id,
+                phase_id=phase_id,
+                filename=uploaded_file.name,
+                extension=ext
+            )
             messages.error(request, error_msg)
             if request.headers.get('HX-Request') == 'true':
                 return JsonResponse({"error": error_msg}, status=400)
             return HttpResponse(status=400)
         if size_mb > MAX_FILE_SIZE_MB:
             error_msg = f"El archivo excede el límite de tamaño ({MAX_FILE_SIZE_MB} MB)"
+            log_operation(
+                'FILE_UPLOAD_ERROR',
+                request.user.email,
+                logger,
+                level='WARNING',
+                error_code=FileErrorCodes.FILE_UPLOAD_TOO_LARGE,
+                project_id=project_id,
+                phase_id=phase_id,
+                filename=uploaded_file.name,
+                size_mb=size_mb,
+                max_size_mb=MAX_FILE_SIZE_MB
+            )
             messages.error(request, error_msg)
             if request.headers.get('HX-Request') == 'true':
                 return JsonResponse({"error": error_msg}, status=413)
