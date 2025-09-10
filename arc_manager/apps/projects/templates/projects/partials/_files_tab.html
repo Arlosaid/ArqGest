@@ -42,9 +42,35 @@
                                     </div>
                                 </div>
                                 <button class="btn btn-primary upload-btn" type="submit" disabled onclick="console.log('Upload started - Optimized HTMX solution'); console.log('Target #files-list-{{ phase.id }} exists:', !!document.getElementById('files-list-{{ phase.id }}')); return true;">
-                                    <i class="fas fa-upload"></i>
-                                    <span class="ms-1">{% trans "Subir" %}</span>
+                                    <i class="fas fa-upload upload-icon"></i>
+                                    <span class="upload-text ms-1">{% trans "Subir" %}</span>
                                 </button>
+                            </div>
+                            
+                            <!-- Indicador de progreso - inicialmente oculto -->
+                            <div class="upload-progress-container" id="upload-progress-{{ phase.id }}" style="display: none;">
+                                <div class="upload-status mb-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="upload-status-text">{% trans "Preparando archivos..." %}</span>
+                                        <span class="upload-percentage">0%</span>
+                                    </div>
+                                </div>
+                                <div class="progress upload-progress-bar">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                         role="progressbar" 
+                                         style="width: 0%;" 
+                                         aria-valuenow="0" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                    </div>
+                                </div>
+                                <div class="upload-details mt-2">
+                                    <small class="text-muted upload-details-text">
+                                        <i class="fas fa-clock me-1"></i>
+                                        <span class="upload-time">{% trans "Calculando tiempo..." %}</span>
+                                        <span class="upload-speed ms-2"></span>
+                                    </small>
+                                </div>
                             </div>
                         </form>
 
@@ -111,19 +137,19 @@ document.body.addEventListener('htmx:afterRequest', function(evt) {
         // Limpiar el formulario después de subir exitosamente
         const form = evt.target.closest('form');
         if (form && form.classList.contains('file-upload-form')) {
-            form.reset();
-            
             // Resetear estado de selección de archivos
             const fileInput = form.querySelector('.file-input');
             if (fileInput) {
                 const phaseId = fileInput.id.split('-').pop();
                 const selectedFilesDiv = document.getElementById('selected-files-' + phaseId);
-                const uploadBtn = form.querySelector('.upload-btn');
                 const fileLabel = form.querySelector('.file-label-text');
                 
-                selectedFilesDiv.style.display = 'none';
-                uploadBtn.disabled = true;
-                fileLabel.textContent = 'Seleccionar archivos';
+                // Solo resetear si no está siendo manejado por UploadProgressManager
+                if (!window.uploadProgressManager || !window.uploadProgressManager.activeUploads.has(phaseId)) {
+                    selectedFilesDiv.style.display = 'none';
+                    fileLabel.textContent = 'Seleccionar archivos';
+                    form.reset();
+                }
             }
         }
     }

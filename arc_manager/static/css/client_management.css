@@ -1138,6 +1138,84 @@
     text-decoration: none;
 }
 
+/* ===== UPLOAD PROGRESS STYLES ===== */
+.upload-progress-container {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.upload-status-text {
+    font-weight: 500;
+    color: #495057;
+}
+
+.upload-percentage {
+    font-weight: 600;
+    color: #007bff;
+    font-size: 0.9rem;
+}
+
+.upload-progress-bar {
+    height: 8px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.upload-progress-bar .progress-bar {
+    background: linear-gradient(90deg, #007bff 0%, #0056b3 100%);
+    transition: width 0.3s ease;
+}
+
+.upload-details-text {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.upload-time {
+    color: #6c757d;
+}
+
+.upload-speed {
+    color: #28a745;
+    font-weight: 500;
+}
+
+/* Estados del botón de upload */
+.upload-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.upload-btn .upload-icon.fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Animaciones suaves */
+.upload-progress-container {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1400px) {
     .page-container {
