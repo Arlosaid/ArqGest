@@ -7,6 +7,14 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => { statusEl.textContent = ''; }, 3000);
       }
     }
+    
+    // Manejar subidas de archivos exitosas
+    if (evt.target.classList.contains('file-upload-form') && evt.detail.successful) {
+      // Mostrar notificación de éxito usando el sistema moderno
+      if (window.notifications) {
+        window.notifications.success('Archivo(s) subido(s) exitosamente');
+      }
+    }
   });
 
   document.body.addEventListener('htmx:afterOnLoad', function(evt) {

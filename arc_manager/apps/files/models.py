@@ -3,6 +3,9 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from apps.projects.models import Phase
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 def project_file_path(instance, filename):
     """
@@ -129,15 +132,124 @@ class ProjectFile(models.Model):
             return 'fa-file'
 
     def save(self, *args, **kwargs):
+        from core.error_codes import log_operation, FileErrorCodes
+        
+        is_new = self.pk is None
+        
         # Completar metadatos si están disponibles
         try:
             if self.file and hasattr(self.file, 'size'):
                 self.size_bytes = int(getattr(self.file, 'size', 0) or 0)
-        except Exception:
-            pass
+        except Exception as e:
+            # Log error en procesamiento de metadatos
+            log_operation(
+                'FILE_METADATA_ERROR',
+                getattr(self.uploaded_by, 'email', 'system'),
+                logger,
+                level='WARNING',
+                error_code=FileErrorCodes.FILE_PROCESSING_METADATA_EXTRACTION_ERROR,
+                file_id=self.pk,
+                error_message=str(e)
+            )
+            
         try:
             name = (self.file.name if self.file else '')
             self.ext_upper = os.path.splitext(name)[1].replace('.', '').upper() if name else ''
-        except Exception:
-            pass
-        super().save(*args, **kwargs)
+        except Exception as e:
+            # Log error en procesamiento de extensión
+            log_operation(
+                'FILE_EXTENSION_ERROR',
+                getattr(self.uploaded_by, 'email', 'system'),
+                logger,
+                level='WARNING',
+                error_code=FileErrorCodes.FILE_PROCESSING_METADATA_EXTRACTION_ERROR,
+                file_id=self.pk,
+                filename=name,
+                error_message=str(e)
+            )
+            
+        try:
+            super().save(*args, **kwargs)
+            
+            # Log exitoso de creación o actualización
+            if is_new:
+                log_operation(
+                    'FILE_MODEL_CREATED',
+                    getattr(self.uploaded_by, 'email', 'system'),
+                    logger,
+                    level='INFO',
+                    file_id=self.pk,
+                    filename=self.filename,
+                    size_bytes=self.size_bytes,
+                    extension=self.ext_upper,
+                    project_id=self.phase.project.id if self.phase else None,
+                    phase_id=self.phase.id if self.phase else None
+                )
+            else:
+                log_operation(
+                    'FILE_MODEL_UPDATED',
+                    getattr(self.uploaded_by, 'email', 'system'),
+                    logger,
+                    level='DEBUG',
+                    file_id=self.pk,
+                    filename=self.filename,
+                    size_bytes=self.size_bytes
+                )
+                
+        except Exception as e:
+            # Log error en guardado del modelo
+            log_operation(
+                'FILE_MODEL_SAVE_ERROR',
+                getattr(self.uploaded_by, 'email', 'system'),
+                logger,
+                level='ERROR',
+                error_code=FileErrorCodes.FILE_UPLOAD_STORAGE_ERROR,
+                filename=self.filename,
+                error_message=str(e)
+            )
+            raise
+    
+    def delete(self, *args, **kwargs):
+        from core.error_codes import log_operation, FileErrorCodes
+        
+        # Guardar información antes de eliminar
+        file_info = {
+            'id': self.pk,
+            'filename': self.filename,
+            'size_bytes': self.size_bytes,
+            'extension': self.ext_upper,
+            'project_id': self.phase.project.id if self.phase else None,
+            'phase_id': self.phase.id if self.phase else None,
+            'user_email': getattr(self.uploaded_by, 'email', 'system')
+        }
+        
+        try:
+            super().delete(*args, **kwargs)
+            
+            # Log exitoso de eliminación del modelo
+            log_operation(
+                'FILE_MODEL_DELETED',
+                file_info['user_email'],
+                logger,
+                level='INFO',
+                file_id=file_info['id'],
+                filename=file_info['filename'],
+                size_bytes=file_info['size_bytes'],
+                extension=file_info['extension'],
+                project_id=file_info['project_id'],
+                phase_id=file_info['phase_id']
+            )
+            
+        except Exception as e:
+            # Log error en eliminación del modelo
+            log_operation(
+                'FILE_MODEL_DELETE_ERROR',
+                file_info['user_email'],
+                logger,
+                level='ERROR',
+                error_code=FileErrorCodes.FILE_MANAGEMENT_DELETE_ERROR,
+                file_id=file_info['id'],
+                filename=file_info['filename'],
+                error_message=str(e)
+            )
+            raise

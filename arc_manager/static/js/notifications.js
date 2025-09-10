@@ -18,7 +18,9 @@ class NotificationManager {
     init() {
         this.createContainer();
         this.bindEvents();
-        this.convertDjangoMessages();
+        
+        // Ocultar mensajes Django pero no convertirlos automáticamente
+        this.hideDjangoMessages();
         
         // Hacer disponible globalmente
         window.notifications = this;
@@ -87,6 +89,16 @@ class NotificationManager {
 
         // Ocultar el contenedor original
         messagesContainer.style.display = 'none';
+    }
+
+    /**
+     * Oculta los mensajes Django sin convertirlos
+     */
+    hideDjangoMessages() {
+        const messagesContainer = document.querySelector('.messages-container');
+        if (messagesContainer) {
+            messagesContainer.style.display = 'none';
+        }
     }
 
     /**

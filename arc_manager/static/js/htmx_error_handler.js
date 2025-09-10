@@ -64,44 +64,50 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Función global para mostrar notificaciones
+    // Función global para mostrar notificaciones usando el sistema personalizado
     window.showGlobalNotification = function(message, type = 'info') {
-        // Crear elemento de notificación
-        const notification = document.createElement('div');
-        notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
-        notification.style.cssText = `
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            min-width: 300px;
-            max-width: 500px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        `;
-        
-        notification.innerHTML = `
-            <div class="d-flex align-items-center">
-                <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : type === 'success' ? 'check-circle' : 'info-circle'} me-2"></i>
-                <span>${message}</span>
-                <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        `;
-        
-        // Insertar en el body si no hay contenedor específico
-        document.body.appendChild(notification);
-        
-        // Auto-ocultar después de 5 segundos
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.remove();
-            }
-        }, 5000);
-        
-        // Permitir cerrar manualmente
-        notification.addEventListener('click', function(e) {
-            if (e.target.classList.contains('btn-close')) {
-                notification.remove();
-            }
-        });
+        // Usar el sistema de notificaciones personalizado si está disponible
+        if (window.notifications) {
+            window.notifications.show(message, type);
+        } else {
+            // Fallback: crear notificación simple si el sistema no está disponible
+            console.warn('Sistema de notificaciones personalizado no disponible, usando fallback');
+            
+            // Crear elemento de notificación simple
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+            notification.style.cssText = `
+                top: 20px;
+                right: 20px;
+                z-index: 9999;
+                min-width: 300px;
+                max-width: 500px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            `;
+            
+            notification.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : type === 'success' ? 'check-circle' : 'info-circle'} me-2"></i>
+                    <span>${message}</span>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-ocultar después de 5 segundos
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 5000);
+            
+            notification.addEventListener('click', function(e) {
+                if (e.target.classList.contains('btn-close')) {
+                    notification.remove();
+                }
+            });
+        }
     };
 
     // Función para mostrar notificaciones en contenedores específicos

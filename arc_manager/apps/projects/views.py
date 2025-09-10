@@ -1161,65 +1161,150 @@ def project_tasks_paginated(request, project_pk):
 @login_required
 def phase_files_paginated(request, project_id, phase_id):
     """Vista para cargar archivos de una fase con paginación HTMX."""
-    phase = get_object_or_404(Phase, id=phase_id, project_id=project_id, project__organization=request.user.organization)
+    # Log inicial de acceso a archivos
+    from core.error_codes import log_operation
+    import logging
+    import traceback
+    logger = logging.getLogger(__name__)
     
-    # Parámetros de paginación
-    page = int(request.GET.get('page', 1))
-    per_page = int(request.GET.get('per_page', 12))  # 12 archivos por página
-    load_more = request.GET.get('load_more', 'false') == 'true'
-    
-    # Filtros
-    file_type_filter = request.GET.get('type', '')
-    date_filter = request.GET.get('date', '')
-    
-    # Queryset base
-    files_qs = phase.files.select_related('uploaded_by').order_by('-uploaded_at')
-    
-    # Aplicar filtros
-    if file_type_filter:
-        file_types = file_type_filter.split(',')
-        files_qs = files_qs.filter(ext_upper__in=[ft.upper() for ft in file_types])
-    
-    if date_filter:
-        from datetime import datetime, timedelta
-        today = timezone.now().date()
-        if date_filter == 'today':
-            files_qs = files_qs.filter(uploaded_at__date=today)
-        elif date_filter == 'week':
-            week_ago = today - timedelta(days=7)
-            files_qs = files_qs.filter(uploaded_at__date__gte=week_ago)
-        elif date_filter == 'month':
-            month_ago = today - timedelta(days=30)
-            files_qs = files_qs.filter(uploaded_at__date__gte=month_ago)
-        elif date_filter == 'older':
-            month_ago = today - timedelta(days=30)
-            files_qs = files_qs.filter(uploaded_at__date__lt=month_ago)
-    
-    # Paginación
-    paginator = Paginator(files_qs, per_page)
     try:
-        files_page = paginator.page(page)
-    except (PageNotAnInteger, EmptyPage):
-        files_page = paginator.page(1)
+        log_operation(
+            'FILE_VIEW_ACCESS',
+            request.user.email,
+            logger,
+            level='INFO',
+            project_id=project_id,
+            phase_id=phase_id,
+            user_id=request.user.id,
+            organization_id=request.user.organization.id if request.user.organization else None,
+            ip_address=request.META.get('REMOTE_ADDR', 'unknown'),
+            is_htmx=request.headers.get('HX-Request') == 'true'
+        )
+        
+        phase = get_object_or_404(Phase, id=phase_id, project_id=project_id, project__organization=request.user.organization)
     
-    context = {
-        'phase': phase,
-        'files_page': files_page,
-        'files': files_page.object_list,
-        'has_more': files_page.has_next(),
-        'next_page': files_page.next_page_number() if files_page.has_next() else None,
-        'current_filters': {
-            'type': file_type_filter,
-            'date': date_filter,
-        },
-        'load_more': load_more
-    }
+        # Parámetros de paginación
+        page = int(request.GET.get('page', 1))
+        per_page = int(request.GET.get('per_page', 12))  # 12 archivos por página
+        load_more = request.GET.get('load_more', 'false') == 'true'
+        
+        # Filtros
+        file_type_filter = request.GET.get('type', '')
+        date_filter = request.GET.get('date', '')
     
-    # Si es una solicitud de "cargar más", solo devolver los elementos adicionales
-    if load_more:
-        return render(request, 'projects/partials/files_load_more.html', context)
+        # Log parámetros de filtrado
+        log_operation(
+            'FILE_VIEW_FILTERS',
+            request.user.email,
+            logger,
+            level='DEBUG',
+            project_id=project_id,
+            phase_id=phase_id,
+            page=page,
+            per_page=per_page,
+            file_type_filter=file_type_filter,
+            date_filter=date_filter,
+            load_more=load_more
+        )
+        
+        # Queryset base
+        files_qs = phase.files.select_related('uploaded_by').order_by('-uploaded_at')
+        total_files_in_phase = files_qs.count()
+        
+        # Aplicar filtros
+        if file_type_filter:
+            file_types = file_type_filter.split(',')
+            files_qs = files_qs.filter(ext_upper__in=[ft.upper() for ft in file_types])
+        
+        if date_filter:
+            from datetime import datetime, timedelta
+            today = timezone.now().date()
+            if date_filter == 'today':
+                files_qs = files_qs.filter(uploaded_at__date=today)
+            elif date_filter == 'week':
+                week_ago = today - timedelta(days=7)
+                files_qs = files_qs.filter(uploaded_at__date__gte=week_ago)
+            elif date_filter == 'month':
+                month_ago = today - timedelta(days=30)
+                files_qs = files_qs.filter(uploaded_at__date__gte=month_ago)
+            elif date_filter == 'older':
+                month_ago = today - timedelta(days=30)
+                files_qs = files_qs.filter(uploaded_at__date__lt=month_ago)
+        
+        # Contar archivos después de filtros
+        filtered_files_count = files_qs.count()
+        
+        # Paginación
+        paginator = Paginator(files_qs, per_page)
+        try:
+            files_page = paginator.page(page)
+        except (PageNotAnInteger, EmptyPage):
+            files_page = paginator.page(1)
+            page = 1  # Actualizar el número de página para el log
+        
+        # Log resultados de paginación
+        log_operation(
+            'FILE_VIEW_RESULTS',
+            request.user.email,
+            logger,
+            level='INFO',
+            project_id=project_id,
+            phase_id=phase_id,
+            page=page,
+            per_page=per_page,
+            total_files_in_phase=total_files_in_phase,
+            filtered_files_count=filtered_files_count,
+            returned_files_count=len(files_page.object_list),
+            total_pages=paginator.num_pages,
+            has_next=files_page.has_next(),
+            has_previous=files_page.has_previous(),
+            file_type_filter=file_type_filter,
+            date_filter=date_filter
+        )
+        
+        context = {
+            'phase': phase,
+            'files_page': files_page,
+            'files': files_page.object_list,
+            'has_more': files_page.has_next(),
+            'next_page': files_page.next_page_number() if files_page.has_next() else None,
+            'current_filters': {
+                'type': file_type_filter,
+                'date': date_filter,
+            },
+            'load_more': load_more
+        }
     
-    return render(request, 'projects/partials/files_paginated.html', context)
+        # Si es una solicitud de "cargar más", solo devolver los elementos adicionales
+        if load_more:
+            return render(request, 'projects/partials/files_load_more.html', context)
+        
+        return render(request, 'projects/partials/files_paginated.html', context)
+    
+    except Exception as e:
+        # Log error crítico en vista de archivos
+        log_operation(
+            'FILE_VIEW_ERROR',
+            request.user.email if hasattr(request, 'user') and request.user.is_authenticated else 'anonymous',
+            logger,
+            level='ERROR',
+            project_id=project_id,
+            phase_id=phase_id,
+            error_message=str(e),
+            stack_trace=traceback.format_exc()[:1000],
+            request_method=request.method,
+            request_path=request.path,
+            request_params=dict(request.GET)
+        )
+        
+        # Devolver respuesta de error apropiada
+        if request.headers.get('HX-Request') == 'true':
+            return render(request, 'projects/partials/files_error.html', {
+                'error_message': 'Error al cargar archivos. Por favor intenta de nuevo.'
+            }, status=500)
+        else:
+            from django.http import Http404
+            raise Http404("Error al cargar archivos")
 
 # PhaseTemplate Views
 class PhaseTemplateListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):

@@ -109,12 +109,17 @@ document.addEventListener('htmx:afterRequest', function (e) {
   }
 });
 
-// Manejo de errores HTMX
+// Manejo de errores HTMX específicos para tareas solamente
 document.addEventListener('htmx:responseError', function (e) {
-  console.error('HTMX Error:', e.detail);
-  if (window.notifications) {
-    window.notifications.error('Error al actualizar la tarea');
+  // Solo manejar errores que sean específicamente de edición de tareas
+  const form = e.target.closest('form');
+  if (form && form.getAttribute('hx-post') && form.getAttribute('hx-post').includes('task-edit')) {
+    console.error('HTMX Task Edit Error:', e.detail);
+    if (window.notifications) {
+      window.notifications.error('Error al actualizar la tarea');
+    }
   }
+  // Para otros errores, dejar que htmx_error_handler.js los maneje
 });
 
 // Manejo de envío del formulario con mejor feedback visual

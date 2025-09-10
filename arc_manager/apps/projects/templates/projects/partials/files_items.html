@@ -29,7 +29,12 @@
         </a>
         
         <!-- Información del archivo -->
-        <div class="file-name" title="{{ file.filename }}">{{ file.filename|truncatechars:18 }}</div>
+        <div class="file-info">
+            <div class="file-name" title="{{ file.filename }}">
+                <span class="file-name-full d-none d-md-block">{{ file.filename|truncatechars:20 }}</span>
+                <span class="file-name-short d-md-none">{{ file.filename|truncatechars:15 }}</span>
+            </div>
+        </div>
         <div class="file-meta">
             <span class="file-size">{{ file.size|filesizeformat }}</span>
             <span class="file-type">{{ file.extension }}</span>
