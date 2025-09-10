@@ -1216,6 +1216,61 @@
     }
 }
 
+/* ===== MOBILE UPLOAD OPTIMIZATIONS ===== */
+.mobile-upload-progress {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    padding: 1.25rem;
+    border: 1px solid #dee2e6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.mobile-progress-header h6 {
+    margin: 0;
+    color: #495057;
+    font-weight: 600;
+}
+
+.mobile-progress-header small {
+    color: #6c757d;
+    font-size: 0.75rem;
+}
+
+.mobile-overall-progress .progress {
+    height: 10px;
+    border-radius: 5px;
+    background-color: #e9ecef;
+}
+
+.mobile-overall-progress .progress-bar {
+    background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+    border-radius: 5px;
+    transition: width 0.3s ease;
+}
+
+.mobile-current-file .progress {
+    height: 6px;
+    border-radius: 3px;
+    background-color: #f1f3f4;
+}
+
+.mobile-current-file .progress-bar {
+    background: linear-gradient(90deg, #007bff 0%, #6610f2 100%);
+    border-radius: 3px;
+    transition: width 0.2s ease;
+}
+
+.mobile-upload-tips {
+    border-top: 1px solid #e9ecef;
+    padding-top: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.mobile-upload-tips small {
+    color: #17a2b8;
+    font-weight: 500;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1400px) {
     .page-container {
@@ -1375,6 +1430,79 @@
         font-size: 0.7rem;
     }
     
+    /* Mobile upload specific optimizations */
+    .files-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.75rem !important;
+        padding: 0.5rem;
+    }
+    
+    .file-card {
+        padding: 0.75rem !important;
+        border-radius: 8px;
+        font-size: 0.9rem;
+    }
+    
+    .file-name {
+        font-size: 0.8rem !important;
+        line-height: 1.2;
+    }
+    
+    .file-actions {
+        margin-top: 0.5rem;
+    }
+    
+    .file-actions .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+    }
+    
+    /* Mobile upload form optimizations */
+    .file-upload-wrapper {
+        padding: 0.75rem;
+    }
+    
+    .file-input-label {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .upload-btn {
+        width: 100%;
+        margin-top: 0.5rem;
+        padding: 0.75rem;
+        font-size: 0.9rem;
+    }
+    
+    /* Progress container for mobile */
+    .upload-progress-container {
+        margin: 0.5rem 0;
+    }
+    
+    .upload-status-text {
+        font-size: 0.85rem;
+    }
+    
+    .upload-details-text {
+        font-size: 0.75rem;
+    }
+    
+    /* Mobile-specific alert styles */
+    .alert.mobile-validation-error {
+        padding: 0.75rem;
+        margin: 0.5rem 0;
+        font-size: 0.85rem;
+        border-radius: 6px;
+    }
+    
+    .alert.mobile-validation-error ul {
+        margin-bottom: 0.5rem;
+    }
+    
+    .alert.mobile-validation-error li {
+        margin-bottom: 0.25rem;
+    }
+
     /* Formularios móviles */
     .form-section {
         margin-bottom: 1.25rem;
