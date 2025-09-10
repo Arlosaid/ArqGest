@@ -117,8 +117,10 @@
 </div>
 
 <script>
+console.log('🚀 Files tab script loaded!');
 // Manejar selección de archivos y mostrar información
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ DOMContentLoaded fired in files tab!');
     document.querySelectorAll('.file-input').forEach(function(input) {
         input.addEventListener('change', function() {
             const phaseId = this.id.split('-').pop();
