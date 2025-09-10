@@ -41,7 +41,7 @@
                                         <span class="selected-names"></span>
                                     </div>
                                 </div>
-                                <button class="btn btn-primary upload-btn" type="submit" disabled onclick="console.log('Button clicked!'); return true;">
+                                <button class="btn btn-primary upload-btn" type="submit" disabled onclick="console.log('Button clicked!'); console.log('Target exists:', document.getElementById('files-container-{{ phase.id }}')); return true;">
                                     <i class="fas fa-upload"></i>
                                     <span class="ms-1">{% trans "Subir" %}</span>
                                 </button>
