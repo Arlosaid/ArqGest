@@ -36,6 +36,9 @@ services:
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres123@db:5432/arc_manager_dev}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0}
+      - ENABLE_STORAGES=${ENABLE_STORAGES:-false}
+      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-600}
+      - ALLOWED_EXTENSIONS=${ALLOWED_EXTENSIONS:-PDF,JPG,JPEG,PNG,GIF,DWG,DXF,RVT,SKP,ZIP,RAR,TIFF,DOC,DOCX,XLS,XLSX,PPT,PPTX,TXT,MD}
     restart: unless-stopped
 
   # Opcional: Redis para cache

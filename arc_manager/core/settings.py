@@ -258,9 +258,17 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Configuración mejorada de WhiteNoise para archivos estáticos con Cache Busting
 # Django 4.2+ usa STORAGES en lugar de STATICFILES_STORAGE
+
+# Configuración de almacenamiento dinámico (local o R2/S3)
+DEFAULT_STORAGE_BACKEND = "django.core.files.storage.FileSystemStorage"
+
+# Si están habilitados los storages externos (R2/S3), usar esos
+if os.environ.get('ENABLE_STORAGES', 'false').lower() == 'true':
+    DEFAULT_STORAGE_BACKEND = "storages.backends.s3boto3.S3Boto3Storage"
+
 STORAGES = {
     "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "BACKEND": DEFAULT_STORAGE_BACKEND,
     },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage" if not DEBUG else "django.contrib.staticfiles.storage.StaticFilesStorage",
@@ -295,17 +303,43 @@ if not DEBUG:
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Storage backend opcional para R2/S3 (activado por variables de entorno)
-if os.environ.get('DEFAULT_FILE_STORAGE'):
-    DEFAULT_FILE_STORAGE = os.environ['DEFAULT_FILE_STORAGE']
-    AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL')
-    AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
-    AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID') or os.environ.get('R2_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY') or os.environ.get('R2_SECRET_ACCESS_KEY')
-    AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'auto')
-    AWS_S3_ADDRESSING_STYLE = os.environ.get('AWS_S3_ADDRESSING_STYLE', 'virtual')
-    AWS_S3_SIGNATURE_VERSION = os.environ.get('AWS_S3_SIGNATURE_VERSION', 's3v4')
+# Configuración Cloudflare R2 Storage (solo cuando está habilitado)
+if os.environ.get('ENABLE_STORAGES', 'false').lower() == 'true':
+    # Configuración para django-storages con Cloudflare R2
+    # Usar variables CLOUDFLARE_ (preferidas) con fallback a AWS_ para compatibilidad
+    AWS_S3_ENDPOINT_URL = (
+        os.environ.get('CLOUDFLARE_R2_ENDPOINT_URL') or 
+        os.environ.get('AWS_S3_ENDPOINT_URL')
+    )
+    AWS_STORAGE_BUCKET_NAME = (
+        os.environ.get('CLOUDFLARE_R2_BUCKET_NAME') or 
+        os.environ.get('AWS_STORAGE_BUCKET_NAME')
+    )
+    AWS_ACCESS_KEY_ID = (
+        os.environ.get('CLOUDFLARE_R2_ACCESS_KEY_ID') or 
+        os.environ.get('AWS_ACCESS_KEY_ID') or 
+        os.environ.get('R2_ACCESS_KEY_ID')
+    )
+    AWS_SECRET_ACCESS_KEY = (
+        os.environ.get('CLOUDFLARE_R2_SECRET_ACCESS_KEY') or 
+        os.environ.get('AWS_SECRET_ACCESS_KEY') or 
+        os.environ.get('R2_SECRET_ACCESS_KEY')
+    )
+    AWS_S3_REGION_NAME = os.environ.get('CLOUDFLARE_R2_REGION', 'auto')
+    AWS_S3_ADDRESSING_STYLE = 'virtual'
+    AWS_S3_SIGNATURE_VERSION = 's3v4'
     AWS_DEFAULT_ACL = None
+    
+    # Configuración específica para Cloudflare R2
+    AWS_S3_CUSTOM_DOMAIN = None  # Usar dominio directo de R2
+    AWS_S3_FILE_OVERWRITE = False  # No sobrescribir archivos con mismo nombre
+    AWS_S3_OBJECT_PARAMETERS = {
+        'CacheControl': 'max-age=86400',  # Cache por 1 día
+    }
+    
+    print(f"🌍 Usando almacenamiento Cloudflare R2: {AWS_S3_ENDPOINT_URL}")
+else:
+    print("💾 Usando almacenamiento local: FileSystemStorage")
 
 # Configuración de sesiones (usando Redis)
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'

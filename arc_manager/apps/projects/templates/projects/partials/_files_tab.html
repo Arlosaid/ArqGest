@@ -29,10 +29,21 @@
                               hx-encoding="multipart/form-data"
                               enctype="multipart/form-data">
                             {% csrf_token %}
-                            <div class="input-group">
-                                <input type="file" name="files" class="form-control" multiple required>
-                                <button class="btn btn-primary" type="submit">
-                                    <i class="fas fa-upload"></i> {% trans "Subir archivo" %}
+                            <div class="file-upload-wrapper">
+                                <div class="file-input-container">
+                                    <input type="file" name="files" class="file-input" id="file-input-{{ phase.id }}" multiple required accept=".pdf,.jpg,.jpeg,.png,.gif,.tiff,.dwg,.dxf,.rvt,.skp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt,.md">
+                                    <label for="file-input-{{ phase.id }}" class="file-input-label">
+                                        <i class="fas fa-cloud-upload-alt me-2"></i>
+                                        <span class="file-label-text">{% trans "Seleccionar archivos" %}</span>
+                                    </label>
+                                    <div class="selected-files" id="selected-files-{{ phase.id }}" style="display: none;">
+                                        <span class="selected-count"></span>
+                                        <span class="selected-names"></span>
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary upload-btn" type="submit" disabled>
+                                    <i class="fas fa-upload"></i>
+                                    <span class="d-none d-sm-inline ms-1">{% trans "Subir" %}</span>
                                 </button>
                             </div>
                         </form>
@@ -43,8 +54,7 @@
                         <div class="mb-3">
                             <div class="row g-2">
                                 <div class="col-12 col-md-auto">
-                                    <select class="form-select form-select-sm" id="fileTypeFilter-{{ phase.id }}" 
-                                            onchange="filterFiles({{ phase.id }})">
+                                    <select class="form-select form-select-sm" id="fileTypeFilter-{{ phase.id }}">
                                         <option value="">{% trans "Todos los tipos" %}</option>
                                         <option value="PDF">📄 PDF</option>
                                         <option value="JPG,JPEG,PNG,GIF,TIFF">🖼️ {% trans "Imágenes" %}</option>
@@ -57,8 +67,7 @@
                                     </select>
                                 </div>
                                 <div class="col-12 col-md-auto">
-                                    <select class="form-select form-select-sm" id="fileDateFilter-{{ phase.id }}"
-                                            onchange="filterFiles({{ phase.id }})">
+                                    <select class="form-select form-select-sm" id="fileDateFilter-{{ phase.id }}">
                                         <option value="">{% trans "Todas las fechas" %}</option>
                                         <option value="today">📅 {% trans "Hoy" %}</option>
                                         <option value="week">📅 {% trans "Esta semana" %}</option>
@@ -68,8 +77,7 @@
                                 </div>
                                 <div class="col-12 col-md-auto">
                                     <button type="button" class="btn btn-outline-secondary btn-sm" 
-                                            id="clearFilters-{{ phase.id }}"
-                                            onclick="clearFilters({{ phase.id }})">
+                                            id="clearFilters-{{ phase.id }}">
                                         <i class="fas fa-times"></i> {% trans "Limpiar" %}
                                     </button>
                                 </div>
@@ -109,36 +117,80 @@
 </div>
 
 <script>
-// Función para filtrar archivos
-function filterFiles(phaseId) {
-    const typeFilter = document.getElementById(`fileTypeFilter-${phaseId}`).value;
-    const dateFilter = document.getElementById(`fileDateFilter-${phaseId}`).value;
-    
-    // Construir URL con filtros
-    let url = `{% url 'projects:phase-files-paginated' project_id=project.id phase_id=0 %}`.replace('0', phaseId);
-    url += '?page=1';
-    if (typeFilter) url += `&type=${encodeURIComponent(typeFilter)}`;
-    if (dateFilter) url += `&date=${encodeURIComponent(dateFilter)}`;
-    
-    // Cargar archivos filtrados
-    htmx.ajax('GET', url, {
-        target: `#files-container-${phaseId}`,
-        swap: 'innerHTML'
+// Manejar selección de archivos y mostrar información
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.file-input').forEach(function(input) {
+        input.addEventListener('change', function() {
+            const phaseId = this.id.split('-').pop();
+            const selectedFilesDiv = document.getElementById('selected-files-' + phaseId);
+            const selectedCount = selectedFilesDiv.querySelector('.selected-count');
+            const selectedNames = selectedFilesDiv.querySelector('.selected-names');
+            const uploadBtn = this.closest('form').querySelector('.upload-btn');
+            const fileLabel = this.closest('.file-input-container').querySelector('.file-label-text');
+            
+            if (this.files.length > 0) {
+                // Mostrar información de archivos seleccionados
+                selectedFilesDiv.style.display = 'block';
+                selectedCount.textContent = this.files.length + (this.files.length === 1 ? ' archivo seleccionado' : ' archivos seleccionados');
+                
+                // Mostrar nombres de archivos (máximo 3, luego "y X más...")
+                const fileNames = Array.from(this.files).slice(0, 3).map(file => file.name);
+                if (this.files.length > 3) {
+                    fileNames.push('y ' + (this.files.length - 3) + ' más...');
+                }
+                selectedNames.textContent = fileNames.join(', ');
+                
+                // Habilitar botón de subir
+                uploadBtn.disabled = false;
+                fileLabel.textContent = 'Cambiar archivos';
+            } else {
+                // Ocultar información y deshabilitar botón
+                selectedFilesDiv.style.display = 'none';
+                uploadBtn.disabled = true;
+                fileLabel.textContent = 'Seleccionar archivos';
+            }
+        });
     });
-}
-
-// Función para limpiar filtros
-function clearFilters(phaseId) {
-    document.getElementById(`fileTypeFilter-${phaseId}`).value = '';
-    document.getElementById(`fileDateFilter-${phaseId}`).value = '';
-    filterFiles(phaseId);
-}
+});
 
 // Trigger personalizado para recargar archivos después de subir
 document.body.addEventListener('htmx:afterRequest', function(evt) {
     if (evt.detail.xhr.status === 200 && evt.detail.requestConfig.path.includes('/files/upload/')) {
         // Disparar evento personalizado para recargar archivos
         document.body.dispatchEvent(new CustomEvent('fileUploaded'));
+        
+        // Limpiar el formulario después de subir exitosamente
+        const form = evt.target.closest('form');
+        if (form && form.classList.contains('file-upload-form')) {
+            form.reset();
+            
+            // Resetear estado de selección de archivos
+            const fileInput = form.querySelector('.file-input');
+            if (fileInput) {
+                const phaseId = fileInput.id.split('-').pop();
+                const selectedFilesDiv = document.getElementById('selected-files-' + phaseId);
+                const uploadBtn = form.querySelector('.upload-btn');
+                const fileLabel = form.querySelector('.file-label-text');
+                
+                selectedFilesDiv.style.display = 'none';
+                uploadBtn.disabled = true;
+                fileLabel.textContent = 'Seleccionar archivos';
+            }
+        }
+    }
+});
+
+// Los errores de archivos ahora se manejan globalmente en htmx_error_handler.js
+// No necesitamos listener específico para evitar duplicados
+
+// Resetear formulario después de cualquier error (sin notificación duplicada)
+document.body.addEventListener('htmx:responseError', function(evt) {
+    if (evt.detail.requestConfig.path && evt.detail.requestConfig.path.includes('/files/upload/')) {
+        // Solo resetear el formulario, la notificación la maneja htmx_error_handler.js
+        const form = evt.target.closest('form');
+        if (form && form.classList.contains('file-upload-form')) {
+            form.reset();
+        }
     }
 });
 </script>
