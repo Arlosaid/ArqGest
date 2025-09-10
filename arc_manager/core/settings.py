@@ -271,7 +271,7 @@ STORAGES = {
         "BACKEND": DEFAULT_STORAGE_BACKEND,
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage" if not DEBUG else "django.contrib.staticfiles.storage.StaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage" if not DEBUG else "django.contrib.staticfiles.storage.StaticFilesStorage",
     },
 }
 
@@ -279,27 +279,27 @@ STORAGES = {
 if DEBUG:
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 else:
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# Configuración adicional de WhiteNoise
+# Configuración adicional de WhiteNoise optimizada
 WHITENOISE_USE_FINDERS = True
 WHITENOISE_AUTOREFRESH = DEBUG
 
-# Configuración de cache para archivos estáticos en producción
+# Configuración robusta para evitar errores de manifest en producción
+WHITENOISE_MANIFEST_STRICT = False  # No fallar si falta algún archivo del manifest
+WHITENOISE_SKIP_COMPRESS_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'zip', 'gz', 'tgz', 'bz2', 'tbz', 'xz', 'br']
+
+# Configuración de cache para diferentes tipos de archivo
+WHITENOISE_MAX_AGE = 31536000 if not DEBUG else 0  # 1 año para archivos estáticos en producción
+
+# Headers de cache específicos para diferentes tipos de archivos (solo en producción)
 if not DEBUG:
-    # Cache estático por 1 año para archivos con hash (cache busting)
-    WHITENOISE_MAX_AGE = 31536000  # 1 año en segundos
-    
-    # Headers de cache específicos para diferentes tipos de archivos
     WHITENOISE_STATIC_PREFIX = '/static/'
-    
-    # Configuración avanzada de cache busting
-    # Los archivos con hash se cachean por mucho tiempo
-    # Los archivos sin hash (como HTML) tienen cache corto
-    WHITENOISE_IMMUTABLE_FILE_TEST = lambda path, url: True if '.css' in url or '.js' in url else False
+    # Test para archivos inmutables (con hash)
+    WHITENOISE_IMMUTABLE_FILE_TEST = lambda path, url: '.css' in url or '.js' in url
 
 # ===== CONFIGURACIÓN DE UPLOADS OPTIMIZADA =====
 # Límites para manejar uploads grandes sin saturar memoria del servidor
