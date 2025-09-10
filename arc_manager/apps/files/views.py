@@ -284,9 +284,11 @@ def upload_file(request, project_id, phase_id):
             }
             return render(request, 'projects/partials/files_table.html', context)
         else:
-            # Target por defecto: lista de archivos
-            files = phase.files.all()
-            return render(request, 'projects/partials/file_list.html', {'files': files})
+            # Target por defecto: contenido completo de la lista de archivos
+            return render(request, 'projects/partials/files_list_content.html', {
+                'phase': phase,
+                'project': phase.project
+            })
 
     # En formularios normales, redirigir al detalle del proyecto (pestaña Archivos)
     project_url = reverse('projects:project-detail', kwargs={'pk': phase.project_id})
