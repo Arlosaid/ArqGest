@@ -301,6 +301,31 @@ if not DEBUG:
     # Los archivos sin hash (como HTML) tienen cache corto
     WHITENOISE_IMMUTABLE_FILE_TEST = lambda path, url: True if '.css' in url or '.js' in url else False
 
+# ===== CONFIGURACIÓN DE UPLOADS OPTIMIZADA =====
+# Límites para manejar uploads grandes sin saturar memoria del servidor
+# Configuración optimizada para archivos hasta 600MB
+
+# Tamaño máximo de archivos que se cargan en memoria (25MB)
+# Archivos más grandes se escriben a disco temporalmente
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get('DATA_UPLOAD_MAX_MEMORY_SIZE', '26214400'))  # 25MB en bytes
+
+# Tamaño máximo total de la petición HTTP (650MB para múltiples archivos)
+# Permite múltiples archivos hasta el límite total
+DATA_UPLOAD_MAX_NUMBER_SIZE = int(os.environ.get('DATA_UPLOAD_MAX_NUMBER_SIZE', '681574400'))  # 650MB en bytes
+
+# Directorio temporal para archivos grandes durante upload
+FILE_UPLOAD_TEMP_DIR = os.environ.get('FILE_UPLOAD_TEMP_DIR', os.path.join(BASE_DIR, 'temp_uploads'))
+
+# Handler personalizado optimizado para archivos grandes
+FILE_UPLOAD_HANDLERS = [
+    'django.core.files.uploadhandler.MemoryFileUploadHandler',    # Archivos pequeños (<25MB) en memoria
+    'core.upload_handlers.OptimizedTemporaryFileUploadHandler',   # Archivos grandes optimizados
+    'core.upload_handlers.ProgressTrackingUploadHandler',         # Tracking de progreso (opcional)
+]
+
+# Permisos de archivos subidos
+FILE_UPLOAD_PERMISSIONS = 0o644
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Configuración Cloudflare R2 Storage (solo cuando está habilitado)

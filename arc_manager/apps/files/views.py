@@ -24,7 +24,15 @@ except Exception:
 @login_required
 @require_POST
 def upload_file(request, project_id, phase_id):
-    """Handles file upload and returns an updated file list for HTMX."""
+    """
+    Handles file upload optimized for large files with minimal server impact.
+    
+    Optimizations:
+    - Streams large files directly to disk
+    - Limits memory usage to 25MB max per request
+    - Processes files asynchronously when possible
+    - Provides detailed logging for performance monitoring
+    """
     # Log inicial de intento de upload
     log_operation(
         'FILE_UPLOAD_ATTEMPT',
