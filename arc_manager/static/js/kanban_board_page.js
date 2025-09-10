@@ -6,14 +6,12 @@ function openTaskModal(type, taskId) {
   const modal = new bootstrap.Modal(document.getElementById('taskUniversalModal'));
   const modalContent = document.getElementById('taskUniversalContent');
   const modalTitle = document.getElementById('taskUniversalModalLabel');
-  if (type === 'edit') modalTitle.textContent = 'Editar Tarea';
-  else if (type === 'detail') modalTitle.textContent = 'Detalles de la Tarea';
+  if (type === 'detail') modalTitle.textContent = 'Detalles de la Tarea';
   modalContent.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><p class="mt-2 text-muted">Cargando...</p></div>';
   modal.show();
   let url = '';
   try {
-    if (type === 'edit') url = (document.body.dataset.taskEditUrlTemplate || '').replace('0', taskId);
-    else if (type === 'detail') url = (document.body.dataset.taskDetailUrlTemplate || '').replace('0', taskId);
+    if (type === 'detail') url = (document.body.dataset.taskDetailUrlTemplate || '').replace('0', taskId);
   } catch (_) {}
   if (!url) return;
   fetch(url).then(r => { if (!r.ok) throw new Error('Network response was not ok'); return r.text(); })
@@ -31,6 +29,69 @@ document.addEventListener('DOMContentLoaded', function() {
   columns.forEach(column => {
     column.addEventListener('dragover', handleDragOver);
     column.addEventListener('drop', handleDrop);
+  });
+  
+  // Listeners para eventos de actualización de tareas
+  document.addEventListener('taskUpdated', function() {
+    // Recargar el kanban cuando se actualiza una tarea
+    setTimeout(() => location.reload(), 500);
+  });
+  
+  document.addEventListener('taskCreated', function() {
+    // Recargar el kanban cuando se crea una tarea
+    setTimeout(() => location.reload(), 500);
+  });
+  
+  // Manejador para eliminar tareas
+  document.addEventListener('click', async function (e) {
+    const btn = e.target.closest('[data-action="delete-task"][data-task-id]');
+    if (!btn) return;
+    e.preventDefault();
+    const taskId = btn.getAttribute('data-task-id');
+    if (!taskId) return;
+    if (!confirm('¿Eliminar esta tarea?')) return;
+    try {
+      const res = await fetch(`/projects/tasks/${taskId}/delete/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '' }
+      });
+      const ok = res.ok;
+      if (ok) {
+        // Buscar el elemento de tarea (puede ser tr, div, etc.)
+        const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
+        if (taskElement) {
+          // Añadir animación de salida
+          taskElement.style.transition = 'all 0.3s ease';
+          taskElement.style.opacity = '0';
+          taskElement.style.transform = 'scale(0.8)';
+          setTimeout(() => {
+            taskElement.remove();
+            
+            // Verificar si la columna está vacía y mostrar mensaje
+            const column = taskElement.closest('.kanban-column-body');
+            if (column && column.children.length === 0) {
+              column.innerHTML = '<div class="empty-column"><div class="empty-state"><i class="fas fa-drafting-compass"></i><p>No hay tareas</p></div></div>';
+            }
+          }, 300);
+        }
+        
+        // Disparar evento para que otras partes de la app se actualicen
+        document.dispatchEvent(new CustomEvent('taskDeleted', { detail: { taskId } }));
+        
+        if (window.notifications) {
+          window.notifications.success('Tarea eliminada correctamente');
+        }
+      } else {
+        if (window.notifications) {
+          window.notifications.error('Error al eliminar');
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      if (window.notifications) {
+        window.notifications.error('Error al eliminar');
+      }
+    }
   });
 });
 

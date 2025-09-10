@@ -6,7 +6,7 @@
 {% block title %}{{ phase.name }} - {{ project.name }}{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/projects.css' %}?v=1.2" rel="stylesheet">
+<link href="{% static 'css/projects.css' %}?v=2.8" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -27,51 +27,78 @@
         </div>
     </div>
 
-    <!-- Breadcrumbs -->
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'projects:project-list' %}">{% trans "Proyectos" %}</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'projects:project-detail' project.pk %}">{{ project.name }}</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{{ phase.name }}</li>
-        </ol>
-    </nav>
-
-    <p class="text-muted mb-4">{{ phase.description|default:"" }}</p>
-
     <!-- Message container for HTMX responses -->
     <div id="message-container" class="mb-3"></div>
 
-    <div class="row">
-        <!-- Files Section -->
-        <div class="col-md-7">
-            <h3>{% trans "Archivos" %}</h3>
-            <!-- File Upload Form with HTMX -->
-            <form id="file-upload-form"
-                  hx-post="{% url 'files:upload_file' project_id=project.pk phase_id=phase.pk %}"
-                  hx-target="#file-list"
-                  hx-swap="innerHTML"
-                  hx-encoding="multipart/form-data"
-                  hx-indicator="#upload-spinner"
-                  class="mb-3">
-                {% csrf_token %}
-                <div class="input-group">
-                    <input type="file" name="files" class="form-control" multiple required>
-                    <button class="btn btn-primary" type="submit">
-                        <span id="upload-spinner" class="spinner-border spinner-border-sm htmx-indicator" role="status" aria-hidden="true"></span>
-                        {% trans "Subir" %}
-                    </button>
-                </div>
-            </form>
-            
-            <!-- File List (updated by HTMX) -->
-            <div id="file-list">
-                {% include 'projects/partials/file_list.html' %}
+    <!-- Ultra Simplified Phase Header -->
+    <div class="phase-ultra-simple-header mb-4">
+        <div class="d-flex align-items-center">
+            <div class="phase-status-badge status-{{ phase.status|lower }} me-3">
+                {% if phase.status == 'PENDING' %}
+                    <i class="fas fa-clock"></i> {% trans "Pendiente" %}
+                {% elif phase.status == 'IN_PROGRESS' %}
+                    <i class="fas fa-play-circle"></i> {% trans "En Progreso" %}
+                {% else %}
+                    <i class="fas fa-check-circle"></i> {% trans "Completado" %}
+                {% endif %}
             </div>
+            {% if completion_percentage > 0 %}
+                <small class="text-muted">{{ completion_percentage|floatformat:0 }}% completado</small>
+            {% endif %}
+        </div>
+        {% if phase.description %}
+            <p class="text-muted mt-2 mb-0">{{ phase.description }}</p>
+        {% endif %}
+    </div>
+
+    <div class="row">
+        <!-- Tasks Section - Simplified -->
+        <div class="col-md-8">
+            <div class="tasks-simple-header mb-3">
+                <h5 class="mb-0">{% trans "Tareas" %} ({{ recent_tasks_count }}{% if has_more_tasks %}+{% endif %})</h5>
+            </div>
+            
+            <!-- Tasks List - Limited to 5 most recent -->
+            {% if recent_tasks %}
+                <div class="tasks-simple-list">
+                    {% for task in recent_tasks %}
+                        <div class="task-simple-item">
+                            <div class="d-flex align-items-center">
+                                <div class="task-status-dot status-{{ task.status|lower }}"></div>
+                                <div class="task-simple-content flex-grow-1">
+                                    <div class="task-simple-title">{{ task.title }}</div>
+                                    <div class="task-simple-meta">
+                                        {% if task.assigned_to %}
+                                            <span class="text-muted">{{ task.assigned_to.get_full_name|default:task.assigned_to.email|truncatechars:20 }}</span>
+                                        {% endif %}
+                                        {% if task.due_date %}
+                                            <span class="text-muted ms-2">{{ task.due_date|date:"d/m" }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="task-simple-priority priority-{{ task.priority|lower }}"></div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                {% if has_more_tasks %}
+                    <div class="text-center mt-3">
+                        <a href="{% url 'projects:project-detail' project.pk %}#kanban" class="btn btn-sm btn-outline-secondary">
+                            {% trans "Ver todas las tareas" %}
+                        </a>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="empty-state-simple text-center py-4">
+                    <i class="fas fa-tasks fa-2x text-muted mb-2"></i>
+                    <p class="text-muted mb-0">{% trans "No hay tareas en esta fase" %}</p>
+                </div>
+            {% endif %}
         </div>
 
-        <!-- Notes Section -->
-        <div class="col-md-5">
-            <h3>{% trans "Notas" %}</h3>
+        <!-- Notes Section - Simplified -->
+        <div class="col-md-4">
+            <h5 class="mb-3">{% trans "Notas" %}</h5>
             <!-- Notes Form with HTMX -->
             <form id="notes-form" 
                   hx-post="{% url 'projects:phase-detail' project_pk=project.pk pk=phase.pk %}"
@@ -80,10 +107,10 @@
                   hx-indicator="#notes-spinner">
                 {% csrf_token %}
                 <div class="position-relative">
-                    <textarea name="notes" class="form-control" rows="10">{{ phase.notes|default_if_none:"" }}</textarea>
+                    <textarea name="notes" class="form-control" rows="8" placeholder="{% trans 'Notas sobre esta fase...' %}">{{ phase.notes|default_if_none:"" }}</textarea>
                     <span id="notes-spinner" class="spinner-border spinner-border-sm htmx-indicator position-absolute" style="top: 10px; right: 10px;" role="status" aria-hidden="true"></span>
                 </div>
-                 <div id="notes-save-status" class="form-text text-muted mt-2"></div>
+                <div id="notes-save-status" class="form-text text-muted mt-2"></div>
             </form>
         </div>
     </div>
@@ -92,5 +119,5 @@
 
 {% block extra_js %}
 {{ block.super }}
-<script src="{% static 'js/phase_detail.js' %}?v=1.0"></script>
+<script src="{% static 'js/phase_detail.js' %}?v=2.1"></script>
 {% endblock %}

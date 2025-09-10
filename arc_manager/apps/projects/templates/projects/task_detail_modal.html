@@ -1,7 +1,7 @@
 {% load i18n %}
 {% load static %}
 
-<div class="task-detail-simple">
+<div class="task-detail-simple" style="--project-color: {{ project_color }};">
     <!-- Header simple con título y badges -->
     <div class="task-header-simple">
         <h5 class="task-title-simple">{{ task.title }}</h5>
@@ -52,9 +52,6 @@
 
     <!-- Footer con acciones -->
     <div class="task-footer-simple">
-        <button type="button" class="btn btn-primary btn-sm" onclick="openTaskModal('edit', {{ task.pk }})">
-            <i class="fas fa-edit me-1"></i>{% trans "Editar" %}
-        </button>
         <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
             {% trans "Cerrar" %}
         </button>

@@ -79,8 +79,8 @@ document.addEventListener('htmx:afterRequest', function (e) {
         console.log('Tarea actualizada correctamente');
       }
       
-      // Recargar página para actualizar la UI inmediatamente
-      window.location.reload();
+      // Disparar evento para actualizar la UI dinámicamente
+      htmx.trigger(document.body, 'taskUpdated');
     }
     
     // Manejo de respuestas JSON (para compatibilidad)
@@ -100,8 +100,8 @@ document.addEventListener('htmx:afterRequest', function (e) {
           window.notifications.success('Tarea actualizada correctamente');
         }
         
-        // Recargar página inmediatamente
-        window.location.reload();
+        // Disparar evento para actualizar la UI dinámicamente
+        htmx.trigger(document.body, 'taskUpdated');
       }
     }
   } catch (error) {
@@ -121,10 +121,7 @@ document.addEventListener('htmx:responseError', function (e) {
 document.addEventListener('htmx:beforeSend', function (e) {
   const form = e.target.closest('form');
   if (form && form.getAttribute('hx-post') && form.getAttribute('hx-post').includes('task-edit')) {
-    // Verificar datos del formulario para debugging si es necesario
-    // const formData = new FormData(form);
-    // console.log('Form data being sent:', [...formData.entries()]);
-    
+    console.log('HTMX: Enviando formulario de edición de tarea...');
     const submitBtn = form.querySelector('#saveTaskBtn');
     if (submitBtn) {
       submitBtn.disabled = true;
@@ -138,6 +135,7 @@ document.addEventListener('htmx:beforeSend', function (e) {
 document.addEventListener('htmx:afterRequest', function (e) {
   const form = e.target.closest('form');
   if (form && form.getAttribute('hx-post') && form.getAttribute('hx-post').includes('task-edit')) {
+    console.log('HTMX: Respuesta recibida para edición de tarea');
     const submitBtn = form.querySelector('#saveTaskBtn');
     if (submitBtn) {
       submitBtn.disabled = false;
@@ -147,23 +145,32 @@ document.addEventListener('htmx:afterRequest', function (e) {
   }
 });
 
-// Delegación de eventos para botones del modal
+// Debug: Verificar que HTMX está funcionando
+document.addEventListener('htmx:configRequest', function(e) {
+  if (e.detail.path.includes('task') && e.detail.path.includes('edit')) {
+    console.log('HTMX Config Request:', e.detail);
+  }
+});
+
+// Verificar disponibilidad de HTMX al cargar
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('HTMX disponible:', typeof htmx !== 'undefined');
+  if (typeof htmx === 'undefined') {
+    console.error('⚠️ HTMX no está cargado! Los formularios de edición no funcionarán correctamente.');
+  } else {
+    console.log('✅ HTMX cargado correctamente');
+  }
+});
+
+// Delegación de eventos para el botón de eliminar
+// El botón de cancelar usa el [data-bs-dismiss="modal"] nativo de Bootstrap y no necesita JS adicional.
 document.addEventListener('click', function(e) {
-  // Botón de eliminar
-  if (e.target.id === 'deleteTaskBtn' || e.target.closest('#deleteTaskBtn')) {
+  const deleteBtn = e.target.closest('#deleteTaskBtn');
+  if (deleteBtn) {
     e.preventDefault();
-    const btn = e.target.closest('#deleteTaskBtn');
-    const taskId = btn.getAttribute('data-task-id');
+    const taskId = deleteBtn.getAttribute('data-task-id');
     if (taskId) {
       window.deleteTaskFromModal(taskId);
-    }
-  }
-  
-  // Botón de cancelar
-  if (e.target.hasAttribute('data-bs-dismiss') && e.target.getAttribute('data-bs-dismiss') === 'modal') {
-    const modal = bootstrap.Modal.getInstance(document.getElementById('taskUniversalModal'));
-    if (modal) {
-      modal.hide();
     }
   }
 });

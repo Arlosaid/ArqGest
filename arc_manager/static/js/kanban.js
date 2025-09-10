@@ -420,10 +420,29 @@ class KanbanManager {
             });
 
             if (response.ok) {
+                // Buscar y eliminar la tarjeta del DOM
+                const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
+                if (taskCard) {
+                    // Animación de salida
+                    taskCard.style.transition = 'all 0.3s ease';
+                    taskCard.style.opacity = '0';
+                    taskCard.style.transform = 'scale(0.8)';
+                    
+                    setTimeout(() => {
+                        taskCard.remove();
+                        
+                        // Verificar si la columna está vacía y mostrar mensaje
+                        const column = taskCard.closest('.kanban-column-body');
+                        if (column && column.children.length === 0) {
+                            column.innerHTML = '<div class="empty-column"><div class="empty-state"><i class="fas fa-drafting-compass"></i><p>No hay tareas</p></div></div>';
+                        }
+                    }, 300);
+                }
+                
                 this.showNotification('Tarea eliminada correctamente', 'success');
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
+                
+                // Disparar evento para que otras partes de la app se actualicen
+                document.dispatchEvent(new CustomEvent('taskDeleted', { detail: { taskId } }));
             } else {
                 this.showNotification('Error al eliminar la tarea', 'error');
             }
@@ -527,6 +546,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     window.updateTaskStatus = function(taskId, newStatus) {
         window.kanbanManager.updateTaskStatusSilently(taskId, newStatus);
+    };
+    
+    window.deleteKanbanTask = function(taskId) {
+        window.kanbanManager.deleteTask(taskId);
     };
 });
 

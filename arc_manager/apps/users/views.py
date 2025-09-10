@@ -11,12 +11,18 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import logging
 from django.conf import settings
+from core.error_codes import log_operation, UserErrorCodes, log_operation_with_context
 
 from .forms import SimpleUserCreateForm, SimpleUserEditForm
 from core.mixins import PageSizeMixin
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
+
+# Enhanced logging helper for user operations
+def log_user_operation(operation, user_email, error_code=None, level='INFO', **kwargs):
+    """Enhanced user operation logging with structured error codes"""
+    return log_operation(operation, user_email, logger, level=level, error_code=error_code, **kwargs)
 
 class UserListView(LoginRequiredMixin, PageSizeMixin, ListView):
     """Vista para listar usuarios - Solo para org_admin"""
@@ -142,12 +148,29 @@ class SimpleUserCreateView(LoginRequiredMixin, View):
                 
                 return redirect('users:user_list')
                 
-            except IntegrityError:
+            except IntegrityError as e:
                 # Posible condición de carrera con email duplicado u otra unicidad
+                log_operation(
+                    'CREATE_USER_ERROR',
+                    request.user.email,
+                    logger,
+                    level='WARNING',
+                    error_code=UserErrorCodes.USER_CREATE_EMAIL_DUPLICATE,
+                    target_email=form.cleaned_data.get('email'),
+                    exception=str(e)
+                )
                 form.add_error('email', 'Este correo ya está registrado.')
             except Exception as e:
                 # Log detallado del error para desarrolladores
-                logger.error(f"Error al crear usuario: {str(e)}", exc_info=True)
+                log_operation(
+                    'CREATE_USER_ERROR',
+                    request.user.email,
+                    logger,
+                    level='ERROR',
+                    error_code=UserErrorCodes.USER_CREATE_UNEXPECTED_ERROR,
+                    target_email=form.cleaned_data.get('email', 'unknown'),
+                    exception=str(e)
+                )
                 
                 # Siempre mostrar mensaje amigable, nunca errores técnicos
                 messages.error(request, "Ha ocurrido un error al crear el usuario. Por favor, contacta con soporte técnico.")

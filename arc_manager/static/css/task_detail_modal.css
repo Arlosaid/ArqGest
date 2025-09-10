@@ -14,9 +14,10 @@
     background: #ffffff !important;
 }
 
-/* Header del Modal */
+/* Header del Modal - Base styles only, colors set dynamically in template */
 #taskUniversalModal .modal-header { 
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    /* Color dinámico aplicado via variable CSS --project-color */
+    background: linear-gradient(135deg, var(--project-color, #3b82f6) 0%, var(--project-color, #2563eb) 100%) !important;
     color: white !important;
     border: none !important;
     padding: 1.5rem 2rem !important;
@@ -30,14 +31,7 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #667eea, #764ba2, #667eea);
-    background-size: 200% 100%;
-    animation: shimmer 3s ease-in-out infinite;
-}
-
-@keyframes shimmer {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
+    background: var(--project-color, #3b82f6) !important;
 }
 
 #taskUniversalModal .modal-header h5 {
@@ -48,19 +42,17 @@
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
 }
 
-#taskUniversalModal .btn-close {
-    background: rgba(255, 255, 255, 0.2) !important;
-    border-radius: 50% !important;
-    opacity: 0.9 !important;
-    transition: all 0.2s ease !important;
-    padding: 0.5rem !important;
-    filter: brightness(0) invert(1) !important;
+/* Close button removed from header */
+
+/* FORCE TEMPLATE STYLES TO TAKE PRECEDENCE */
+/* This ensures template-defined colors always win */
+body #taskUniversalModal .modal-header[style*="background"] {
+    /* Template inline styles should override everything */
 }
 
-#taskUniversalModal .btn-close:hover {
-    background: rgba(255, 255, 255, 0.3) !important;
-    transform: scale(1.1) !important;
-    opacity: 1 !important;
+/* Fallback to ensure no background interference */
+#taskUniversalModal .modal-header:not([style*="background"]) {
+    background: var(--bs-primary, #0d6efd) !important;
 }
 
 /* Cuerpo del Modal */
@@ -68,6 +60,92 @@
     padding: 0 !important;
     background: #ffffff !important;
 }
+
+/* ===== ESTILOS UNIFICADOS PARA BOTONES DE ACCIÓN (FOOTER) ===== */
+
+/* Contenedor del footer */
+#taskUniversalModal .modal-footer {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 1rem 1.5rem !important;
+    background-color: #f8f9fa !important;
+    border-top: 1px solid #e9ecef !important;
+    gap: 0.75rem !important;
+}
+
+/* Grupos de botones */
+#taskUniversalModal .modal-footer .footer-left,
+#taskUniversalModal .modal-footer .footer-right {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+}
+
+/* Estilo base para todos los botones del footer (tamaño sm) */
+#taskUniversalModal .modal-footer .btn {
+    font-size: 0.875rem !important;
+    padding: 0.375rem 0.75rem !important; /* Reducido para ser más compacto */
+    border-radius: 6px !important;
+    font-weight: 500 !important;
+    min-width: auto !important;
+    line-height: 1.5 !important;
+}
+
+/* Botones principales (Guardar, Editar) usan el color del proyecto */
+#taskUniversalModal .modal-footer .btn-primary,
+.task-detail-simple .task-footer-simple .btn-primary {
+    background-color: var(--project-color, #3b82f6) !important;
+    border-color: var(--project-color, #3b82f6) !important;
+    color: white !important;
+}
+#taskUniversalModal .modal-footer .btn-primary:hover,
+.task-detail-simple .task-footer-simple .btn-primary:hover {
+    filter: brightness(90%);
+}
+
+
+/* Botones secundarios (Cerrar, Cancelar) */
+#taskUniversalModal .modal-footer .btn-secondary,
+.task-detail-simple .task-footer-simple .btn-outline-secondary {
+    color: #495057 !important;
+    border-color: #adb5bd !important;
+    background-color: white !important;
+}
+#taskUniversalModal .modal-footer .btn-secondary:hover,
+.task-detail-simple .task-footer-simple .btn-outline-secondary:hover {
+    background-color: #e9ecef !important;
+    border-color: #6c757d !important;
+    color: #212529 !important;
+}
+
+/* Botón de peligro (Eliminar) */
+#taskUniversalModal .modal-footer .btn-outline-danger {
+    color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    background-color: transparent !important;
+}
+#taskUniversalModal .modal-footer .btn-outline-danger:hover {
+    background-color: #dc3545 !important;
+    color: white !important;
+}
+
+/* Iconos dentro de los botones */
+#taskUniversalModal .modal-footer .btn i {
+    margin-right: 0.375rem !important;
+}
+
+
+/* ===== OTROS ESTILOS DINÁMICOS BASADOS EN EL COLOR DEL PROYECTO ===== */
+
+.task-detail-simple .description-text {
+    border-left-color: var(--project-color, #3b82f6) !important;
+}
+
+.task-detail-simple .info-item i {
+    color: var(--project-color, #3b82f6) !important;
+}
+
 
 /* ===== VISTA DE DETALLES SIMPLE ===== */
 .task-detail-simple {
@@ -116,8 +194,8 @@
 }
 
 .task-detail-simple .status-in_progress {
-    background: #cce5ff !important;
-    color: #0066cc !important;
+    background: #dbeafe !important;
+    color: #2563eb !important;
 }
 
 .task-detail-simple .status-paused {
@@ -126,24 +204,24 @@
 }
 
 .task-detail-simple .status-done {
-    background: #d4edda !important;
-    color: #155724 !important;
+    background: #d1fae5 !important;
+    color: #10b981 !important;
 }
 
 /* Prioridades */
 .task-detail-simple .priority-low {
-    background: #d4edda !important;
-    color: #155724 !important;
+    background: #d1fae5 !important;
+    color: #10b981 !important;
 }
 
 .task-detail-simple .priority-medium {
-    background: #fff3cd !important;
-    color: #856404 !important;
+    background: #fef3c7 !important;
+    color: #f59e0b !important;
 }
 
 .task-detail-simple .priority-high {
-    background: #f8d7da !important;
-    color: #721c24 !important;
+    background: #fee2e2 !important;
+    color: #ef4444 !important;
 }
 
 /* Cuerpo simple */
@@ -175,7 +253,7 @@
     background: #f8f9fa !important;
     padding: 1rem !important;
     border-radius: 8px !important;
-    border-left: 3px solid #007bff !important;
+    border-left: 3px solid #3b82f6 !important;
 }
 
 /* Información básica en línea */
@@ -195,7 +273,7 @@
 }
 
 .task-detail-simple .info-item i {
-    color: #007bff !important;
+    color: #3b82f6 !important;
     font-size: 0.875rem !important;
     width: 16px !important;
     text-align: center !important;
@@ -224,18 +302,17 @@
     padding: 0.5rem 1rem !important;
     border-radius: 6px !important;
     font-weight: 500 !important;
-    transition: all 0.2s ease !important;
 }
 
 .task-detail-simple .task-footer-simple .btn-primary {
-    background: #007bff !important;
-    border-color: #007bff !important;
+    background: #3b82f6 !important;
+    border-color: #3b82f6 !important;
     color: white !important;
 }
 
 .task-detail-simple .task-footer-simple .btn-primary:hover {
-    background: #0056b3 !important;
-    border-color: #0056b3 !important;
+    background: #2563eb !important;
+    border-color: #2563eb !important;
 }
 
 .task-detail-simple .task-footer-simple .btn-outline-secondary {
@@ -277,14 +354,13 @@
     font-size: 0.9375rem !important;
     color: #2d3748 !important;
     background: #ffffff !important;
-    transition: all 0.2s ease !important;
     min-height: 48px !important;
 }
 
 #taskUniversalModal .form-control:focus,
 #taskUniversalModal .form-select:focus {
-    border-color: #667eea !important;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
     outline: none !important;
     background: #f7fafc !important;
 }
@@ -313,79 +389,6 @@
 #taskUniversalModal .row.g-3 > * {
     padding-left: 0.75rem !important;
     padding-right: 0.75rem !important;
-}
-
-/* Footer del formulario */
-#taskUniversalModal .modal-footer {
-    background: #f7fafc !important;
-    border-top: 1px solid #e2e8f0 !important;
-    padding: 1.5rem 2rem !important;
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    flex-wrap: wrap !important;
-}
-
-#taskUniversalModal .modal-footer .footer-left,
-#taskUniversalModal .modal-footer .footer-right {
-    display: flex !important;
-    align-items: center !important;
-    gap: 0.5rem !important;
-}
-
-/* Botones del formulario */
-#taskUniversalModal .btn {
-    font-size: 0.875rem !important;
-    padding: 0.75rem 1.5rem !important;
-    border-radius: 8px !important;
-    font-weight: 600 !important;
-    transition: all 0.2s ease !important;
-    border: 2px solid transparent !important;
-    min-width: 120px !important;
-}
-
-#taskUniversalModal .btn-primary {
-    background: linear-gradient(135deg, #667eea, #764ba2) !important;
-    color: white !important;
-    border: none !important;
-}
-
-#taskUniversalModal .btn-primary:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
-}
-
-#taskUniversalModal .btn-secondary {
-    background: #e2e8f0 !important;
-    color: #4a5568 !important;
-    border-color: #e2e8f0 !important;
-}
-
-#taskUniversalModal .btn-secondary:hover {
-    background: #cbd5e0 !important;
-    border-color: #cbd5e0 !important;
-    color: #2d3748 !important;
-}
-
-#taskUniversalModal .btn-outline-danger {
-    background: #ffffff !important;
-    color: #e53e3e !important;
-    border-color: #e53e3e !important;
-}
-
-#taskUniversalModal .btn-outline-danger:hover {
-    background: #e53e3e !important;
-    color: white !important;
-    border-color: #e53e3e !important;
-    transform: translateY(-1px) !important;
-}
-
-/* Mejoras en select */
-#taskUniversalModal .form-select {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%234a5568' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e") !important;
-    background-repeat: no-repeat !important;
-    background-position: right 1rem center !important;
-    background-size: 1.5em 1.5em !important;
 }
 
 /* Responsive */
@@ -501,4 +504,31 @@
         padding: 0.625rem 0.875rem !important;
         min-height: 44px !important;
     }
+}
+
+/* Indicadores HTMX para formularios */
+#taskUniversalModal .htmx-indicator {
+    display: none;
+}
+
+#taskUniversalModal.htmx-request .htmx-indicator {
+    display: inline-block !important;
+}
+
+#taskUniversalModal.htmx-request .button-icon {
+    display: none;
+}
+
+#taskUniversalModal .btn:disabled {
+    opacity: 0.7;
+}
+
+/* Animación del spinner */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+#taskUniversalModal .htmx-indicator.spinner-border {
+    animation: spin 1s linear infinite;
 }

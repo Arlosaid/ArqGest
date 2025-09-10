@@ -11,7 +11,23 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 import logging
+import time
 from .models import Project, Task, Phase, PhaseTemplate
+from core.error_codes import (
+    log_operation, 
+    TaskErrorCodes, 
+    ProjectErrorCodes,
+    log_performance_warning
+)
+
+# Enhanced logging helper with error codes
+def log_task_operation(operation, user_email, error_code=None, level='INFO', **kwargs):
+    """Enhanced task operation logging with structured error codes"""
+    return log_operation(operation, user_email, logger, level=level, error_code=error_code, **kwargs)
+
+def log_project_operation(operation, user_email, error_code=None, level='INFO', **kwargs):
+    """Enhanced project operation logging with structured error codes"""
+    return log_operation(operation, user_email, logger, level=level, error_code=error_code, **kwargs)
 from apps.files.models import ProjectFile
 from .forms import ProjectForm, TaskForm, PhaseTemplateForm, PhaseFormSet
 from .services import create_phases_for_project  # Importar el nuevo servicio
@@ -149,8 +165,9 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         )
         context['tasks_recent'] = list(tasks_qs.order_by('-created_at')[:8])
 
-        # Centro de tareas (pestaña interna): paginar 12 por página
-        tasks_page_obj = build_page(tasks_qs.order_by('due_date', 'priority'), 12, 'tasks_page')
+        # Centro de tareas (pestaña interna): paginar 9 por página
+        # El responsive se manejará con CSS/JS para mostrar 5 en mobile
+        tasks_page_obj = build_page(tasks_qs.order_by('due_date', 'priority'), 9, 'tasks_page')
         context['tasks_page_obj'] = tasks_page_obj
 
         # Contadores por fase (para el sub-tab "Por fases") sin consultas extra
@@ -291,7 +308,32 @@ class PhaseDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         phase = self.get_object()
         context['project'] = phase.project
+        
+        # Add today for template comparisons
+        from datetime import date
+        context['today'] = date.today()
+        
+        # Get only recent tasks (limit to 5) with optimized query
+        recent_tasks = phase.tasks.select_related('assigned_to').order_by('-created_at')[:5]
+        total_tasks_count = phase.tasks.count()
+        
+        context['recent_tasks'] = recent_tasks
+        context['recent_tasks_count'] = min(5, total_tasks_count)
+        context['has_more_tasks'] = total_tasks_count > 5
+        
+        # Calculate task statistics efficiently
+        if total_tasks_count > 0:
+            tasks_done = phase.tasks.filter(status='DONE').count()
+            context['tasks_done_count'] = tasks_done
+            context['tasks_in_progress_count'] = phase.tasks.filter(status='IN_PROGRESS').count()
+            context['completion_percentage'] = round((tasks_done / total_tasks_count) * 100, 1)
+        else:
+            context['tasks_done_count'] = 0
+            context['tasks_in_progress_count'] = 0
+            context['completion_percentage'] = 0
+        
         return context
+
 
 # Kanban View
 @login_required
@@ -452,7 +494,15 @@ def task_create(request, project_pk):
             try:
                 phase = Phase.objects.get(pk=phase_id, project=project)
                 
-                logger.info(f"Creating task '{title}' in project {project_pk}, phase {phase_id} by {request.user.email}")
+                log_msg, log_data = log_task_operation(
+                    'CREATE_TASK',
+                    request.user.email,
+                    project_id=project_pk,
+                    phase_id=phase_id,
+                    title=title,
+                    priority=priority
+                )
+                logger.info(log_msg)
                 
                 task = Task.objects.create(
                     phase=phase,
@@ -476,17 +526,32 @@ def task_create(request, project_pk):
                     if assignee_exists:
                         task.assigned_to_id = assigned_to_id
                         task.save()
-                        logger.info(f"Task {task.id} assigned to user {assigned_to_id}")
+                        
+                        log_msg, log_data = log_task_operation(
+                            'ASSIGN_TASK',
+                            request.user.email,
+                            task_id=task.id,
+                            assignee_id=assigned_to_id
+                        )
+                        logger.info(log_msg)
                     else:
                         # Si el usuario no pertenece a la organización, no asignar y reportar
-                        logger.warning(f"Task creation - Invalid assignee {assigned_to_id} for task '{title}' in project {project_pk}")
+                        log_msg, log_data = log_task_operation(
+                            'CREATE_TASK_ERROR',
+                            request.user.email,
+                            project_id=project_pk,
+                            assignee_id=assigned_to_id,
+                            error_code=TaskErrorCodes.TASK_CREATE_INVALID_ASSIGNEE
+                        )
+                        logger.warning(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_CREATE_INVALID_ASSIGNEE}")
+                        
                         error_msg = _('El usuario seleccionado no pertenece a tu organización.')
                         messages.error(request, error_msg)
                         accepts_json = 'application/json' in request.headers.get('Accept', '')
                         is_htmx = request.headers.get('HX-Request')
                         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
                         if accepts_json or is_htmx or is_ajax:
-                            return JsonResponse({'success': False, 'error': 'invalid_assignee'}, status=400)
+                            return JsonResponse({'success': False, 'error': 'invalid_assignee', 'error_code': TaskErrorCodes.TASK_CREATE_INVALID_ASSIGNEE}, status=400)
                 
                 # Si es una petición AJAX/JSON, devolver JSON sin mensaje Django
                 accepts_json = 'application/json' in request.headers.get('Accept', '')
@@ -497,7 +562,15 @@ def task_create(request, project_pk):
                 
                 # Solo mostrar mensaje Django para peticiones normales (no AJAX)
                 messages.success(request, f'Tarea "{title}" creada exitosamente.')
-                logger.info(f"Task {task.id} created successfully - Title: '{title}', Project: {project_pk}")
+                
+                log_msg, log_data = log_task_operation(
+                    'CREATE_TASK_SUCCESS',
+                    request.user.email,
+                    task_id=task.id,
+                    project_id=project_pk,
+                    title=title
+                )
+                logger.info(log_msg)
 
                 # Redirecciones para peticiones normales
                 if 'kanban' in request.META.get('HTTP_REFERER', ''):
@@ -505,10 +578,40 @@ def task_create(request, project_pk):
                 return redirect('projects:project-detail', pk=project_pk)
                     
             except Phase.DoesNotExist:
-                logger.error(f"Task creation failed - Phase {phase_id} not found for project {project_pk}")
+                log_msg, log_data = log_task_operation(
+                    'CREATE_TASK_ERROR',
+                    request.user.email,
+                    project_id=project_pk,
+                    phase_id=phase_id,
+                    error_code=TaskErrorCodes.TASK_CREATE_PHASE_NOT_FOUND
+                )
+                logger.error(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_CREATE_PHASE_NOT_FOUND}")
                 messages.error(request, 'La fase seleccionada no existe.')
+            except Exception as e:
+                log_msg, log_data = log_task_operation(
+                    'CREATE_TASK_ERROR',
+                    request.user.email,
+                    project_id=project_pk,
+                    error_code=TaskErrorCodes.TASK_CREATE_UNEXPECTED_ERROR,
+                    exception=str(e)
+                )
+                logger.error(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_CREATE_UNEXPECTED_ERROR}", exc_info=True)
+                messages.error(request, 'Error inesperado al crear la tarea.')
         else:
-            logger.warning(f"Task creation failed - Missing title or phase for project {project_pk}")
+            missing_fields = []
+            if not title:
+                missing_fields.append('title')
+            if not phase_id:
+                missing_fields.append('phase_id')
+                
+            log_msg, log_data = log_task_operation(
+                'CREATE_TASK_ERROR',
+                request.user.email,
+                project_id=project_pk,
+                missing_fields=missing_fields,
+                error_code=TaskErrorCodes.TASK_CREATE_MISSING_TITLE if not title else TaskErrorCodes.TASK_CREATE_MISSING_PHASE
+            )
+            logger.warning(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_CREATE_MISSING_TITLE if not title else TaskErrorCodes.TASK_CREATE_MISSING_PHASE}")
             messages.error(request, 'El título y la fase son requeridos.')
     
     return redirect('projects:project-detail', pk=project_pk)
@@ -520,9 +623,30 @@ class TaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
     context_object_name = 'tasks'
 
     def get_queryset(self):
-        return Task.objects.filter(
+        start_time = time.time()
+        queryset = Task.objects.filter(
             phase__project__organization=self.request.user.organization
         ).select_related('phase__project', 'assigned_to').order_by('due_date', 'priority')
+        
+        query_time = time.time() - start_time
+        task_count = queryset.count()
+        
+        log_msg, log_data = log_task_operation(
+            'LIST_ALL_TASKS',
+            self.request.user.email,
+            org_id=self.request.user.organization.id,
+            task_count=task_count,
+            query_time_ms=round(query_time * 1000, 2)
+        )
+        
+        if query_time > 2.0:  # Log slow queries
+            logger.warning(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_QUERY_SLOW}")
+        elif task_count > 1000:  # Log large datasets
+            logger.warning(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_LIST_LARGE_DATASET}")
+        else:
+            logger.info(log_msg)
+            
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -542,6 +666,7 @@ class MyTaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
     paginate_by = 8
 
     def get_queryset(self):
+        start_time = time.time()
         queryset = Task.objects.filter(
             phase__project__organization=self.request.user.organization,
             assigned_to=self.request.user
@@ -564,6 +689,23 @@ class MyTaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
                 Q(phase__project__name__icontains=search_filter) |
                 Q(phase__name__icontains=search_filter)
             )
+        
+        query_time = time.time() - start_time
+        task_count = queryset.count()
+        
+        log_msg, log_data = log_task_operation(
+            'LIST_MY_TASKS',
+            self.request.user.email,
+            org_id=self.request.user.organization.id,
+            task_count=task_count,
+            query_time_ms=round(query_time * 1000, 2),
+            filters={'status': status_filter, 'priority': priority_filter, 'search': search_filter}
+        )
+        
+        if query_time > 2.0:
+            logger.warning(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_QUERY_SLOW}")
+        else:
+            logger.info(log_msg)
         
         return queryset
 
@@ -644,14 +786,45 @@ def update_task_status(request, task_pk):
         if status in dict(Task.Status.choices):
             task.status = status
             task.save()
-            logger.info(f"Task {task_pk} status updated - From '{old_status}' to '{status}' by {request.user.email}")
+            
+            log_msg, log_data = log_task_operation(
+                'UPDATE_TASK_STATUS',
+                request.user.email,
+                task_id=task_pk,
+                old_status=old_status,
+                new_status=status
+            )
+            logger.info(log_msg)
             return JsonResponse({'success': True})
         else:
-            logger.warning(f"Invalid status '{status}' provided for task {task_pk} by {request.user.email}")
-            return JsonResponse({'success': False, 'error': 'Estado inválido'})
+            log_msg, log_data = log_task_operation(
+                'UPDATE_TASK_ERROR',
+                request.user.email,
+                task_id=task_pk,
+                invalid_status=status,
+                error_code=TaskErrorCodes.TASK_UPDATE_INVALID_STATUS
+            )
+            logger.warning(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_UPDATE_INVALID_STATUS}")
+            return JsonResponse({'success': False, 'error': 'Estado inválido', 'error_code': TaskErrorCodes.TASK_UPDATE_INVALID_STATUS})
+    except Task.DoesNotExist:
+        log_msg, log_data = log_task_operation(
+            'UPDATE_TASK_ERROR',
+            request.user.email,
+            task_id=task_pk,
+            error_code=TaskErrorCodes.TASK_UPDATE_NOT_FOUND
+        )
+        logger.error(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_UPDATE_NOT_FOUND}")
+        return JsonResponse({'success': False, 'error': 'Tarea no encontrada', 'error_code': TaskErrorCodes.TASK_UPDATE_NOT_FOUND})
     except Exception as e:
-        logger.error(f'update_task_status failed for task {task_pk}: {str(e)}', exc_info=True)
-        return JsonResponse({'success': False, 'error': 'Unexpected error'})
+        log_msg, log_data = log_task_operation(
+            'UPDATE_TASK_ERROR',
+            request.user.email,
+            task_id=task_pk,
+            error_code=TaskErrorCodes.TASK_UPDATE_UNEXPECTED_ERROR,
+            exception=str(e)
+        )
+        logger.error(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_UPDATE_UNEXPECTED_ERROR}", exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Error inesperado', 'error_code': TaskErrorCodes.TASK_UPDATE_UNEXPECTED_ERROR})
 
 @login_required
 @require_POST
@@ -678,123 +851,312 @@ def move_task(request, task_pk):
                 new_phase = Phase.objects.get(pk=phase_id, project=task.phase.project)
                 task.phase = new_phase
                 task.save()
-                logger.info(f"Task {task_pk} moved - From phase '{old_phase_name}' (ID: {old_phase_id}) to '{new_phase.name}' (ID: {phase_id}) by {request.user.email}")
+                
+                log_msg, log_data = log_task_operation(
+                    'MOVE_TASK',
+                    request.user.email,
+                    task_id=task_pk,
+                    old_phase_id=old_phase_id,
+                    old_phase_name=old_phase_name,
+                    new_phase_id=phase_id,
+                    new_phase_name=new_phase.name
+                )
+                logger.info(log_msg)
                 return JsonResponse({'success': True})
             except Phase.DoesNotExist:
-                logger.warning(f"Move task failed - Phase {phase_id} not found for task {task_pk}")
-                return JsonResponse({'success': False, 'error': 'Fase no encontrada'})
+                log_msg, log_data = log_task_operation(
+                    'MOVE_TASK_ERROR',
+                    request.user.email,
+                    task_id=task_pk,
+                    phase_id=phase_id,
+                    error_code=TaskErrorCodes.TASK_UPDATE_INVALID_PHASE
+                )
+                logger.warning(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_UPDATE_INVALID_PHASE}")
+                return JsonResponse({'success': False, 'error': 'Fase no encontrada', 'error_code': TaskErrorCodes.TASK_UPDATE_INVALID_PHASE})
         else:
-            logger.warning(f"Move task failed - No phase_id provided for task {task_pk}")
-            return JsonResponse({'success': False, 'error': 'ID de fase requerido'})
+            log_msg, log_data = log_task_operation(
+                'MOVE_TASK_ERROR',
+                request.user.email,
+                task_id=task_pk,
+                error_code=TaskErrorCodes.TASK_UPDATE_INVALID_PHASE
+            )
+            logger.warning(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_UPDATE_INVALID_PHASE}")
+            return JsonResponse({'success': False, 'error': 'ID de fase requerido', 'error_code': TaskErrorCodes.TASK_UPDATE_INVALID_PHASE})
     except Exception as e:
-        logger.error(f'move_task failed for task {task_pk}: {str(e)}', exc_info=True)
-        return JsonResponse({'success': False, 'error': 'Unexpected error'})
+        log_msg, log_data = log_task_operation(
+            'MOVE_TASK_ERROR',
+            request.user.email,
+            task_id=task_pk,
+            error_code=TaskErrorCodes.TASK_UPDATE_UNEXPECTED_ERROR,
+            exception=str(e)
+        )
+        logger.error(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_UPDATE_UNEXPECTED_ERROR}", exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Error inesperado', 'error_code': TaskErrorCodes.TASK_UPDATE_UNEXPECTED_ERROR})
 
 @login_required
 def task_edit(request, pk):
     """Editar una tarea."""
-    task = get_object_or_404(Task, pk=pk, phase__project__organization=request.user.organization)
-    
+    try:
+        task = get_object_or_404(Task, pk=pk, phase__project__organization=request.user.organization)
+        project = task.phase.project
+        
+        log_msg, log_data = log_task_operation(
+            'ACCESS_TASK_EDIT',
+            request.user.email,
+            task_id=pk,
+            method=request.method
+        )
+        logger.info(log_msg)
+
+    except Task.DoesNotExist:
+        log_msg, log_data = log_task_operation(
+            'ACCESS_TASK_EDIT_ERROR',
+            request.user.email,
+            task_id=pk,
+            error_code=TaskErrorCodes.TASK_ACCESS_NOT_FOUND
+        )
+        logger.error(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_ACCESS_NOT_FOUND}")
+        raise Http404("Tarea no encontrada")
+    except Exception as e:
+        log_msg, log_data = log_task_operation(
+            'ACCESS_TASK_EDIT_ERROR',
+            request.user.email,
+            task_id=pk,
+            error_code=TaskErrorCodes.TASK_ACCESS_UNAUTHORIZED,
+            exception=str(e)
+        )
+        logger.error(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_ACCESS_UNAUTHORIZED}", exc_info=True)
+        raise
+
     if request.method == 'POST':
-        title = request.POST.get('title')
-        description = request.POST.get('description', '')
-        status = request.POST.get('status') or task.status
-        priority = request.POST.get('priority')
-        due_date = request.POST.get('due_date')
-        assigned_to_id = request.POST.get('assigned_to')
-        phase_id = request.POST.get('phase')
-        
-        logger.info(f"Editing task {pk} - Title: '{title}', Status: {status}, Priority: {priority}, User: {request.user.email}")
-        
-        if title:
-            task.title = title.strip()
-            # Asegurar que la descripción se guarde correctamente, incluso si está vacía
-            task.description = description.strip() if description else ''
-            task.status = status
-            task.priority = priority
-            task.due_date = due_date if due_date else None
-            if assigned_to_id:
-                eligible_qs = task.phase.project.organization.users.filter(
-                    pk=assigned_to_id,
-                    is_active=True,
-                    is_superuser=False
-                )
-                if eligible_qs.exists():
-                    task.assigned_to_id = assigned_to_id
-                else:
-                    task.assigned_to = None
-            else:
-                # Si assigned_to_id está vacío, desasignar la tarea
-                task.assigned_to = None
-            if phase_id and str(task.phase_id) != str(phase_id):
-                try:
-                    task.phase = Phase.objects.get(pk=phase_id, project=task.phase.project)
-                except Phase.DoesNotExist:
-                    pass
-            task.save()
-            logger.info(f"Task {pk} updated successfully - New title: '{task.title}'")
+        try:
+            form = TaskForm(request.POST, instance=task, project=project)
+        except Exception as e:
+            log_msg, log_data = log_task_operation(
+                'FORM_INIT_ERROR',
+                request.user.email,
+                task_id=pk,
+                error_code=TaskErrorCodes.TASK_UPDATE_FORM_VALIDATION,
+                exception=str(e)
+            )
+            logger.error(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_UPDATE_FORM_VALIDATION}", exc_info=True)
             
-            # Verificar y forzar actualización si es necesario
-            task.refresh_from_db()
-            if task.description != (description.strip() if description else ''):
-                Task.objects.filter(pk=task.pk).update(description=description.strip() if description else '')
-                task.refresh_from_db()
-                logger.debug(f"Forced description update for task {pk}")
-            
-            # Respuesta para htmx: devolver JSON para actualizar la tarjeta y cerrar modal
-            # Solo mostrar mensaje Django para peticiones normales (no AJAX)
             if request.headers.get('HX-Request'):
-                assigned_name = ''
-                if task.assigned_to:
-                    assigned_name = task.assigned_to.get_full_name() or task.assigned_to.email or str(task.assigned_to)
-                payload = {
-                    'success': True,
-                    'task': {
-                        'id': task.id,
-                        'title': task.title,
-                        'assigned_to_name': assigned_name,
-                        'phase_name': task.phase.name,
-                    }
-                }
-                return JsonResponse(payload)
-            else:
-                return redirect('projects:project-detail', pk=task.phase.project.pk)
+                return HttpResponse(f"Error al inicializar formulario: {e}", status=500)
+            messages.error(request, _('Error al procesar el formulario.'))
+            return redirect('projects:project-detail', pk=project.id)
+        
+        if form.is_valid():
+            try:
+                task = form.save()
+                
+                log_msg, log_data = log_task_operation(
+                    'EDIT_TASK_SUCCESS',
+                    request.user.email,
+                    task_id=pk,
+                    title=task.title
+                )
+                logger.info(log_msg)
+
+                if request.headers.get('HX-Request'):
+                    # Para HTMX, devolver un mensaje de éxito que active el cierre del modal
+                    return HttpResponse(
+                        '<div class="alert alert-success">Tarea actualizada correctamente</div>',
+                        status=200
+                    )
+                else:
+                    # Para peticiones normales, redirigir al kanban del proyecto
+                    messages.success(request, _('Tarea actualizada correctamente.'))
+                    return redirect('projects:project-kanban', pk=project.id)
+
+            except Exception as e:
+                log_msg, log_data = log_task_operation(
+                    'EDIT_TASK_ERROR',
+                    request.user.email,
+                    task_id=pk,
+                    error_code=TaskErrorCodes.TASK_UPDATE_SAVE_ERROR,
+                    exception=str(e)
+                )
+                logger.error(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_UPDATE_SAVE_ERROR}", exc_info=True)
+                
+                if request.headers.get('HX-Request'):
+                    return HttpResponse(f"Error al guardar: {e}", status=400)
+                messages.error(request, _('Error al guardar la tarea. Inténtalo de nuevo.'))
+                return redirect('projects:project-detail', pk=project.id)
         else:
-            logger.warning(f"Task edit failed - Missing title for task {pk}")
-            messages.error(request, 'El título es requerido.')
-    
+            # Si el formulario no es válido, registrar errores y devolverlos
+            error_details = form.errors.as_json()
+            
+            log_msg, log_data = log_task_operation(
+                'EDIT_TASK_ERROR',
+                request.user.email,
+                task_id=pk,
+                error_code=TaskErrorCodes.TASK_UPDATE_FORM_VALIDATION,
+                form_errors=error_details
+            )
+            logger.warning(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_UPDATE_FORM_VALIDATION}")
+            # Para HTMX, devolvemos el formulario con errores para mostrar en el modal
+            if request.headers.get('HX-Request'):
+                # Re-renderizar el modal con el formulario y sus errores
+                context = {
+                    'task': task,
+                    'form': form, # Pasar el formulario con errores al contexto
+                    'project': project,
+                    'project_color': get_project_color(project.id),
+                    'phases': project.phases.all(),
+                    'users': project.organization.users.filter(is_active=True, is_superuser=False),
+                    'priority_choices': Task.Priority.choices,
+                }
+                return render(request, 'projects/partials/task_edit_modal.html', context)
+
+            # Para peticiones normales, mostrar mensaje de error
+            error_message = _('Por favor, corrige los errores a continuación.')
+            # Unir los errores en un solo string para el mensaje
+            error_list = [f"{field}: {', '.join(errors)}" for field, errors in form.errors.items()]
+            messages.error(request, f"{error_message} {' | '.join(error_list)}")
+
+
     # Para GET, mostrar formulario de edición
+    try:
+        form = TaskForm(instance=task, project=project)
+    except Exception as e:
+        log_msg, log_data = log_task_operation(
+            'FORM_INIT_ERROR',
+            request.user.email,
+            task_id=pk,
+            error_code=TaskErrorCodes.TASK_UPDATE_FORM_VALIDATION,
+            exception=str(e)
+        )
+        logger.error(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_UPDATE_FORM_VALIDATION}", exc_info=True)
+        
+        if request.headers.get('HX-Request'):
+            return HttpResponse(f"Error al cargar formulario: {e}", status=500)
+        messages.error(request, _('Error al cargar el formulario de edición.'))
+        return redirect('projects:project-detail', pk=project.id)
+
     context = {
         'task': task,
-        'project': task.phase.project,
-        'phases': task.phase.project.phases.all(),
-        'users': (
-            task.phase.project.organization.users.filter(is_active=True, is_superuser=False).exclude(is_org_admin=True)
-            if hasattr(task.phase.project.organization, 'users') else []
-        ),
-        'status_choices': Task.Status.choices,
+        'form': form,
+        'project': project,
+        'project_color': get_project_color(project.id),
+        'phases': project.phases.all(),
+        'users': project.organization.users.filter(is_active=True, is_superuser=False),
         'priority_choices': Task.Priority.choices,
     }
-    
+
     return render(request, 'projects/partials/task_edit_modal.html', context)
+
+
+def get_project_color(project_id):
+    """Generate a project-specific color based on project ID for consistency."""
+    project_colors = [
+        '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+        '#06b6d4', '#f97316', '#84cc16', '#ec4899', '#6366f1'
+    ]
+    return project_colors[project_id % len(project_colors)]
 
 @login_required
 @require_POST
 def task_delete(request, pk):
-    """Eliminar una tarea (JSON)."""
+    """Eliminar una tarea (JSON) - Solo admin de organización."""
     task = get_object_or_404(Task, pk=pk, phase__project__organization=request.user.organization)
+    
+    # Verificar que el usuario es admin de la organización
+    if not hasattr(request.user, 'is_org_admin') or not request.user.is_org_admin:
+        log_msg, log_data = log_task_operation(
+            'DELETE_TASK_UNAUTHORIZED',
+            request.user.email,
+            task_id=pk,
+            error_code=TaskErrorCodes.TASK_DELETE_PERMISSION_DENIED
+        )
+        logger.warning(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_DELETE_PERMISSION_DENIED}")
+        return JsonResponse({'success': False, 'error': 'No tienes permisos para eliminar tareas', 'error_code': TaskErrorCodes.TASK_DELETE_PERMISSION_DENIED}, status=403)
+    
     task_title = task.title
     project_id = task.phase.project.id
     
-    logger.warning(f"Deleting task {pk} - Title: '{task_title}', Project: {project_id}, User: {request.user.email}")
+    log_msg, log_data = log_task_operation(
+        'DELETE_TASK_ATTEMPT',
+        request.user.email,
+        task_id=pk,
+        title=task_title,
+        project_id=project_id
+    )
+    logger.warning(log_msg)
     
     try:
         task.delete()
-        logger.info(f"Task {pk} ('{task_title}') deleted successfully")
+        
+        log_msg, log_data = log_task_operation(
+            'DELETE_TASK_SUCCESS',
+            request.user.email,
+            task_id=pk,
+            title=task_title,
+            project_id=project_id
+        )
+        logger.info(log_msg)
         return JsonResponse({'success': True})
     except Exception as e:
-        logger.error(f"Failed to delete task {pk}: {str(e)}", exc_info=True)
-        return JsonResponse({'success': False, 'error': 'Failed to delete task'})
+        log_msg, log_data = log_task_operation(
+            'DELETE_TASK_ERROR',
+            request.user.email,
+            task_id=pk,
+            error_code=TaskErrorCodes.TASK_DELETE_UNEXPECTED_ERROR,
+            exception=str(e)
+        )
+        logger.error(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_DELETE_UNEXPECTED_ERROR}", exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Error al eliminar tarea', 'error_code': TaskErrorCodes.TASK_DELETE_UNEXPECTED_ERROR})
+
+@login_required
+def project_tasks_paginated(request, project_pk):
+    """Vista AJAX para cargar tareas paginadas del centro de tareas."""
+    project = get_object_or_404(Project, pk=project_pk, organization=request.user.organization)
+    
+    # Parámetros de paginación
+    page = int(request.GET.get('page', 1))
+    per_page = int(request.GET.get('per_page', 9))  # 9 desktop, 5 mobile desde JS
+    
+    # Filtros
+    phase_filter = request.GET.get('phase', '')
+    
+    log_msg, log_data = log_task_operation(
+        'VIEW_PAGINATED_TASKS',
+        request.user.email,
+        project_id=project_pk,
+        page=page,
+        per_page=per_page,
+        phase_filter=phase_filter
+    )
+    logger.info(log_msg)
+
+    # Queryset base
+    tasks_qs = Task.objects.filter(phase__project=project).select_related('phase', 'assigned_to')
+    
+    # Aplicar filtro de fase
+    if phase_filter:
+        tasks_qs = tasks_qs.filter(phase_id=phase_filter)
+    
+    # Ordenar
+    tasks_qs = tasks_qs.order_by('due_date', 'priority')
+    
+    # Paginación
+    paginator = Paginator(tasks_qs, per_page)
+    try:
+        tasks_page = paginator.page(page)
+    except (PageNotAnInteger, EmptyPage):
+        tasks_page = paginator.page(1)
+    
+    from datetime import date
+    context = {
+        'project': project,
+        'tasks_page_obj': tasks_page,
+        'today': date.today(),
+        'current_filters': {
+            'phase': phase_filter,
+        }
+    }
+    
+    return render(request, 'projects/partials/tasks_paginated.html', context)
 
 @login_required
 def phase_files_paginated(request, project_id, phase_id):
@@ -982,11 +1344,34 @@ class PhaseTemplateDeleteView(LoginRequiredMixin, DeleteView):
 @login_required
 def task_detail(request, pk):
     """Vista para mostrar los detalles de una tarea en formato modal"""
+    log_msg, log_data = log_task_operation(
+        'VIEW_TASK_DETAILS',
+        request.user.email,
+        task_id=pk
+    )
+    logger.info(log_msg)
     task = get_object_or_404(Task, pk=pk, phase__project__organization=request.user.organization)
+    
+    # Generate a project-specific color based on project ID for consistency
+    project_colors = [
+        '#3b82f6',  # Blue
+        '#10b981',  # Green
+        '#f59e0b',  # Yellow
+        '#ef4444',  # Red
+        '#8b5cf6',  # Purple
+        '#06b6d4',  # Cyan
+        '#f97316',  # Orange
+        '#84cc16',  # Lime
+        '#ec4899',  # Pink
+        '#6366f1',  # Indigo
+    ]
+    
+    project_color = project_colors[task.phase.project.id % len(project_colors)]
     
     context = {
         'task': task,
         'project': task.phase.project,
+        'project_color': project_color,
         'today': timezone.now().date(),
     }
     

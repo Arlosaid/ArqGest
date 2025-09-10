@@ -19,3 +19,5 @@ document.addEventListener('DOMContentLoaded', function() {
   // que se encarga globalmente de todos los errores HTTP en la aplicación
 });
 
+// Phase detail functionality is now minimal - only notes auto-save
+

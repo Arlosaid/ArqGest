@@ -152,10 +152,6 @@
                                     <i class="fas fa-eye"></i> {% trans "Detalles" %}
                                 </button>
                                 
-                                <a href="{% url 'projects:task-edit' task.pk %}" class="task-action-btn secondary">
-                                    <i class="fas fa-edit"></i> {% trans "Editar" %}
-                                </a>
-                                
                                 {% if task.status == 'TODO' %}
                                     <button type="button" class="task-action-btn primary" onclick="updateTaskStatus('{{ task.pk }}', 'IN_PROGRESS')">
                                         <i class="fas fa-play"></i> {% trans "Iniciar" %}

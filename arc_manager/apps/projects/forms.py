@@ -137,9 +137,21 @@ class TaskForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
+        project = kwargs.pop('project', None)
         super().__init__(*args, **kwargs)
-        if user and user.organization:
-            self.fields['assigned_to'].queryset = user.organization.users.all()
+        
+        # Determinar la organización desde user o project
+        organization = None
+        if user and hasattr(user, 'organization'):
+            organization = user.organization
+        elif project and hasattr(project, 'organization'):
+            organization = project.organization
+        
+        if organization:
+            self.fields['assigned_to'].queryset = organization.users.filter(
+                is_active=True, 
+                is_superuser=False
+            )
 
 class PhaseTemplateForm(forms.ModelForm):
     """Formulario para crear y editar Plantillas de Fase."""

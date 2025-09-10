@@ -1,0 +1,855 @@
+"""
+Códigos de error estructurados para todo el proyecto ARC Manager.
+Estos códigos permiten monitoreo, alertas y análisis de logs más eficiente.
+"""
+import logging
+import os
+import time
+from typing import Dict, Any, Optional
+
+# ============================================================================
+# CÓDIGOS DE ERROR POR MÓDULO
+# ============================================================================
+
+class ProjectErrorCodes:
+    """Códigos de error para el módulo de proyectos (P001-P999)"""
+    # Creación de proyectos (P001-P099)
+    PROJECT_CREATE_NAME_DUPLICATE = "P001"
+    PROJECT_CREATE_INVALID_TEMPLATE = "P002"
+    PROJECT_CREATE_PHASE_ERROR = "P003"
+    PROJECT_CREATE_PERMISSION_DENIED = "P004"
+    PROJECT_CREATE_UNEXPECTED_ERROR = "P005"
+    PROJECT_CREATE_MISSING_REQUIRED_FIELDS = "P006"
+    PROJECT_CREATE_INVALID_DATES = "P007"
+    PROJECT_CREATE_INVALID_BUDGET = "P008"
+    PROJECT_CREATE_TEAM_ASSIGNMENT_ERROR = "P009"
+    PROJECT_CREATE_CLIENT_NOT_FOUND = "P010"
+    PROJECT_CREATE_TEMPLATE_NOT_FOUND = "P011"
+    PROJECT_CREATE_ORGANIZATION_LIMIT_EXCEEDED = "P012"
+    PROJECT_CREATE_INVALID_PRIORITY = "P013"
+    PROJECT_CREATE_SLUG_GENERATION_ERROR = "P014"
+    
+    # Actualización de proyectos (P101-P199)
+    PROJECT_UPDATE_NOT_FOUND = "P101"
+    PROJECT_UPDATE_PERMISSION_DENIED = "P102"
+    PROJECT_UPDATE_VALIDATION_ERROR = "P103"
+    PROJECT_UPDATE_UNEXPECTED_ERROR = "P104"
+    PROJECT_UPDATE_NAME_DUPLICATE = "P105"
+    PROJECT_UPDATE_INVALID_STATUS = "P106"
+    PROJECT_UPDATE_INVALID_DATES = "P107"
+    PROJECT_UPDATE_BUDGET_VALIDATION_ERROR = "P108"
+    PROJECT_UPDATE_TEAM_ASSIGNMENT_ERROR = "P109"
+    PROJECT_UPDATE_ARCHIVED_PROJECT = "P110"
+    PROJECT_UPDATE_CONCURRENT_MODIFICATION = "P111"
+    PROJECT_UPDATE_PHASE_REORDER_ERROR = "P112"
+    PROJECT_UPDATE_CLIENT_CHANGE_DENIED = "P113"
+    
+    # Eliminación de proyectos (P201-P299)
+    PROJECT_DELETE_NOT_FOUND = "P201"
+    PROJECT_DELETE_PERMISSION_DENIED = "P202"
+    PROJECT_DELETE_HAS_DEPENDENCIES = "P203"
+    PROJECT_DELETE_UNEXPECTED_ERROR = "P204"
+    PROJECT_DELETE_HAS_ACTIVE_TASKS = "P205"
+    PROJECT_DELETE_HAS_TIME_LOGS = "P206"
+    PROJECT_DELETE_HAS_INVOICES = "P207"
+    PROJECT_DELETE_ARCHIVED_PROJECT = "P208"
+    
+    # Gestión de fases (P301-P399)
+    PHASE_CREATE_INVALID_ORDER = "P301"
+    PHASE_CREATE_DUPLICATE_NAME = "P302"
+    PHASE_CREATE_INVALID_TEMPLATE = "P303"
+    PHASE_UPDATE_NOT_FOUND = "P304"
+    PHASE_UPDATE_PERMISSION_DENIED = "P305"
+    PHASE_DELETE_HAS_TASKS = "P306"
+    PHASE_REORDER_ERROR = "P307"
+    PHASE_TEMPLATE_GENERATION_ERROR = "P308"
+    
+    # Gestión de equipo (P401-P499)
+    PROJECT_TEAM_ADD_MEMBER_ERROR = "P401"
+    PROJECT_TEAM_REMOVE_MEMBER_ERROR = "P402"
+    PROJECT_TEAM_ROLE_UPDATE_ERROR = "P403"
+    PROJECT_TEAM_PERMISSION_DENIED = "P404"
+    PROJECT_TEAM_MEMBER_NOT_FOUND = "P405"
+    PROJECT_TEAM_OWNER_REMOVAL_DENIED = "P406"
+    PROJECT_TEAM_INVITE_ERROR = "P407"
+    
+    # Archivado y restauración (P501-P599)
+    PROJECT_ARCHIVE_PERMISSION_DENIED = "P501"
+    PROJECT_ARCHIVE_HAS_ACTIVE_TASKS = "P502"
+    PROJECT_ARCHIVE_UNEXPECTED_ERROR = "P503"
+    PROJECT_RESTORE_PERMISSION_DENIED = "P504"
+    PROJECT_RESTORE_ORGANIZATION_LIMIT = "P505"
+    PROJECT_RESTORE_UNEXPECTED_ERROR = "P506"
+    
+    # Reportes y exportación (P601-P699)
+    PROJECT_REPORT_GENERATION_ERROR = "P601"
+    PROJECT_EXPORT_PERMISSION_DENIED = "P602"
+    PROJECT_EXPORT_TOO_LARGE = "P603"
+    PROJECT_EXPORT_FORMAT_INVALID = "P604"
+    PROJECT_ANALYTICS_ERROR = "P605"
+    
+    # Performance warnings (P901-P999)
+    PROJECT_QUERY_SLOW = "P901"
+    PROJECT_LIST_LARGE_DATASET = "P902"
+    PROJECT_DASHBOARD_SLOW_LOAD = "P903"
+    PROJECT_SEARCH_TIMEOUT = "P904"
+
+
+class TaskErrorCodes:
+    """Códigos de error para el módulo de tareas (T001-T999)"""
+    # Creation errors (T001-T099)
+    TASK_CREATE_MISSING_TITLE = "T001"
+    TASK_CREATE_MISSING_PHASE = "T002"
+    TASK_CREATE_PHASE_NOT_FOUND = "T003"
+    TASK_CREATE_INVALID_ASSIGNEE = "T004"
+    TASK_CREATE_VALIDATION_ERROR = "T005"
+    TASK_CREATE_UNEXPECTED_ERROR = "T006"
+    TASK_CREATE_MISSING_DESCRIPTION = "T007"
+    TASK_CREATE_INVALID_PRIORITY = "T008"
+    TASK_CREATE_INVALID_DUE_DATE = "T009"
+    TASK_CREATE_INVALID_DEPENDENCIES = "T010"
+    TASK_CREATE_PERMISSION_DENIED = "T011"
+    TASK_CREATE_DUPLICATE_TITLE = "T012"
+    TASK_CREATE_INVALID_TEMPLATE = "T013"
+    TASK_CREATE_INVALID_TAGS = "T014"
+    TASK_CREATE_INVALID_ESTIMATED_HOURS = "T015"
+    
+    # Update errors (T101-T199)
+    TASK_UPDATE_NOT_FOUND = "T101"
+    TASK_UPDATE_INVALID_STATUS = "T102"
+    TASK_UPDATE_INVALID_PHASE = "T103"
+    TASK_UPDATE_FORM_VALIDATION = "T104"
+    TASK_UPDATE_SAVE_ERROR = "T105"
+    TASK_UPDATE_UNEXPECTED_ERROR = "T106"
+    TASK_UPDATE_PERMISSION_DENIED = "T107"
+    TASK_UPDATE_INVALID_ASSIGNEE = "T108"
+    TASK_UPDATE_INVALID_PRIORITY = "T109"
+    TASK_UPDATE_INVALID_DUE_DATE = "T110"
+    TASK_UPDATE_STATUS_TRANSITION_INVALID = "T111"
+    TASK_UPDATE_DEPENDENCY_CYCLE = "T112"
+    TASK_UPDATE_ARCHIVED_TASK = "T113"
+    TASK_UPDATE_LOCKED_TASK = "T114"
+    TASK_UPDATE_CONCURRENT_MODIFICATION = "T115"
+    
+    # Delete errors (T201-T299)
+    TASK_DELETE_NOT_FOUND = "T201"
+    TASK_DELETE_PERMISSION_DENIED = "T202"
+    TASK_DELETE_UNEXPECTED_ERROR = "T203"
+    TASK_DELETE_HAS_DEPENDENCIES = "T204"
+    TASK_DELETE_HAS_SUBTASKS = "T205"
+    TASK_DELETE_ARCHIVED_TASK = "T206"
+    TASK_DELETE_COMPLETED_TASK = "T207"
+    
+    # Access errors (T301-T399)
+    TASK_ACCESS_UNAUTHORIZED = "T301"
+    TASK_ACCESS_NOT_FOUND = "T302"
+    TASK_ACCESS_PERMISSION_DENIED = "T303"
+    TASK_ACCESS_PROJECT_ARCHIVED = "T304"
+    TASK_ACCESS_ORG_SUSPENDED = "T305"
+    
+    # Comments and attachments (T401-T499)
+    TASK_COMMENT_CREATE_ERROR = "T401"
+    TASK_COMMENT_UPDATE_PERMISSION_DENIED = "T402"
+    TASK_COMMENT_DELETE_PERMISSION_DENIED = "T403"
+    TASK_ATTACHMENT_UPLOAD_ERROR = "T404"
+    TASK_ATTACHMENT_SIZE_EXCEEDED = "T405"
+    TASK_ATTACHMENT_TYPE_INVALID = "T406"
+    TASK_ATTACHMENT_DELETE_ERROR = "T407"
+    
+    # Time tracking (T501-T599)
+    TASK_TIME_LOG_INVALID_DURATION = "T501"
+    TASK_TIME_LOG_INVALID_DATE = "T502"
+    TASK_TIME_LOG_OVERLAPPING_ENTRIES = "T503"
+    TASK_TIME_LOG_PERMISSION_DENIED = "T504"
+    TASK_TIME_LOG_TASK_NOT_ACTIVE = "T505"
+    
+    # Bulk operations (T701-T799)
+    TASK_BULK_UPDATE_PARTIAL_FAILURE = "T701"
+    TASK_BULK_DELETE_PARTIAL_FAILURE = "T702"
+    TASK_BULK_ASSIGN_INVALID_USERS = "T703"
+    TASK_BULK_OPERATION_TOO_LARGE = "T704"
+    TASK_BULK_PERMISSION_DENIED = "T705"
+    
+    # Performance warnings (T901-T999)
+    TASK_QUERY_SLOW = "T901"
+    TASK_LIST_LARGE_DATASET = "T902"
+    TASK_SEARCH_TIMEOUT = "T903"
+    TASK_EXPORT_LARGE_DATASET = "T904"
+    TASK_IMPORT_PROCESSING_SLOW = "T905"
+
+
+class UserErrorCodes:
+    """Códigos de error para el módulo de usuarios (U001-U999)"""
+    # Creación de usuarios (U001-U099)
+    USER_CREATE_EMAIL_DUPLICATE = "U001"
+    USER_CREATE_INVALID_EMAIL = "U002"
+    USER_CREATE_WEAK_PASSWORD = "U003"
+    USER_CREATE_PERMISSION_DENIED = "U004"
+    USER_CREATE_UNEXPECTED_ERROR = "U005"
+    USER_CREATE_INVALID_USERNAME = "U006"
+    USER_CREATE_USERNAME_TAKEN = "U007"
+    USER_CREATE_INVALID_PHONE = "U008"
+    USER_CREATE_ORGANIZATION_LIMIT_EXCEEDED = "U009"
+    USER_CREATE_INVALID_ROLE = "U010"
+    USER_CREATE_EMAIL_VERIFICATION_ERROR = "U011"
+    USER_CREATE_AVATAR_UPLOAD_ERROR = "U012"
+    
+    # Actualización de usuarios (U101-U199)
+    USER_UPDATE_NOT_FOUND = "U101"
+    USER_UPDATE_PERMISSION_DENIED = "U102"
+    USER_UPDATE_EMAIL_DUPLICATE = "U103"
+    USER_UPDATE_VALIDATION_ERROR = "U104"
+    USER_UPDATE_UNEXPECTED_ERROR = "U105"
+    USER_UPDATE_INVALID_EMAIL = "U106"
+    USER_UPDATE_USERNAME_TAKEN = "U107"
+    USER_UPDATE_INVALID_PHONE = "U108"
+    USER_UPDATE_AVATAR_UPLOAD_ERROR = "U109"
+    USER_UPDATE_PROFILE_INCOMPLETE = "U110"
+    USER_UPDATE_TIMEZONE_INVALID = "U111"
+    USER_UPDATE_LANGUAGE_INVALID = "U112"
+    
+    # Autenticación (U201-U299)
+    USER_LOGIN_INVALID_CREDENTIALS = "U201"
+    USER_LOGIN_ACCOUNT_LOCKED = "U202"
+    USER_LOGIN_ACCOUNT_INACTIVE = "U203"
+    USER_LOGIN_UNEXPECTED_ERROR = "U204"
+    USER_LOGIN_TOO_MANY_ATTEMPTS = "U205"
+    USER_LOGIN_EMAIL_NOT_VERIFIED = "U206"
+    USER_LOGIN_PASSWORD_EXPIRED = "U207"
+    USER_LOGIN_ORGANIZATION_SUSPENDED = "U208"
+    USER_LOGIN_IP_BLOCKED = "U209"
+    USER_LOGIN_SESSION_EXPIRED = "U210"
+    USER_LOGIN_TWO_FACTOR_REQUIRED = "U211"
+    USER_LOGIN_TWO_FACTOR_INVALID = "U212"
+    
+    # Gestión de contraseñas (U301-U399)
+    USER_PASSWORD_CHANGE_CURRENT_INVALID = "U301"
+    USER_PASSWORD_CHANGE_WEAK_PASSWORD = "U302"
+    USER_PASSWORD_CHANGE_SAME_AS_CURRENT = "U303"
+    USER_PASSWORD_RESET_TOKEN_INVALID = "U304"
+    USER_PASSWORD_RESET_TOKEN_EXPIRED = "U305"
+    USER_PASSWORD_RESET_EMAIL_ERROR = "U306"
+    USER_PASSWORD_RESET_TOO_MANY_REQUESTS = "U307"
+    USER_PASSWORD_RESET_ACCOUNT_LOCKED = "U308"
+    
+    # Permisos y roles (U401-U499)
+    USER_PERMISSION_DENIED = "U401"
+    USER_ROLE_UPDATE_PERMISSION_DENIED = "U402"
+    USER_ROLE_INVALID = "U403"
+    USER_ORGANIZATION_ACCESS_DENIED = "U404"
+    USER_PROJECT_ACCESS_DENIED = "U405"
+    USER_FEATURE_ACCESS_DENIED = "U406"
+    USER_ADMIN_PRIVILEGES_REQUIRED = "U407"
+    
+    # Configuración de perfil (U501-U599)
+    USER_SETTINGS_UPDATE_ERROR = "U501"
+    USER_NOTIFICATION_SETTINGS_ERROR = "U502"
+    USER_PRIVACY_SETTINGS_ERROR = "U503"
+    USER_THEME_SETTINGS_ERROR = "U504"
+    USER_LANGUAGE_SETTINGS_ERROR = "U505"
+    USER_TIMEZONE_SETTINGS_ERROR = "U506"
+    
+    # Eliminación y desactivación (U601-U699)
+    USER_DELETE_PERMISSION_DENIED = "U601"
+    USER_DELETE_HAS_ACTIVE_PROJECTS = "U602"
+    USER_DELETE_IS_ORGANIZATION_OWNER = "U603"
+    USER_DELETE_UNEXPECTED_ERROR = "U604"
+    USER_DEACTIVATE_PERMISSION_DENIED = "U605"
+    USER_DEACTIVATE_SELF_NOT_ALLOWED = "U606"
+    USER_REACTIVATE_PERMISSION_DENIED = "U607"
+    
+    # Performance warnings (U901-U999)
+    USER_QUERY_SLOW = "U901"
+    USER_LIST_LARGE_DATASET = "U902"
+    USER_SEARCH_TIMEOUT = "U903"
+    USER_EXPORT_LARGE_DATASET = "U904"
+
+
+class OrgErrorCodes:
+    """Códigos de error para el módulo de organizaciones (O001-O999)"""
+    # Creación de organizaciones (O001-O099)
+    ORG_CREATE_NAME_DUPLICATE = "O001"
+    ORG_CREATE_INVALID_PLAN = "O002"
+    ORG_CREATE_PERMISSION_DENIED = "O003"
+    ORG_CREATE_UNEXPECTED_ERROR = "O004"
+    ORG_CREATE_INVALID_DOMAIN = "O005"
+    ORG_CREATE_DOMAIN_ALREADY_EXISTS = "O006"
+    ORG_CREATE_MISSING_REQUIRED_FIELDS = "O007"
+    ORG_CREATE_SLUG_GENERATION_ERROR = "O008"
+    
+    # Actualización de organizaciones (O051-O099)
+    ORG_UPDATE_NOT_FOUND = "O051"
+    ORG_UPDATE_PERMISSION_DENIED = "O052"
+    ORG_UPDATE_NAME_DUPLICATE = "O053"
+    ORG_UPDATE_INVALID_SETTINGS = "O054"
+    ORG_UPDATE_LOGO_UPLOAD_ERROR = "O055"
+    ORG_UPDATE_UNEXPECTED_ERROR = "O056"
+    
+    # Gestión de miembros (O101-O199)
+    ORG_MEMBER_ADD_PERMISSION_DENIED = "O101"
+    ORG_MEMBER_ADD_ALREADY_MEMBER = "O102"
+    ORG_MEMBER_ADD_PLAN_LIMIT = "O103"
+    ORG_MEMBER_REMOVE_PERMISSION_DENIED = "O104"
+    ORG_MEMBER_UNEXPECTED_ERROR = "O105"
+    ORG_MEMBER_INVITE_EMAIL_ERROR = "O106"
+    ORG_MEMBER_INVITE_EXPIRED = "O107"
+    ORG_MEMBER_INVITE_INVALID_TOKEN = "O108"
+    ORG_MEMBER_ROLE_UPDATE_DENIED = "O109"
+    ORG_MEMBER_CANNOT_REMOVE_OWNER = "O110"
+    ORG_MEMBER_ALREADY_INVITED = "O111"
+    ORG_MEMBER_SELF_REMOVAL_DENIED = "O112"
+    
+    # Configuración y permisos (O201-O299)
+    ORG_CONFIG_UPDATE_DENIED = "O201"
+    ORG_CONFIG_INVALID_SETTINGS = "O202"
+    ORG_CONFIG_INTEGRATION_ERROR = "O203"
+    ORG_CONFIG_BILLING_ERROR = "O204"
+    ORG_CONFIG_DOMAIN_VERIFICATION_FAILED = "O205"
+    
+    # Eliminación (O301-O399)
+    ORG_DELETE_PERMISSION_DENIED = "O301"
+    ORG_DELETE_HAS_ACTIVE_PROJECTS = "O302"
+    ORG_DELETE_HAS_ACTIVE_SUBSCRIPTIONS = "O303"
+    ORG_DELETE_UNEXPECTED_ERROR = "O304"
+
+
+class FileErrorCodes:
+    """Códigos de error para el módulo de archivos (F001-F999)"""
+    # Subida de archivos (F001-F099)
+    FILE_UPLOAD_TOO_LARGE = "F001"
+    FILE_UPLOAD_INVALID_TYPE = "F002"
+    FILE_UPLOAD_STORAGE_ERROR = "F003"
+    FILE_UPLOAD_PERMISSION_DENIED = "F004"
+    FILE_UPLOAD_UNEXPECTED_ERROR = "F005"
+    FILE_UPLOAD_VIRUS_DETECTED = "F006"
+    FILE_UPLOAD_CORRUPTED_FILE = "F007"
+    FILE_UPLOAD_DUPLICATE_NAME = "F008"
+    FILE_UPLOAD_QUOTA_EXCEEDED = "F009"
+    FILE_UPLOAD_INVALID_FILENAME = "F010"
+    FILE_UPLOAD_ENCODING_ERROR = "F011"
+    FILE_UPLOAD_METADATA_ERROR = "F012"
+    
+    # Descarga de archivos (F101-F199)
+    FILE_DOWNLOAD_NOT_FOUND = "F101"
+    FILE_DOWNLOAD_PERMISSION_DENIED = "F102"
+    FILE_DOWNLOAD_STORAGE_ERROR = "F103"
+    FILE_DOWNLOAD_UNEXPECTED_ERROR = "F104"
+    FILE_DOWNLOAD_EXPIRED_LINK = "F105"
+    FILE_DOWNLOAD_BANDWIDTH_LIMIT = "F106"
+    FILE_DOWNLOAD_ARCHIVE_ERROR = "F107"
+    FILE_DOWNLOAD_CONCURRENT_LIMIT = "F108"
+    
+    # Procesamiento de archivos (F201-F299)
+    FILE_PROCESSING_CONVERSION_ERROR = "F201"
+    FILE_PROCESSING_THUMBNAIL_ERROR = "F202"
+    FILE_PROCESSING_PREVIEW_ERROR = "F203"
+    FILE_PROCESSING_METADATA_EXTRACTION_ERROR = "F204"
+    FILE_PROCESSING_COMPRESSION_ERROR = "F205"
+    FILE_PROCESSING_TIMEOUT = "F206"
+    FILE_PROCESSING_UNSUPPORTED_FORMAT = "F207"
+    
+    # Gestión de archivos (F301-F399)
+    FILE_MANAGEMENT_MOVE_ERROR = "F301"
+    FILE_MANAGEMENT_COPY_ERROR = "F302"
+    FILE_MANAGEMENT_DELETE_ERROR = "F303"
+    FILE_MANAGEMENT_RENAME_ERROR = "F304"
+    FILE_MANAGEMENT_FOLDER_CREATE_ERROR = "F305"
+    FILE_MANAGEMENT_VERSION_CONFLICT = "F306"
+    FILE_MANAGEMENT_BACKUP_ERROR = "F307"
+    
+    # Sincronización (F401-F499)
+    FILE_SYNC_CONFLICT = "F401"
+    FILE_SYNC_NETWORK_ERROR = "F402"
+    FILE_SYNC_VERSION_MISMATCH = "F403"
+    FILE_SYNC_PERMISSION_ERROR = "F404"
+    FILE_SYNC_STORAGE_FULL = "F405"
+
+
+class AuthErrorCodes:
+    """Códigos de error para autenticación y cuentas (A001-A999)"""
+    # Registro de cuentas (A001-A099)
+    AUTH_REGISTER_EMAIL_EXISTS = "A001"
+    AUTH_REGISTER_INVALID_EMAIL = "A002"
+    AUTH_REGISTER_WEAK_PASSWORD = "A003"
+    AUTH_REGISTER_TERMS_NOT_ACCEPTED = "A004"
+    AUTH_REGISTER_DOMAIN_NOT_ALLOWED = "A005"
+    AUTH_REGISTER_INVITATION_REQUIRED = "A006"
+    AUTH_REGISTER_INVITATION_EXPIRED = "A007"
+    AUTH_REGISTER_VERIFICATION_EMAIL_ERROR = "A008"
+    AUTH_REGISTER_CAPTCHA_FAILED = "A009"
+    AUTH_REGISTER_RATE_LIMITED = "A010"
+    
+    # Verificación de email (A101-A199)
+    AUTH_EMAIL_VERIFICATION_TOKEN_INVALID = "A101"
+    AUTH_EMAIL_VERIFICATION_TOKEN_EXPIRED = "A102"
+    AUTH_EMAIL_VERIFICATION_ALREADY_VERIFIED = "A103"
+    AUTH_EMAIL_VERIFICATION_SEND_ERROR = "A104"
+    AUTH_EMAIL_VERIFICATION_TOO_MANY_ATTEMPTS = "A105"
+    
+    # Login y sesiones (A201-A299)
+    AUTH_LOGIN_INVALID_CREDENTIALS = "A201"
+    AUTH_LOGIN_ACCOUNT_LOCKED = "A202"
+    AUTH_LOGIN_ACCOUNT_DISABLED = "A203"
+    AUTH_LOGIN_EMAIL_NOT_VERIFIED = "A204"
+    AUTH_LOGIN_TOO_MANY_ATTEMPTS = "A205"
+    AUTH_LOGIN_SESSION_EXPIRED = "A206"
+    AUTH_LOGIN_CONCURRENT_SESSION_LIMIT = "A207"
+    AUTH_LOGIN_IP_RESTRICTION = "A208"
+    AUTH_LOGIN_TIME_RESTRICTION = "A209"
+    
+    # Two-Factor Authentication (A301-A399)
+    AUTH_2FA_SETUP_ERROR = "A301"
+    AUTH_2FA_INVALID_CODE = "A302"
+    AUTH_2FA_BACKUP_CODE_INVALID = "A303"
+    AUTH_2FA_DEVICE_NOT_TRUSTED = "A304"
+    AUTH_2FA_RATE_LIMITED = "A305"
+    AUTH_2FA_RECOVERY_ERROR = "A306"
+    
+    # OAuth y SSO (A401-A499)
+    AUTH_OAUTH_PROVIDER_ERROR = "A401"
+    AUTH_OAUTH_STATE_MISMATCH = "A402"
+    AUTH_OAUTH_TOKEN_EXCHANGE_ERROR = "A403"
+    AUTH_OAUTH_USER_INFO_ERROR = "A404"
+    AUTH_SSO_PROVIDER_UNAVAILABLE = "A405"
+    AUTH_SSO_ASSERTION_INVALID = "A406"
+    AUTH_SSO_DOMAIN_MISMATCH = "A407"
+    
+    # Token management (A501-A599)
+    AUTH_TOKEN_INVALID = "A501"
+    AUTH_TOKEN_EXPIRED = "A502"
+    AUTH_TOKEN_REVOKED = "A503"
+    AUTH_TOKEN_MALFORMED = "A504"
+    AUTH_TOKEN_SIGNATURE_INVALID = "A505"
+    AUTH_REFRESH_TOKEN_INVALID = "A506"
+    AUTH_API_KEY_INVALID = "A507"
+    AUTH_API_KEY_REVOKED = "A508"
+
+
+class PlanErrorCodes:
+    """Códigos de error para el módulo de planes (PL001-PL999)"""
+    # Suscripciones y upgrades (PL001-PL099)
+    PLAN_UPGRADE_PAYMENT_ERROR = "PL001"
+    PLAN_UPGRADE_INVALID_PLAN = "PL002"
+    PLAN_UPGRADE_ALREADY_ACTIVE = "PL003"
+    PLAN_UPGRADE_UNEXPECTED_ERROR = "PL004"
+    PLAN_UPGRADE_PAYMENT_METHOD_INVALID = "PL005"
+    PLAN_UPGRADE_BILLING_ADDRESS_REQUIRED = "PL006"
+    PLAN_UPGRADE_PAYMENT_DECLINED = "PL007"
+    PLAN_UPGRADE_PRORATION_ERROR = "PL008"
+    PLAN_UPGRADE_INVOICE_GENERATION_ERROR = "PL009"
+    
+    # Downgrades y cancelaciones (PL051-PL099)
+    PLAN_DOWNGRADE_DATA_LOSS_WARNING = "PL051"
+    PLAN_DOWNGRADE_FEATURE_RESTRICTION = "PL052"
+    PLAN_CANCEL_PENDING_INVOICES = "PL053"
+    PLAN_CANCEL_UNEXPECTED_ERROR = "PL054"
+    PLAN_REACTIVATION_ERROR = "PL055"
+    
+    # Límites de plan (PL101-PL199)
+    PLAN_LIMIT_PROJECTS_EXCEEDED = "PL101"
+    PLAN_LIMIT_USERS_EXCEEDED = "PL102"
+    PLAN_LIMIT_STORAGE_EXCEEDED = "PL103"
+    PLAN_LIMIT_FEATURES_RESTRICTED = "PL104"
+    PLAN_LIMIT_API_CALLS_EXCEEDED = "PL105"
+    PLAN_LIMIT_INTEGRATIONS_EXCEEDED = "PL106"
+    PLAN_LIMIT_CUSTOM_FIELDS_EXCEEDED = "PL107"
+    PLAN_LIMIT_AUTOMATION_EXCEEDED = "PL108"
+    
+    # Facturación (PL201-PL299)
+    PLAN_BILLING_PAYMENT_FAILED = "PL201"
+    PLAN_BILLING_CARD_EXPIRED = "PL202"
+    PLAN_BILLING_INVOICE_OVERDUE = "PL203"
+    PLAN_BILLING_ACCOUNT_SUSPENDED = "PL204"
+    PLAN_BILLING_TAX_CALCULATION_ERROR = "PL205"
+    PLAN_BILLING_REFUND_ERROR = "PL206"
+    PLAN_BILLING_WEBHOOK_ERROR = "PL207"
+    
+    # Configuración de planes (PL301-PL399)
+    PLAN_CONFIG_INVALID_FEATURES = "PL301"
+    PLAN_CONFIG_PRICING_ERROR = "PL302"
+    PLAN_CONFIG_TRIAL_EXPIRED = "PL303"
+    PLAN_CONFIG_TRIAL_ALREADY_USED = "PL304"
+    PLAN_CONFIG_CUSTOM_PLAN_ERROR = "PL305"
+
+
+class SystemErrorCodes:
+    """Códigos de error del sistema (S001-S999)"""
+    # Errores de base de datos (S001-S099)
+    SYSTEM_DB_CONNECTION_ERROR = "S001"
+    SYSTEM_DB_TIMEOUT = "S002"
+    SYSTEM_DB_INTEGRITY_ERROR = "S003"
+    SYSTEM_DB_UNEXPECTED_ERROR = "S004"
+    SYSTEM_DB_MIGRATION_ERROR = "S005"
+    SYSTEM_DB_BACKUP_ERROR = "S006"
+    SYSTEM_DB_RESTORE_ERROR = "S007"
+    SYSTEM_DB_DEADLOCK_ERROR = "S008"
+    SYSTEM_DB_DISK_SPACE_ERROR = "S009"
+    SYSTEM_DB_PERMISSION_ERROR = "S010"
+    
+    # Errores de cache (S101-S199)
+    SYSTEM_CACHE_CONNECTION_ERROR = "S101"
+    SYSTEM_CACHE_TIMEOUT = "S102"
+    SYSTEM_CACHE_UNEXPECTED_ERROR = "S103"
+    SYSTEM_CACHE_MEMORY_LIMIT = "S104"
+    SYSTEM_CACHE_KEY_TOO_LONG = "S105"
+    SYSTEM_CACHE_SERIALIZATION_ERROR = "S106"
+    SYSTEM_CACHE_EVICTION_ERROR = "S107"
+    
+    # Errores de middleware (S201-S299)
+    SYSTEM_MIDDLEWARE_AUTH_ERROR = "S201"
+    SYSTEM_MIDDLEWARE_PERMISSION_ERROR = "S202"
+    SYSTEM_MIDDLEWARE_UNEXPECTED_ERROR = "S203"
+    SYSTEM_MIDDLEWARE_CSRF_ERROR = "S204"
+    SYSTEM_MIDDLEWARE_SESSION_ERROR = "S205"
+    SYSTEM_MIDDLEWARE_RATE_LIMIT = "S206"
+    SYSTEM_MIDDLEWARE_CORS_ERROR = "S207"
+    SYSTEM_MIDDLEWARE_COMPRESSION_ERROR = "S208"
+    
+    # Errores de configuración (S301-S399)
+    SYSTEM_CONFIG_MISSING_ENV_VAR = "S301"
+    SYSTEM_CONFIG_INVALID_SETTING = "S302"
+    SYSTEM_CONFIG_SECRET_KEY_ERROR = "S303"
+    SYSTEM_CONFIG_SSL_ERROR = "S304"
+    SYSTEM_CONFIG_DOMAIN_ERROR = "S305"
+    SYSTEM_CONFIG_EMAIL_BACKEND_ERROR = "S306"
+    SYSTEM_CONFIG_STORAGE_ERROR = "S307"
+    
+    # Errores de API externa (S401-S499)
+    SYSTEM_API_TIMEOUT = "S401"
+    SYSTEM_API_RATE_LIMIT = "S402"
+    SYSTEM_API_AUTHENTICATION_ERROR = "S403"
+    SYSTEM_API_SERVICE_UNAVAILABLE = "S404"
+    SYSTEM_API_INVALID_RESPONSE = "S405"
+    SYSTEM_API_QUOTA_EXCEEDED = "S406"
+    SYSTEM_API_WEBHOOK_ERROR = "S407"
+    
+    # Errores de seguridad (S501-S599)
+    SYSTEM_SECURITY_SUSPICIOUS_ACTIVITY = "S501"
+    SYSTEM_SECURITY_BRUTE_FORCE_ATTACK = "S502"
+    SYSTEM_SECURITY_SQL_INJECTION_ATTEMPT = "S503"
+    SYSTEM_SECURITY_XSS_ATTEMPT = "S504"
+    SYSTEM_SECURITY_UNAUTHORIZED_ACCESS = "S505"
+    SYSTEM_SECURITY_IP_BLACKLISTED = "S506"
+    SYSTEM_SECURITY_MALICIOUS_FILE_UPLOAD = "S507"
+    SYSTEM_SECURITY_TOKEN_MANIPULATION = "S508"
+    
+    # Errores de infraestructura (S601-S699)
+    SYSTEM_INFRA_DISK_SPACE_LOW = "S601"
+    SYSTEM_INFRA_MEMORY_LIMIT = "S602"
+    SYSTEM_INFRA_CPU_LIMIT = "S603"
+    SYSTEM_INFRA_NETWORK_ERROR = "S604"
+    SYSTEM_INFRA_DNS_ERROR = "S605"
+    SYSTEM_INFRA_LOAD_BALANCER_ERROR = "S606"
+    SYSTEM_INFRA_CDN_ERROR = "S607"
+    
+    # Errores de monitoreo (S701-S799)
+    SYSTEM_MONITORING_HEALTH_CHECK_FAILED = "S701"
+    SYSTEM_MONITORING_METRICS_ERROR = "S702"
+    SYSTEM_MONITORING_ALERT_SYSTEM_ERROR = "S703"
+    SYSTEM_MONITORING_LOG_AGGREGATION_ERROR = "S704"
+    SYSTEM_MONITORING_BACKUP_VERIFICATION_FAILED = "S705"
+    
+    # Performance crítica (S901-S999)
+    SYSTEM_PERFORMANCE_CRITICAL_RESPONSE_TIME = "S901"
+    SYSTEM_PERFORMANCE_CRITICAL_DATABASE_LOAD = "S902"
+    SYSTEM_PERFORMANCE_CRITICAL_MEMORY_USAGE = "S903"
+    SYSTEM_PERFORMANCE_CRITICAL_DISK_IO = "S904"
+    SYSTEM_PERFORMANCE_CRITICAL_NETWORK_LATENCY = "S905"
+
+
+# ============================================================================
+# HELPER FUNCTIONS PARA LOGGING ESTRUCTURADO
+# ============================================================================
+
+def log_operation(
+    operation: str, 
+    user_email: str, 
+    logger: logging.Logger,
+    level: str = 'INFO',
+    error_code: Optional[str] = None,
+    **kwargs
+) -> tuple[str, Dict[str, Any]]:
+    """
+    Helper universal para logging estructurado en todo el proyecto.
+    
+    Args:
+        operation: Nombre de la operación (ej: 'CREATE_PROJECT', 'LOGIN_ATTEMPT')
+        user_email: Email del usuario que ejecuta la operación
+        logger: Logger específico del módulo
+        level: Nivel de log ('INFO', 'WARNING', 'ERROR')
+        error_code: Código de error si aplica
+        **kwargs: Datos adicionales contextuales
+    
+    Returns:
+        tuple: (mensaje_formateado, diccionario_de_datos)
+    """
+    log_data = {
+        'operation': operation,
+        'user': user_email,
+        'timestamp': time.time(),
+        **kwargs
+    }
+    
+    # Formatear mensaje base
+    log_msg = f"OP [{operation}] User: {user_email}"
+    
+    # Agregar contexto adicional
+    for key, value in kwargs.items():
+        if key not in ['exception', 'traceback']:  # Evitar logs muy largos
+            log_msg += f" {key}: {value}"
+    
+    # Agregar código de error si existe
+    if error_code:
+        log_msg += f" ERROR_CODE: {error_code}"
+        log_data['error_code'] = error_code
+    
+    # Loggear según el nivel
+    if level.upper() == 'ERROR':
+        logger.error(log_msg, exc_info=kwargs.get('exception') is not None)
+    elif level.upper() == 'WARNING':
+        logger.warning(log_msg)
+    else:
+        logger.info(log_msg)
+    
+    return log_msg, log_data
+
+
+def log_performance_warning(
+    operation: str,
+    user_email: str,
+    logger: logging.Logger,
+    duration_ms: float,
+    threshold_ms: float = 2000,
+    **kwargs
+) -> None:
+    """
+    Log específico para alertas de rendimiento.
+    
+    Args:
+        operation: Nombre de la operación
+        user_email: Email del usuario
+        logger: Logger del módulo
+        duration_ms: Duración en milisegundos
+        threshold_ms: Umbral para considerar lenta (default: 2000ms)
+        **kwargs: Contexto adicional
+    """
+    if duration_ms > threshold_ms:
+        log_operation(
+            f"{operation}_SLOW",
+            user_email,
+            logger,
+            level='WARNING',
+            error_code="PERF_SLOW_QUERY",
+            duration_ms=duration_ms,
+            threshold_ms=threshold_ms,
+            **kwargs
+        )
+
+
+def log_security_event(
+    event: str,
+    user_email: str,
+    logger: logging.Logger,
+    ip_address: str,
+    **kwargs
+) -> None:
+    """
+    Log específico para eventos de seguridad.
+    
+    Args:
+        event: Tipo de evento de seguridad
+        user_email: Email del usuario (puede ser 'anonymous')
+        logger: Logger del módulo
+        ip_address: Dirección IP del cliente
+        **kwargs: Contexto adicional
+    """
+    log_operation(
+        f"SECURITY_{event}",
+        user_email,
+        logger,
+        level='WARNING',
+        ip_address=ip_address,
+        **kwargs
+    )
+
+
+# ============================================================================
+# MAPEO DE CÓDIGOS DE ERROR PARA BÚSQUEDA RÁPIDA
+# ============================================================================
+
+ERROR_CODE_MAP = {
+    # Projects - todos los códigos que empiezan con P
+    **{getattr(ProjectErrorCodes, attr): 'PROJECT' 
+       for attr in dir(ProjectErrorCodes) 
+       if not attr.startswith('_') and isinstance(getattr(ProjectErrorCodes, attr), str)},
+    
+    # Tasks - todos los códigos que empiezan con T
+    **{getattr(TaskErrorCodes, attr): 'TASK' 
+       for attr in dir(TaskErrorCodes) 
+       if not attr.startswith('_') and isinstance(getattr(TaskErrorCodes, attr), str)},
+    
+    # Users - todos los códigos que empiezan con U
+    **{getattr(UserErrorCodes, attr): 'USER' 
+       for attr in dir(UserErrorCodes) 
+       if not attr.startswith('_') and isinstance(getattr(UserErrorCodes, attr), str)},
+    
+    # Organizations - todos los códigos que empiezan con O
+    **{getattr(OrgErrorCodes, attr): 'ORGANIZATION' 
+       for attr in dir(OrgErrorCodes) 
+       if not attr.startswith('_') and isinstance(getattr(OrgErrorCodes, attr), str)},
+    
+    # Files - todos los códigos que empiezan con F
+    **{getattr(FileErrorCodes, attr): 'FILE' 
+       for attr in dir(FileErrorCodes) 
+       if not attr.startswith('_') and isinstance(getattr(FileErrorCodes, attr), str)},
+    
+    # Authentication - todos los códigos que empiezan con A
+    **{getattr(AuthErrorCodes, attr): 'AUTH' 
+       for attr in dir(AuthErrorCodes) 
+       if not attr.startswith('_') and isinstance(getattr(AuthErrorCodes, attr), str)},
+    
+    # Plans - todos los códigos que empiezan con PL
+    **{getattr(PlanErrorCodes, attr): 'PLAN' 
+       for attr in dir(PlanErrorCodes) 
+       if not attr.startswith('_') and isinstance(getattr(PlanErrorCodes, attr), str)},
+    
+    # System - todos los códigos que empiezan con S
+    **{getattr(SystemErrorCodes, attr): 'SYSTEM' 
+       for attr in dir(SystemErrorCodes) 
+       if not attr.startswith('_') and isinstance(getattr(SystemErrorCodes, attr), str)},
+}
+
+
+def get_error_category(error_code: str) -> str:
+    """
+    Obtiene la categoría de un código de error.
+    
+    Args:
+        error_code: Código de error (ej: 'T001')
+    
+    Returns:
+        str: Categoría del error (ej: 'TASK')
+    """
+    return ERROR_CODE_MAP.get(error_code, 'UNKNOWN')
+
+
+def get_all_error_codes() -> Dict[str, str]:
+    """
+    Obtiene todos los códigos de error definidos en el sistema.
+    
+    Returns:
+        Dict[str, str]: Mapeo de código de error a categoría
+    """
+    return ERROR_CODE_MAP.copy()
+
+
+def get_error_codes_by_category(category: str) -> list:
+    """
+    Obtiene todos los códigos de error de una categoría específica.
+    
+    Args:
+        category: Categoría del error (ej: 'TASK', 'PROJECT', etc.)
+    
+    Returns:
+        list: Lista de códigos de error para esa categoría
+    """
+    return [code for code, cat in ERROR_CODE_MAP.items() if cat == category.upper()]
+
+
+def is_critical_error(error_code: str) -> bool:
+    """
+    Determina si un código de error es crítico y requiere atención inmediata.
+    
+    Args:
+        error_code: Código de error a evaluar
+    
+    Returns:
+        bool: True si el error es crítico
+    """
+    critical_patterns = [
+        'S001', 'S002', 'S003',  # Database errors
+        'S501', 'S502', 'S503', 'S504', 'S505',  # Security errors
+        'S601', 'S602', 'S603',  # Infrastructure errors
+        'S901', 'S902', 'S903', 'S904', 'S905',  # Critical performance
+        'PL201', 'PL202', 'PL203', 'PL204',  # Critical billing
+        'SYSTEM_DB_', 'SYSTEM_SECURITY_', 'SYSTEM_INFRA_', 'SYSTEM_PERFORMANCE_CRITICAL_'
+    ]
+    
+    return any(pattern in error_code for pattern in critical_patterns)
+
+
+def format_error_for_monitoring(error_code: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Formatea un error para sistemas de monitoreo externos.
+    
+    Args:
+        error_code: Código del error
+        context: Contexto adicional del error
+    
+    Returns:
+        Dict: Datos formateados para monitoreo
+    """
+    return {
+        'error_code': error_code,
+        'category': get_error_category(error_code),
+        'is_critical': is_critical_error(error_code),
+        'timestamp': time.time(),
+        'context': context,
+        'environment': 'production' if not os.environ.get('DEBUG', 'False').lower() == 'true' else 'development'
+    }
+
+
+def log_operation_with_context(
+    operation: str,
+    user_email: str,
+    logger: logging.Logger,
+    request=None,
+    level: str = 'INFO',
+    error_code: Optional[str] = None,
+    **kwargs
+) -> tuple[str, Dict[str, Any]]:
+    """
+    Versión mejorada de log_operation que incluye contexto de request automáticamente.
+    
+    Args:
+        operation: Nombre de la operación
+        user_email: Email del usuario
+        logger: Logger del módulo
+        request: Objeto request de Django (opcional)
+        level: Nivel de log
+        error_code: Código de error si aplica
+        **kwargs: Contexto adicional
+    
+    Returns:
+        tuple: (mensaje_formateado, diccionario_de_datos)
+    """
+    # Agregar contexto de request si está disponible
+    if request:
+        kwargs.update({
+            'path': request.path,
+            'method': request.method,
+            'user_agent': request.META.get('HTTP_USER_AGENT', ''),
+            'ip_address': get_client_ip_from_request(request),
+            'is_ajax': request.headers.get('X-Requested-With') == 'XMLHttpRequest',
+            'is_htmx': request.headers.get('HX-Request') == 'true',
+        })
+    
+    return log_operation(operation, user_email, logger, level, error_code, **kwargs)
+
+
+def get_client_ip_from_request(request) -> str:
+    """
+    Extrae la IP del cliente desde un objeto request.
+    
+    Args:
+        request: Objeto request de Django
+    
+    Returns:
+        str: Dirección IP del cliente
+    """
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR', 'unknown')
+    return ip
