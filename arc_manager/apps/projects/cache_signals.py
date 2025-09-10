@@ -5,12 +5,16 @@ from django.db.models.signals import post_save, post_delete, m2m_changed
 from django.dispatch import receiver
 from .models import Project, Task, Phase
 from .cache_utils import invalidate_project_cache, invalidate_task_cache
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @receiver(post_save, sender=Project)
 def invalidate_project_cache_on_save(sender, instance, **kwargs):
     """Invalida cache cuando se guarda un proyecto"""
     if instance.organization_id:
+        logger.debug(f"Invalidating project cache for project {instance.id} in organization {instance.organization_id}")
         invalidate_project_cache(instance.organization_id, instance.id)
 
 
@@ -18,6 +22,7 @@ def invalidate_project_cache_on_save(sender, instance, **kwargs):
 def invalidate_project_cache_on_delete(sender, instance, **kwargs):
     """Invalida cache cuando se elimina un proyecto"""
     if instance.organization_id:
+        logger.debug(f"Invalidating project cache for deleted project {instance.id} in organization {instance.organization_id}")
         invalidate_project_cache(instance.organization_id, instance.id)
 
 
@@ -27,6 +32,7 @@ def invalidate_task_cache_on_save(sender, instance, **kwargs):
     if instance.phase and instance.phase.project:
         project = instance.phase.project
         user_id = instance.assigned_to_id if instance.assigned_to else None
+        logger.debug(f"Invalidating task cache for task {instance.id} in project {project.id}")
         invalidate_task_cache(project.organization_id, project.id, user_id)
 
 
@@ -36,6 +42,7 @@ def invalidate_task_cache_on_delete(sender, instance, **kwargs):
     if instance.phase and instance.phase.project:
         project = instance.phase.project
         user_id = instance.assigned_to_id if instance.assigned_to else None
+        logger.debug(f"Invalidating task cache for deleted task {instance.id} in project {project.id}")
         invalidate_task_cache(project.organization_id, project.id, user_id)
 
 
@@ -43,6 +50,7 @@ def invalidate_task_cache_on_delete(sender, instance, **kwargs):
 def invalidate_phase_cache_on_save(sender, instance, **kwargs):
     """Invalida cache cuando se guarda una fase"""
     if instance.project:
+        logger.debug(f"Invalidating phase cache for phase {instance.id} in project {instance.project.id}")
         invalidate_project_cache(instance.project.organization_id, instance.project.id)
 
 
@@ -50,4 +58,5 @@ def invalidate_phase_cache_on_save(sender, instance, **kwargs):
 def invalidate_phase_cache_on_delete(sender, instance, **kwargs):
     """Invalida cache cuando se elimina una fase"""
     if instance.project:
+        logger.debug(f"Invalidating phase cache for deleted phase {instance.id} in project {instance.project.id}")
         invalidate_project_cache(instance.project.organization_id, instance.project.id)
