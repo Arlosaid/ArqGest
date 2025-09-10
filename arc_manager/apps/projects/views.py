@@ -1160,151 +1160,121 @@ def project_tasks_paginated(request, project_pk):
 
 @login_required
 def phase_files_paginated(request, project_id, phase_id):
-    """Vista para cargar archivos de una fase con paginación HTMX."""
-    # Log inicial de acceso a archivos
+    """
+    Vista optimizada para cargar archivos con scroll infinito y Redis cache.
+    Ultra-rápida para Railway con eliminación de bottlenecks.
+    """
+    from django.core.cache import cache
     from core.error_codes import log_operation
     import logging
-    import traceback
     logger = logging.getLogger(__name__)
     
     try:
-        log_operation(
-            'FILE_VIEW_ACCESS',
-            request.user.email,
-            logger,
-            level='INFO',
-            project_id=project_id,
-            phase_id=phase_id,
-            user_id=request.user.id,
-            organization_id=request.user.organization.id if request.user.organization else None,
-            ip_address=request.META.get('REMOTE_ADDR', 'unknown'),
-            is_htmx=request.headers.get('HX-Request') == 'true'
-        )
-        
         phase = get_object_or_404(Phase, id=phase_id, project_id=project_id, project__organization=request.user.organization)
     
-        # Parámetros de paginación
-        page = int(request.GET.get('page', 1))
-        per_page = int(request.GET.get('per_page', 12))  # 12 archivos por página
+        # Parámetros optimizados
+        offset = int(request.GET.get('offset', 0))  # Usar offset en lugar de page
+        limit = int(request.GET.get('limit', 20))   # Límite por batch (aumentado)
         load_more = request.GET.get('load_more', 'false') == 'true'
         
         # Filtros
         file_type_filter = request.GET.get('type', '')
         date_filter = request.GET.get('date', '')
     
-        # Log parámetros de filtrado
-        log_operation(
-            'FILE_VIEW_FILTERS',
-            request.user.email,
-            logger,
-            level='DEBUG',
-            project_id=project_id,
-            phase_id=phase_id,
-            page=page,
-            per_page=per_page,
-            file_type_filter=file_type_filter,
-            date_filter=date_filter,
-            load_more=load_more
-        )
+        # Crear clave de cache única para esta consulta
+        cache_key = f"files_phase_{phase_id}_{offset}_{limit}_{file_type_filter}_{date_filter}"
         
-        # Queryset base
-        files_qs = phase.files.select_related('uploaded_by').order_by('-uploaded_at')
-        total_files_in_phase = files_qs.count()
+        # Intentar obtener desde cache Redis primero
+        cached_result = cache.get(cache_key)
         
-        # Aplicar filtros
-        if file_type_filter:
-            file_types = file_type_filter.split(',')
-            files_qs = files_qs.filter(ext_upper__in=[ft.upper() for ft in file_types])
+        if cached_result and not settings.DEBUG:
+            # En producción, usar cache para respuesta ultra-rápida
+            files_data, has_more = cached_result
+            context = {
+                'phase': phase,
+                'files': files_data,
+                'has_more': has_more,
+                'current_filters': {'type': file_type_filter, 'date': date_filter},
+                'next_offset': offset + limit if has_more else None,
+                'load_more': load_more,
+                'from_cache': True
+            }
+        else:
+            # Query optimizada - SIN count() para evitar query lenta
+            files_qs = phase.files.select_related('uploaded_by').order_by('-uploaded_at')
+            
+            # Aplicar filtros de forma eficiente
+            if file_type_filter:
+                file_types = file_type_filter.split(',')
+                files_qs = files_qs.filter(ext_upper__in=[ft.upper() for ft in file_types])
+            
+            if date_filter:
+                from datetime import datetime, timedelta
+                today = datetime.now().date()
+                if date_filter == 'today':
+                    files_qs = files_qs.filter(uploaded_at__date=today)
+                elif date_filter == 'week':
+                    week_ago = today - timedelta(days=7)
+                    files_qs = files_qs.filter(uploaded_at__date__gte=week_ago)
+                elif date_filter == 'month':
+                    month_ago = today - timedelta(days=30)
+                    files_qs = files_qs.filter(uploaded_at__date__gte=month_ago)
+                elif date_filter == 'older':
+                    month_ago = today - timedelta(days=30)
+                    files_qs = files_qs.filter(uploaded_at__date__lt=month_ago)
         
-        if date_filter:
-            from datetime import datetime, timedelta
-            today = timezone.now().date()
-            if date_filter == 'today':
-                files_qs = files_qs.filter(uploaded_at__date=today)
-            elif date_filter == 'week':
-                week_ago = today - timedelta(days=7)
-                files_qs = files_qs.filter(uploaded_at__date__gte=week_ago)
-            elif date_filter == 'month':
-                month_ago = today - timedelta(days=30)
-                files_qs = files_qs.filter(uploaded_at__date__gte=month_ago)
-            elif date_filter == 'older':
-                month_ago = today - timedelta(days=30)
-                files_qs = files_qs.filter(uploaded_at__date__lt=month_ago)
-        
-        # Contar archivos después de filtros
-        filtered_files_count = files_qs.count()
-        
-        # Paginación
-        paginator = Paginator(files_qs, per_page)
-        try:
-            files_page = paginator.page(page)
-        except (PageNotAnInteger, EmptyPage):
-            files_page = paginator.page(1)
-            page = 1  # Actualizar el número de página para el log
-        
-        # Log resultados de paginación
-        log_operation(
-            'FILE_VIEW_RESULTS',
-            request.user.email,
-            logger,
-            level='INFO',
-            project_id=project_id,
-            phase_id=phase_id,
-            page=page,
-            per_page=per_page,
-            total_files_in_phase=total_files_in_phase,
-            filtered_files_count=filtered_files_count,
-            returned_files_count=len(files_page.object_list),
-            total_pages=paginator.num_pages,
-            has_next=files_page.has_next(),
-            has_previous=files_page.has_previous(),
-            file_type_filter=file_type_filter,
-            date_filter=date_filter
-        )
-        
-        context = {
-            'phase': phase,
-            'files_page': files_page,
-            'files': files_page.object_list,
-            'has_more': files_page.has_next(),
-            'next_page': files_page.next_page_number() if files_page.has_next() else None,
-            'current_filters': {
-                'type': file_type_filter,
-                'date': date_filter,
-            },
-            'load_more': load_more
-        }
+            # Query optimizada con offset/limit (más eficiente que Django Paginator)
+            files_batch = list(files_qs[offset:offset + limit + 1])  # +1 para verificar si hay más
+            has_more = len(files_batch) > limit
+            
+            if has_more:
+                files_batch = files_batch[:limit]  # Remover el archivo extra
+            
+            # Preparar datos para caché (serializar solo lo necesario)
+            files_data = []
+            for file in files_batch:
+                files_data.append({
+                    'id': file.id,
+                    'filename': file.filename,
+                    'extension': file.ext_upper,
+                    'size': file.size,
+                    'uploaded_at': file.uploaded_at,
+                    'uploaded_by_name': file.uploaded_by.get_full_name() if file.uploaded_by else 'N/A',
+                    'file_url': file.file.url if file.file else None,
+                })
+            
+            # Guardar en cache Redis (5 minutos en desarrollo, 10 en producción)
+            cache_timeout = 300 if settings.DEBUG else 600
+            cache.set(cache_key, (files_data, has_more), cache_timeout)
+            
+            context = {
+                'phase': phase,
+                'files': files_data,
+                'has_more': has_more,
+                'current_filters': {'type': file_type_filter, 'date': date_filter},
+                'next_offset': offset + limit if has_more else None,
+                'load_more': load_more,
+                'from_cache': False
+            }
     
-        # Si es una solicitud de "cargar más", solo devolver los elementos adicionales
+        # Template optimizado basado en el tipo de request
         if load_more:
-            return render(request, 'projects/partials/files_load_more.html', context)
-        
-        return render(request, 'projects/partials/files_paginated.html', context)
+            # Para cargar más archivos (scroll infinito)
+            return render(request, 'projects/partials/files_infinite_scroll.html', context)
+        else:
+            # Para carga inicial
+            return render(request, 'projects/partials/files_optimized.html', context)
     
     except Exception as e:
-        # Log error crítico en vista de archivos
-        log_operation(
-            'FILE_VIEW_ERROR',
-            request.user.email if hasattr(request, 'user') and request.user.is_authenticated else 'anonymous',
-            logger,
-            level='ERROR',
-            project_id=project_id,
-            phase_id=phase_id,
-            error_message=str(e),
-            stack_trace=traceback.format_exc()[:1000],
-            request_method=request.method,
-            request_path=request.path,
-            request_params=dict(request.GET)
-        )
+        # Log error crítico solo en debug
+        if settings.DEBUG:
+            logger.error(f"Error en phase_files_paginated: {str(e)}")
         
-        # Devolver respuesta de error apropiada
-        if request.headers.get('HX-Request') == 'true':
-            return render(request, 'projects/partials/files_error.html', {
-                'error_message': 'Error al cargar archivos. Por favor intenta de nuevo.'
-            }, status=500)
-        else:
-            from django.http import Http404
-            raise Http404("Error al cargar archivos")
+        # Respuesta de error simplificada
+        return render(request, 'projects/partials/files_error.html', {
+            'phase_id': phase_id,
+            'error': 'Error cargando archivos'
+        })
 
 # PhaseTemplate Views
 class PhaseTemplateListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):

@@ -328,6 +328,66 @@ FILE_UPLOAD_PERMISSIONS = 0o644
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# ===== CONFIGURACIONES ESPECÍFICAS PARA RAILWAY (PRODUCCIÓN) =====
+if not DEBUG and os.environ.get('RAILWAY_ENVIRONMENT'):
+    # Optimizaciones para evitar timeouts en Railway con archivos grandes
+    
+    # Optimización de conexiones de base de datos
+    DATABASES['default']['CONN_MAX_AGE'] = 60  # Reutilizar conexiones por 60 segundos
+    
+    # Configuración de timeouts específica para Railway
+    if 'OPTIONS' not in DATABASES['default']:
+        DATABASES['default']['OPTIONS'] = {}
+    
+    DATABASES['default']['OPTIONS'].update({
+        'charset': 'utf8mb4',
+        'connect_timeout': 20,
+        'read_timeout': 30,
+        'write_timeout': 30,
+        'sql_mode': 'STRICT_TRANS_TABLES',
+    })
+    
+    # Logging optimizado para Railway (reducir overhead)
+    if 'LOGGING' in locals():
+        # Reducir nivel de logs en producción para mejorar performance
+        LOGGING['handlers']['production']['level'] = 'INFO'
+        LOGGING['loggers']['django.db.backends']['level'] = 'WARNING'
+        
+        # Agregar handler específico para Railway
+        LOGGING['handlers']['railway'] = {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'production',
+        }
+    
+    # Configuración de sesiones optimizada para Railway
+    SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+    SESSION_CACHE_ALIAS = 'default'
+    SESSION_COOKIE_AGE = 86400  # 24 horas
+    
+    # Optimización de middleware para Railway
+    MIDDLEWARE = [m for m in MIDDLEWARE if 'debug_toolbar' not in m]
+    
+    # Cache optimizado para Railway - usar Redis si está disponible
+    # Redis es mucho más rápido que DB cache para grandes volúmenes
+    if os.environ.get('REDIS_URL'):
+        # Usar Redis en Railway para mejor rendimiento
+        CACHES['default']['TIMEOUT'] = 600  # 10 minutos cache en producción
+        CACHES['default']['OPTIONS']['CONNECTION_POOL_KWARGS']['max_connections'] = 20  # Reducir conexiones en Railway
+    else:
+        # Fallback a DB cache solo si no hay Redis
+        CACHES = {
+            'default': {
+                'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+                'LOCATION': 'django_cache_table',
+                'TIMEOUT': 300,  # 5 minutos
+                'OPTIONS': {
+                    'MAX_ENTRIES': 1000,
+                    'CULL_FREQUENCY': 3,
+                }
+            }
+        }
+
 # Configuración Cloudflare R2 Storage (solo cuando está habilitado)
 if os.environ.get('ENABLE_STORAGES', 'false').lower() == 'true':
     # Configuración para django-storages con Cloudflare R2

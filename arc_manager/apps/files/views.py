@@ -30,10 +30,15 @@ def upload_file(request, project_id, phase_id):
     Optimizations:
     - Streams large files directly to disk
     - Limits memory usage to 25MB max per request
-    - Processes files asynchronously when possible
+    - Mobile-specific optimizations for sequential uploads
     - Provides detailed logging for performance monitoring
     """
-    # Log inicial de intento de upload
+    # Detectar si es un upload desde mobile
+    is_mobile_upload = request.headers.get('X-Mobile-Upload') == 'true'
+    user_agent = request.headers.get('User-Agent', '')
+    is_mobile_device = any(keyword in user_agent.lower() for keyword in 
+                          ['android', 'iphone', 'ipad', 'mobile', 'tablet'])
+    # Log inicial de intento de upload (con info de mobile)
     log_operation(
         'FILE_UPLOAD_ATTEMPT',
         request.user.email,
@@ -44,7 +49,9 @@ def upload_file(request, project_id, phase_id):
         user_id=request.user.id,
         organization_id=request.user.organization.id if request.user.organization else None,
         ip_address=request.META.get('REMOTE_ADDR', 'unknown'),
-        user_agent=request.META.get('HTTP_USER_AGENT', 'unknown')[:100]
+        user_agent=request.META.get('HTTP_USER_AGENT', 'unknown')[:100],
+        is_mobile_upload=is_mobile_upload,
+        is_mobile_device=is_mobile_device
     )
     
     phase = get_object_or_404(Phase, id=phase_id, project_id=project_id)
@@ -96,9 +103,16 @@ def upload_file(request, project_id, phase_id):
             return JsonResponse({"error": error_msg, "success": False}, status=400)
         return HttpResponse(status=400)
 
-    # Validaciones básicas en servidor (mientras no haya upload directo a R2)
+    # Validaciones básicas en servidor (con optimizaciones para mobile)
     try:
-        MAX_FILE_SIZE_MB = float(os.environ.get('MAX_FILE_SIZE_MB', '600'))
+        base_max_size = float(os.environ.get('MAX_FILE_SIZE_MB', '600'))
+        # Aplicar límites específicos para mobile
+        if is_mobile_upload or is_mobile_device:
+            MAX_FILE_SIZE_MB = min(base_max_size, 50.0)  # Max 50MB en mobile
+            MAX_FILES_MOBILE = int(os.environ.get('MAX_FILES_MOBILE', '10'))  # Max 10 archivos en mobile
+        else:
+            MAX_FILE_SIZE_MB = base_max_size
+            MAX_FILES_MOBILE = None
     except ValueError:
         error_msg = "Configuración de tamaño de archivo inválida. Contacta al administrador."
         if request.headers.get('HX-Request') == 'true':
@@ -108,6 +122,26 @@ def upload_file(request, project_id, phase_id):
             return HttpResponse(status=500)
     
     ALLOWED_EXTENSIONS = set(os.environ.get('ALLOWED_EXTENSIONS', 'PDF,JPG,JPEG,PNG,GIF,DWG,DXF,RVT,SKP,ZIP,RAR,TIFF,DOC,DOCX,XLS,XLSX,PPT,PPTX,TXT,MD').split(','))
+
+    # Validación específica para mobile: límite de archivos
+    if (is_mobile_upload or is_mobile_device) and MAX_FILES_MOBILE and total_files > MAX_FILES_MOBILE:
+        error_msg = f"Demasiados archivos para móvil. Máximo {MAX_FILES_MOBILE} archivos por vez"
+        log_operation(
+            'FILE_UPLOAD_ERROR',
+            request.user.email,
+            logger,
+            level='WARNING',
+            error_code=FileErrorCodes.FILE_UPLOAD_TOO_MANY_FILES,
+            project_id=project_id,
+            phase_id=phase_id,
+            files_count=total_files,
+            max_files_mobile=MAX_FILES_MOBILE,
+            is_mobile=is_mobile_upload or is_mobile_device
+        )
+        messages.error(request, error_msg)
+        if request.headers.get('HX-Request') == 'true':
+            return JsonResponse({"error": error_msg, "success": False}, status=413)
+        return HttpResponse(status=413)
 
     # Contadores para resumen final
     successful_uploads = 0
@@ -257,28 +291,44 @@ def upload_file(request, project_id, phase_id):
         failed_reasons=failed_reasons[:3] if failed_reasons else [],  # Máximo 3 razones de fallo
         duration_ms=None  # Podríamos calcular tiempo si fuera necesario
     )
+    
+    # Invalidar caché de archivos para esta fase
+    if successful_uploads > 0:
+        from .cache_utils import invalidate_phase_files_cache
+        invalidate_phase_files_cache(phase_id)
 
     # Para HTMX, no usar Django messages, usar notificaciones JavaScript
     # messages.success(request, "Archivo(s) subido(s) exitosamente.")
 
     # Si es una petición HTMX, devolvemos solo la lista actualizada
     if request.headers.get('HX-Request') == 'true':
-        # Determinar qué template usar basado en el target
+        # OPTIMIZACIÓN para Railway: En lugar de llamar a la vista completa paginada
+        # que puede causar timeout, devolvemos directamente un trigger para recargar
+        # Esto evita el procesamiento pesado después del upload
+        
         hx_target = request.headers.get('HX-Target', '')
         if 'files-container' in hx_target:
-            # Para HTMX, necesitamos devolver el contenido directamente, no un redirect
-            # Importar y usar la vista paginada directamente
-            from apps.projects.views import phase_files_paginated
-            
-            # Crear una nueva request simulada para la vista paginada
-            import copy
-            paginated_request = copy.copy(request)
-            paginated_request.method = 'GET'
-            paginated_request.GET = paginated_request.GET.copy()
-            paginated_request.GET['page'] = '1'
-            
-            # Llamar directamente a la vista paginada
-            return phase_files_paginated(paginated_request, phase.project.id, phase.id)
+            # Respuesta optimizada que dispara un evento para recargar los archivos
+            # En lugar de renderizar todo inmediatamente (que causa timeout en Railway)
+            html_response = '''
+            <div class="text-center py-2">
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-1"></i> ¡Archivo subido exitosamente!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </div>
+            <script>
+                // Trigger inmediato para recargar los archivos después del upload exitoso
+                setTimeout(() => {
+                    const container = document.getElementById('files-container-' + ''' + str(phase.id) + ''');
+                    if (container) {
+                        // Disparar recarga sin bloquear la respuesta del upload
+                        htmx.trigger(container, 'fileUploaded');
+                    }
+                }, 100);
+            </script>
+            '''
+            return HttpResponse(html_response)
         elif 'files-table' in hx_target:
             # Si el target es una tabla, devolver el template de tabla simplificado
             from apps.projects.models import Project
@@ -292,11 +342,19 @@ def upload_file(request, project_id, phase_id):
             }
             return render(request, 'projects/partials/files_table.html', context)
         else:
-            # Target por defecto: contenido completo de la lista de archivos
-            return render(request, 'projects/partials/files_list_content.html', {
-                'phase': phase,
-                'project': phase.project
-            })
+            # Target por defecto: mensaje de éxito simple + trigger de recarga
+            html_response = '''
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle me-1"></i> ¡Archivo subido exitosamente!
+            </div>
+            <script>
+                // Trigger para recargar la lista completa
+                setTimeout(() => {
+                    document.body.dispatchEvent(new CustomEvent('fileUploaded'));
+                }, 100);
+            </script>
+            '''
+            return HttpResponse(html_response)
 
     # En formularios normales, redirigir al detalle del proyecto (pestaña Archivos)
     project_url = reverse('projects:project-detail', kwargs={'pk': phase.project_id})
@@ -384,6 +442,10 @@ def delete_file(request, file_id):
             project_id=file_info['project_id'],
             phase_id=file_info['phase_id']
         )
+        
+        # Invalidar caché de archivos para esta fase
+        from .cache_utils import invalidate_phase_files_cache
+        invalidate_phase_files_cache(file_info['phase_id'])
         
     except Exception as e:
         # Log error en eliminación con stack trace completo

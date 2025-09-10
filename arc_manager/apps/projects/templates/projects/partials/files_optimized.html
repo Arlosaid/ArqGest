@@ -1,0 +1,140 @@
+{% load i18n %}
+{% load humanize %}
+
+<!-- Template optimizado para carga inicial con scroll infinito -->
+<div class="files-grid" id="files-grid-{{ phase.id }}">
+    {% for file in files %}
+    <div class="file-item" id="file-{{ file.id }}">
+        <div class="file-card">
+            <!-- Icono del archivo -->
+            <a href="{{ file.file_url }}" target="_blank" class="text-decoration-none">
+                {% if file.extension == 'JPG' or file.extension == 'JPEG' or file.extension == 'PNG' or file.extension == 'GIF' or file.extension == 'TIFF' %}
+                    <div class="file-icon file-image"><i class="fas fa-image"></i></div>
+                {% elif file.extension == 'PDF' %}
+                    <div class="file-icon file-pdf"><i class="fas fa-file-pdf"></i></div>
+                {% elif file.extension == 'DWG' or file.extension == 'DXF' or file.extension == 'RVT' or file.extension == 'SKP' %}
+                    <div class="file-icon file-cad"><i class="fas fa-drafting-compass"></i></div>
+                {% elif file.extension == 'DOC' or file.extension == 'DOCX' %}
+                    <div class="file-icon file-doc"><i class="fas fa-file-word"></i></div>
+                {% elif file.extension == 'XLS' or file.extension == 'XLSX' %}
+                    <div class="file-icon file-excel"><i class="fas fa-file-excel"></i></div>
+                {% elif file.extension == 'PPT' or file.extension == 'PPTX' %}
+                    <div class="file-icon file-ppt"><i class="fas fa-file-powerpoint"></i></div>
+                {% elif file.extension == 'ZIP' or file.extension == 'RAR' %}
+                    <div class="file-icon file-archive"><i class="fas fa-file-archive"></i></div>
+                {% elif file.extension == 'TXT' or file.extension == 'MD' %}
+                    <div class="file-icon file-text"><i class="fas fa-file-alt"></i></div>
+                {% else %}
+                    <div class="file-icon file-default"><i class="fas fa-file"></i></div>
+                {% endif %}
+            </a>
+            
+            <!-- Información del archivo -->
+            <div class="file-info">
+                <div class="file-name" title="{{ file.filename }}">
+                    <span class="file-name-full d-none d-md-block">{{ file.filename|truncatechars:20 }}</span>
+                    <span class="file-name-short d-md-none">{{ file.filename|truncatechars:15 }}</span>
+                </div>
+            </div>
+            <div class="file-meta">
+                <span class="file-size">{{ file.size|filesizeformat }}</span>
+                <span class="file-type">{{ file.extension }}</span>
+            </div>
+            <div class="file-date">{{ file.uploaded_at|date:"d/m/Y" }}</div>
+            <div class="file-uploader">{{ file.uploaded_by_name|truncatechars:12 }}</div>
+            
+            <!-- Acciones -->
+            <div class="file-actions">
+                <a href="{{ file.file_url }}" class="btn btn-sm btn-primary" download>
+                    <i class="fas fa-download"></i>
+                </a>
+                <button class="btn btn-sm btn-outline-danger"
+                        hx-post="{% url 'files:delete_file' file.id %}"
+                        hx-confirm="{% trans '¿Seguro que deseas eliminar este archivo?' %}"
+                        hx-target="#file-{{ file.id }}"
+                        hx-swap="outerHTML">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="no-files-message text-center py-4">
+        <i class="fas fa-folder-open" style="font-size: 2rem; margin-bottom: 1rem; display: block; color: #6b7280;"></i>
+        <p class="text-muted">{% trans "No se encontraron archivos" %}</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Scroll infinito automático -->
+{% if has_more %}
+<div class="infinite-scroll-trigger" 
+     data-next-offset="{{ next_offset }}"
+     data-phase-id="{{ phase.id }}"
+     data-project-id="{{ phase.project.id }}"
+     data-type-filter="{{ current_filters.type }}"
+     data-date-filter="{{ current_filters.date }}"
+     style="height: 20px; margin-top: 20px;">
+    <div class="text-center">
+        <div class="spinner-border spinner-border-sm text-primary" role="status">
+            <span class="visually-hidden">{% trans "Cargando más archivos..." %}</span>
+        </div>
+    </div>
+</div>
+
+<script>
+// Scroll infinito optimizado con Intersection Observer
+document.addEventListener('DOMContentLoaded', function() {
+    const trigger = document.querySelector('.infinite-scroll-trigger');
+    if (!trigger) return;
+    
+    let isLoading = false;
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && !isLoading) {
+                isLoading = true;
+                
+                const nextOffset = trigger.dataset.nextOffset;
+                const phaseId = trigger.dataset.phaseId;
+                const projectId = trigger.dataset.projectId;
+                const typeFilter = trigger.dataset.typeFilter;
+                const dateFilter = trigger.dataset.dateFilter;
+                
+                // Construir URL con filtros
+                let url = `/projects/${projectId}/phases/${phaseId}/files/?offset=${nextOffset}&load_more=true`;
+                if (typeFilter) url += `&type=${typeFilter}`;
+                if (dateFilter) url += `&date=${dateFilter}`;
+                
+                // Cargar más archivos con HTMX
+                htmx.ajax('GET', url, {
+                    target: '#files-grid-{{ phase.id }}',
+                    swap: 'beforeend'
+                }).then(() => {
+                    isLoading = false;
+                    // Remover trigger si no hay más archivos
+                    const newTrigger = document.querySelector('.infinite-scroll-trigger');
+                    if (newTrigger && newTrigger !== trigger) {
+                        trigger.remove();
+                    }
+                }).catch(() => {
+                    isLoading = false;
+                });
+            }
+        });
+    }, {
+        threshold: 0.1,
+        rootMargin: '50px'
+    });
+    
+    observer.observe(trigger);
+});
+</script>
+{% endif %}
+
+<!-- Debug info (solo en desarrollo) -->
+{% if from_cache and settings.DEBUG %}
+<div class="alert alert-info mt-2">
+    <small><i class="fas fa-rocket"></i> Cargado desde cache Redis</small>
+</div>
+{% endif %}
