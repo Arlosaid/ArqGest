@@ -305,12 +305,10 @@ if not DEBUG:
         # Headers básicos seguros
         headers['Vary'] = 'Accept-Encoding, User-Agent'
         
-        # Para CSS y JS - FORZAR NO CACHE para actualizaciones inmediatas
+        # Para CSS y JS - cache moderado con validación
         if path.endswith(('.css', '.js')):
-            headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-            headers['Pragma'] = 'no-cache'
-            headers['Expires'] = '0'
-            headers['ETag'] = f'W/"{hash(url + str(__import__("time").time()))}"'  # ETag único
+            headers['Cache-Control'] = 'public, max-age=3600, must-revalidate'
+            headers['ETag'] = f'W/"{hash(url)}"'
         
         # Para imágenes - cache normal
         elif path.endswith(('.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico')):
