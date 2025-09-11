@@ -32,12 +32,12 @@
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     
-    <!-- Estilos específicos con cache-busting para móviles -->
-    <link href="{% static 'css/base.css' %}?v=3.1&mobile=1" rel="stylesheet">
-    <link href="{% static 'css/navbar.css' %}?v=3.1&mobile=1" rel="stylesheet">
-    <link href="{% static 'css/sidebar.css' %}?v=3.1&mobile=1" rel="stylesheet">
-    <link href="{% static 'css/notifications.css' %}?v=3.1&mobile=1" rel="stylesheet">
-    <link href="{% static 'css/task_detail_modal.css' %}?v=3.1&mobile=1" rel="stylesheet">
+    <!-- Estilos específicos con cache-busting FORZADO para móviles -->
+    <link href="{% static 'css/base.css' %}?v=3.2&bust={% now 'U' %}&mobile=force" rel="stylesheet">
+    <link href="{% static 'css/navbar.css' %}?v=3.2&bust={% now 'U' %}&mobile=force" rel="stylesheet">
+    <link href="{% static 'css/sidebar.css' %}?v=3.2&bust={% now 'U' %}&mobile=force" rel="stylesheet">
+    <link href="{% static 'css/notifications.css' %}?v=3.2&bust={% now 'U' %}&mobile=force" rel="stylesheet">
+    <link href="{% static 'css/task_detail_modal.css' %}?v=3.2&bust={% now 'U' %}&mobile=force" rel="stylesheet">
     
     <!-- Optimizaciones específicas para Safari móvil iOS -->
     {% comment %}{% mobile_css 'css/mobile_ios_fixes.css' 'screen and (max-width: 991.98px)' %}{% endcomment %}
@@ -85,22 +85,22 @@
 
     <!-- HTMX para interacciones hx-* (upload/delete parciales, etc.) -->
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-    <script src="{% static 'js/htmx_csrf.js' %}?v=3.1&mobile=1"></script>
+    <script src="{% static 'js/htmx_csrf.js' %}?v=3.2&bust={% now 'U' %}&mobile=force"></script>
     
     <!-- Manejador global de errores HTMX -->
-    <script src="{% static 'js/htmx_error_handler.js' %}?v=3.1&mobile=1"></script>
+    <script src="{% static 'js/htmx_error_handler.js' %}?v=3.2&bust={% now 'U' %}&mobile=force"></script>
     
     <!-- Sistema de Progreso de Upload optimizado -->
-    <script src="{% static 'js/upload_progress.js' %}?v=3.1&mobile=1"></script>
+    <script src="{% static 'js/upload_progress.js' %}?v=3.2&bust={% now 'U' %}&mobile=force"></script>
     
     <!-- Mobile Upload Optimizer -->
-    <script src="{% static 'js/mobile_upload_optimizer.js' %}?v=3.1&mobile=1"></script>
+    <script src="{% static 'js/mobile_upload_optimizer.js' %}?v=3.2&bust={% now 'U' %}&mobile=force"></script>
     
-    <!-- Scripts base con cache-busting para móviles -->
-    <script src="{% static 'js/base.js' %}?v=3.1&mobile=1"></script>
-    <script src="{% static 'js/navbar.js' %}?v=3.1&mobile=1"></script>
-    <script src="{% static 'js/sidebar.js' %}?v=3.1&mobile=1"></script>
-    <script src="{% static 'js/notifications.js' %}?v=3.1&mobile=1"></script>
+    <!-- Scripts base con cache-busting FORZADO para móviles -->
+    <script src="{% static 'js/base.js' %}?v=3.2&bust={% now 'U' %}&mobile=force"></script>
+    <script src="{% static 'js/navbar.js' %}?v=3.2&bust={% now 'U' %}&mobile=force"></script>
+    <script src="{% static 'js/sidebar.js' %}?v=3.2&bust={% now 'U' %}&mobile=force"></script>
+    <script src="{% static 'js/notifications.js' %}?v=3.2&bust={% now 'U' %}&mobile=force"></script>
     
     <!-- Demo de Notificaciones (solo en desarrollo) -->
     {% if debug %}
@@ -146,7 +146,7 @@
         </div>
     </div>
 
-    <script src="{% static 'js/modal_helpers.js' %}?v=3.1&mobile=1"></script>
+    <script src="{% static 'js/modal_helpers.js' %}?v=3.2&bust={% now 'U' %}&mobile=force"></script>
     
     <!-- JavaScript optimizado para el menú mobile responsive - Producción móvil -->
     <script>
