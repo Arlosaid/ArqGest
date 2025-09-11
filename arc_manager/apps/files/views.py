@@ -311,13 +311,14 @@ def upload_file(request, project_id, phase_id):
             # Respuesta optimizada que dispara un evento para recargar los archivos
             # En lugar de renderizar todo inmediatamente (que causa timeout en Railway)
             html_response = '''
-            <div class="text-center py-2">
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="fas fa-check-circle me-1"></i> ¡Archivo subido exitosamente!
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            </div>
             <script>
+                // Mostrar notificación de éxito usando el sistema personalizado
+                if (window.notifications) {
+                    window.notifications.success('¡Archivo subido exitosamente!');
+                } else if (window.showGlobalNotification) {
+                    window.showGlobalNotification('¡Archivo subido exitosamente!', 'success');
+                }
+                
                 // Trigger inmediato para recargar los archivos después del upload exitoso
                 setTimeout(() => {
                     const container = document.getElementById('files-container-' + ''' + str(phase.id) + ''');
@@ -342,12 +343,17 @@ def upload_file(request, project_id, phase_id):
             }
             return render(request, 'projects/partials/files_table.html', context)
         else:
-            # Target por defecto: mensaje de éxito simple + trigger de recarga
+            # Target por defecto: usar notificaciones personalizadas + trigger de recarga
+            # No devolver contenido HTML para el target, solo script para notificar y recargar
             html_response = '''
-            <div class="alert alert-success">
-                <i class="fas fa-check-circle me-1"></i> ¡Archivo subido exitosamente!
-            </div>
             <script>
+                // Mostrar notificación de éxito usando el sistema personalizado
+                if (window.notifications) {
+                    window.notifications.success('¡Archivo subido exitosamente!');
+                } else if (window.showGlobalNotification) {
+                    window.showGlobalNotification('¡Archivo subido exitosamente!', 'success');
+                }
+                
                 // Trigger para recargar la lista completa
                 setTimeout(() => {
                     document.body.dispatchEvent(new CustomEvent('fileUploaded'));

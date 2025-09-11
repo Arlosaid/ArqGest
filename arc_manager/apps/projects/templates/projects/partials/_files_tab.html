@@ -24,7 +24,7 @@
                     <div class="accordion-body">
                         <form class="mb-3 file-upload-form" 
                               hx-post="{% url 'files:upload_file' project_id=project.pk phase_id=phase.pk %}"
-                              hx-target="#files-list-{{ phase.id }}"
+                              hx-target="#upload-response-{{ phase.id }}"
                               hx-swap="innerHTML"
                               hx-encoding="multipart/form-data"
                               enctype="multipart/form-data">
@@ -73,6 +73,9 @@
                                 </div>
                             </div>
                         </form>
+
+                        <!-- Contenedor invisible para respuestas de upload -->
+                        <div id="upload-response-{{ phase.id }}" style="display: none;"></div>
 
                         <!-- Lista de archivos - contenido se carga dinámicamente -->
                         <div id="files-list-{{ phase.id }}">
