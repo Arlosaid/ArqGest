@@ -17,6 +17,11 @@
     <meta name="android-app-installable" content="no">
     <meta name="mobile-web-status-bar-style" content="default">
     
+    <!-- Anti-cache específico para móviles -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
     <!-- Preconnect para CDNs externos -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -147,6 +152,66 @@
     </div>
 
     <script src="{% static 'js/modal_helpers.js' %}?v=3.2&bust={% now 'U' %}&mobile=force"></script>
+    
+    <!-- Detección y limpieza de cache viejo en móviles -->
+    <script>
+    (function() {
+        'use strict';
+        
+        // Detectar si estamos en móvil
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (isMobile) {
+            // Versión actual de los estilos
+            const currentVersion = '3.2';
+            const lastVersion = localStorage.getItem('cssVersion');
+            
+            // Si es la primera vez o la versión cambió, forzar limpieza
+            if (!lastVersion || lastVersion !== currentVersion) {
+                console.log('🧹 Limpiando cache móvil obsoleto...');
+                
+                // Intentar limpiar cache del service worker si existe
+                if ('serviceWorker' in navigator && 'caches' in window) {
+                    caches.keys().then(function(cacheNames) {
+                        return Promise.all(
+                            cacheNames.map(function(cacheName) {
+                                return caches.delete(cacheName);
+                            })
+                        );
+                    });
+                }
+                
+                // Forzar recarga de todos los CSS
+                const links = document.querySelectorAll('link[rel="stylesheet"]');
+                links.forEach(function(link) {
+                    const href = link.href;
+                    const newHref = href.includes('?') ? 
+                        href + '&force=' + Date.now() : 
+                        href + '?force=' + Date.now();
+                    
+                    // Crear nuevo link
+                    const newLink = document.createElement('link');
+                    newLink.rel = 'stylesheet';
+                    newLink.href = newHref;
+                    newLink.onload = function() {
+                        // Remover el viejo después de cargar el nuevo
+                        if (link.parentNode) {
+                            link.parentNode.removeChild(link);
+                        }
+                    };
+                    
+                    // Insertar nuevo link después del viejo
+                    link.parentNode.insertBefore(newLink, link.nextSibling);
+                });
+                
+                // Guardar nueva versión
+                localStorage.setItem('cssVersion', currentVersion);
+                localStorage.setItem('cacheCleared', Date.now());
+                
+                console.log('✅ Cache móvil actualizado');
+            }
+        }
+    })();
     
     <!-- JavaScript optimizado para el menú mobile responsive - Producción móvil -->
     <script>
