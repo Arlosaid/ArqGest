@@ -17,10 +17,6 @@
     <meta name="android-app-installable" content="no">
     <meta name="mobile-web-status-bar-style" content="default">
     
-    <!-- Anti-cache específico para móviles -->
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
     
     <!-- Preconnect para CDNs externos -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -37,12 +33,12 @@
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     
-    <!-- Estilos específicos con cache-busting FORZADO para móviles -->
-    <link href="{% static 'css/base.css' %}?v=3.2&bust={% now 'U' %}&mobile=force" rel="stylesheet">
-    <link href="{% static 'css/navbar.css' %}?v=3.2&bust={% now 'U' %}&mobile=force" rel="stylesheet">
-    <link href="{% static 'css/sidebar.css' %}?v=3.2&bust={% now 'U' %}&mobile=force" rel="stylesheet">
-    <link href="{% static 'css/notifications.css' %}?v=3.2&bust={% now 'U' %}&mobile=force" rel="stylesheet">
-    <link href="{% static 'css/task_detail_modal.css' %}?v=3.2&bust={% now 'U' %}&mobile=force" rel="stylesheet">
+    <!-- Estilos básicos con versión simple -->
+    <link href="{% static 'css/base.css' %}?v=4.0" rel="stylesheet">
+    <link href="{% static 'css/navbar.css' %}?v=4.0" rel="stylesheet">
+    <link href="{% static 'css/sidebar.css' %}?v=4.0" rel="stylesheet">
+    <link href="{% static 'css/notifications.css' %}?v=4.0" rel="stylesheet">
+    <link href="{% static 'css/task_detail_modal.css' %}?v=4.0" rel="stylesheet">
     
     <!-- Optimizaciones específicas para Safari móvil iOS -->
     {% comment %}{% mobile_css 'css/mobile_ios_fixes.css' 'screen and (max-width: 991.98px)' %}{% endcomment %}
@@ -90,26 +86,26 @@
 
     <!-- HTMX para interacciones hx-* (upload/delete parciales, etc.) -->
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-    <script src="{% static 'js/htmx_csrf.js' %}?v=3.2&bust={% now 'U' %}&mobile=force"></script>
+    <script src="{% static 'js/htmx_csrf.js' %}?v=4.0"></script>
     
     <!-- Manejador global de errores HTMX -->
-    <script src="{% static 'js/htmx_error_handler.js' %}?v=3.2&bust={% now 'U' %}&mobile=force"></script>
+    <script src="{% static 'js/htmx_error_handler.js' %}?v=4.0"></script>
     
     <!-- Sistema de Progreso de Upload optimizado -->
-    <script src="{% static 'js/upload_progress.js' %}?v=3.2&bust={% now 'U' %}&mobile=force"></script>
+    <script src="{% static 'js/upload_progress.js' %}?v=4.0"></script>
     
     <!-- Mobile Upload Optimizer -->
-    <script src="{% static 'js/mobile_upload_optimizer.js' %}?v=3.2&bust={% now 'U' %}&mobile=force"></script>
+    <script src="{% static 'js/mobile_upload_optimizer.js' %}?v=4.0"></script>
     
-    <!-- Scripts base con cache-busting FORZADO para móviles -->
-    <script src="{% static 'js/base.js' %}?v=3.2&bust={% now 'U' %}&mobile=force"></script>
-    <script src="{% static 'js/navbar.js' %}?v=3.2&bust={% now 'U' %}&mobile=force"></script>
-    <script src="{% static 'js/sidebar.js' %}?v=3.2&bust={% now 'U' %}&mobile=force"></script>
-    <script src="{% static 'js/notifications.js' %}?v=3.2&bust={% now 'U' %}&mobile=force"></script>
+    <!-- Scripts base estables -->
+    <script src="{% static 'js/base.js' %}?v=4.0"></script>
+    <script src="{% static 'js/navbar.js' %}?v=4.0"></script>
+    <script src="{% static 'js/sidebar.js' %}?v=4.0"></script>
+    <script src="{% static 'js/notifications.js' %}?v=4.0"></script>
     
     <!-- Demo de Notificaciones (solo en desarrollo) -->
     {% if debug %}
-    <script src="{% static 'js/notifications-demo.js' %}?v=3.1&mobile=1"></script>
+    <script src="{% static 'js/notifications-demo.js' %}?v=4.0"></script>
     {% endif %}
     
     <!-- Notificaciones Automáticas de Suscripción (solo si es necesario) -->
@@ -151,67 +147,7 @@
         </div>
     </div>
 
-    <script src="{% static 'js/modal_helpers.js' %}?v=3.2&bust={% now 'U' %}&mobile=force"></script>
-    
-    <!-- Detección y limpieza de cache viejo en móviles -->
-    <script>
-    (function() {
-        'use strict';
-        
-        // Detectar si estamos en móvil
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
-        if (isMobile) {
-            // Versión actual de los estilos
-            const currentVersion = '3.2';
-            const lastVersion = localStorage.getItem('cssVersion');
-            
-            // Si es la primera vez o la versión cambió, forzar limpieza
-            if (!lastVersion || lastVersion !== currentVersion) {
-                console.log('🧹 Limpiando cache móvil obsoleto...');
-                
-                // Intentar limpiar cache del service worker si existe
-                if ('serviceWorker' in navigator && 'caches' in window) {
-                    caches.keys().then(function(cacheNames) {
-                        return Promise.all(
-                            cacheNames.map(function(cacheName) {
-                                return caches.delete(cacheName);
-                            })
-                        );
-                    });
-                }
-                
-                // Forzar recarga de todos los CSS
-                const links = document.querySelectorAll('link[rel="stylesheet"]');
-                links.forEach(function(link) {
-                    const href = link.href;
-                    const newHref = href.includes('?') ? 
-                        href + '&force=' + Date.now() : 
-                        href + '?force=' + Date.now();
-                    
-                    // Crear nuevo link
-                    const newLink = document.createElement('link');
-                    newLink.rel = 'stylesheet';
-                    newLink.href = newHref;
-                    newLink.onload = function() {
-                        // Remover el viejo después de cargar el nuevo
-                        if (link.parentNode) {
-                            link.parentNode.removeChild(link);
-                        }
-                    };
-                    
-                    // Insertar nuevo link después del viejo
-                    link.parentNode.insertBefore(newLink, link.nextSibling);
-                });
-                
-                // Guardar nueva versión
-                localStorage.setItem('cssVersion', currentVersion);
-                localStorage.setItem('cacheCleared', Date.now());
-                
-                console.log('✅ Cache móvil actualizado');
-            }
-        }
-    })();
+    <script src="{% static 'js/modal_helpers.js' %}?v=4.0"></script>
     
     <!-- JavaScript optimizado para el menú mobile responsive - Producción móvil -->
     <script>
