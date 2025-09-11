@@ -85,6 +85,125 @@
     cursor: not-allowed;
 }
 
+/* ========================================
+   VALIDACIÓN DE ARCHIVOS - ERRORES
+   ======================================== */
+
+.validation-error {
+    background: linear-gradient(135deg, #fef2f2 0%, #fde8e8 100%);
+    border: 1px solid #f87171;
+    border-radius: var(--arc-border-radius, 8px);
+    padding: 1rem;
+    margin-top: 0.75rem;
+    animation: slideInError 0.3s ease-out;
+    box-shadow: 0 2px 4px rgba(248, 113, 113, 0.1);
+}
+
+.validation-error .alert-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    color: #dc2626;
+    font-weight: 600;
+}
+
+.validation-error .alert-header i {
+    font-size: 1.125rem;
+    color: #ef4444;
+}
+
+.validation-error ul {
+    margin: 0;
+    padding-left: 1.25rem;
+    list-style-type: none;
+}
+
+.validation-error li {
+    position: relative;
+    padding: 0.25rem 0;
+    color: #7f1d1d;
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+.validation-error li::before {
+    content: "•";
+    position: absolute;
+    left: -1rem;
+    color: #ef4444;
+    font-weight: bold;
+}
+
+.validation-error li:last-child {
+    padding-bottom: 0;
+}
+
+/* Estado de validación en el input */
+.file-input-container.has-validation-errors .file-input-label {
+    border-color: #f87171;
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.file-input-container.has-validation-errors .file-input-label:hover {
+    border-color: #ef4444;
+    background: #fde8e8;
+}
+
+/* Archivos válidos con errores parciales */
+.selected-files.partial-validation {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border-color: #f59e0b;
+}
+
+.selected-files.partial-validation .selected-count {
+    color: #d97706;
+}
+
+/* Animación de entrada de errores */
+@keyframes slideInError {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Validación exitosa */
+.validation-success {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border: 1px solid #22c55e;
+    border-radius: var(--arc-border-radius, 8px);
+    padding: 0.75rem 1rem;
+    margin-top: 0.5rem;
+    color: #15803d;
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    animation: slideInSuccess 0.3s ease-out;
+}
+
+.validation-success i {
+    color: #16a34a;
+}
+
+@keyframes slideInSuccess {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Responsive para subida de archivos */
 @media (max-width: 768px) {
     .file-upload-wrapper {

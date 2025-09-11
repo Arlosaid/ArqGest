@@ -1,0 +1,165 @@
+{% comment %}
+Template para CSS crítico optimizado para móviles iOS
+Carga inmediata sin bloqueo del renderizado
+{% endcomment %}
+{% load mobile_static %}
+
+{% comment %}
+Preload de CSS crítico para móviles - carga asíncrona
+{% endcomment %}
+{% for css_file in critical_styles %}
+{% preload_css css_file %}
+{% endfor %}
+
+{% comment %}
+Fallback para navegadores que no soportan preload
+{% endcomment %}
+<noscript>
+    {% for css_file in critical_styles %}
+    {% mobile_css css_file %}
+    {% endfor %}
+</noscript>
+
+{% comment %}
+Script para cargar CSS de forma asíncrona en móviles
+Específicamente optimizado para Safari iOS
+{% endcomment %}
+<script>
+(function() {
+    'use strict';
+    
+    // Detección mejorada de dispositivos móviles
+    const isSafariMobile = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isAndroidChrome = /Android.*Chrome/.test(navigator.userAgent);
+    const isAndroidWebView = /Android.*wv\)/.test(navigator.userAgent);
+    const isSamsungInternet = /SamsungBrowser/.test(navigator.userAgent);
+    const isAndroidMobile = isAndroidChrome || isAndroidWebView || isSamsungInternet || /Android/.test(navigator.userAgent);
+    const isMobile = isSafariMobile || isAndroidMobile;
+    
+    // CSS crítico a cargar
+    const criticalCSS = [
+        {% for css_file in critical_styles %}
+        '{% mobile_static css_file %}'{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    
+    // Función optimizada para cargar CSS en móviles
+    function loadMobileCSS(href) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = href;
+        link.type = 'text/css';
+        link.media = 'all';
+        
+        // Atributos específicos para Safari móvil
+        if (isSafariMobile) {
+            link.setAttribute('data-safari-mobile', 'true');
+            // Forzar recarga en Safari móvil
+            link.setAttribute('data-no-cache', Date.now());
+        }
+        
+        // Atributos específicos para Android
+        if (isAndroidMobile) {
+            link.setAttribute('data-android-mobile', 'true');
+            // Optimizaciones para Android Chrome y WebView
+            if (isAndroidWebView) {
+                link.setAttribute('data-webview', 'true');
+            }
+            if (isSamsungInternet) {
+                link.setAttribute('data-samsung-browser', 'true');
+            }
+            // Forzar recarga en Android
+            link.setAttribute('data-android-cache-bust', Date.now());
+        }
+        
+        // Manejo de errores
+        link.onerror = function() {
+            console.warn('Error cargando CSS:', href);
+        };
+        
+        link.onload = function() {
+            // Marcar como cargado
+            this.setAttribute('data-loaded', 'true');
+            
+            // Trigger reflow para Safari móvil
+            if (isSafariMobile) {
+                document.body.offsetHeight;
+            }
+            
+            // Trigger reflow para Android móvil
+            if (isAndroidMobile) {
+                // Forzar repaint en Android
+                document.body.style.display = 'none';
+                document.body.offsetHeight; // Force reflow
+                document.body.style.display = '';
+            }
+        };
+        
+        document.head.appendChild(link);
+    }
+    
+    // Cargar CSS crítico inmediatamente
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            criticalCSS.forEach(loadMobileCSS);
+        });
+    } else {
+        criticalCSS.forEach(loadMobileCSS);
+    }
+    
+    // Para Safari móvil: forzar refresh de estilos en pageshow
+    if (isSafariMobile) {
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                // Página cargada desde cache - refrescar estilos
+                const links = document.querySelectorAll('link[rel="stylesheet"]');
+                links.forEach(function(link) {
+                    const href = link.href;
+                    link.href = href.includes('?') ? 
+                        href + '&refresh=' + Date.now() : 
+                        href + '?refresh=' + Date.now();
+                });
+            }
+        });
+    }
+    
+    // Para Android móvil: manejo de cache en WebView y Chrome
+    if (isAndroidMobile) {
+        // Detectar cuando la página viene de cache en Android
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                // Página cargada desde bfcache - refrescar estilos
+                const links = document.querySelectorAll('link[rel="stylesheet"]');
+                links.forEach(function(link) {
+                    const href = link.href;
+                    const separator = href.includes('?') ? '&' : '?';
+                    link.href = href + separator + 'android_refresh=' + Date.now();
+                });
+            }
+        });
+        
+        // Manejo específico para Android WebView
+        if (isAndroidWebView) {
+            // WebView puede tener problemas de cache más agresivos
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'visible') {
+                    // Cuando la app vuelve a primer plano, verificar si necesita refresh
+                    const lastRefresh = sessionStorage.getItem('lastCSSRefresh');
+                    const now = Date.now();
+                    
+                    // Refrescar CSS cada 5 minutos en WebView
+                    if (!lastRefresh || (now - parseInt(lastRefresh)) > 300000) {
+                        const links = document.querySelectorAll('link[rel="stylesheet"]');
+                        links.forEach(function(link) {
+                            const href = link.href;
+                            const separator = href.includes('?') ? '&' : '?';
+                            link.href = href + separator + 'webview_refresh=' + now;
+                        });
+                        sessionStorage.setItem('lastCSSRefresh', now);
+                    }
+                }
+            });
+        }
+    }
+})();
+</script>

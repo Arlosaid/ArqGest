@@ -143,18 +143,18 @@ def upload_file(request, project_id, phase_id):
             return JsonResponse({"error": error_msg, "success": False}, status=413)
         return HttpResponse(status=413)
 
-    # Contadores para resumen final
-    successful_uploads = 0
-    failed_uploads = 0
-    failed_reasons = []
-
+    # PRIMERA FASE: Validar TODOS los archivos antes de procesar ninguno
+    validation_errors = []
+    valid_files = []
+    
     for uploaded_file in files_list:
         size_mb = (uploaded_file.size or 0) / (1024 * 1024)
         ext = os.path.splitext(uploaded_file.name)[1].replace('.', '').upper()
+        file_errors = []
+        
+        # Validar extensión
         if ext not in ALLOWED_EXTENSIONS:
-            error_msg = f"Tipo de archivo no permitido: {ext}"
-            failed_uploads += 1
-            failed_reasons.append(f"{uploaded_file.name}: tipo no permitido ({ext})")
+            file_errors.append(f"Tipo de archivo no permitido (.{ext.lower()})")
             log_operation(
                 'FILE_UPLOAD_ERROR',
                 request.user.email,
@@ -165,16 +165,12 @@ def upload_file(request, project_id, phase_id):
                 phase_id=phase_id,
                 filename=uploaded_file.name,
                 extension=ext,
-                allowed_extensions=list(ALLOWED_EXTENSIONS)[:10]  # Primeras 10 para el log
+                allowed_extensions=list(ALLOWED_EXTENSIONS)[:10]
             )
-            messages.error(request, error_msg)
-            if request.headers.get('HX-Request') == 'true':
-                return JsonResponse({"error": error_msg, "success": False}, status=400)
-            return HttpResponse(status=400)
+        
+        # Validar tamaño
         if size_mb > MAX_FILE_SIZE_MB:
-            error_msg = f"El archivo excede el límite de tamaño ({MAX_FILE_SIZE_MB} MB)"
-            failed_uploads += 1
-            failed_reasons.append(f"{uploaded_file.name}: muy grande ({size_mb:.1f}MB)")
+            file_errors.append(f"Muy grande ({size_mb:.1f}MB, máx: {MAX_FILE_SIZE_MB}MB)")
             log_operation(
                 'FILE_UPLOAD_ERROR',
                 request.user.email,
@@ -188,10 +184,48 @@ def upload_file(request, project_id, phase_id):
                 size_bytes=uploaded_file.size,
                 max_size_mb=MAX_FILE_SIZE_MB
             )
-            messages.error(request, error_msg)
-            if request.headers.get('HX-Request') == 'true':
-                return JsonResponse({"error": error_msg, "success": False}, status=413)
-            return HttpResponse(status=413)
+        
+        if file_errors:
+            validation_errors.append(f"{uploaded_file.name}: {', '.join(file_errors)}")
+        else:
+            valid_files.append(uploaded_file)
+    
+    # Si hay errores de validación, devolver todos juntos
+    if validation_errors:
+        error_msg = f"Archivos no válidos encontrados:\n• " + "\n• ".join(validation_errors)
+        
+        # Log general de error de validación
+        log_operation(
+            'FILE_UPLOAD_VALIDATION_FAILED',
+            request.user.email,
+            logger,
+            level='WARNING',
+            error_code=FileErrorCodes.FILE_UPLOAD_UNEXPECTED_ERROR,
+            project_id=project_id,
+            phase_id=phase_id,
+            total_files=len(files_list),
+            invalid_files=len(validation_errors),
+            valid_files=len(valid_files),
+            validation_errors=validation_errors[:5]  # Primeros 5 para el log
+        )
+        
+        messages.error(request, error_msg)
+        if request.headers.get('HX-Request') == 'true':
+            return JsonResponse({
+                "error": error_msg,
+                "success": False,
+                "validation_errors": validation_errors,
+                "valid_files_count": len(valid_files),
+                "invalid_files_count": len(validation_errors)
+            }, status=400)
+        return HttpResponse(status=400)
+    
+    # SEGUNDA FASE: Procesar solo archivos válidos
+    successful_uploads = 0
+    failed_uploads = 0
+    failed_reasons = []
+
+    for uploaded_file in valid_files:
 
         try:
             instance = ProjectFile.objects.create(

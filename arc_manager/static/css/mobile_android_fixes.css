@@ -1,0 +1,386 @@
+/*
+ * Optimizaciones específicas para Android Chrome, WebView y Samsung Internet
+ * Soluciona problemas de cache y renderizado en dispositivos Android
+ * Arc Manager - Mobile Android Optimizations
+ */
+
+/* ===== DETECCIÓN Y OPTIMIZACIONES PARA ANDROID ===== */
+
+/* Optimizaciones específicas para Android Chrome */
+@supports (-webkit-appearance: none) and (not (-webkit-overflow-scrolling: touch)) {
+    html {
+        /* Android Chrome optimizations */
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+        /* Mejorar rendering de fuentes en Android */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        /* Prevenir zoom accidental en Android */
+        touch-action: manipulation;
+    }
+    
+    body {
+        /* Optimizar performance en Android */
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
+        /* Forzar GPU acceleration en Android */
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+    }
+}
+
+/* ===== OPTIMIZACIONES PARA DENSIDADES DE PANTALLA ANDROID ===== */
+
+/* High Density (hdpi) - ~240dpi */
+@media only screen and (-webkit-device-pixel-ratio: 1.5) {
+    .btn, .nav-link {
+        min-height: 48px; /* Material Design minimum for Android */
+        min-width: 48px;
+        padding: 12px 16px;
+    }
+    
+    .sidebar {
+        width: 75vw !important;
+        max-width: 300px !important;
+    }
+}
+
+/* Extra High Density (xhdpi) - ~320dpi */
+@media only screen and (-webkit-device-pixel-ratio: 2) {
+    .btn, .nav-link {
+        min-height: 48px;
+        min-width: 48px;
+        padding: 14px 18px;
+    }
+    
+    .sidebar {
+        width: 70vw !important;
+        max-width: 320px !important;
+    }
+}
+
+/* Extra Extra High Density (xxhdpi) - ~480dpi */
+@media only screen and (-webkit-device-pixel-ratio: 3) {
+    .btn, .nav-link {
+        min-height: 48px;
+        min-width: 48px;
+        padding: 16px 20px;
+    }
+    
+    .sidebar {
+        width: 65vw !important;
+        max-width: 340px !important;
+    }
+}
+
+/* ===== OPTIMIZACIONES ESPECÍFICAS PARA ANDROID CHROME ===== */
+
+/* Android Chrome specific optimizations */
+@media screen and (max-width: 991.98px) {
+    /* Mejorar áreas táctiles para Android (Material Design) */
+    .btn,
+    .nav-link,
+    [data-bs-toggle],
+    button,
+    .clickable {
+        /* Material Design touch target minimum */
+        min-height: 48px;
+        min-width: 48px;
+        /* Android Chrome touch optimizations */
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+        /* Eliminar delay táctil en Android */
+        touch-action: manipulation;
+    }
+    
+    /* Feedback táctil optimizado para Android */
+    .nav-link:active,
+    .btn:active {
+        background-color: rgba(33, 150, 243, 0.1) !important; /* Material Blue */
+        transition: background-color 0.15s ease;
+        /* Material Design ripple effect simulation */
+        transform: scale(0.98);
+    }
+    
+    /* Prevenir problemas de scroll en Android WebView */
+    .sidebar,
+    .modal-body,
+    .content-area {
+        /* Android WebView scroll optimizations */
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        /* Prevenir overscroll bounce en Android */
+        overscroll-behavior-y: none;
+    }
+}
+
+/* ===== OPTIMIZACIONES PARA SAMSUNG INTERNET BROWSER ===== */
+
+/* Samsung Internet specific optimizations */
+@supports (-webkit-appearance: none) and (-webkit-touch-callout: none) {
+    .sidebar {
+        /* Samsung Internet rendering optimizations */
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+        will-change: transform;
+    }
+    
+    /* Mejorar performance en Samsung Internet */
+    .main-content,
+    .navbar {
+        contain: layout style paint;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+    }
+}
+
+/* ===== CORRECCIONES PARA ANDROID WEBVIEW ===== */
+
+/* Android WebView (apps nativas) optimizations */
+@media screen and (max-width: 991.98px) {
+    /* Prevenir problemas de viewport en WebView */
+    html, body {
+        /* Forzar altura completa en WebView */
+        height: 100% !important;
+        min-height: 100vh;
+        /* Prevenir problemas de scroll en WebView */
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Optimizar z-index para WebView */
+    .sidebar {
+        /* WebView necesita z-index más altos */
+        z-index: 2147483647 !important; /* Máximo z-index para WebView */
+    }
+    
+    .sidebar-overlay {
+        z-index: 2147483646 !important;
+    }
+}
+
+/* ===== OPTIMIZACIONES PARA DIFERENTES TAMAÑOS DE ANDROID ===== */
+
+/* Android Small Screens (< 5") */
+@media only screen and (max-width: 360px) {
+    .sidebar {
+        width: 85vw !important;
+        max-width: none !important;
+    }
+    
+    .btn, .nav-link {
+        padding: 10px 12px;
+        font-size: 14px;
+    }
+    
+    .navbar {
+        padding: 0.5rem 0.75rem;
+    }
+}
+
+/* Android Medium Screens (5" - 6") */
+@media only screen and (min-width: 361px) and (max-width: 414px) {
+    .sidebar {
+        width: 75vw !important;
+        max-width: 300px !important;
+    }
+    
+    .btn, .nav-link {
+        padding: 12px 16px;
+        font-size: 15px;
+    }
+}
+
+/* Android Large Screens (6"+) */
+@media only screen and (min-width: 415px) and (max-width: 991.98px) {
+    .sidebar {
+        width: 65vw !important;
+        max-width: 350px !important;
+    }
+    
+    .btn, .nav-link {
+        padding: 14px 18px;
+        font-size: 16px;
+    }
+}
+
+/* ===== OPTIMIZACIONES PARA ANDROID LANDSCAPE ===== */
+
+@media screen and (max-height: 500px) and (orientation: landscape) and (max-width: 991.98px) {
+    /* Optimizar para Android en modo horizontal */
+    .main-content {
+        padding-top: 0.25rem;
+    }
+    
+    .navbar {
+        min-height: 48px;
+        padding: 0.25rem 1rem;
+    }
+    
+    .sidebar {
+        width: 300px !important;
+        max-width: 40vw !important;
+    }
+    
+    /* Reducir padding en landscape para aprovechar espacio */
+    .btn, .nav-link {
+        padding: 8px 12px;
+        min-height: 40px;
+    }
+}
+
+/* ===== CORRECCIONES ESPECÍFICAS PARA ANDROID CHROME MOBILE ===== */
+
+/* Chrome Mobile on Android specific fixes */
+@supports (-webkit-appearance: none) and (not (-webkit-overflow-scrolling: touch)) {
+    /* Mejorar performance de animaciones en Android Chrome */
+    .sidebar,
+    .navbar,
+    .btn {
+        /* Usar GPU para animaciones suaves en Android */
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+        will-change: transform;
+        /* Optimizar compositing en Android */
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+    }
+    
+    /* Prevenir problemas de rendering en Android Chrome */
+    .main-content {
+        /* Forzar nueva capa de compositing */
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+        contain: layout style paint;
+    }
+}
+
+/* ===== MEDIA QUERIES ESPECÍFICAS PARA DISPOSITIVOS ANDROID POPULARES ===== */
+
+/* Samsung Galaxy S series (various sizes) */
+@media only screen 
+    and (min-device-width: 360px) 
+    and (max-device-width: 414px) 
+    and (-webkit-device-pixel-ratio: 2),
+    only screen 
+    and (min-device-width: 360px) 
+    and (max-device-width: 414px) 
+    and (-webkit-device-pixel-ratio: 3) {
+    
+    .sidebar {
+        width: 70vw !important;
+        max-width: 290px !important;
+    }
+    
+    .btn, .nav-link {
+        min-height: 48px;
+        padding: 12px 16px;
+    }
+}
+
+/* Google Pixel series */
+@media only screen 
+    and (min-device-width: 411px) 
+    and (max-device-width: 431px) 
+    and (-webkit-device-pixel-ratio: 2.625),
+    only screen 
+    and (min-device-width: 411px) 
+    and (max-device-width: 431px) 
+    and (-webkit-device-pixel-ratio: 3) {
+    
+    .sidebar {
+        width: 68vw !important;
+        max-width: 300px !important;
+    }
+}
+
+/* OnePlus devices */
+@media only screen 
+    and (min-device-width: 412px) 
+    and (max-device-width: 428px) 
+    and (-webkit-device-pixel-ratio: 2.625),
+    only screen 
+    and (min-device-width: 412px) 
+    and (max-device-width: 428px) 
+    and (-webkit-device-pixel-ratio: 3) {
+    
+    .sidebar {
+        width: 67vw !important;
+        max-width: 310px !important;
+    }
+}
+
+/* ===== CACHE BUSTING PARA ANDROID ===== */
+
+/* Forzar actualización en Android Chrome */
+@media screen and (max-width: 991.98px) {
+    /* Indicador visual para Android (solo desarrollo) */
+    body.debug::after {
+        content: "🤖 Android Optimized";
+        position: fixed;
+        top: 0;
+        left: 0;
+        background: rgba(76, 175, 80, 0.1);
+        color: #4CAF50;
+        font-size: 10px;
+        padding: 2px 4px;
+        z-index: 9999;
+        pointer-events: none;
+    }
+}
+
+/* ===== PERFORMANCE: OPTIMIZACIONES ESPECÍFICAS ANDROID ===== */
+
+/* Minimizar repaints en Android */
+.sidebar,
+.main-content,
+.navbar {
+    /* Promover a capa compositora en Android */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    /* Optimizar para cambios frecuentes en Android */
+    will-change: transform, opacity;
+    /* Contener efectos para mejor performance */
+    contain: layout style paint;
+}
+
+/* Optimizar scroll en Android */
+.content-area,
+.sidebar,
+.modal-body {
+    /* Scroll momentum específico para Android */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    /* Prevenir rubber band effect en Android WebView */
+    overscroll-behavior-y: none;
+}
+
+/* ===== COMPATIBILIDAD CON DARK MODE ANDROID ===== */
+
+@media (prefers-color-scheme: dark) {
+    /* Optimizaciones para dark mode nativo de Android */
+    .sidebar {
+        /* Mejorar contraste en dark mode Android */
+        background: rgba(18, 18, 18, 0.95) !important;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+    
+    .nav-link {
+        color: #E0E0E0 !important;
+    }
+    
+    .nav-link:hover,
+    .nav-link:active {
+        background: rgba(66, 165, 245, 0.15) !important;
+        color: #FFFFFF !important;
+    }
+}
+
+/* ===== FINAL: TIMESTAMP PARA ANDROID CACHE BUSTING ===== */
+
+/* Este comentario cambia con cada deploy para forzar actualización en Android */
+/* Android Cache-bust timestamp: AUTO_GENERATED_BY_TEMPLATE */
+/* Android Chrome debe ver este archivo como diferente cada vez */
