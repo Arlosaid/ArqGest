@@ -1,4 +1,5 @@
 {% load static %}
+{% load mobile_static %}
 <!DOCTYPE html>
 <html lang="es" class="reduced-motion">
 <head>
@@ -6,26 +7,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>{% block title %}Arc Manager{% endblock %}</title>
     
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Optimización específica para Safari móvil -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="format-detection" content="telephone=no">
     
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Optimizaciones específicas para Android -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#3B82F6">
+    <meta name="android-app-installable" content="no">
+    <meta name="mobile-web-status-bar-style" content="default">
     
-    <!-- Estilos base con cache-busting -->
-    <link href="{% static 'css/base.css' %}?v=2.1" rel="stylesheet">
+    <!-- Preconnect para CDNs externos -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     
-    <!-- Navbar CSS específico con cache-busting -->
-    <link href="{% static 'css/navbar.css' %}?v=2.5" rel="stylesheet">
+    <!-- CSS crítico optimizado para móviles iOS -->
+    {% critical_css_block %}
     
-    <!-- Sidebar CSS específico con cache-busting -->
-    <link href="{% static 'css/sidebar.css' %}?v=2.0" rel="stylesheet">
+    <!-- Bootstrap CSS con preload -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></noscript>
     
-    <!-- Sistema de Notificaciones Moderno -->
-    <link href="{% static 'css/notifications.css' %}?v=1.0" rel="stylesheet">
+    <!-- Font Awesome Icons con preload -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     
-    <!-- Modal de Detalles de Tareas con Estilos Mejorados -->
-    <link href="{% static 'css/task_detail_modal.css' %}?v=5.1" rel="stylesheet">
+    <!-- Estilos específicos con cache-busting automático -->
+    {% mobile_css 'css/base.css' %}
+    {% mobile_css 'css/navbar.css' %}
+    {% mobile_css 'css/sidebar.css' %}
+    {% mobile_css 'css/notifications.css' %}
+    {% mobile_css 'css/task_detail_modal.css' %}
+    
+    <!-- Optimizaciones específicas para Safari móvil iOS -->
+    {% mobile_css 'css/mobile_ios_fixes.css' 'screen and (max-width: 991.98px)' %}
+    
+    <!-- Optimizaciones específicas para Android Chrome/WebView -->
+    {% mobile_css 'css/mobile_android_fixes.css' 'screen and (max-width: 991.98px)' %}
     
     <!-- Estilos adicionales específicos por página -->
     {% block extra_css %}{% endblock %}
@@ -67,32 +86,26 @@
 
     <!-- HTMX para interacciones hx-* (upload/delete parciales, etc.) -->
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-    <script src="{% static 'js/htmx_csrf.js' %}"></script>
+    {% mobile_js 'js/htmx_csrf.js' %}
     
     <!-- Manejador global de errores HTMX -->
-    <script src="{% static 'js/htmx_error_handler.js' %}"></script>
+    {% mobile_js 'js/htmx_error_handler.js' %}
     
-    <!-- Sistema de Progreso de Upload -->
-    <script src="{% static 'js/upload_progress.js' %}?v=1.0"></script>
+    <!-- Sistema de Progreso de Upload optimizado -->
+    {% mobile_js 'js/upload_progress.js' %}
     
     <!-- Mobile Upload Optimizer -->
-    <script src="{% static 'js/mobile_upload_optimizer.js' %}?v=1.0"></script>
+    {% mobile_js 'js/mobile_upload_optimizer.js' %}
     
-    <!-- Scripts base -->
-    <script src="{% static 'js/base.js' %}"></script>
-    
-    <!-- Scripts específicos de Navbar -->
-    <script src="{% static 'js/navbar.js' %}"></script>
-    
-    <!-- Scripts específicos de Sidebar -->
-    <script src="{% static 'js/sidebar.js' %}"></script>
-    
-    <!-- Sistema de Notificaciones Moderno -->
-    <script src="{% static 'js/notifications.js' %}?v=1.0"></script>
+    <!-- Scripts base con cache-busting automático -->
+    {% mobile_js 'js/base.js' %}
+    {% mobile_js 'js/navbar.js' %}
+    {% mobile_js 'js/sidebar.js' %}
+    {% mobile_js 'js/notifications.js' %}
     
     <!-- Demo de Notificaciones (solo en desarrollo) -->
     {% if debug %}
-    <script src="{% static 'js/notifications-demo.js' %}?v=1.0"></script>
+    {% mobile_js 'js/notifications-demo.js' %}
     {% endif %}
     
     <!-- Notificaciones Automáticas de Suscripción (solo si es necesario) -->
@@ -134,7 +147,7 @@
         </div>
     </div>
 
-    <script src="{% static 'js/modal_helpers.js' %}"></script>
+    {% mobile_js 'js/modal_helpers.js' %}
     
     <!-- JavaScript optimizado para el menú mobile responsive - Producción móvil -->
     <script>

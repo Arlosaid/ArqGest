@@ -1,0 +1,246 @@
+/*
+ * Optimizaciones específicas para Safari móvil iOS
+ * Soluciona problemas de cache y renderizado en iPhone/iPad
+ * Arc Manager - Mobile iOS Optimizations
+ */
+
+/* ===== FORZAR ACTUALIZACIÓN DE ESTILOS EN SAFARI MÓVIL ===== */
+
+/* Hack específico para Safari iOS - fuerza re-renderizado */
+@supports (-webkit-appearance: none) {
+    html {
+        /* Trigger repaint en Safari móvil */
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+        /* Mejorar suavidad de scroll */
+        -webkit-overflow-scrolling: touch;
+        /* Prevenir zoom accidental */
+        -webkit-text-size-adjust: 100%;
+    }
+    
+    /* Forzar repaint del body en Safari móvil */
+    body {
+        /* Prevenir efectos de cache problemáticos */
+        -webkit-transform: translate3d(0, 0, 0);
+        transform: translate3d(0, 0, 0);
+        /* Optimizar rendering */
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+    }
+}
+
+/* ===== OPTIMIZACIONES DE VIEWPORT PARA IPHONE ===== */
+
+/* Manejar Safe Area en iPhone X+ */
+@supports (padding: max(0px)) {
+    .main-content {
+        padding-left: max(1rem, env(safe-area-inset-left));
+        padding-right: max(1rem, env(safe-area-inset-right));
+    }
+    
+    .navbar {
+        padding-top: max(0.5rem, env(safe-area-inset-top));
+    }
+}
+
+/* ===== CORRECCIONES ESPECÍFICAS PARA SAFARI MÓVIL ===== */
+
+/* Mejorar performance de animaciones en Safari móvil */
+.sidebar,
+.navbar,
+.btn {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    /* Usar GPU para animaciones suaves */
+    will-change: transform;
+}
+
+/* Corregir problemas de z-index en Safari móvil */
+.sidebar {
+    /* Safari móvil necesita contexto de apilamiento explícito */
+    position: fixed !important;
+    z-index: 1050 !important;
+}
+
+.sidebar-overlay {
+    /* Asegurar que el overlay esté por debajo del sidebar */
+    position: fixed !important;
+    z-index: 1040 !important;
+}
+
+/* ===== MEJORAS DE TÁCTIL PARA IOS ===== */
+
+/* Mejorar área táctil de botones en móvil */
+@media (max-width: 991.98px) {
+    .btn,
+    .nav-link,
+    [data-bs-toggle],
+    button {
+        /* Área táctil mínima recomendada por Apple */
+        min-height: 44px;
+        min-width: 44px;
+        /* Respuesta táctil instantánea */
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    
+    /* Feedback táctil mejorado para enlaces */
+    .nav-link:active,
+    .btn:active {
+        background-color: rgba(0, 0, 0, 0.05) !important;
+        /* Sin delay en respuesta táctil */
+        transition: background-color 0.1s ease;
+    }
+}
+
+/* ===== CORRECCIONES DE SCROLL EN SAFARI MÓVIL ===== */
+
+/* Prevenir bounce scroll problemático */
+html, body {
+    overscroll-behavior-y: none;
+    /* Scroll suave en Safari */
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Scroll momentum para elementos con overflow */
+.sidebar,
+.modal-body,
+.content-area {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
+/* ===== PERFORMANCE: REDUCIR REFLOWS ===== */
+
+/* Minimizar repaint durante scroll en Safari móvil */
+.main-content,
+.sidebar,
+.navbar {
+    /* Promover a capa compositora */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    /* Optimizar para cambios de posición */
+    will-change: transform, opacity;
+}
+
+/* ===== ESPECÍFICO PARA IPHONE EN LANDSCAPE ===== */
+
+@media screen and (max-height: 500px) and (orientation: landscape) {
+    /* Reducir padding en landscape para aprovechar espacio */
+    .main-content {
+        padding-top: 0.5rem;
+    }
+    
+    .navbar {
+        min-height: 50px;
+        padding: 0.25rem 1rem;
+    }
+    
+    /* Sidebar más compacto en landscape */
+    .sidebar {
+        width: 250px !important;
+        max-width: 250px !important;
+    }
+}
+
+/* ===== DEBUG: VISUAL INDICATORS (Solo en desarrollo) ===== */
+
+@media (max-width: 991.98px) {
+    /* Indicador visual de que los estilos móviles están cargados */
+    body::before {
+        content: "📱 iOS Optimized";
+        position: fixed;
+        top: 0;
+        right: 0;
+        background: rgba(0, 255, 0, 0.1);
+        color: green;
+        font-size: 10px;
+        padding: 2px 4px;
+        z-index: 9999;
+        pointer-events: none;
+        /* Solo mostrar en development */
+        display: none;
+    }
+    
+    /* Mostrar indicador en development */
+    .debug body::before {
+        display: block;
+    }
+}
+
+/* ===== CACHE BUSTING VISUAL ===== */
+
+/* Indicator que los estilos están actualizados (invisible pero fuerza repaint) */
+html::after {
+    content: "";
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    /* Usar timestamp como parte del contenido para forzar cambio */
+    background: linear-gradient(to right, 
+        transparent 0%, 
+        transparent 100%
+    );
+    /* Timestamp automático será agregado por el template tag */
+    z-index: -1;
+}
+
+/* ===== MEDIA QUERIES ESPECÍFICAS PARA DISPOSITIVOS APPLE ===== */
+
+/* iPhone SE y dispositivos pequeños */
+@media only screen 
+    and (device-width: 375px) 
+    and (device-height: 667px) 
+    and (-webkit-device-pixel-ratio: 2) {
+    
+    .sidebar {
+        width: 75vw !important;
+        max-width: 280px !important;
+    }
+}
+
+/* iPhone 12, 13, 14 */
+@media only screen 
+    and (device-width: 390px) 
+    and (device-height: 844px) 
+    and (-webkit-device-pixel-ratio: 3) {
+    
+    .sidebar {
+        width: 70vw !important;
+        max-width: 300px !important;
+    }
+}
+
+/* iPhone 14 Plus, 15 Plus */
+@media only screen 
+    and (device-width: 428px) 
+    and (device-height: 926px) 
+    and (-webkit-device-pixel-ratio: 3) {
+    
+    .sidebar {
+        width: 65vw !important;
+        max-width: 320px !important;
+    }
+}
+
+/* iPad */
+@media only screen 
+    and (min-device-width: 768px) 
+    and (max-device-width: 1024px) 
+    and (-webkit-min-device-pixel-ratio: 1) {
+    
+    .sidebar {
+        width: 350px !important;
+        max-width: 40vw !important;
+    }
+}
+
+/* ===== FINAL: FORZAR RECARGA EN SAFARI MÓVIL ===== */
+
+/* Este comentario cambia con cada deploy para forzar actualización */
+/* Cache-bust timestamp: AUTO_GENERATED_BY_TEMPLATE */
+/* Safari móvil debe ver este archivo como diferente cada vez */

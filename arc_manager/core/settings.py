@@ -292,14 +292,46 @@ WHITENOISE_AUTOREFRESH = DEBUG
 WHITENOISE_MANIFEST_STRICT = False  # No fallar si falta algún archivo del manifest
 WHITENOISE_SKIP_COMPRESS_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'zip', 'gz', 'tgz', 'bz2', 'tbz', 'xz', 'br']
 
-# Configuración de cache para diferentes tipos de archivo
-WHITENOISE_MAX_AGE = 31536000 if not DEBUG else 0  # 1 año para archivos estáticos en producción
-
-# Headers de cache específicos para diferentes tipos de archivos (solo en producción)
+# Configuración de cache optimizada para móviles iOS/Safari
+# Safari móvil requiere configuración especial para cache de CSS/JS
 if not DEBUG:
+    # Cache reducido para compatibilidad con Safari móvil
+    WHITENOISE_MAX_AGE = 3600  # 1 hora en lugar de 1 año para evitar cache persistente
     WHITENOISE_STATIC_PREFIX = '/static/'
-    # Test para archivos inmutables (con hash)
-    WHITENOISE_IMMUTABLE_FILE_TEST = lambda path, url: '.css' in url or '.js' in url
+    
+    # Headers específicos para Safari móvil y cache busting
+    def add_headers_function(headers, path, url):
+        """
+        Función personalizada para agregar headers específicos para móviles iOS
+        Safari móvil es especialmente agresivo con el cache, necesita headers específicos
+        """
+        # Headers básicos para todos los archivos estáticos
+        headers['Vary'] = 'Accept-Encoding'
+        headers['X-Content-Type-Options'] = 'nosniff'
+        
+        # Para archivos CSS y JS - cache corto con validación
+        if path.endswith(('.css', '.js')):
+            headers['Cache-Control'] = 'public, max-age=3600, must-revalidate'
+            headers['Pragma'] = 'no-cache'  # Compatibilidad con Safari viejo
+            headers['Expires'] = '0'  # Forzar validación
+            # Header específico para iOS Safari
+            headers['Last-Modified'] = 'Mon, 01 Jan 2024 00:00:00 GMT'
+        
+        # Para imágenes - cache más largo pero validable
+        elif path.endswith(('.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico')):
+            headers['Cache-Control'] = 'public, max-age=86400, must-revalidate'
+        
+        # Para otros archivos estáticos
+        else:
+            headers['Cache-Control'] = 'public, max-age=3600, must-revalidate'
+    
+    WHITENOISE_ADD_HEADERS_FUNCTION = add_headers_function
+    
+    # Test para archivos inmutables - más conservador para móviles
+    WHITENOISE_IMMUTABLE_FILE_TEST = lambda path, url: False  # Desactivar inmutabilidad para mejor compatibilidad móvil
+else:
+    # En desarrollo, sin cache
+    WHITENOISE_MAX_AGE = 0
 
 # ===== CONFIGURACIÓN DE UPLOADS OPTIMIZADA =====
 # Límites para manejar uploads grandes sin saturar memoria del servidor
