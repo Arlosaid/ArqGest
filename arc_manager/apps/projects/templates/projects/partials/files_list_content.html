@@ -44,7 +44,7 @@
 
 <!-- Contenedor de archivos optimizado con scroll infinito -->
 <div id="files-container-{{ phase.id }}" 
-     hx-get="{% url 'projects:phase-files-paginated' project_id=project.id phase_id=phase.id %}?offset=0&limit=20"
+     hx-get="{% url 'projects:phase-files-paginated' project_id=phase.project.id phase_id=phase.id %}?offset=0&limit=20"
      hx-trigger="load, fileUploaded from:body"
      hx-swap="innerHTML">
     <!-- Los archivos se cargan aquí dinámicamente -->

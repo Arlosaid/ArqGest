@@ -1165,6 +1165,7 @@ def phase_files_paginated(request, project_id, phase_id):
     Ultra-rápida para Railway con eliminación de bottlenecks.
     """
     from django.core.cache import cache
+    from django.conf import settings
     from core.error_codes import log_operation
     import logging
     logger = logging.getLogger(__name__)
