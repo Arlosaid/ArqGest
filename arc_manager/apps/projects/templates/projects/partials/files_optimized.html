@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
 {% endif %}
 
 <!-- Debug info (solo en desarrollo) -->
-{% if from_cache and settings.DEBUG %}
+{% if from_cache %}
 <div class="alert alert-info mt-2">
     <small><i class="fas fa-rocket"></i> Cargado desde cache Redis</small>
 </div>

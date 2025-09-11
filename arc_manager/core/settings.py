@@ -316,6 +316,15 @@ DATA_UPLOAD_MAX_NUMBER_SIZE = int(os.environ.get('DATA_UPLOAD_MAX_NUMBER_SIZE', 
 # Directorio temporal para archivos grandes durante upload
 FILE_UPLOAD_TEMP_DIR = os.environ.get('FILE_UPLOAD_TEMP_DIR', os.path.join(BASE_DIR, 'temp_uploads'))
 
+# Crear el directorio temporal si no existe
+if not os.path.exists(FILE_UPLOAD_TEMP_DIR):
+    try:
+        os.makedirs(FILE_UPLOAD_TEMP_DIR, exist_ok=True)
+    except OSError as e:
+        # Si no se puede crear, usar el directorio temporal del sistema
+        import tempfile
+        FILE_UPLOAD_TEMP_DIR = tempfile.gettempdir()
+
 # Handler personalizado optimizado para archivos grandes
 FILE_UPLOAD_HANDLERS = [
     'django.core.files.uploadhandler.MemoryFileUploadHandler',    # Archivos pequeños (<25MB) en memoria
@@ -339,13 +348,21 @@ if not DEBUG and os.environ.get('RAILWAY_ENVIRONMENT'):
     if 'OPTIONS' not in DATABASES['default']:
         DATABASES['default']['OPTIONS'] = {}
     
-    DATABASES['default']['OPTIONS'].update({
-        'charset': 'utf8mb4',
-        'connect_timeout': 20,
-        'read_timeout': 30,
-        'write_timeout': 30,
-        'sql_mode': 'STRICT_TRANS_TABLES',
-    })
+    # Para PostgreSQL, usar las opciones correctas
+    if 'postgresql' in DATABASES['default']['ENGINE'] or 'psycopg' in str(DATABASES['default']):
+        DATABASES['default']['OPTIONS'].update({
+            'connect_timeout': 20,
+            'options': '-c default_transaction_isolation=serializable'
+        })
+    else:
+        # Para MySQL/MariaDB
+        DATABASES['default']['OPTIONS'].update({
+            'charset': 'utf8mb4',
+            'connect_timeout': 20,
+            'read_timeout': 30,
+            'write_timeout': 30,
+            'sql_mode': 'STRICT_TRANS_TABLES',
+        })
     
     # Logging optimizado para Railway (reducir overhead)
     if 'LOGGING' in locals():
