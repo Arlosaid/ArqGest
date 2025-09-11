@@ -292,43 +292,34 @@ WHITENOISE_AUTOREFRESH = DEBUG
 WHITENOISE_MANIFEST_STRICT = False  # No fallar si falta algún archivo del manifest
 WHITENOISE_SKIP_COMPRESS_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'zip', 'gz', 'tgz', 'bz2', 'tbz', 'xz', 'br']
 
-# Configuración de cache optimizada para móviles iOS/Safari
-# Safari móvil requiere configuración especial para cache de CSS/JS
+# Configuración de cache optimizada para móviles (iOS y Android)
+# Safari móvil y Chrome Android requieren headers específicos
 if not DEBUG:
-    # Cache reducido para compatibilidad con Safari móvil
-    WHITENOISE_MAX_AGE = 3600  # 1 hora en lugar de 1 año para evitar cache persistente
+    # Cache reducido para compatibilidad móvil - MÁS CONSERVADOR
+    WHITENOISE_MAX_AGE = 1800  # 30 minutos - cache más corto para móviles
     WHITENOISE_STATIC_PREFIX = '/static/'
     
-    # Headers específicos para Safari móvil y cache busting
-    def add_headers_function(headers, path, url):
-        """
-        Función personalizada para agregar headers específicos para móviles iOS
-        Safari móvil es especialmente agresivo con el cache, necesita headers específicos
-        """
-        # Headers básicos para todos los archivos estáticos
-        headers['Vary'] = 'Accept-Encoding'
-        headers['X-Content-Type-Options'] = 'nosniff'
+    # Headers simplificados para evitar problemas
+    def mobile_cache_headers(headers, path, url):
+        """Headers optimizados para móviles sin romper funcionalidad"""
+        # Headers básicos seguros
+        headers['Vary'] = 'Accept-Encoding, User-Agent'
         
-        # Para archivos CSS y JS - cache corto con validación
+        # Para CSS y JS - cache corto y forzar revalidación
         if path.endswith(('.css', '.js')):
-            headers['Cache-Control'] = 'public, max-age=3600, must-revalidate'
-            headers['Pragma'] = 'no-cache'  # Compatibilidad con Safari viejo
-            headers['Expires'] = '0'  # Forzar validación
-            # Header específico para iOS Safari
-            headers['Last-Modified'] = 'Mon, 01 Jan 2024 00:00:00 GMT'
+            headers['Cache-Control'] = 'public, max-age=1800, must-revalidate'
+            headers['ETag'] = f'W/"{hash(url)}"'  # ETag débil para validación
         
-        # Para imágenes - cache más largo pero validable
+        # Para imágenes - cache normal
         elif path.endswith(('.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico')):
-            headers['Cache-Control'] = 'public, max-age=86400, must-revalidate'
+            headers['Cache-Control'] = 'public, max-age=86400'
         
-        # Para otros archivos estáticos
+        # Otros archivos
         else:
-            headers['Cache-Control'] = 'public, max-age=3600, must-revalidate'
+            headers['Cache-Control'] = 'public, max-age=3600'
     
-    WHITENOISE_ADD_HEADERS_FUNCTION = add_headers_function
-    
-    # Test para archivos inmutables - más conservador para móviles
-    WHITENOISE_IMMUTABLE_FILE_TEST = lambda path, url: False  # Desactivar inmutabilidad para mejor compatibilidad móvil
+    WHITENOISE_ADD_HEADERS_FUNCTION = mobile_cache_headers
+    WHITENOISE_IMMUTABLE_FILE_TEST = lambda path, url: False  # Sin inmutabilidad
 else:
     # En desarrollo, sin cache
     WHITENOISE_MAX_AGE = 0

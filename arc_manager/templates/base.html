@@ -1,5 +1,4 @@
 {% load static %}
-{% load mobile_static %}
 <!DOCTYPE html>
 <html lang="es" class="reduced-motion">
 <head>
@@ -23,7 +22,7 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     
     <!-- CSS crítico optimizado para móviles iOS -->
-    {% critical_css_block %}
+    {% comment %}{% critical_css_block %}{% endcomment %}
     
     <!-- Bootstrap CSS con preload -->
     <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -33,18 +32,18 @@
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     
-    <!-- Estilos específicos con cache-busting automático -->
-    {% mobile_css 'css/base.css' %}
-    {% mobile_css 'css/navbar.css' %}
-    {% mobile_css 'css/sidebar.css' %}
-    {% mobile_css 'css/notifications.css' %}
-    {% mobile_css 'css/task_detail_modal.css' %}
+    <!-- Estilos específicos con cache-busting para móviles -->
+    <link href="{% static 'css/base.css' %}?v=3.1&mobile=1" rel="stylesheet">
+    <link href="{% static 'css/navbar.css' %}?v=3.1&mobile=1" rel="stylesheet">
+    <link href="{% static 'css/sidebar.css' %}?v=3.1&mobile=1" rel="stylesheet">
+    <link href="{% static 'css/notifications.css' %}?v=3.1&mobile=1" rel="stylesheet">
+    <link href="{% static 'css/task_detail_modal.css' %}?v=3.1&mobile=1" rel="stylesheet">
     
     <!-- Optimizaciones específicas para Safari móvil iOS -->
-    {% mobile_css 'css/mobile_ios_fixes.css' 'screen and (max-width: 991.98px)' %}
+    {% comment %}{% mobile_css 'css/mobile_ios_fixes.css' 'screen and (max-width: 991.98px)' %}{% endcomment %}
     
     <!-- Optimizaciones específicas para Android Chrome/WebView -->
-    {% mobile_css 'css/mobile_android_fixes.css' 'screen and (max-width: 991.98px)' %}
+    {% comment %}{% mobile_css 'css/mobile_android_fixes.css' 'screen and (max-width: 991.98px)' %}{% endcomment %}
     
     <!-- Estilos adicionales específicos por página -->
     {% block extra_css %}{% endblock %}
@@ -86,26 +85,26 @@
 
     <!-- HTMX para interacciones hx-* (upload/delete parciales, etc.) -->
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-    {% mobile_js 'js/htmx_csrf.js' %}
+    <script src="{% static 'js/htmx_csrf.js' %}?v=3.1&mobile=1"></script>
     
     <!-- Manejador global de errores HTMX -->
-    {% mobile_js 'js/htmx_error_handler.js' %}
+    <script src="{% static 'js/htmx_error_handler.js' %}?v=3.1&mobile=1"></script>
     
     <!-- Sistema de Progreso de Upload optimizado -->
-    {% mobile_js 'js/upload_progress.js' %}
+    <script src="{% static 'js/upload_progress.js' %}?v=3.1&mobile=1"></script>
     
     <!-- Mobile Upload Optimizer -->
-    {% mobile_js 'js/mobile_upload_optimizer.js' %}
+    <script src="{% static 'js/mobile_upload_optimizer.js' %}?v=3.1&mobile=1"></script>
     
-    <!-- Scripts base con cache-busting automático -->
-    {% mobile_js 'js/base.js' %}
-    {% mobile_js 'js/navbar.js' %}
-    {% mobile_js 'js/sidebar.js' %}
-    {% mobile_js 'js/notifications.js' %}
+    <!-- Scripts base con cache-busting para móviles -->
+    <script src="{% static 'js/base.js' %}?v=3.1&mobile=1"></script>
+    <script src="{% static 'js/navbar.js' %}?v=3.1&mobile=1"></script>
+    <script src="{% static 'js/sidebar.js' %}?v=3.1&mobile=1"></script>
+    <script src="{% static 'js/notifications.js' %}?v=3.1&mobile=1"></script>
     
     <!-- Demo de Notificaciones (solo en desarrollo) -->
     {% if debug %}
-    {% mobile_js 'js/notifications-demo.js' %}
+    <script src="{% static 'js/notifications-demo.js' %}?v=3.1&mobile=1"></script>
     {% endif %}
     
     <!-- Notificaciones Automáticas de Suscripción (solo si es necesario) -->
@@ -147,7 +146,7 @@
         </div>
     </div>
 
-    {% mobile_js 'js/modal_helpers.js' %}
+    <script src="{% static 'js/modal_helpers.js' %}?v=3.1&mobile=1"></script>
     
     <!-- JavaScript optimizado para el menú mobile responsive - Producción móvil -->
     <script>
