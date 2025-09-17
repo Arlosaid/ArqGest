@@ -271,7 +271,7 @@ STORAGES = {
         "BACKEND": DEFAULT_STORAGE_BACKEND,
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage" if not DEBUG else "django.contrib.staticfiles.storage.StaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage" if not DEBUG else "django.contrib.staticfiles.storage.StaticFilesStorage",
     },
 }
 
@@ -279,17 +279,21 @@ STORAGES = {
 if DEBUG:
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 else:
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Configuración adicional de WhiteNoise optimizada
+# Para forzar cache-busting en dispositivos móviles (iPhone/Safari)
 WHITENOISE_USE_FINDERS = True
+WHITENOISE_MANIFEST_STRICT = False  # Evita errores si falta algún archivo
+WHITENOISE_MAX_AGE = 31536000  # 1 año de cache para archivos con hash
 WHITENOISE_AUTOREFRESH = DEBUG
 
-# Configuración robusta para evitar errores de manifest en producción
-WHITENOISE_MANIFEST_STRICT = False  # No fallar si falta algún archivo del manifest
+# Versionado global para cache-busting en dispositivos móviles
+# Cambiar esta versión en cada deploy para forzar recarga
+STATIC_VERSION = '2025-09-17-v2'
 WHITENOISE_SKIP_COMPRESS_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'zip', 'gz', 'tgz', 'bz2', 'tbz', 'xz', 'br']
 
 # Configuración de cache optimizada para móviles (iOS y Android)

@@ -72,14 +72,20 @@ def dashboard(request):
         assigned_to=current_user
     ).exclude(status='DONE').count()
 
-    # 2. Widget "Proyectos Activos" - optimizado con prefetch
+    # 2. Widget "Proyectos Activos" - optimizado con cache de progreso
     active_projects = Project.objects.filter(
         organization=organization,
         status='ACTIVE'
-    ).select_related('client').prefetch_related(
-        'phases',
-        'phases__tasks'
-    ).order_by('-created_at')[:6]
+    ).select_related('client').order_by('-created_at')[:6]
+    
+    # Obtener progreso desde cache para todos los proyectos del dashboard
+    if active_projects:
+        from apps.projects.cache_utils import get_or_set_dashboard_projects_progress
+        projects_progress = get_or_set_dashboard_projects_progress(organization.id)
+        
+        # Asignar progreso desde cache a cada proyecto
+        for project in active_projects:
+            project._cached_progress = projects_progress.get(project.id, 0)
 
     # 3. Widget "Archivos Recientes" - optimizado
     recent_files = ProjectFile.objects.filter(

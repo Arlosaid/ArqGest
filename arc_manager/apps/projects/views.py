@@ -89,6 +89,16 @@ class ProjectListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
                 cache.set(cache_key, project_stats, 300)
             
             context.update(project_stats)
+            
+            # Optimizar progreso para los proyectos de la página actual
+            if 'projects' in context and context['projects']:
+                from .cache_utils import get_or_set_dashboard_projects_progress
+                projects_progress = get_or_set_dashboard_projects_progress(org_id)
+                
+                # Asignar progreso desde cache a cada proyecto
+                for project in context['projects']:
+                    project._cached_progress = projects_progress.get(project.id, 0)
+        
         return context
 
 class ProjectDetailView(LoginRequiredMixin, DetailView):

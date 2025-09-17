@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% load i18n %}
 {% load static %}
+{% load project_extras %}
 
 {% block title %}{% trans "Mis Proyectos" %}{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/project_list.css' %}?v=4.0" rel="stylesheet">
+<link href="{% static 'css/project_list.css' %}?v=4.1" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -75,8 +76,11 @@
             
             <!-- Card Header -->
             <div class="project-card-header">
-                <div class="project-icon">
-                    <i class="fas fa-building"></i>
+                <div class="project-image">
+                    <div class="image-placeholder">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <img src="{{ project|dashboard_image }}" alt="{{ project.name }}" loading="lazy" class="project-img" onload="this.style.opacity=1; this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
                 </div>
                 <div class="project-status status-{{ project.status|lower }}">
                     {{ project.get_status_display }}
@@ -103,10 +107,10 @@
                 <div class="progress-container">
                     <div class="progress-info">
                         <span class="progress-label">Progreso</span>
-                        <span class="progress-percentage">{{ project.progress_percentage|default:0 }}%</span>
+                        <span class="progress-percentage">{{ project|cached_progress|default:0 }}%</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: {{ project.progress_percentage|default:0 }}%;"></div>
+                        <div class="progress-fill" style="width: {{ project|cached_progress|default:0 }}%;"></div>
                     </div>
                 </div>
 
@@ -163,7 +167,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/projects.js' %}?v=3.0" defer></script>
+<script src="{% static 'js/projects.js' %}?v=3.1" defer></script>
 <script>
 // Initialize Projects Manager
 document.addEventListener('DOMContentLoaded', function() {

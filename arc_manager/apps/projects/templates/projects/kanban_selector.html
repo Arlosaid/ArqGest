@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load project_extras %}
 
 {% block title %}Seleccionar Proyecto para Kanban - Arc Manager{% endblock %}
 
@@ -64,10 +65,10 @@
             <div class="kanban-project-progress">
                 <div class="kanban-progress-header">
                     <span class="kanban-progress-label">Progreso</span>
-                    <span class="kanban-progress-value">{{ project.progress_percentage|default:"0" }}%</span>
+                    <span class="kanban-progress-value">{{ project|cached_progress|default:"0" }}%</span>
                 </div>
                 <div class="kanban-progress-bar">
-                    <div class="kanban-progress-fill" style="width: {{ project.progress_percentage|default:'0' }}%"></div>
+                    <div class="kanban-progress-fill" style="width: {{ project|cached_progress|default:'0' }}%"></div>
                 </div>
             </div>
             
