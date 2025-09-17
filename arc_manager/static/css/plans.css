@@ -846,4 +846,128 @@
     outline-offset: 2px;
 }
 
+/* ===== GESTIÓN DE ALMACENAMIENTO ===== */
+.storage-management-card {
+    background: var(--arc-bg-primary);
+    border-radius: var(--arc-border-radius);
+    box-shadow: var(--arc-shadow-md);
+    margin-bottom: var(--arc-spacing-xl);
+    border: 1px solid var(--arc-border-color);
+}
+
+.storage-info {
+    padding: var(--arc-spacing-md);
+}
+
+.storage-breakdown {
+    margin-bottom: var(--arc-spacing-lg);
+}
+
+.storage-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--arc-spacing-sm) 0;
+    border-bottom: 1px solid var(--arc-border-light);
+}
+
+.storage-row:last-child {
+    border-bottom: none;
+}
+
+.storage-row.extra .label,
+.storage-row.extra .value {
+    color: var(--arc-color-info);
+    font-weight: 500;
+}
+
+.storage-row.total {
+    background: rgba(var(--arc-color-primary-rgb), 0.05);
+    padding: var(--arc-spacing-md);
+    border-radius: var(--arc-border-radius-sm);
+    margin-top: var(--arc-spacing-sm);
+    border: 1px solid rgba(var(--arc-color-primary-rgb), 0.1);
+}
+
+.storage-row.total .label,
+.storage-row.total .value {
+    font-weight: 600;
+    color: var(--arc-color-primary);
+}
+
+.storage-row .label {
+    color: var(--arc-text-secondary);
+    font-size: 0.875rem;
+}
+
+.storage-row .value {
+    color: var(--arc-text-primary);
+    font-weight: 500;
+}
+
+.storage-action {
+    text-align: center;
+    padding-top: var(--arc-spacing-lg);
+    border-top: 1px solid var(--arc-border-light);
+}
+
+.storage-action .help-text {
+    color: var(--arc-text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: var(--arc-spacing-md);
+    line-height: 1.5;
+}
+
+.btn-storage-request {
+    background: transparent;
+    border: 2px solid var(--arc-color-primary);
+    color: var(--arc-color-primary);
+    padding: var(--arc-spacing-sm) var(--arc-spacing-lg);
+    border-radius: var(--arc-border-radius);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--arc-spacing-xs);
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-storage-request:hover {
+    background: var(--arc-color-primary);
+    color: white;
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: var(--arc-shadow-md);
+}
+
+.btn-storage-request:focus {
+    outline: 2px solid var(--arc-color-primary);
+    outline-offset: 2px;
+}
+
+/* Icono de almacenamiento en el dashboard de uso */
+.usage-icon.storage {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Responsivo para gestión de almacenamiento */
+@media (max-width: 768px) {
+    .storage-breakdown {
+        margin-bottom: var(--arc-spacing-md);
+    }
+    
+    .storage-row {
+        padding: var(--arc-spacing-xs) 0;
+    }
+    
+    .storage-action .help-text {
+        font-size: 0.8rem;
+    }
+    
+    .btn-storage-request {
+        padding: var(--arc-spacing-xs) var(--arc-spacing-md);
+        font-size: 0.875rem;
+    }
+}
+
 /* Limpieza: estilos de rediseño retirados */

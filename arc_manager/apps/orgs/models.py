@@ -10,6 +10,14 @@ class Organization(models.Model):
     name = models.CharField("Nombre de la organización", max_length=200, db_index=True)
     description = models.TextField("Descripción", blank=True, null=True)
     is_active = models.BooleanField("Activa", default=True, db_index=True)
+    
+    # Almacenamiento extra más allá del límite del plan
+    extra_storage_gb = models.IntegerField(
+        "Almacenamiento extra (GB)", 
+        default=0, 
+        help_text="GB adicionales. Puede ser positivo (más almacenamiento) o negativo (reducir del plan base)."
+    )
+    
     created_at = models.DateTimeField("Fecha de creación", auto_now_add=True)
     updated_at = models.DateTimeField("Última actualización", auto_now=True)
     
@@ -34,6 +42,17 @@ class Organization(models.Model):
     def get_subscription(self):
         """Método de conveniencia para acceder a la propiedad cacheada."""
         return self.subscription_cached
+    
+    def get_total_storage_limit_gb(self):
+        """Retorna el límite total de almacenamiento (plan + extras)"""
+        plan_limit = 0
+        if hasattr(self, 'subscription') and self.subscription:
+            plan_limit = self.subscription.plan.max_storage_gb
+        else:
+            # Fallback para organizaciones sin suscripción
+            plan_limit = 75
+        
+        return plan_limit + self.extra_storage_gb
     
     def _create_default_subscription(self):
         """Crea suscripción trial por defecto para nuevas organizaciones"""
@@ -132,6 +151,27 @@ class Organization(models.Model):
             f"dashboard_stats:{self.id}"
         ]
         cache.delete_many(cache_keys)
+    
+    def invalidate_storage_cache(self):
+        """Invalida el cache de almacenamiento cuando se modifica el límite"""
+        from apps.orgs.storage_service import StorageService
+        StorageService.invalidate_cache(self.id)
+    
+    def save(self, *args, **kwargs):
+        """Override del save para invalidar cache cuando cambie extra_storage_gb"""
+        # Verificar si el campo extra_storage_gb cambió
+        if self.pk:
+            try:
+                old_instance = Organization.objects.get(pk=self.pk)
+                if old_instance.extra_storage_gb != self.extra_storage_gb:
+                    # El límite de almacenamiento cambió, invalidar cache
+                    super().save(*args, **kwargs)
+                    self.invalidate_storage_cache()
+                    return
+            except Organization.DoesNotExist:
+                pass
+        
+        super().save(*args, **kwargs)
     
     def get_admins(self):
         """Retorna usuarios administradores"""

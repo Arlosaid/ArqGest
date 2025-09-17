@@ -3,7 +3,7 @@
 
 <div class="card shadow mb-4">
     <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">{% trans "Archivos del Proyecto" %}</h6>
+        <h6 class="m-0 font-weight-bold text-primary">{% trans "Documentos" %}</h6>
     </div>
     <div class="card-body">
         {% if phases %}
@@ -16,7 +16,7 @@
                             <i class="fas fa-layer-group me-2"></i>{{ phase.name }}
                         </span>
                         <span class="file-phase-meta ms-auto d-flex align-items-center gap-2">
-                            <span class="badge bg-primary-soft text-primary">{{ phase.files.count }} {% trans "archivos" %}</span>
+                            <span class="badge bg-primary-soft text-primary">{{ phase.files.count }} {% trans "documentos" %}</span>
                         </span>
                     </button>
                 </h2>
@@ -32,10 +32,10 @@
                             {% csrf_token %}
                             <div class="file-upload-wrapper">
                                 <div class="file-input-container">
-                                    <input type="file" name="files" class="file-input" id="file-input-{{ phase.id }}" multiple required accept=".pdf,.jpg,.jpeg,.png,.gif,.tiff,.dwg,.dxf,.rvt,.skp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt,.md">
+                                    <input type="file" name="files" class="file-input" id="file-input-{{ phase.id }}" required accept=".pdf,.jpg,.jpeg,.png,.gif,.tiff,.dwg,.dxf,.rvt,.skp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt,.md">
                                     <label for="file-input-{{ phase.id }}" class="file-input-label">
                                         <i class="fas fa-cloud-upload-alt me-2"></i>
-                                        <span class="file-label-text">{% trans "Seleccionar archivos" %}</span>
+                                        <span class="file-label-text">{% trans "Seleccionar archivo" %}</span>
                                     </label>
                                     <div class="selected-files" id="selected-files-{{ phase.id }}" style="display: none;">
                                         <span class="selected-count"></span>
@@ -52,7 +52,7 @@
                             <div class="upload-progress-container" id="upload-progress-{{ phase.id }}" style="display: none;">
                                 <div class="upload-status mb-2">
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <span class="upload-status-text">{% trans "Preparando archivos..." %}</span>
+                                        <span class="upload-status-text">{% trans "Preparando documentos..." %}</span>
                                         <span class="upload-percentage">0%</span>
                                     </div>
                                 </div>
@@ -78,7 +78,7 @@
                         <!-- Contenedor invisible para respuestas de upload -->
                         <div id="upload-response-{{ phase.id }}" style="display: none;"></div>
 
-                        <!-- Lista de archivos - contenido se carga dinámicamente -->
+                        <!-- Lista de documentos - contenido se carga dinámicamente -->
                         <div id="files-list-{{ phase.id }}">
                             {% include 'projects/partials/files_list_content.html' %}
                         </div> <!-- Cerrar files-list -->
@@ -88,14 +88,14 @@
             {% endfor %}
         </div>
         {% else %}
-            <div class="text-center text-muted">{% trans "Primero crea una fase para poder subir archivos." %}</div>
+            <div class="text-center text-muted">{% trans "Primero crea una fase para poder subir documentos." %}</div>
         {% endif %}
     </div>
 </div>
 
 <script>
 console.log('🚀 Files tab script loaded!');
-// Configuración de validación de archivos
+// Configuración de validación de documentos
 const FILE_VALIDATION = {
     MAX_SIZE_MB: 600, // Tamaño máximo por defecto
     MAX_SIZE_MOBILE_MB: 50, // Tamaño máximo para móviles
@@ -130,10 +130,21 @@ const FILE_VALIDATION = {
         };
     },
     
-    // Validar lista de archivos
+    // Validar archivo único (simplificado para MVP)
     validateFiles: function(files) {
         const allErrors = [];
         const validFiles = [];
+        
+        // Solo permitir 1 archivo por vez
+        if (files.length > 1) {
+            allErrors.push("Solo se permite subir 1 archivo por vez");
+            return {
+                valid: false,
+                errors: allErrors,
+                validFiles: [],
+                hasValidFiles: false
+            };
+        }
         
         Array.from(files).forEach(file => {
             const validation = this.validateFile(file);
@@ -169,7 +180,7 @@ function showValidationErrors(errors, phaseId) {
     errorContainer.innerHTML = `
         <div class="alert-header">
             <i class="fas fa-exclamation-triangle"></i>
-            <span>Archivos no válidos encontrados</span>
+            <span>Documentos no válidos encontrados</span>
         </div>
         <ul>
             ${errors.map(error => `<li>${error}</li>`).join('')}
@@ -206,7 +217,7 @@ function showPartialValidation(phaseId, validCount, totalCount) {
     }
 }
 
-// Manejar selección de archivos y mostrar información
+// Manejar selección de documentos y mostrar información
 document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ DOMContentLoaded fired in files tab!');
     document.querySelectorAll('.file-input').forEach(function(input) {
@@ -227,18 +238,18 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             if (this.files.length > 0) {
-                // Validar archivos antes de mostrar información
+                // Validar documentos antes de mostrar información
                 const validation = FILE_VALIDATION.validateFiles(this.files);
                 
                 if (!validation.valid) {
                     // Mostrar errores de validación
                     showValidationErrors(validation.errors, phaseId);
                     
-                    // Si hay archivos válidos, mostrar solo esos
+                    // Si hay documentos válidos, mostrar solo esos
                     if (validation.hasValidFiles) {
                         const validCount = validation.validFiles.length;
                         selectedFilesDiv.style.display = 'block';
-                        selectedCount.textContent = validCount + (validCount === 1 ? ' archivo válido seleccionado' : ' archivos válidos seleccionados');
+                        selectedCount.textContent = validCount === 1 ? '1 documento seleccionado' : validCount + ' documentos seleccionados';
                         
                         const fileNames = validation.validFiles.slice(0, 3).map(file => file.name);
                         if (validation.validFiles.length > 3) {
@@ -250,17 +261,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         showPartialValidation(phaseId, validCount, this.files.length);
                         
                         uploadBtn.disabled = false;
-                        fileLabel.textContent = 'Cambiar archivos';
+                        fileLabel.textContent = 'Cambiar documentos';
                     } else {
-                        // No hay archivos válidos
+                        // No hay documentos válidos
                         selectedFilesDiv.style.display = 'none';
                         uploadBtn.disabled = true;
-                        fileLabel.textContent = 'Seleccionar archivos';
+                        fileLabel.textContent = 'Seleccionar documentos';
                     }
                 } else {
-                    // Todos los archivos son válidos
+                    // Todos los documentos son válidos
                     selectedFilesDiv.style.display = 'block';
-                    selectedCount.textContent = this.files.length + (this.files.length === 1 ? ' archivo seleccionado' : ' archivos seleccionados');
+                    selectedCount.textContent = this.files.length + (this.files.length === 1 ? ' documento seleccionado' : ' documentos seleccionados');
                     
                     // Mostrar nombres de archivos (máximo 3, luego "y X más...")
                     const fileNames = Array.from(this.files).slice(0, 3).map(file => file.name);

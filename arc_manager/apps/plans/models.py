@@ -24,6 +24,7 @@ class Plan(models.Model):
     
     # Límites del plan para el MVP
     max_users = models.PositiveIntegerField("Máximo de usuarios", default=1)
+    max_storage_gb = models.PositiveIntegerField("Límite de almacenamiento (GB)", default=75, help_text="Límite de almacenamiento en gigabytes")
     
     # Características adicionales
     trial_days = models.PositiveIntegerField("Días de prueba", default=0, help_text="Para planes 'trial', establece la duración de la prueba.")
@@ -47,7 +48,10 @@ class Plan(models.Model):
     
     def get_feature_list(self):
         """Retorna las características del plan como una lista simple."""
-        return [f"Hasta {self.max_users} usuario{'s' if self.max_users != 1 else ''}"]
+        features = [f"Hasta {self.max_users} usuario{'s' if self.max_users != 1 else ''}"]
+        if self.max_storage_gb:
+            features.append(f"{self.max_storage_gb} GB de almacenamiento")
+        return features
 
     @property
     def is_trial(self):

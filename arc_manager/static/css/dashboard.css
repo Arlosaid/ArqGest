@@ -30,9 +30,9 @@
 }
 
 .dashboard-premium {
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
-    padding: 1.5rem;
+    padding: 2.5rem;
 }
 
 /* ===== HEADER DEL DASHBOARD ===== */
@@ -555,9 +555,22 @@
     }
 }
 
+@media (max-width: 1400px) {
+    .dashboard-premium {
+        max-width: 1200px;
+        padding: 2rem;
+    }
+}
+
+@media (max-width: 1200px) {
+    .dashboard-premium {
+        padding: 1.5rem;
+    }
+}
+
 @media (max-width: 991.98px) {
     .dashboard-premium {
-        padding: 1rem;
+        padding: 1.5rem;
         margin-top: 64px; /* Espacio para el navbar fijo */
     }
     
@@ -569,7 +582,7 @@
 
 @media (max-width: 768px) {
     .dashboard-premium {
-        padding: 1rem;
+        padding: 1.25rem;
         margin-top: 64px;
     }
     
@@ -602,6 +615,18 @@
     }
 }
 
+@media (max-width: 480px) {
+    .dashboard-premium {
+        padding: 0.75rem;
+        padding-top: 0.1rem;
+    }
+    
+    .dashboard-header-premium {
+        margin-top: 0 !important;
+        margin-bottom: 1rem !important;
+    }
+}
+
 /* ===== UTILIDADES ===== */
 .dashboard-premium .text-primary {
     color: var(--primary) !important;
@@ -625,4 +650,134 @@
 
 .dashboard-premium .text-secondary {
     color: var(--text-secondary) !important;
+}
+
+/* ===== WIDGET DE ALMACENAMIENTO ===== */
+.storage-widget {
+    padding: 1rem;
+}
+
+.storage-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.storage-usage {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.usage-text {
+    font-size: 0.9rem;
+    color: var(--text);
+    font-weight: 500;
+}
+
+.usage-percentage {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.storage-progress {
+    margin-bottom: 1rem;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background-color: var(--border-subtle);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease, background-color 0.3s ease;
+    /* Asegurar que empiece en 0% cuando no hay datos */
+    min-width: 0;
+}
+
+.progress-fill.storage-normal {
+    background: linear-gradient(90deg, var(--success), #22c55e);
+}
+
+.progress-fill.storage-warning {
+    background: linear-gradient(90deg, var(--warning), #fbbf24);
+}
+
+.progress-fill.storage-critical {
+    background: linear-gradient(90deg, var(--danger), #f87171);
+}
+
+.progress-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.storage-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.storage-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.storage-item i {
+    width: 16px;
+    color: var(--primary);
+}
+
+.storage-warning, .storage-alert {
+    margin-top: 0.75rem;
+    padding: 0.5rem;
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.storage-warning {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.storage-alert {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+/* Responsive para el widget de almacenamiento */
+@media (max-width: 768px) {
+    .storage-details {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    
+    .storage-usage {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    
+    .usage-percentage {
+        font-size: 1rem;
+    }
 }

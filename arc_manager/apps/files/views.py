@@ -16,6 +16,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 try:
     import boto3
 except Exception:
@@ -123,9 +124,9 @@ def upload_file(request, project_id, phase_id):
     
     ALLOWED_EXTENSIONS = set(os.environ.get('ALLOWED_EXTENSIONS', 'PDF,JPG,JPEG,PNG,GIF,DWG,DXF,RVT,SKP,ZIP,RAR,TIFF,DOC,DOCX,XLS,XLSX,PPT,PPTX,TXT,MD').split(','))
 
-    # Validación específica para mobile: límite de archivos
-    if (is_mobile_upload or is_mobile_device) and MAX_FILES_MOBILE and total_files > MAX_FILES_MOBILE:
-        error_msg = f"Demasiados archivos para móvil. Máximo {MAX_FILES_MOBILE} archivos por vez"
+    # Limitación a 1 archivo por vez (MVP simplificado)
+    if total_files > 1:
+        error_msg = "Solo se permite subir 1 archivo por vez para mantener la simplicidad"
         log_operation(
             'FILE_UPLOAD_ERROR',
             request.user.email,
@@ -135,8 +136,7 @@ def upload_file(request, project_id, phase_id):
             project_id=project_id,
             phase_id=phase_id,
             files_count=total_files,
-            max_files_mobile=MAX_FILES_MOBILE,
-            is_mobile=is_mobile_upload or is_mobile_device
+            max_files_allowed=1
         )
         messages.error(request, error_msg)
         if request.headers.get('HX-Request') == 'true':
@@ -144,6 +144,38 @@ def upload_file(request, project_id, phase_id):
         return HttpResponse(status=413)
 
     # PRIMERA FASE: Validar TODOS los archivos antes de procesar ninguno
+    # Verificar límite de almacenamiento de la organización
+    from apps.orgs.storage_service import StorageService
+    organization = phase.project.organization
+    
+    # Calcular el tamaño total de todos los archivos a subir
+    total_upload_size = sum(f.size or 0 for f in files_list)
+    
+    # Verificar si se puede subir
+    can_upload, storage_error, storage_data = StorageService.can_upload_file(
+        organization, total_upload_size
+    )
+    
+    if not can_upload:
+        log_operation(
+            'FILE_UPLOAD_ERROR',
+            request.user.email,
+            logger,
+            level='WARNING',
+            error_code=FileErrorCodes.FILE_UPLOAD_STORAGE_LIMIT,
+            project_id=project_id,
+            phase_id=phase_id,
+            upload_size_mb=round(total_upload_size / (1024 * 1024), 2),
+            storage_used_gb=storage_data['total_gb'],
+            storage_limit_gb=storage_data['plan_limit_gb'],
+            remaining_gb=storage_data['remaining_gb']
+        )
+        return JsonResponse({
+            "success": False, 
+            "error": storage_error,
+            "error_type": "storage_limit"
+        }, status=413)  # 413 Payload Too Large
+    
     validation_errors = []
     valid_files = []
     
@@ -166,6 +198,83 @@ def upload_file(request, project_id, phase_id):
                 filename=uploaded_file.name,
                 extension=ext,
                 allowed_extensions=list(ALLOWED_EXTENSIONS)[:10]
+            )
+        
+        # Validación básica de contenido (solo verificar que el archivo no esté vacío y tenga contenido válido)
+        try:
+            if uploaded_file.size == 0:
+                file_errors.append(f"Archivo vacío")
+                log_operation(
+                    'FILE_UPLOAD_ERROR',
+                    request.user.email,
+                    logger,
+                    level='WARNING',
+                    error_code=FileErrorCodes.FILE_UPLOAD_EMPTY_FILE,
+                    project_id=project_id,
+                    phase_id=phase_id,
+                    filename=uploaded_file.name,
+                    size_bytes=0
+                )
+            elif uploaded_file.size < 10:  # Archivos sospechosamente pequeños
+                file_errors.append(f"Archivo muy pequeño (posiblemente corrupto)")
+                log_operation(
+                    'FILE_UPLOAD_ERROR',
+                    request.user.email,
+                    logger,
+                    level='WARNING',
+                    error_code=FileErrorCodes.FILE_UPLOAD_SUSPICIOUS_FILE,
+                    project_id=project_id,
+                    phase_id=phase_id,
+                    filename=uploaded_file.name,
+                    size_bytes=uploaded_file.size,
+                    reason='file_too_small'
+                )
+            
+            # Verificación básica de nombre de archivo
+            if len(uploaded_file.name) > 255:
+                file_errors.append(f"Nombre de archivo muy largo (máx: 255 caracteres)")
+                log_operation(
+                    'FILE_UPLOAD_ERROR',
+                    request.user.email,
+                    logger,
+                    level='WARNING',
+                    error_code=FileErrorCodes.FILE_UPLOAD_INVALID_FILENAME,
+                    project_id=project_id,
+                    phase_id=phase_id,
+                    filename=uploaded_file.name,
+                    filename_length=len(uploaded_file.name),
+                    reason='filename_too_long'
+                )
+            
+            # Verificar caracteres peligrosos en nombre
+            dangerous_chars = ['<', '>', ':', '"', '|', '?', '*', '\x00']
+            if any(char in uploaded_file.name for char in dangerous_chars):
+                file_errors.append(f"Nombre de archivo contiene caracteres no permitidos")
+                found_chars = [char for char in dangerous_chars if char in uploaded_file.name]
+                log_operation(
+                    'FILE_UPLOAD_ERROR',
+                    request.user.email,
+                    logger,
+                    level='WARNING',
+                    error_code=FileErrorCodes.FILE_UPLOAD_INVALID_FILENAME,
+                    project_id=project_id,
+                    phase_id=phase_id,
+                    filename=uploaded_file.name,
+                    dangerous_chars=found_chars,
+                    reason='dangerous_characters'
+                )
+                
+        except Exception as e:
+            log_operation(
+                'FILE_UPLOAD_ERROR',
+                request.user.email,
+                logger,
+                level='WARNING',
+                error_code=FileErrorCodes.FILE_UPLOAD_METADATA_ERROR,
+                project_id=project_id,
+                phase_id=phase_id,
+                filename=uploaded_file.name,
+                error_message=str(e)
             )
         
         # Validar tamaño
@@ -569,6 +678,37 @@ def get_presigned_upload(request, project_id, phase_id):
 
     filename = request.POST.get('filename') or (request.body and (json.loads(request.body).get('filename')))
     content_type = request.POST.get('content_type') or (request.body and (json.loads(request.body).get('content_type')))
+    file_size = int(request.POST.get('file_size', 0)) or (request.body and int(json.loads(request.body).get('file_size', 0)))
+    
+    # Verificar límite de almacenamiento antes de generar URL presignada
+    if file_size > 0:
+        from apps.orgs.storage_service import StorageService
+        organization = phase.project.organization
+        
+        can_upload, storage_error, storage_data = StorageService.can_upload_file(
+            organization, file_size
+        )
+        
+        if not can_upload:
+            log_operation(
+                'PRESIGNED_UPLOAD_ERROR',
+                request.user.email,
+                logger,
+                level='WARNING',
+                error_code=FileErrorCodes.FILE_UPLOAD_STORAGE_LIMIT,
+                project_id=project_id,
+                phase_id=phase_id,
+                filename=filename,
+                file_size_mb=round(file_size / (1024 * 1024), 2),
+                storage_used_gb=storage_data['total_gb'],
+                storage_limit_gb=storage_data['plan_limit_gb'],
+                remaining_gb=storage_data['remaining_gb']
+            )
+            return JsonResponse({
+                "error": storage_error,
+                "error_type": "storage_limit"
+            }, status=413)
+    
     if not filename:
         log_operation(
             'PRESIGNED_UPLOAD_ERROR',
@@ -691,6 +831,36 @@ def confirm_upload(request):
         return JsonResponse({"error": "clave, project_id, phase_id requeridos"}, status=400)
 
     phase = get_object_or_404(Phase, id=phase_id, project_id=project_id)
+    
+    # Verificar límite de almacenamiento antes de confirmar
+    if size_bytes > 0:
+        from apps.orgs.storage_service import StorageService
+        organization = phase.project.organization
+        
+        can_upload, storage_error, storage_data = StorageService.can_upload_file(
+            organization, size_bytes
+        )
+        
+        if not can_upload:
+            log_operation(
+                'CONFIRM_UPLOAD_ERROR',
+                request.user.email,
+                logger,
+                level='WARNING',
+                error_code=FileErrorCodes.FILE_UPLOAD_STORAGE_LIMIT,
+                project_id=project_id,
+                phase_id=phase_id,
+                key=key,
+                file_size_mb=round(size_bytes / (1024 * 1024), 2),
+                storage_used_gb=storage_data['total_gb'],
+                storage_limit_gb=storage_data['plan_limit_gb'],
+                remaining_gb=storage_data['remaining_gb']
+            )
+            return JsonResponse({
+                "error": storage_error,
+                "error_type": "storage_limit"
+            }, status=413)
+    
     if not request.user.is_superuser and request.user.organization != phase.project.organization:
         log_operation(
             'CONFIRM_UPLOAD_ERROR',
