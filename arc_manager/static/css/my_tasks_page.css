@@ -442,6 +442,7 @@
 .action-pause:hover { background: var(--arc-color-warning); }
 .action-complete:hover { background: var(--arc-color-success); }
 .action-resume:hover { background: var(--arc-color-primary); }
+.action-reopen:hover { background: var(--arc-color-info); }
 .action-kanban:hover { background: var(--arc-color-info); }
 
 /* Estado vacío */

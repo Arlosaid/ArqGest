@@ -26,7 +26,11 @@ window.openTaskModal = function(type, taskId) {
     const modalContent = document.getElementById('taskUniversalContent');
     const modalTitle = document.getElementById('taskUniversalModalLabel');
     
-    if (type === 'detail') modalTitle.textContent = 'Detalles de la Tarea';
+    if (type === 'detail') {
+        modalTitle.textContent = 'Detalles de la Tarea';
+    } else if (type === 'edit') {
+        modalTitle.textContent = 'Editar Tarea';
+    }
     
     modalContent.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><p class="mt-2 text-muted">Cargando...</p></div>';
     modal.show();
@@ -35,6 +39,8 @@ window.openTaskModal = function(type, taskId) {
     try {
         if (type === 'detail') {
             url = (document.body.dataset.taskDetailUrlTemplate || '').replace('0', taskId);
+        } else if (type === 'edit') {
+            url = `/projects/tasks/${taskId}/edit/`;
         }
     } catch (error) {
         console.error('Error building URL:', error);

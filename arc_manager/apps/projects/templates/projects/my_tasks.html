@@ -5,8 +5,8 @@
 {% block title %}{% trans "Mis Tareas" %}{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/tasks.css' %}?v=1.1" rel="stylesheet">
-<link href="{% static 'css/my_tasks_page.css' %}?v=2.0" rel="stylesheet">
+<link href="{% static 'css/tasks.css' %}?v=1.2" rel="stylesheet">
+<link href="{% static 'css/my_tasks_page.css' %}?v=2.1" rel="stylesheet">
 <!-- Modal de Detalles de Tareas con Estilos Mejorados -->
 <link href="{% static 'css/task_detail_modal.css' %}?v=3.0" rel="stylesheet">
 {% endblock %}
@@ -146,6 +146,17 @@
                         
                         <!-- Botones de estado -->
                         <div class="status-actions">
+                            <button type="button" class="action-btn action-detail" 
+                                    onclick="openTaskModal('detail', {{ task.pk }})"
+                                    title="{% trans 'Ver detalles' %}">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button type="button" class="action-btn action-edit" 
+                                    onclick="openTaskModal('edit', {{ task.pk }})"
+                                    title="{% trans 'Editar tarea' %}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            
                             {% if task.status == 'TODO' %}
                                 <button type="button" class="action-btn action-start" 
                                         onclick="updateTaskStatus({{ task.pk }}, 'IN_PROGRESS')"
@@ -168,6 +179,12 @@
                                         onclick="updateTaskStatus({{ task.pk }}, 'IN_PROGRESS')"
                                         title="{% trans 'Reanudar tarea' %}">
                                     <i class="fas fa-play"></i>
+                                </button>
+                            {% elif task.status == 'DONE' %}
+                                <button type="button" class="action-btn action-reopen" 
+                                        onclick="updateTaskStatus({{ task.pk }}, 'IN_PROGRESS')"
+                                        title="{% trans 'Reabrir tarea' %}">
+                                    <i class="fas fa-undo"></i>
                                 </button>
                             {% endif %}
                             
@@ -200,6 +217,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/tasks.js' %}?v=1.0"></script>
-<script src="{% static 'js/my_tasks_page.js' %}?v=2.0"></script>
+<script src="{% static 'js/tasks.js' %}?v=1.1"></script>
+<script src="{% static 'js/my_tasks_page.js' %}?v=2.1"></script>
 {% endblock %}
