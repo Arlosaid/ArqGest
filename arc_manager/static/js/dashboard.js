@@ -20,7 +20,26 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.reload();
         });
     });
+
+    // Inicializar barras de progreso correctamente
+    initializeProgressBars();
 });
+
+function initializeProgressBars() {
+    const progressBars = document.querySelectorAll('.progress-fill[data-percentage]');
+    
+    progressBars.forEach(bar => {
+        const percentage = parseFloat(bar.getAttribute('data-percentage')) || 0;
+        
+        // Aplicar el ancho con un pequeño delay para asegurar que se renderice
+        setTimeout(() => {
+            bar.style.width = `${percentage}%`;
+        }, 10);
+        
+        // Debug: mostrar el valor en consola para verificar
+        console.log(`Progress bar initialized: ${percentage}% width`);
+    });
+}
 
 // Funciones auxiliares globales
 window.dashboardUtils = {

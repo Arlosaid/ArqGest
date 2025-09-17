@@ -1,0 +1,182 @@
+/* CSS simple para admin de archivos */
+
+/* Mejorar el espaciado de la tabla */
+#result_list tbody tr {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+#result_list tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Estilo para la columna de archivo */
+.field-get_file_info {
+    min-width: 250px;
+}
+
+/* Estilo para la columna de ubicación */
+.field-get_location {
+    min-width: 200px;
+    font-size: 12px;
+}
+
+/* Estilo para la columna de tamaño */
+.field-get_size_display {
+    text-align: center;
+    width: 80px;
+}
+
+/* Estilo para la columna de acciones */
+.field-get_actions {
+    text-align: center;
+    width: 100px;
+}
+
+/* Mejorar los filtros */
+#changelist-filter h3 {
+    background: #f8f9fa;
+    padding: 8px 10px;
+    margin: 0;
+    font-size: 12px;
+    color: #666;
+    border-bottom: 1px solid #ddd;
+}
+
+#changelist-filter ul {
+    margin: 0;
+    padding: 0;
+}
+
+#changelist-filter li {
+    padding: 5px 10px;
+    border-bottom: 1px solid #f5f5f5;
+    font-size: 12px;
+}
+
+#changelist-filter li:hover {
+    background: #f8f9fa;
+}
+
+#changelist-filter li.selected {
+    background: #e3f2fd;
+    font-weight: bold;
+}
+
+/* Mejorar la búsqueda */
+#toolbar #searchbar {
+    width: 300px;
+}
+
+/* Estilo para mensajes del admin */
+.messagelist .info {
+    background: #e3f2fd;
+    border-left: 4px solid #2196f3;
+    color: #0d47a1;
+    white-space: pre-line;
+}
+
+.messagelist .success {
+    background: #e8f5e8;
+    border-left: 4px solid #4caf50;
+    color: #2e7d32;
+}
+
+/* Responsive simple */
+@media (max-width: 768px) {
+    .field-get_location {
+        display: none;
+    }
+    
+    .field-get_actions {
+        width: 60px;
+    }
+    
+    #changelist-filter {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+    
+    .filtered #changelist {
+        margin-right: 0;
+    }
+}
+
+/* Mejorar tooltips nativos */
+[title] {
+    cursor: help;
+}
+
+/* Estilo para enlaces de descarga */
+a[href*=".pdf"], a[href*=".doc"], a[href*=".jpg"], a[href*=".png"] {
+    transition: color 0.2s ease;
+}
+
+a[href*=".pdf"]:hover, a[href*=".doc"]:hover, a[href*=".jpg"]:hover, a[href*=".png"]:hover {
+    color: #0056b3 !important;
+}
+
+/* Mejorar el header de la página */
+.app-files .model-projectfile .module h2 {
+    background: #f8f9fa;
+    color: #495057;
+    padding: 10px 15px;
+    margin: 0;
+    border-bottom: 1px solid #dee2e6;
+}
+
+/* Estilo para los iconos de archivo */
+.field-get_file_info span {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Animación suave para hover */
+#result_list tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+/* Mejorar la apariencia de los badges de extensión */
+.field-get_file_info small {
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Estilo para acciones */
+.field-get_actions a {
+    display: inline-block;
+    font-size: 16px;
+    transition: transform 0.2s ease;
+}
+
+.field-get_actions a:hover {
+    transform: scale(1.2);
+}
+
+/* Estilo para el contador de resultados */
+.paginator {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 4px;
+    margin-top: 15px;
+    font-size: 12px;
+    color: #666;
+}
+
+/* Mejorar la apariencia de la paginación */
+.paginator a, .paginator span {
+    padding: 5px 8px;
+    margin: 0 2px;
+    border-radius: 3px;
+    text-decoration: none;
+}
+
+.paginator a:hover {
+    background: #e9ecef;
+}
+
+.paginator .this-page {
+    background: #007cba;
+    color: white;
+    font-weight: bold;
+}

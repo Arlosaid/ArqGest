@@ -7,7 +7,7 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link href="{% static 'css/dashboard.css' %}?v=38" rel="stylesheet">
+<link href="{% static 'css/dashboard.css' %}?v=41" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -160,6 +160,58 @@
                         {% endfor %}
                     </div>
                 </section>
+
+                <!-- Almacenamiento -->
+                <section class="summary-section-mini">
+                    <div class="section-header-mini">
+                        <h3><i class="fas fa-hdd"></i> Almacenamiento</h3>
+                    </div>
+                    <div class="storage-widget">
+                        <div class="storage-stats">
+                            <div class="storage-usage">
+                                <span class="usage-text">{{ storage_summary.used_gb }} GB de {{ storage_summary.total_gb }} GB utilizados</span>
+                                <span class="usage-percentage">{{ storage_summary.percentage }}%</span>
+                            </div>
+                            <div class="storage-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill storage-{{ storage_summary.status }}" 
+                                         style="width: {{ storage_summary.percentage }}%"
+                                         data-percentage="{{ storage_summary.percentage }}"></div>
+                                </div>
+                                <div class="progress-labels">
+                                    <span class="progress-start">0%</span>
+                                    <span class="progress-end">100%</span>
+                                </div>
+                            </div>
+                            <div class="storage-details">
+                                <div class="storage-item">
+                                    <i class="fas fa-file"></i>
+                                    <span>{{ storage_summary.file_count }} archivo{{ storage_summary.file_count|pluralize }}</span>
+                                </div>
+                                <div class="storage-item">
+                                    <i class="fas fa-cloud"></i>
+                                    <span>{{ storage_summary.remaining_gb }} GB disponible{{ storage_summary.remaining_gb|pluralize }}</span>
+                                </div>
+                            </div>
+                            {% if storage_summary.is_over_limit %}
+                            <div class="storage-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Límite excedido - No se pueden subir más archivos
+                            </div>
+                            {% elif storage_summary.status == 'critical' %}
+                            <div class="storage-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Límite casi alcanzado - Espacio muy limitado
+                            </div>
+                            {% elif storage_summary.status == 'warning' %}
+                            <div class="storage-alert">
+                                <i class="fas fa-info-circle"></i>
+                                Acercándose al límite de almacenamiento
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </section>
             </div>
         </div>
     </div>
@@ -167,7 +219,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/dashboard.js' %}?v=16"></script>
+<script src="{% static 'js/dashboard.js' %}?v=17"></script>
 {% endblock %}
  
 

@@ -95,6 +95,10 @@ def dashboard(request):
         'uploaded_by'
     ).order_by('-uploaded_at')[:5]
     
+    # 4. Widget "Almacenamiento" - usando servicio optimizado con cache
+    from apps.orgs.storage_service import StorageService
+    storage_summary = StorageService.get_storage_summary(organization)
+    
     # Total de tareas de la organización (optimizado)
     total_tasks = Task.objects.filter(
         phase__project__organization=organization
@@ -111,6 +115,7 @@ def dashboard(request):
         'my_tasks': my_tasks,
         'active_projects': active_projects,
         'total_clients': total_clients,
+        'storage_summary': storage_summary,
 
         # Contadores totales para el dashboard
         'total_projects': total_projects,

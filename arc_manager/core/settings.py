@@ -293,7 +293,7 @@ WHITENOISE_AUTOREFRESH = DEBUG
 
 # Versionado global para cache-busting en dispositivos móviles
 # Cambiar esta versión en cada deploy para forzar recarga
-STATIC_VERSION = '2025-09-17-v2'
+STATIC_VERSION = '2025-01-15-v3'
 WHITENOISE_SKIP_COMPRESS_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'zip', 'gz', 'tgz', 'bz2', 'tbz', 'xz', 'br']
 
 # Configuración de cache optimizada para móviles (iOS y Android)

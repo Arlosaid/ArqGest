@@ -4,7 +4,7 @@
 {% block title %}Mi Suscripción - Arc Manager{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/plans.css' %}?v=10.2">
+<link rel="stylesheet" href="{% static 'css/plans.css' %}?v=10.3">
 {% endblock %}
 
 {% block extra_js %}{% endblock %}
@@ -172,9 +172,72 @@
                                 </div>
                             {% endif %}
                         </div>
+                        
+                        <div class="usage-item">
+                            <div class="usage-header">
+                                <div class="usage-icon storage">
+                                    <i class="fas fa-hdd"></i>
+                                </div>
+                                <div class="usage-info">
+                                    <div class="usage-label">Almacenamiento</div>
+                                    <div class="usage-count">
+                                        {{ organization.get_total_storage_limit_gb }} GB disponibles
+                                        {% if organization.extra_storage_gb > 0 %}
+                                            <small>({{ organization.extra_storage_gb }} GB extra)</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="usage-note">
+                                <small>
+                                    Plan: {{ subscription.plan.max_storage_gb|default:"No configurado" }} GB
+                                    {% if organization.extra_storage_gb > 0 %}+ {{ organization.extra_storage_gb }} GB adicionales{% endif %}
+                                </small>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Gestión de Almacenamiento Extra -->
+            {% if is_org_admin %}
+            <div class="storage-management-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-expand"></i> Gestionar Almacenamiento</h3>
+                </div>
+                <div class="card-body">
+                    <div class="storage-info">
+                        <div class="storage-breakdown">
+                            <div class="storage-row">
+                                <span class="label">Plan base:</span>
+                                <span class="value">{{ subscription.plan.max_storage_gb|default:"No configurado" }} GB</span>
+                            </div>
+                            {% if organization.extra_storage_gb > 0 %}
+                            <div class="storage-row extra">
+                                <span class="label">Almacenamiento extra:</span>
+                                <span class="value">{{ organization.extra_storage_gb }} GB</span>
+                            </div>
+                            <div class="storage-row total">
+                                <span class="label">Total disponible:</span>
+                                <span class="value">{{ organization.get_total_storage_limit_gb }} GB</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="storage-action">
+                            <p class="help-text">
+                                ¿Necesitas más espacio para tus documentos? Puedes solicitar almacenamiento adicional.
+                            </p>
+                            <a href="mailto:soporte@arcmanager.com?subject=Solicitud de almacenamiento extra - {{ organization.name }}&body=Hola,%0A%0ASolicito almacenamiento adicional para mi organización:%0A%0A- Organización: {{ organization.name }}%0A- Plan actual: {{ subscription.plan.display_name }}%0A- Almacenamiento actual: {{ organization.get_total_storage_limit_gb }} GB%0A- GB adicionales necesarios: ______ GB%0A- Justificación: ______%0A%0AGracias." 
+                               class="btn btn-outline-primary btn-storage-request">
+                                <i class="fas fa-envelope"></i>
+                                Solicitar GB Extra
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
 
             <!-- Características del Plan (compacto) -->
             <div class="features-card">
