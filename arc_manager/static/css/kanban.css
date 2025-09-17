@@ -374,11 +374,13 @@
         width: 100%;
         max-width: 100%;
         flex: none;
-        max-height: 400px; /* Altura fija en móviles */
+        max-height: none; /* Permitir altura flexible */
+        min-height: 200px; /* Altura mínima para columnas vacías */
     }
     
     .kanban-column-body {
-        max-height: 300px;
+        max-height: none; /* Permitir scroll natural */
+        min-height: 150px;
     }
 }
 
@@ -717,7 +719,7 @@
 /* Contenedor de acciones - ESTRUCTURA CORREGIDA Y ROBUSTA */
 .task-actions {
     display: flex !important;
-    flex-direction: row !important;
+    flex-direction: column !important;
     gap: 0.5rem !important;
     align-items: center !important;
     justify-content: center !important;
@@ -725,7 +727,7 @@
     padding: 0.75rem !important;
     border-top: 1px solid var(--arc-border-color) !important;
     background: linear-gradient(180deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.9) 100%) !important;
-    /* Corregir márgenes negativos para evitar desbordamiento */
+    /* Corregir márgenes negativos para evitar desbordamiento - SOLO EN DESKTOP */
     margin-left: -1rem !important;
     margin-right: -1rem !important;
     margin-bottom: -1rem !important;
@@ -738,6 +740,88 @@
     /* Forzar layout */
     position: relative !important;
     z-index: 1 !important;
+}
+
+/* Botones de cambio de estado para móvil (igual que Mis Tareas) */
+.task-status-buttons {
+    display: flex;
+    gap: var(--arc-spacing-xs, 0.25rem);
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    border: 1px solid var(--arc-border-color);
+    flex-wrap: wrap;
+}
+
+.task-status-buttons .btn {
+    flex: 1;
+    padding: 0.375rem 0.5rem !important;
+    border: 1px solid var(--arc-border-color) !important;
+    border-radius: 6px !important;
+    background: var(--arc-bg-primary, #ffffff) !important;
+    color: var(--arc-text-primary, #333333) !important;
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: var(--arc-transition, all 0.2s ease) !important;
+    text-decoration: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 36px !important;
+    min-width: auto !important;
+    height: auto !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    gap: 0.375rem !important;
+    white-space: nowrap !important;
+}
+
+.task-status-buttons .btn:hover {
+    color: white !important;
+    border-color: transparent !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+}
+
+.task-status-buttons .btn.btn-primary:hover { background: var(--arc-color-primary, #4285f4) !important; }
+.task-status-buttons .btn.btn-warning:hover { background: var(--arc-color-warning, #ffc107) !important; }
+.task-status-buttons .btn.btn-success:hover { background: var(--arc-color-success, #28a745) !important; }
+.task-status-buttons .btn.btn-info:hover { background: var(--arc-color-info, #17a2b8) !important; }
+
+.task-status-buttons .btn:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+}
+
+.task-status-buttons .btn i {
+    font-size: 0.875rem !important;
+    line-height: 1 !important;
+    opacity: 0.8 !important;
+}
+
+.task-status-buttons .btn:hover i {
+    opacity: 1 !important;
+}
+
+.task-status-buttons .btn span {
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    letter-spacing: 0.025em !important;
+}
+
+/* Botones de acción tradicionales */
+.task-action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
 }
 
 /* Estilos base para todos los botones - PROFESIONALES Y CENTRADOS */
@@ -856,44 +940,98 @@
 /* Responsive - ACTUALIZADO para nueva estructura */
 @media (max-width: 768px) {
     .kanban-card {
-        min-height: 160px;
-        max-height: 200px;
+        min-height: 180px; /* Aumentar altura para acomodar botones adicionales */
+        max-height: none; /* Permitir altura flexible en móvil */
     }
     
     .task-actions {
-        gap: 0.375rem;
-        padding: 0.625rem;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        /* CORREGIR: Eliminar márgenes negativos en móvil */
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        margin-bottom: 0 !important;
+        border-radius: 8px !important;
+        margin-top: 0.5rem !important;
+        min-height: 80px; /* Aumentar altura para botones adicionales */
     }
     
-    .task-actions .btn {
+    .task-status-buttons {
+        gap: 0.375rem;
+        padding: 0.375rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .task-status-buttons .btn {
+        min-height: 32px;
+        font-size: 0.6875rem;
+        padding: 0.25rem 0.375rem !important;
+    }
+    
+    .task-status-buttons .btn i {
+        font-size: 0.75rem !important;
+    }
+    
+    .task-status-buttons .btn span {
+        font-size: 0.6875rem !important;
+    }
+    
+    .task-action-buttons .btn {
         width: 34px;
         height: 34px;
         border-radius: 8px;
     }
     
-    .task-actions .btn i {
+    .task-action-buttons .btn i {
         font-size: 0.8125rem;
     }
 }
 
 @media (max-width: 480px) {
     .kanban-card {
-        min-height: 140px;
-        max-height: 180px;
+        min-height: 160px; /* Aumentar altura para acomodar botones adicionales */
+        max-height: none; /* Permitir altura flexible en móvil */
     }
     
     .task-actions {
-        gap: 0.25rem;
-        padding: 0.5rem;
+        gap: 0.375rem;
+        padding: 0.625rem;
+        /* CORREGIR: Eliminar márgenes negativos en móvil */
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        margin-bottom: 0 !important;
+        border-radius: 6px !important;
+        margin-top: 0.5rem !important;
+        min-height: 70px; /* Aumentar altura para botones adicionales */
     }
     
-    .task-actions .btn {
+    .task-status-buttons {
+        gap: 0.25rem;
+        padding: 0.25rem;
+        margin-bottom: 0.375rem;
+    }
+    
+    .task-status-buttons .btn {
+        min-height: 30px;
+        font-size: 0.625rem;
+        padding: 0.125rem 0.25rem !important;
+    }
+    
+    .task-status-buttons .btn i {
+        font-size: 0.6875rem !important;
+    }
+    
+    .task-status-buttons .btn span {
+        font-size: 0.625rem !important;
+    }
+    
+    .task-action-buttons .btn {
         width: 32px;
         height: 32px;
         border-radius: 6px;
     }
     
-    .task-actions .btn i {
+    .task-action-buttons .btn i {
         font-size: 0.75rem;
     }
 }
@@ -1015,6 +1153,72 @@
     cursor: grabbing;
 }
 
+/* Estados táctiles para móvil */
+.kanban-card.touch-ready {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.kanban-card.dragging {
+    transition: none; /* Desactivar transiciones durante el drag */
+}
+
+/* Mejorar la experiencia táctil en móvil - SIN DRAG AND DROP */
+@media (max-width: 768px) {
+    .kanban-card {
+        /* Desactivar drag and drop en móvil */
+        cursor: default !important;
+        touch-action: auto; /* Permitir scroll normal */
+        user-select: text; /* Permitir selección de texto */
+    }
+    
+    .kanban-card:active {
+        transform: none; /* Sin efectos de presión */
+    }
+    
+    /* Ocultar indicadores de drag */
+    .kanban-card::after {
+        display: none !important;
+    }
+    
+    /* Remover cursor de grab en móvil */
+    .kanban-card:hover {
+        cursor: default !important;
+    }
+}
+
+/* Indicador de drag and drop en desktop */
+@media (min-width: 769px) {
+    .kanban-card {
+        cursor: grab;
+    }
+    
+    .kanban-card:hover::after {
+        content: 'Arrastra para mover';
+        position: absolute;
+        top: -25px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        z-index: 1000;
+        pointer-events: none;
+        opacity: 0;
+        animation: fadeInTooltip 0.3s ease forwards;
+    }
+    
+    @keyframes fadeInTooltip {
+        to {
+            opacity: 1;
+        }
+    }
+}
+
 /* ========================================
    MODALES
    ======================================== */
@@ -1079,6 +1283,50 @@
         flex-direction: column;
         gap: 0.5rem;
         width: 100%;
+    }
+    
+    /* Mejorar el header del proyecto en móvil */
+    .project-stats {
+        padding: 0.75rem;
+    }
+    
+    .project-stats .d-flex {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .total-tasks-display {
+        justify-content: center;
+    }
+    
+    .total-tasks-badge {
+        padding: 0.625rem 1rem;
+        font-size: 0.875rem;
+    }
+    
+    .total-number {
+        font-size: 1.25rem;
+    }
+    
+    /* Mejorar filtros en móvil */
+    .project-stats .d-flex.align-items-center.gap-3 {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+    
+    .project-stats form {
+        width: 100%;
+    }
+    
+    .project-stats .form-select {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    .project-stats .d-flex.gap-2 {
+        justify-content: center;
+        flex-wrap: wrap;
     }
 }
 

@@ -108,26 +108,47 @@ class KanbanManager {
     initializeDragAndDrop() {
         if (!this.columns.length) return;
 
-        this.columns.forEach(column => {
-            column.addEventListener('dragover', this.handleDragOver.bind(this));
-            column.addEventListener('drop', this.handleDrop.bind(this));
-            column.addEventListener('dragenter', this.handleDragEnter.bind(this));
-            column.addEventListener('dragleave', this.handleDragLeave.bind(this));
-        });
+        // Solo activar drag and drop en desktop (pantallas >= 768px)
+        if (window.innerWidth >= 768) {
+            this.columns.forEach(column => {
+                column.addEventListener('dragover', this.handleDragOver.bind(this));
+                column.addEventListener('drop', this.handleDrop.bind(this));
+                column.addEventListener('dragenter', this.handleDragEnter.bind(this));
+                column.addEventListener('dragleave', this.handleDragLeave.bind(this));
+            });
 
-        this.cards.forEach(card => {
-            card.addEventListener('dragstart', this.handleDragStart.bind(this));
-            card.addEventListener('dragend', this.handleDragEnd.bind(this));
-        });
+            this.cards.forEach(card => {
+                card.addEventListener('dragstart', this.handleDragStart.bind(this));
+                card.addEventListener('dragend', this.handleDragEnd.bind(this));
+                // Hacer las tarjetas arrastrables solo en desktop
+                card.draggable = true;
+            });
+        } else {
+            // En móvil, desactivar drag and drop completamente
+            this.cards.forEach(card => {
+                card.draggable = false;
+                // Remover cualquier indicador visual de drag
+                card.style.cursor = 'default';
+            });
+        }
+
+        // Escuchar cambios de tamaño de ventana para activar/desactivar drag and drop
+        window.addEventListener('resize', this.handleWindowResize.bind(this));
     }
 
     initializeModals() {
         // Inicializar modales de Bootstrap si están disponibles
         if (typeof bootstrap !== 'undefined') {
-            this.modals = {
-                addTask: new bootstrap.Modal(this.addTaskModal),
-                task: new bootstrap.Modal(this.taskModal)
-            };
+            this.modals = {};
+            
+            // Solo inicializar modales que existen en el DOM
+            if (this.addTaskModal) {
+                this.modals.addTask = new bootstrap.Modal(this.addTaskModal);
+            }
+            
+            if (this.taskModal) {
+                this.modals.task = new bootstrap.Modal(this.taskModal);
+            }
         }
     }
 
@@ -187,6 +208,16 @@ class KanbanManager {
         this.columns.forEach(column => {
             column.classList.remove('drag-over');
         });
+    }
+
+    // ===== RESPONSIVE HANDLING =====
+
+    handleWindowResize() {
+        // Debounce para evitar múltiples llamadas
+        clearTimeout(this.resizeTimeout);
+        this.resizeTimeout = setTimeout(() => {
+            this.initializeDragAndDrop();
+        }, 250);
     }
 
     // ===== TASK MANAGEMENT - ACTUALIZACIONES SILENCIOSAS =====
@@ -350,17 +381,30 @@ class KanbanManager {
                 if (contentType.includes('application/json')) {
                     const data = await response.json();
                     if (data && data.success) {
-                        this.showNotification('Tarea creada correctamente', 'success');
+                        // Cerrar modal inmediatamente
                         this.closeModal('addTask');
-                        setTimeout(() => location.reload(), 600);
+                        // Limpiar formulario
+                        this.taskForm.reset();
+                        // Mostrar notificación
+                        this.showNotification('Tarea creada correctamente', 'success');
+                        // Disparar evento para que otros componentes se actualicen
+                        document.dispatchEvent(new CustomEvent('taskCreated'));
+                        // Recargar solo si estamos en la página del kanban
+                        if (window.location.pathname.includes('/kanban/')) {
+                            setTimeout(() => location.reload(), 300);
+                        }
                     } else {
                         this.showNotification((data && (data.message || data.error)) || 'Error al crear la tarea', 'error');
                     }
                 } else {
                     // Fallback: servidor devolvió HTML por redirección; considerarlo éxito
-                    this.showNotification('Tarea creada correctamente', 'success');
                     this.closeModal('addTask');
-                    setTimeout(() => location.reload(), 600);
+                    this.taskForm.reset();
+                    this.showNotification('Tarea creada correctamente', 'success');
+                    document.dispatchEvent(new CustomEvent('taskCreated'));
+                    if (window.location.pathname.includes('/kanban/')) {
+                        setTimeout(() => location.reload(), 300);
+                    }
                 }
             } else {
                 let msg = 'Error al crear la tarea';
@@ -550,6 +594,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     window.deleteKanbanTask = function(taskId) {
         window.kanbanManager.deleteTask(taskId);
+    };
+    
+    // Función para mover tareas usando botones (alternativa al drag and drop)
+    window.moveTaskToStatus = function(taskId, newStatus) {
+        if (window.kanbanManager) {
+            window.kanbanManager.updateTaskStatusSilently(taskId, newStatus);
+        }
+    };
+
+    // Función mejorada para actualizar estado de tareas (compatible con Mis Tareas)
+    window.updateTaskStatus = function(taskId, newStatus) {
+        if (window.kanbanManager) {
+            window.kanbanManager.updateTaskStatusSilently(taskId, newStatus);
+        }
     };
 });
 

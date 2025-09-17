@@ -12,6 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 import logging
 import time
+from datetime import datetime
 from .models import Project, Task, Phase, PhaseTemplate
 from core.error_codes import (
     log_operation, 
@@ -179,6 +180,15 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         # El responsive se manejará con CSS/JS para mostrar 5 en mobile
         tasks_page_obj = build_page(tasks_qs.order_by('due_date', 'priority'), 9, 'tasks_page')
         context['tasks_page_obj'] = tasks_page_obj
+
+        # Obtener usuarios de la organización para asignación (excluir solo superusuarios)
+        users = []
+        if hasattr(project.organization, 'users'):
+            users = project.organization.users.filter(is_active=True, is_superuser=False)
+        elif hasattr(project.organization, 'members'):
+            users = project.organization.members.filter(is_active=True, is_superuser=False)
+        
+        context['users'] = users
 
         # Contadores por fase (para el sub-tab "Por fases") sin consultas extra
         phase_task_counts = {}
@@ -939,119 +949,75 @@ def task_edit(request, pk):
         raise
 
     if request.method == 'POST':
-        try:
-            form = TaskForm(request.POST, instance=task, project=project)
-        except Exception as e:
-            log_msg, log_data = log_task_operation(
-                'FORM_INIT_ERROR',
-                request.user.email,
-                task_id=pk,
-                error_code=TaskErrorCodes.TASK_UPDATE_FORM_VALIDATION,
-                exception=str(e)
-            )
-            logger.error(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_UPDATE_FORM_VALIDATION}", exc_info=True)
-            
-            if request.headers.get('HX-Request'):
-                return HttpResponse(f"Error al inicializar formulario: {e}", status=500)
-            messages.error(request, _('Error al procesar el formulario.'))
+        # Obtener datos del formulario
+        title = request.POST.get('title')
+        description = request.POST.get('description', '')
+        priority = request.POST.get('priority', 'MEDIUM')
+        assigned_to_id = request.POST.get('assigned_to')
+        phase_id = request.POST.get('phase')
+        due_date_raw = request.POST.get('due_date')
+        
+        # Validar datos básicos
+        if not title:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return HttpResponse('El título es requerido', status=400)
+            messages.error(request, 'El título es requerido')
             return redirect('projects:project-detail', pk=project.id)
         
-        if form.is_valid():
+        # Procesar fecha
+        due_date = None
+        if due_date_raw:
             try:
-                task = form.save()
-                
-                log_msg, log_data = log_task_operation(
-                    'EDIT_TASK_SUCCESS',
-                    request.user.email,
-                    task_id=pk,
-                    title=task.title
-                )
-                logger.info(log_msg)
-
-                if request.headers.get('HX-Request'):
-                    # Para HTMX, devolver un mensaje de éxito que active el cierre del modal
-                    return HttpResponse(
-                        '<div class="alert alert-success">Tarea actualizada correctamente</div>',
-                        status=200
-                    )
-                else:
-                    # Para peticiones normales, redirigir al kanban del proyecto
-                    messages.success(request, _('Tarea actualizada correctamente.'))
-                    return redirect('projects:project-kanban', pk=project.id)
-
-            except Exception as e:
-                log_msg, log_data = log_task_operation(
-                    'EDIT_TASK_ERROR',
-                    request.user.email,
-                    task_id=pk,
-                    error_code=TaskErrorCodes.TASK_UPDATE_SAVE_ERROR,
-                    exception=str(e)
-                )
-                logger.error(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_UPDATE_SAVE_ERROR}", exc_info=True)
-                
-                if request.headers.get('HX-Request'):
-                    return HttpResponse(f"Error al guardar: {e}", status=400)
-                messages.error(request, _('Error al guardar la tarea. Inténtalo de nuevo.'))
-                return redirect('projects:project-detail', pk=project.id)
-        else:
-            # Si el formulario no es válido, registrar errores y devolverlos
-            error_details = form.errors.as_json()
+                due_date = datetime.strptime(due_date_raw, '%Y-%m-%d').date()
+            except ValueError:
+                pass
+        
+        # Obtener fase
+        try:
+            phase = project.phases.get(id=phase_id)
+        except:
+            phase = task.phase  # Mantener la fase actual si hay error
+        
+        # Obtener usuario asignado
+        assigned_to = None
+        if assigned_to_id:
+            try:
+                assigned_to = project.organization.users.get(id=assigned_to_id)
+            except:
+                pass
+        
+        # Actualizar tarea
+        try:
+            task.title = title
+            task.description = description
+            task.priority = priority
+            task.assigned_to = assigned_to
+            task.phase = phase
+            task.due_date = due_date
+            task.save()
             
-            log_msg, log_data = log_task_operation(
-                'EDIT_TASK_ERROR',
-                request.user.email,
-                task_id=pk,
-                error_code=TaskErrorCodes.TASK_UPDATE_FORM_VALIDATION,
-                form_errors=error_details
-            )
-            logger.warning(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_UPDATE_FORM_VALIDATION}")
-            # Para HTMX, devolvemos el formulario con errores para mostrar en el modal
-            if request.headers.get('HX-Request'):
-                # Re-renderizar el modal con el formulario y sus errores
-                context = {
-                    'task': task,
-                    'form': form, # Pasar el formulario con errores al contexto
-                    'project': project,
-                    'project_color': get_project_color(project.id),
-                    'phases': project.phases.all(),
-                    'users': project.organization.users.filter(is_active=True, is_superuser=False),
-                    'priority_choices': Task.Priority.choices,
-                }
-                return render(request, 'projects/partials/task_edit_modal.html', context)
-
-            # Para peticiones normales, mostrar mensaje de error
-            error_message = _('Por favor, corrige los errores a continuación.')
-            # Unir los errores en un solo string para el mensaje
-            error_list = [f"{field}: {', '.join(errors)}" for field, errors in form.errors.items()]
-            messages.error(request, f"{error_message} {' | '.join(error_list)}")
+            logger.info(f"Tarea {task.id} actualizada por {request.user.email}")
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return HttpResponse('Tarea actualizada correctamente', status=200)
+            else:
+                messages.success(request, 'Tarea actualizada correctamente')
+                return redirect('projects:project-kanban', pk=project.id)
+                
+        except Exception as e:
+            logger.error(f"Error al actualizar tarea {task.id}: {e}")
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return HttpResponse('Error al guardar la tarea', status=500)
+            messages.error(request, 'Error al guardar la tarea')
+            return redirect('projects:project-detail', pk=project.id)
 
 
     # Para GET, mostrar formulario de edición
-    try:
-        form = TaskForm(instance=task, project=project)
-    except Exception as e:
-        log_msg, log_data = log_task_operation(
-            'FORM_INIT_ERROR',
-            request.user.email,
-            task_id=pk,
-            error_code=TaskErrorCodes.TASK_UPDATE_FORM_VALIDATION,
-            exception=str(e)
-        )
-        logger.error(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_UPDATE_FORM_VALIDATION}", exc_info=True)
-        
-        if request.headers.get('HX-Request'):
-            return HttpResponse(f"Error al cargar formulario: {e}", status=500)
-        messages.error(request, _('Error al cargar el formulario de edición.'))
-        return redirect('projects:project-detail', pk=project.id)
-
     context = {
         'task': task,
-        'form': form,
         'project': project,
-        'project_color': get_project_color(project.id),
         'phases': project.phases.all(),
         'users': project.organization.users.filter(is_active=True, is_superuser=False),
-        'priority_choices': Task.Priority.choices,
     }
 
     return render(request, 'projects/partials/task_edit_modal.html', context)

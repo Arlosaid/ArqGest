@@ -5,7 +5,7 @@
 {% block title %}{% trans "Mis Tareas" %}{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/tasks.css' %}?v=1.0" rel="stylesheet">
+<link href="{% static 'css/tasks.css' %}?v=1.2" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -150,6 +150,9 @@
                             <div class="task-actions">
                                 <button type="button" class="task-action-btn secondary task-detail-btn" title="{% trans 'Ver detalles' %}">
                                     <i class="fas fa-eye"></i> {% trans "Detalles" %}
+                                </button>
+                                <button type="button" class="task-action-btn primary" onclick="openTaskModal('edit', {{ task.pk }})" title="{% trans 'Editar tarea' %}">
+                                    <i class="fas fa-edit"></i> {% trans "Editar" %}
                                 </button>
                                 
                                 {% if task.status == 'TODO' %}

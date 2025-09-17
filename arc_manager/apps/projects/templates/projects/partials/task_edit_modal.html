@@ -1,70 +1,112 @@
 {% load i18n %}
 
-<div style="--project-color: {{ project_color }};">
-  <form method="post" 
-        hx-post="{% url 'projects:task-edit' task.pk %}"
-        hx-target="#form-success-message" 
-        hx-swap="innerHTML" 
-        hx-trigger="submit"
-        hx-on::after-request="if(event.detail.xhr.status === 200) { htmx.trigger(document.body, 'taskUpdated'); setTimeout(() => { const modal = bootstrap.Modal.getInstance(document.getElementById('taskUniversalModal')); if(modal) modal.hide(); }, 500); }"
-        novalidate>
-      {% csrf_token %}
-      <div class="modal-body">
-          <!-- Área para mensajes de éxito -->
-          <div id="form-success-message"></div>
-          
-          {% if form.non_field_errors %}
-              <div class="alert alert-danger">
-                  {{ form.non_field_errors }}
-              </div>
-          {% endif %}
+<form method="post" action="{% url 'projects:task-edit' task.pk %}" id="editTaskForm">
+    {% csrf_token %}
+    
+    <div class="modal-body">
+        <div class="mb-3">
+            <label for="title" class="form-label">{% trans "Título" %} *</label>
+            <input type="text" class="form-control" id="title" name="title" value="{{ task.title }}" required>
+        </div>
+        
+        <div class="mb-3">
+            <label for="description" class="form-label">{% trans "Descripción" %}</label>
+            <textarea class="form-control" id="description" name="description" rows="3">{{ task.description }}</textarea>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="priority" class="form-label">{% trans "Prioridad" %}</label>
+                    <select class="form-select" id="priority" name="priority">
+                        <option value="LOW" {% if task.priority == 'LOW' %}selected{% endif %}>{% trans "Baja" %}</option>
+                        <option value="MEDIUM" {% if task.priority == 'MEDIUM' %}selected{% endif %}>{% trans "Media" %}</option>
+                        <option value="HIGH" {% if task.priority == 'HIGH' %}selected{% endif %}>{% trans "Alta" %}</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="assigned_to" class="form-label">{% trans "Asignado a" %}</label>
+                    <select class="form-select" id="assigned_to" name="assigned_to">
+                        <option value="">{% trans "Sin asignar" %}</option>
+                        {% for user in users %}
+                            <option value="{{ user.id }}" {% if task.assigned_to == user %}selected{% endif %}>
+                                {{ user.get_full_name|default:user.email }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="phase" class="form-label">{% trans "Fase" %}</label>
+                    <select class="form-select" id="phase" name="phase">
+                        {% for phase in phases %}
+                            <option value="{{ phase.id }}" {% if task.phase == phase %}selected{% endif %}>
+                                {{ phase.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="due_date" class="form-label">{% trans "Fecha de vencimiento" %}</label>
+                    <input type="date" class="form-control" id="due_date" name="due_date" 
+                           value="{% if task.due_date %}{{ task.due_date|date:'Y-m-d' }}{% endif %}">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancelar" %}</button>
+        <button type="submit" class="btn btn-primary">{% trans "Guardar" %}</button>
+    </div>
+</form>
 
-          <div class="mb-4">
-              <label for="{{ form.title.id_for_label }}" class="form-label fw-bold text-dark">{% trans "TÍTULO DE LA TAREA" %}</label>
-              {{ form.title }}
-              {% if form.title.errors %}<div class="text-danger small mt-1">{{ form.title.errors }}</div>{% endif %}
-          </div>
-          <div class="mb-4">
-              <label for="{{ form.description.id_for_label }}" class="form-label fw-bold text-dark">{% trans "DESCRIPCIÓN" %}</label>
-              {{ form.description }}
-              {% if form.description.errors %}<div class="text-danger small mt-1">{{ form.description.errors }}</div>{% endif %}
-          </div>
-          <div class="row g-3 mb-4">
-              <div class="col-md-6">
-                  <label for="{{ form.priority.id_for_label }}" class="form-label fw-bold text-dark">{% trans "PRIORIDAD" %}</label>
-                  {{ form.priority }}
-                  {% if form.priority.errors %}<div class="text-danger small mt-1">{{ form.priority.errors }}</div>{% endif %}
-              </div>
-              <div class="col-md-6">
-                  <label for="{{ form.assigned_to.id_for_label }}" class="form-label fw-bold text-dark">{% trans "ASIGNADO A" %}</label>
-                  {{ form.assigned_to }}
-                  {% if form.assigned_to.errors %}<div class="text-danger small mt-1">{{ form.assigned_to.errors }}</div>{% endif %}
-              </div>
-          </div>
-          <div class="row g-3">
-              <div class="col-md-6">
-                  <label for="{{ form.phase.id_for_label }}" class="form-label fw-bold text-dark">{% trans "FASE" %}</label>
-                  {{ form.phase }}
-                  {% if form.phase.errors %}<div class="text-danger small mt-1">{{ form.phase.errors }}</div>{% endif %}
-              </div>
-              <div class="col-md-6">
-                  <label for="{{ form.due_date.id_for_label }}" class="form-label fw-bold text-dark">{% trans "FECHA DE VENCIMIENTO" %}</label>
-                  {{ form.due_date }}
-                  {% if form.due_date.errors %}<div class="text-danger small mt-1">{{ form.due_date.errors }}</div>{% endif %}
-              </div>
-          </div>
-      </div>
-      <div class="modal-footer">
-          <button type="button" class="btn btn-outline-danger me-auto" id="deleteTaskBtn" data-task-id="{{ task.id }}">
-              <i class="fas fa-trash me-2"></i>{% trans "Eliminar" %}
-          </button>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-              <i class="fas fa-times me-2"></i>{% trans "Cancelar" %}
-          </button>
-          <button type="submit" class="btn btn-primary" id="saveTaskBtn">
-              <i class="fas fa-save me-2"></i>{% trans "Guardar Cambios" %}
-          </button>
-      </div>
-  </form>
-</div>
-
+<script>
+document.getElementById('editTaskForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    
+    // Mostrar loading
+    submitBtn.disabled = true;
+    submitBtn.textContent = '{% trans "Guardando..." %}';
+    
+    fetch(this.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            // Cerrar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('taskUniversalModal'));
+            if (modal) modal.hide();
+            
+            // Recargar la página para mostrar los cambios
+            window.location.reload();
+        } else {
+            throw new Error('Error al guardar');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al guardar la tarea. Inténtalo de nuevo.');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    });
+});
+</script>

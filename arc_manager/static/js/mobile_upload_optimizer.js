@@ -34,7 +34,10 @@ class MobileUploadOptimizer {
         // Interceptar uploads del upload_progress.js existente
         this.interceptExistingUploads();
         
-        console.log(`📱 Mobile Upload Optimizer: ${this.isMobile ? 'ENABLED' : 'DISABLED'}`);
+        // Log solo en desarrollo
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            console.log(`📱 Mobile Upload Optimizer: ${this.isMobile ? 'ENABLED' : 'DISABLED'}`);
+        }
     }
 
     setupMobileOptimizations() {
