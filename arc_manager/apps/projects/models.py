@@ -79,7 +79,20 @@ class Project(models.Model):
 
     @property
     def progress_percentage(self):
-        """Calcula el progreso real del proyecto basado en las fases completadas."""
+        """Calcula el progreso real del proyecto basado en las tareas completadas."""
+        # Verificar si este proyecto tiene tareas
+        total_tasks = Task.objects.filter(phase__project=self).count()
+        if total_tasks == 0:
+            return 0
+        
+        done_tasks = Task.objects.filter(phase__project=self, status='DONE').count()
+        progress = int((done_tasks / total_tasks) * 100)
+        
+        return progress
+    
+    @property
+    def progress_percentage_by_phases(self):
+        """Calcula el progreso basado en las fases completadas (método anterior)."""
         total_phases = self.phases.count()
         if total_phases == 0:
             return 0
@@ -228,8 +241,9 @@ class Task(models.Model):
         return self.title
     
     def save(self, *args, **kwargs):
-        """Override save to add logging for critical task operations."""
+        """Override save to add logging for critical task operations and invalidate cache."""
         is_new = self.pk is None
+        status_changed = False
         
         if is_new:
             logger.info(f"Creating new task: '{self.title}' in phase {self.phase_id}")
@@ -237,6 +251,7 @@ class Task(models.Model):
             # Log status changes
             if hasattr(self, '_original_status') and self._original_status != self.status:
                 logger.info(f"Task {self.pk} ('{self.title}') status changed from '{self._original_status}' to '{self.status}'")
+                status_changed = True
             
             # Log assignment changes
             if hasattr(self, '_original_assigned_to') and self._original_assigned_to != self.assigned_to_id:
@@ -246,6 +261,18 @@ class Task(models.Model):
         
         super().save(*args, **kwargs)
         
+        # Invalidar cache de progreso cuando sea necesario
+        if is_new or status_changed:
+            from .cache_utils import invalidate_project_progress_cache, invalidate_project_cache
+            project_id = self.phase.project_id
+            organization_id = self.phase.project.organization_id
+            
+            # Invalidar cache específico del progreso del proyecto
+            invalidate_project_progress_cache(project_id)
+            
+            # Invalidar cache general del proyecto y dashboard
+            invalidate_project_cache(organization_id, project_id)
+        
         if is_new:
             logger.info(f"Task created successfully - ID: {self.pk}, Title: '{self.title}', Phase: {self.phase_id}")
     
@@ -253,6 +280,21 @@ class Task(models.Model):
         super().__init__(*args, **kwargs)
         self._original_status = getattr(self, 'status', None)
         self._original_assigned_to = getattr(self, 'assigned_to_id', None)
+    
+    def delete(self, *args, **kwargs):
+        """Override delete to invalidate cache when task is deleted."""
+        from .cache_utils import invalidate_project_progress_cache, invalidate_project_cache
+        
+        project_id = self.phase.project_id
+        organization_id = self.phase.project.organization_id
+        
+        super().delete(*args, **kwargs)
+        
+        # Invalidar cache después de eliminar
+        invalidate_project_progress_cache(project_id)
+        invalidate_project_cache(organization_id, project_id)
+        
+        logger.info(f"Task deleted - ID: {self.pk}, Title: '{self.title}', Project: {project_id}")
     
     @property
     def is_due_soon(self):
