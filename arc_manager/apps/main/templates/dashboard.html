@@ -48,8 +48,10 @@
                 <div class="section-header-mini">
                     <h3><i class="fas fa-building"></i> Proyectos Activos</h3>
                     <div class="section-actions-mini">
-                        <a href="{% url 'projects:project-create' %}" class="btn-add-project"><i class="fas fa-plus"></i> Nuevo Proyecto</a>
-                        <a href="{% url 'projects:project-list' %}" class="btn-mini-secondary">Ver Todos</a>
+                        {% if user.is_org_admin %}
+                        <a href="{% url 'projects:project-create' %}" class="btn-add-project{% if is_subscription_expired %} disabled-link{% endif %}"><i class="fas fa-plus"></i> Nuevo Proyecto</a>
+                        {% endif %}
+                        <a href="{% url 'projects:project-list' %}" class="btn-mini-secondary{% if is_subscription_expired %} disabled-link{% endif %}">Ver Todos</a>
                     </div>
                 </div>
                 
@@ -80,13 +82,16 @@
                                 {% endif %}
                             </div>
                             <div class="project-actions-mini">
-                                <a href="{% url 'projects:project-detail' project.pk %}" class="btn-project-primary">Abrir Proyecto</a>
+                                <a href="{% url 'projects:project-detail' project.pk %}" class="btn-project-primary{% if is_subscription_expired %} disabled-link{% endif %}">Abrir Proyecto</a>
                             </div>
                         </div>
                     </div>
                     {% empty %}
                     <div class="empty-state-card">
-                        <p>No hay proyectos activos en este momento. ¡Crea uno para empezar!</p>
+                        <p>No hay proyectos activos en este momento.{% if user.is_org_admin %} ¡Crea uno para empezar!{% endif %}</p>
+                        {% if user.is_org_admin %}
+                        <a href="{% url 'projects:project-create' %}" class="btn-mini-secondary"><i class="fas fa-plus"></i> Nuevo Proyecto</a>
+                        {% endif %}
                     </div>
                     {% endfor %}
                 </div>
@@ -97,8 +102,8 @@
                 <!-- Mis Tareas -->
                 <section class="summary-section-mini">
                     <div class="section-header-mini">
-                        <h3><i class="fas fa-tasks"></i> Mis Tareas Pendientes</h3>
-                        <a href="{% url 'projects:my-task-list' %}" class="btn-mini-link">Ver todas</a>
+                    <h3><i class="fas fa-tasks"></i> Mis Tareas Pendientes</h3>
+                        <a href="{% url 'projects:my-task-list' %}" class="btn-mini-link{% if is_subscription_expired %} disabled-link{% endif %}">Ver todas</a>
                     </div>
                     <div class="summary-list-mini">
                         {% for task in my_tasks %}

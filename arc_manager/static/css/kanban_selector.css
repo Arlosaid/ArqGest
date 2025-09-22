@@ -246,6 +246,27 @@
     text-decoration: none;
 }
 
+.btn-kanban-disabled {
+    flex: 2;
+    background: var(--arc-bg-disabled);
+    color: var(--arc-text-muted);
+    padding: 0.75rem 1rem;
+    border-radius: var(--arc-border-radius-sm);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid var(--arc-border-disabled);
+    cursor: not-allowed;
+    font-size: 0.875rem;
+    /* Altura fija para consistencia */
+    height: 2.75rem;
+    white-space: nowrap;
+    opacity: 0.6;
+    user-select: none;
+}
+
 .kanban-empty-state {
     grid-column: 1 / -1;
     text-align: center;

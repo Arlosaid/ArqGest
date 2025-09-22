@@ -72,3 +72,47 @@ class SubscriptionService:
         except Exception as e:
             logger.error(f"Error obteniendo o creando suscripción para {organization.name}: {str(e)}", exc_info=True)
             return None
+
+    @staticmethod
+    def check_access_permissions(subscription, current_module: str | None = None):
+        """
+        Regla de acceso simplificada:
+        - Estados permitidos pleno: trial_active, basic_active
+        - Estados expirados: trial_expired, basic_expired → acceso limitado
+          Solo permitir dashboard y páginas de planes/suscripción para renovar.
+        """
+        try:
+            status = subscription.subscription_status
+            full_access_statuses = {'trial_active', 'basic_active'}
+            limited_modules = {'plans'}  # /plans/ y /subscription/ se mapean a 'plans' en middleware
+            dashboard_module = 'dashboard'
+
+            if status in full_access_statuses:
+                return {
+                    'has_access': True,
+                    'access_level': 'full',
+                    'message': ''
+                }
+
+            # Expirado: solo acceso limitado
+            if current_module in (dashboard_module,) or current_module in limited_modules:
+                return {
+                    'has_access': True,
+                    'access_level': 'limited',
+                    'message': 'Tu suscripción está expirada. Renueva para recuperar acceso completo.'
+                }
+
+            return {
+                'has_access': False,
+                'access_level': 'none',
+                'message': 'Tu suscripción está expirada. Solo puedes acceder al dashboard y a la suscripción para renovar.',
+                'redirect_to': 'plans:subscription_dashboard'
+            }
+        except Exception as e:
+            logger.error(f"Error en check_access_permissions: {e}", exc_info=True)
+            return {
+                'has_access': False,
+                'access_level': 'none',
+                'message': 'No se pudo verificar el acceso de suscripción.',
+                'redirect_to': 'plans:subscription_dashboard'
+            }

@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Solicitar Renovación - Arc Manager{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/plans.css' %}?v=10.4">
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <!-- Header Section -->
+    <div class="header-section">
+        <div class="header-content">
+            <div class="header-title">
+                <div class="header-icon">
+                    <i class="fas fa-redo"></i>
+                </div>
+                <div>
+                    <h1>Solicitar Renovación</h1>
+                    <p>Envía una solicitud para renovar tu plan actual y continuar disfrutando de todos los servicios</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content (versión simplificada) -->
+    <div class="main-content-grid">
+        <div class="left-content">
+            <div class="renewal-cta-card">
+                <div class="card-body">
+                    <form method="post" class="renewal-form">
+                        {% csrf_token %}
+
+                        <div class="renewal-summary compact">
+                            <div class="summary-row"><span class="label">Plan</span><span class="value">{{ subscription.plan.display_name }}</span></div>
+                            <div class="summary-row"><span class="label">Período</span><span class="value">{{ renewal_days }} días</span></div>
+                            <div class="summary-row"><span class="label">Nueva fecha</span><span class="value">{{ new_end_date|date:"d/m/Y" }}</span></div>
+                            <div class="summary-row total"><span class="label">Total</span><span class="value">${{ renewal_amount|floatformat:2 }}</span></div>
+                        </div>
+
+                        <div class="form-actions" style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+                            <button type="button" class="btn btn-outline-secondary" onclick="history.back()">
+                                <i class="fas fa-arrow-left"></i>
+                                Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary renewal-btn">
+                                <i class="fas fa-paper-plane"></i>
+                                Enviar Solicitud
+                            </button>
+                        </div>
+
+                        <div class="reason-field" style="margin-top:12px;">
+                            <label for="reason" class="form-label" style="font-weight:500;">Motivo (opcional)</label>
+                            <textarea name="reason" id="reason" class="form-control" rows="2" placeholder="Mensaje para el equipo (opcional)"></textarea>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Confirmación antes de enviar el formulario
+    const form = document.querySelector('.renewal-form');
+    const submitBtn = document.querySelector('.renewal-btn');
+    
+    if (form && submitBtn) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const confirmed = confirm(
+                '¿Estás seguro de que quieres enviar la solicitud de renovación?\n\n' +
+                'Se enviará una solicitud de pago de ${{ renewal_amount|floatformat:2 }} para extender tu suscripción por {{ renewal_days }} días más.'
+            );
+            
+            if (confirmed) {
+                // Mostrar indicador de carga
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+                submitBtn.disabled = true;
+                
+                // Enviar el formulario
+                form.submit();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

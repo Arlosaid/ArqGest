@@ -34,11 +34,11 @@
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     
     <!-- Estilos básicos con versión simple -->
-    <link href="{% static 'css/base.css' %}?v=4.0" rel="stylesheet">
-    <link href="{% static 'css/navbar.css' %}?v=4.0" rel="stylesheet">
-    <link href="{% static 'css/sidebar.css' %}?v=4.0" rel="stylesheet">
-    <link href="{% static 'css/notifications.css' %}?v=4.0" rel="stylesheet">
-    <link href="{% static 'css/task_detail_modal.css' %}?v=4.0" rel="stylesheet">
+    <link href="{% static 'css/base.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
+    <link href="{% static 'css/navbar.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
+    <link href="{% static 'css/sidebar.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
+    <link href="{% static 'css/notifications.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
+    <link href="{% static 'css/task_detail_modal.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
     
     <!-- Optimizaciones específicas para Safari móvil iOS -->
     {% comment %}{% mobile_css 'css/mobile_ios_fixes.css' 'screen and (max-width: 991.98px)' %}{% endcomment %}
@@ -60,6 +60,19 @@
         
         <!-- Área de contenido -->
         <main class="content-area">
+            {% if request.subscription_info %}
+                {% with info=request.subscription_info %}
+                {% if info.is_expired %}
+                    <div class="alert alert-danger" role="alert" style="margin:12px 12px 0 12px;">
+                        Tu suscripción está expirada. <a href="{% url 'plans:renew_subscription' %}" class="alert-link">Renueva ahora</a> para recuperar el acceso completo.
+                    </div>
+                {% elif info.expires_soon or info.days_remaining <= 7 and info.days_remaining > 0 %}
+                    <div class="alert alert-warning" role="alert" style="margin:12px 12px 0 12px;">
+                        Tu suscripción vence en {{ info.days_remaining }} día{{ info.days_remaining|pluralize:"s" }}. <a href="{% url 'plans:renew_subscription' %}" class="alert-link">Renueva aquí</a>.
+                    </div>
+                {% endif %}
+                {% endwith %}
+            {% endif %}
             <!-- Mensajes del sistema (ocultos - se manejan con JavaScript) -->
             {% if messages %}
                 <div class="messages-container" style="display: none;">
@@ -86,32 +99,30 @@
 
     <!-- HTMX para interacciones hx-* (upload/delete parciales, etc.) -->
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-    <script src="{% static 'js/htmx_csrf.js' %}?v=4.0"></script>
+    <script src="{% static 'js/htmx_csrf.js' %}?v={{ STATIC_VERSION }}"></script>
     
     <!-- Manejador global de errores HTMX -->
-    <script src="{% static 'js/htmx_error_handler.js' %}?v=4.0"></script>
+    <script src="{% static 'js/htmx_error_handler.js' %}?v={{ STATIC_VERSION }}"></script>
     
     <!-- Sistema de Progreso de Upload optimizado -->
-    <script src="{% static 'js/upload_progress.js' %}?v=4.0"></script>
+    <script src="{% static 'js/upload_progress.js' %}?v={{ STATIC_VERSION }}"></script>
     
     <!-- Mobile Upload Optimizer -->
-    <script src="{% static 'js/mobile_upload_optimizer.js' %}?v=4.0"></script>
+    <script src="{% static 'js/mobile_upload_optimizer.js' %}?v={{ STATIC_VERSION }}"></script>
     
     <!-- Scripts base estables -->
-    <script src="{% static 'js/base.js' %}?v=4.0"></script>
-    <script src="{% static 'js/navbar.js' %}?v=4.0"></script>
-    <script src="{% static 'js/sidebar.js' %}?v=4.0"></script>
-    <script src="{% static 'js/notifications.js' %}?v=4.0"></script>
+    <script src="{% static 'js/base.js' %}?v={{ STATIC_VERSION }}"></script>
+    <script src="{% static 'js/navbar.js' %}?v={{ STATIC_VERSION }}"></script>
+    <script src="{% static 'js/sidebar.js' %}?v={{ STATIC_VERSION }}"></script>
+    <script src="{% static 'js/notifications.js' %}?v={{ STATIC_VERSION }}"></script>
     
     <!-- Demo de Notificaciones (solo en desarrollo) -->
     {% if debug %}
-    <script src="{% static 'js/notifications-demo.js' %}?v=4.0"></script>
+    <script src="{% static 'js/notifications-demo.js' %}?v={{ STATIC_VERSION }}"></script>
     {% endif %}
     
-    <!-- Notificaciones Automáticas de Suscripción (solo si es necesario) -->
-    {% comment %}
-    <script src="{% static 'js/subscription-notifications.js' %}?v=1.0"></script>
-    {% endcomment %}
+    <!-- Notificaciones Automáticas de Suscripción -->
+    <script src="{% static 'js/subscription-notifications.js' %}?v={{ STATIC_VERSION }}"></script>
     
     <!-- Modal de Edición de Tareas -->
     
@@ -147,7 +158,7 @@
         </div>
     </div>
 
-    <script src="{% static 'js/modal_helpers.js' %}?v=4.0"></script>
+    <script src="{% static 'js/modal_helpers.js' %}?v={{ STATIC_VERSION }}"></script>
     
     <!-- JavaScript optimizado para el menú mobile responsive - Producción móvil -->
     <script>

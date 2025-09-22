@@ -64,6 +64,10 @@
         border-left-color: #9b59b6;
     }
     
+    .metric-card.renewals {
+        border-left-color: #16a085;
+    }
+    
     .metric-card.alerts {
         border-left-color: #e74c3c;
     }
@@ -328,7 +332,7 @@
     
     <div class="dashboard-header">
         <h1>💰 Dashboard Financiero</h1>
-        <p>Métricas detalladas de ingresos, suscripciones y solicitudes de upgrade</p>
+        <p>Métricas detalladas de ingresos, suscripciones y solicitudes de upgrade/renovación</p>
     </div>
     
     {% if dashboard_stats.error %}
@@ -374,6 +378,16 @@
             <div class="metric-label">Upgrades Pendientes</div>
             <div class="metric-detail">Requieren revisión</div>
         </div>
+        
+        <!-- Solicitudes de Renovación -->
+        <div class="metric-card renewals">
+            <div class="metric-icon">🔄</div>
+            <div class="metric-value {% if dashboard_stats.notifications.pending_renewals > 0 %}warning{% else %}positive{% endif %}">
+                {{ dashboard_stats.notifications.pending_renewals }}
+            </div>
+            <div class="metric-label">Renovaciones Pendientes</div>
+            <div class="metric-detail">Requieren revisión</div>
+        </div>
     </div>
     
     <!-- Ingresos por Mes -->
@@ -408,6 +422,31 @@
                 <div class="action-buttons">
                     <a href="{% url 'admin:plans_upgraderequest_change' request.id %}" class="btn btn-primary">Revisar</a>
                     <a href="{% url 'admin:plans_upgraderequest_changelist' %}?status=pending" class="btn btn-success">Ver Todas</a>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Solicitudes de Renovación Detalladas -->
+    {% if dashboard_stats.renewal_requests %}
+    <div class="section">
+        <h3>🔄 Solicitudes de Renovación</h3>
+        <div class="upgrade-requests-grid">
+            {% for r in dashboard_stats.renewal_requests %}
+            <div class="upgrade-card {{ r.status }}">
+                <div class="upgrade-org">{{ r.organization_name }}</div>
+                <div class="upgrade-details">
+                    Renovación de {{ r.plan_name }} · {{ r.days }} días
+                </div>
+                <div class="upgrade-amount">${{ r.amount }}</div>
+                <div class="upgrade-date">{{ r.created_at|date:"d/m/Y H:i" }}</div>
+                {% if r.status == 'pending' %}
+                <div class="action-buttons">
+                    <a href="{% url 'admin:plans_renewalrequest_change' r.id %}" class="btn btn-primary">Revisar</a>
+                    <a href="{% url 'admin:plans_renewalrequest_changelist' %}?status=pending" class="btn btn-success">Ver Todas</a>
                 </div>
                 {% endif %}
             </div>

@@ -141,14 +141,7 @@ class Subscription(models.Model):
         if self.end_date and now <= self.end_date:
             return f'{plan_prefix}_active'
         
-        # Si tiene período de gracia, verificar si estamos dentro de él
-        if self.plan.grace_period_days > 0:
-            # La fecha de fin de gracia se calcula dinámicamente
-            grace_end_date = self.end_date + timedelta(days=self.plan.grace_period_days)
-            if now <= grace_end_date:
-                return f'{plan_prefix}_grace'
-
-        # Si ninguna de las condiciones anteriores se cumple, ha expirado
+        # Sin período de gracia: si pasó la fecha de vencimiento, expira
         return f'{plan_prefix}_expired'
 
     def update_status(self):
@@ -157,9 +150,9 @@ class Subscription(models.Model):
         if new_status != self.subscription_status:
             self.subscription_status = new_status
             
-            # Si la suscripción entra en período de gracia, calcula y guarda la fecha de fin de gracia
-            if new_status.endswith('_grace') and not self.grace_end_date:
-                self.grace_end_date = self.end_date + timedelta(days=self.plan.grace_period_days)
+            # Sin período de gracia: limpiar grace_end_date
+            if self.grace_end_date:
+                self.grace_end_date = None
 
             self.save(update_fields=['subscription_status', 'grace_end_date', 'updated_at'])
             return True
@@ -319,6 +312,111 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.subscription.organization.name} - ${self.amount} ({self.get_status_display()})"
+
+
+class RenewalRequest(models.Model):
+    """Gestiona las solicitudes de los usuarios para renovar su suscripción actual."""
+    STATUS_CHOICES = [
+        ('pending', 'Pendiente'),
+        ('approved', 'Aprobado'),
+        ('rejected', 'Rechazado'),
+    ]
+    
+    organization = models.ForeignKey('orgs.Organization', on_delete=models.CASCADE, related_name='renewal_requests')
+    subscription = models.ForeignKey('Subscription', on_delete=models.CASCADE, related_name='renewal_requests')
+    
+    renewal_amount = models.DecimalField("Monto de renovación", max_digits=10, decimal_places=2)
+    renewal_days = models.PositiveIntegerField("Días de renovación")
+    reason = models.TextField("Motivo de renovación", blank=True, help_text="Motivo opcional para la renovación")
+    
+    status = models.CharField("Estado", max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True)
+    
+    approved_by = models.CharField("Aprobado por", max_length=100, blank=True)
+    processed_at = models.DateTimeField("Fecha de procesamiento", null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Solicitud de Renovación"
+        verbose_name_plural = "Solicitudes de Renovación"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.organization.name}: Renovación de {self.subscription.plan.display_name}"
+
+    def approve(self, approved_by_user):
+        """Aprueba la solicitud, registra el pago y extiende exactamente renewal_days."""
+        from django.db import transaction
+        
+        logger = logging.getLogger(__name__)
+        
+        if self.status != 'pending':
+            return {'success': False, 'error': 'La solicitud no está pendiente.'}
+
+        try:
+            with transaction.atomic():
+                self.status = 'approved'
+                self.approved_by = f"{approved_by_user.email} (ID: {approved_by_user.pk})"
+                self.processed_at = timezone.now()
+                self.save(update_fields=['status', 'approved_by', 'processed_at', 'updated_at'])
+
+                # Extender exactamente renewal_days y crear el Payment correspondiente
+                subscription = self.subscription
+                now = timezone.now()
+                old_end_date = subscription.end_date
+                base_date = max(now, subscription.end_date or now)
+                subscription.end_date = base_date + timedelta(days=self.renewal_days)
+                subscription.subscription_status = f'{subscription.plan.name}_active'
+                subscription.grace_end_date = None
+
+                # Asegurar timezone-aware en Payment
+                safe_old_end_date = timezone.make_aware(old_end_date) if old_end_date and old_end_date.tzinfo is None else old_end_date
+                safe_new_end_date = timezone.make_aware(subscription.end_date) if subscription.end_date and subscription.end_date.tzinfo is None else subscription.end_date
+
+                payment = Payment.objects.create(
+                    subscription=subscription,
+                    amount=self.renewal_amount,
+                    payment_method='manual',
+                    payment_type='subscription',
+                    status='completed',
+                    processed_by=self.approved_by,
+                    description=f'Renovación aprobada por {self.renewal_days} días',
+                    days_added=self.renewal_days,
+                    old_end_date=safe_old_end_date,
+                    new_end_date=safe_new_end_date
+                )
+
+                subscription.save(update_fields=['end_date', 'subscription_status', 'grace_end_date', 'updated_at'])
+
+                logger.info(
+                    f"Renovación aprobada para {self.organization.name}. "
+                    f"Plan {subscription.plan.display_name} extendido por {self.renewal_days} días."
+                )
+                return {'success': True, 'payment_id': payment.id}
+
+        except Exception as e:
+            logger.error(f"Error al aprobar la solicitud de renovación {self.id}: {str(e)}", exc_info=True)
+            return {'success': False, 'error': f'Error interno: {str(e)}'}
+
+    def reject(self, rejected_by_user, reason: str | None = None):
+        """Rechaza la solicitud y registra el usuario que la procesó."""
+        logger = logging.getLogger(__name__)
+        if self.status != 'pending':
+            return {'success': False, 'error': 'La solicitud no está pendiente.'}
+        try:
+            self.status = 'rejected'
+            # Reutilizamos el campo approved_by para almacenar el usuario que procesó
+            self.approved_by = f"{rejected_by_user.email} (ID: {rejected_by_user.pk})"
+            self.processed_at = timezone.now()
+            if reason:
+                self.reason = f"Rechazado: {reason}"
+            self.save(update_fields=['status', 'approved_by', 'processed_at', 'reason', 'updated_at'])
+            logger.info(f"Solicitud de renovación {self.id} rechazada por {self.approved_by}.")
+            return {'success': True}
+        except Exception as e:
+            logger.error(f"Error al rechazar la solicitud de renovación {self.id}: {str(e)}", exc_info=True)
+            return {'success': False, 'error': f'Error interno: {str(e)}'}
 
 
 class UpgradeRequest(models.Model):

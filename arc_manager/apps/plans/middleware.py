@@ -1,4 +1,4 @@
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.contrib import messages
 from django.http import JsonResponse
@@ -24,12 +24,9 @@ class SubscriptionAccessMiddleware(MiddlewareMixin):
         
         # Rutas que siempre están permitidas (sin verificación de suscripción)
         self.always_allowed_paths = [
-            '/admin/',
             '/accounts/login/',
             '/accounts/logout/',
             '/accounts/password_reset/',
-            '/plans/',
-            '/api/check-limits/',
             '/static/',
             '/media/',
             '/favicon.ico',
@@ -40,8 +37,13 @@ class SubscriptionAccessMiddleware(MiddlewareMixin):
             '/dashboard/',
             '/orgs/',
             '/users/',
-            '/projects/',  # Para el futuro
             '/reports/',   # Para el futuro
+            '/admin/',
+        ]
+        
+        # Rutas que siempre están permitidas para usuarios autenticados (sin verificación de suscripción)
+        self.authenticated_allowed_paths = [
+            '/projects/',  # Los usuarios pueden acceder a proyectos siempre
         ]
         
         # Rutas que pueden funcionar con acceso limitado
@@ -77,6 +79,10 @@ class SubscriptionAccessMiddleware(MiddlewareMixin):
         if self._is_always_allowed(request.path):
             return None
         
+        # Verificar si la ruta está permitida para usuarios autenticados
+        if self._is_authenticated_allowed(request.path):
+            return None
+        
         # Verificar si el usuario tiene organización
         if not hasattr(request.user, 'organization') or not request.user.organization:
             # Usuario sin organización - redirigir a configuración
@@ -95,6 +101,14 @@ class SubscriptionAccessMiddleware(MiddlewareMixin):
         # Determinar el módulo actual
         current_module = self._get_current_module(request.path)
         
+        # Sincronizar estado antes de validar acceso
+        try:
+            if hasattr(subscription, 'update_status'):
+                if subscription.update_status():
+                    subscription.refresh_from_db()
+        except Exception:
+            pass
+
         # Verificar permisos de acceso
         access_result = SubscriptionService.check_access_permissions(subscription, current_module)
         
@@ -114,9 +128,17 @@ class SubscriptionAccessMiddleware(MiddlewareMixin):
                 return True
         return False
     
+    def _is_authenticated_allowed(self, path):
+        """Verifica si la ruta está permitida para usuarios autenticados"""
+        for allowed_path in self.authenticated_allowed_paths:
+            if path.startswith(allowed_path):
+                return True
+        return False
+    
     def _get_current_module(self, path):
         """Determina el módulo actual basado en la ruta"""
-        if path.startswith('/dashboard/'):
+        # Tratar la raíz y /main/ como dashboard para permitir acceso limitado cuando expira
+        if path == '/' or path.startswith('/main/') or path.startswith('/dashboard/'):
             return 'dashboard'
         elif path.startswith('/orgs/'):
             return 'organizations'
@@ -145,15 +167,24 @@ class SubscriptionAccessMiddleware(MiddlewareMixin):
                 'redirect_url': reverse(self.redirect_url) if access_result.get('redirect_to') else None
             }, status=403)
         
-        # Request normal - redirigir con mensaje
+        # Request normal
         message = access_result.get('message', 'Acceso denegado')
-        
+
+        # Si el usuario NO es admin de organización, mostrar 403 simple y claro
+        is_org_admin = getattr(request.user, 'is_org_admin', False)
+        if not is_org_admin:
+            # Mostrar 403 con mensaje y CTA a proyectos
+            context = {
+                'custom_message': message or 'Tu suscripción está expirada. Contacta a tu administrador.',
+                'show_projects_link': True,
+            }
+            return render(request, '403.html', context=context, status=403)
+
+        # Para administradores de organización, mantener flujo actual con mensajes y redirección
         if access_result.get('access_level') == 'limited':
             messages.warning(request, message)
         else:
             messages.error(request, message)
-        
-        # Redirigir a la URL apropiada
         redirect_to = access_result.get('redirect_to', self.redirect_url)
         return redirect(redirect_to)
 
@@ -178,6 +209,14 @@ class SubscriptionInfoMiddleware(MiddlewareMixin):
             
             subscription = SubscriptionService.get_subscription_or_create(request.user.organization)
             if subscription:
+                # Asegurar estado actualizado
+                try:
+                    if hasattr(subscription, 'update_status'):
+                        if subscription.update_status():
+                            subscription.refresh_from_db()
+                except Exception:
+                    pass
+
                 # Agregar información útil al request
                 request.subscription_info = {
                     'status': subscription.subscription_status,

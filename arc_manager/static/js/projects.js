@@ -344,6 +344,13 @@ function updateProgressCircles() {
 // Ejecutar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
     updateProgressCircles();
+    try {
+        if (typeof ProjectsManager === 'function') {
+            new ProjectsManager();
+        }
+    } catch (e) {
+        console.warn('No se pudo inicializar ProjectsManager:', e);
+    }
 });
 
 // Exportar para uso global

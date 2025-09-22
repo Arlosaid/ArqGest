@@ -79,176 +79,36 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ Búsqueda de usuarios configurada correctamente');
 });
 
-// Funciones para modal de eliminación (extraídas del JS original)
-function openDeleteModal(userId) {
-    // Buscar información del usuario en la tabla
-    let userRow = null;
-    const deleteButtons = document.querySelectorAll('button[onclick*="openDeleteModal"]');
-    
-    for (let btn of deleteButtons) {
-        if (btn.onclick.toString().includes(userId)) {
-            userRow = btn.closest('tr');
-            if (!userRow) {
-                userRow = btn.closest('.mobile-user-card');
-            }
-            break;
-        }
-    }
-    
-    if (!userRow) {
-        console.error('No se encontró información del usuario');
-        return;
-    }
-    
-    // Poblar modal
-    if (userRow.tagName === 'TR') {
-        populateDeleteModalFromTable(userId, userRow);
-    } else {
-        populateDeleteModalFromMobile(userId, userRow);
-    }
-    
-    // Mostrar modal manualmente
-    const modalElement = document.getElementById('deleteUserModal');
-    modalElement.style.display = 'block';
-    modalElement.classList.add('show');
-    document.body.classList.add('modal-open');
-}
-
-function closeDeleteModal() {
-    const modalElement = document.getElementById('deleteUserModal');
-    modalElement.style.display = 'none';
-    modalElement.classList.remove('show');
-    document.body.classList.remove('modal-open');
-}
-
-function populateDeleteModalFromTable(userId, row) {
-    const userInfo = extractUserInfoFromTableRow(row);
-    populateDeleteModal(userId, userInfo);
-}
-
-function populateDeleteModalFromMobile(userId, card) {
-    const userInfo = extractUserInfoFromMobileCard(card);
-    populateDeleteModal(userId, userInfo);
-}
-
-function extractUserInfoFromTableRow(row) {
-    const userNameEl = row.querySelector('.user-name');
-    const emailEl = row.querySelector('.email-link');
-    const roleEl = row.querySelector('.role-badge');
-    const statusEl = row.querySelector('.status-badge');
-    
-    return {
-        fullName: userNameEl ? userNameEl.textContent.trim() : 'N/A',
-        email: emailEl ? emailEl.textContent.trim() : 'N/A',
-        role: roleEl ? roleEl.textContent.trim() : 'N/A',
-        status: statusEl ? statusEl.textContent.trim() : 'N/A',
-        initials: userNameEl ? getInitials(userNameEl.textContent) : 'NA'
-    };
-}
-
-function extractUserInfoFromMobileCard(card) {
-    const userNameEl = card.querySelector('.user-name');
-    const emailEl = card.querySelector('.user-username');
-    const roleEl = card.querySelector('.role-badge');
-    const statusEl = card.querySelector('.status-badge');
-    
-    return {
-        fullName: userNameEl ? userNameEl.textContent.trim() : 'N/A',
-        email: emailEl ? emailEl.textContent.trim() : 'N/A',
-        role: roleEl ? roleEl.textContent.trim() : 'N/A',
-        status: statusEl ? statusEl.textContent.trim() : 'N/A',
-        initials: userNameEl ? getInitials(userNameEl.textContent) : 'NA'
-    };
-}
-
-function getInitials(name) {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
-}
-
-function populateDeleteModal(userId, userInfo) {
-    document.getElementById('userInitials').textContent = userInfo.initials;
-    document.getElementById('userFullName').textContent = userInfo.fullName;
-    document.getElementById('userEmail').textContent = userInfo.email;
-    document.getElementById('userStatus').innerHTML = `<span class="badge ${userInfo.status.toLowerCase() === 'activo' ? 'bg-success' : 'bg-secondary'}">${userInfo.status}</span>`;
-    
-    // Configurar el botón de confirmación
-    const confirmBtn = document.getElementById('confirmDeleteBtn');
-    confirmBtn.setAttribute('data-user-id', userId);
-    
-    // Resetear checkbox y botón
-    const checkbox = document.getElementById('confirmUnderstand');
-    checkbox.checked = false;
-    confirmBtn.disabled = true;
-    
-    // Resetear spinner
-    const spinner = confirmBtn.querySelector('.spinner-border');
-    if (spinner) spinner.classList.add('d-none');
-}
-
-function deleteUser(userId) {
-    const confirmBtn = document.getElementById('confirmDeleteBtn');
-    const spinner = confirmBtn.querySelector('.spinner-border');
-    
-    // Mostrar loading
-    confirmBtn.disabled = true;
-    if (spinner) spinner.classList.remove('d-none');
-    
-    // Realizar petición de eliminación con la URL correcta
+// Confirmación nativa y eliminación directa
+function confirmAndDelete(userId) {
+    const row = document.querySelector(`tr[data-user-id="${userId}"]`) || document.querySelector(`.mobile-user-card[data-user-id="${userId}"]`);
+    const nameEl = row ? row.querySelector('.user-name') : null;
+    const nameText = nameEl ? nameEl.textContent.trim() : 'este usuario';
+    if (!confirm(`¿Seguro que deseas eliminar a ${nameText}?`)) return;
     const formData = new FormData();
     formData.append('confirm_delete', 'yes');
-    
+    const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
     fetch(`/users/${userId}/delete-ajax/`, {
         method: 'POST',
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-        },
+        headers: { 'X-CSRFToken': csrf },
         body: formData
     })
-    .then(response => response.json())
+    .then(r => r.json())
     .then(data => {
-        if (data.success) {
-            closeDeleteModal();
-            const userNameEl = document.getElementById('userFullName');
-            const userName = userNameEl ? userNameEl.textContent : 'Usuario';
-            
-            // Mostrar notificación simple
-            alert(`${userName} eliminado correctamente`);
-            
-            // Recargar página
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
-        } else {
-            throw new Error(data.error || 'Error al eliminar usuario');
-        }
+        if (!data.success) throw new Error(data.error || 'Error al eliminar usuario');
+        const tableRow = document.querySelector(`tr[data-user-id="${userId}"]`);
+        if (tableRow && tableRow.parentNode) tableRow.parentNode.removeChild(tableRow);
+        const card = document.querySelector(`.mobile-user-card[data-user-id="${userId}"]`);
+        if (card && card.parentNode) card.parentNode.removeChild(card);
+        const remainingRows = document.querySelectorAll('tbody tr').length;
+        const remainingCards = document.querySelectorAll('.mobile-user-card').length;
+        if (remainingRows === 0 && remainingCards === 0) window.location.reload();
     })
-    .catch(error => {
-        confirmBtn.disabled = false;
-        if (spinner) spinner.classList.add('d-none');
-        alert(`Error al eliminar usuario: ${error.message}`);
-        console.error('Error al eliminar usuario:', error);
-        closeDeleteModal();
+    .catch(err => {
+        alert('Error al eliminar usuario');
+        console.error(err);
     });
 }
-
-// Configurar modal cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', function() {
-    const confirmCheckbox = document.getElementById('confirmUnderstand');
-    const confirmBtn = document.getElementById('confirmDeleteBtn');
-    
-    if (confirmCheckbox && confirmBtn) {
-        confirmCheckbox.addEventListener('change', function() {
-            confirmBtn.disabled = !this.checked;
-        });
-        
-        confirmBtn.addEventListener('click', function() {
-            const userId = this.getAttribute('data-user-id');
-            if (userId && confirmCheckbox.checked) {
-                deleteUser(userId);
-            }
-        });
-    }
-});
 </script>
 {% endblock %}
 
@@ -370,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </thead>
                     <tbody>
                         {% for user_item in users %}
-                        <tr>
+                        <tr data-user-id="{{ user_item.pk }}">
                             <td style="text-align: left; padding-left: 1.5rem;">
                                 <div class="user-info">
                                     <div class="user-avatar">
@@ -418,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     {% if user.is_org_admin and user.organization and user_item.organization == user.organization and user_item != user %}
                                         <button type="button"
                                                 class="action-btn delete"
-                                                onclick="openDeleteModal({{ user_item.pk }})"
+                                                onclick="confirmAndDelete({{ user_item.pk }})"
                                                 title="Eliminar usuario">
                                             <i class="fas fa-trash-alt"></i>
                                         </button>
@@ -442,7 +302,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <!-- Vista móvil - Cards -->
             <div class="mobile-user-cards" style="display: none;">
                 {% for user_item in users %}
-                <div class="mobile-user-card">
+                <div class="mobile-user-card" data-user-id="{{ user_item.pk }}">
                     <div class="mobile-user-header">
                         <div class="user-avatar">
                             {{ user_item.get_full_name|first|upper }}
@@ -492,7 +352,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         {% if user.is_org_admin and user.organization and user_item.organization == user.organization and user_item != user %}
                             <button type="button"
                                     class="action-btn delete"
-                                    onclick="openDeleteModal({{ user_item.pk }})"
+                                    onclick="confirmAndDelete({{ user_item.pk }})"
                                     title="Eliminar usuario">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
@@ -578,82 +438,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
-<!-- Modal de Eliminación Sin Backdrop -->
 {% csrf_token %}
-<div id="deleteUserModal" class="modal" tabindex="-1" style="display: none;">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <!-- Header del Modal -->
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="deleteUserModalLabel">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    Eliminar Usuario
-                </h5>
-                <button type="button" class="btn-close btn-close-white" onclick="closeDeleteModal()" aria-label="Cerrar"></button>
-            </div>
-            
-            <!-- Cuerpo del Modal -->
-            <div class="modal-body">
-                <!-- Alerta de advertencia principal -->
-                <div class="alert alert-danger">
-                    <div class="d-flex align-items-center">
-                        <i class="fas fa-exclamation-circle me-3"></i>
-                        <div>
-                            <h6 class="mb-1">¡ATENCIÓN! Acción Irreversible</h6>
-                            <p class="mb-0">
-                                Estás a punto de eliminar permanentemente este usuario. 
-                                <strong>Esta acción no se puede deshacer.</strong>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Información del usuario a eliminar -->
-                <div class="card bg-light mb-3" id="userInfoCard">
-                    <div class="card-body">
-                        <h6 class="card-title text-muted mb-3">
-                            <i class="fas fa-user me-2"></i>
-                            Usuario a Eliminar
-                        </h6>
-                        
-                        <div class="text-center mb-3">
-                            <div class="user-avatar-large bg-danger text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-2">
-                                <span id="userInitials"></span>
-                            </div>
-                            <div>
-                                <div class="mb-1"><strong id="userFullName"></strong></div>
-                                <div class="text-muted mb-1" id="userEmail"></div>
-                                <div class="text-muted mb-1">Org: <span id="userOrganization">{{ user.organization.name|default:"N/A" }}</span></div>
-                                <div id="userStatus"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Confirmación -->
-                <div class="bg-light rounded p-3 mb-3">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="confirmUnderstand" required>
-                        <label class="form-check-label" for="confirmUnderstand">
-                            <strong>Entiendo que esta acción es irreversible</strong> y confirmo que quiero eliminar permanentemente este usuario
-                        </label>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Footer del Modal -->
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">
-                    Cancelar
-                </button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn" disabled>
-                    <span class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
-                    Eliminar Usuario
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- El JavaScript para el modal se encuentra en user_management.js -->
 {% endblock %}

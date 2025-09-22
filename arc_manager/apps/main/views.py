@@ -29,10 +29,9 @@ def dashboard(request):
         # podríamos redirigirlo a una página de error o de "espera".
         return render(request, 'error_page.html', {'message': 'No estás asociado a ninguna organización.'})
 
-    # Redirigir si la suscripción de la organización está expirada
+    # Obtener suscripción y flag de expiración (no redirigir: mostrar dashboard en modo lectura)
     subscription = getattr(organization, 'subscription', None)
-    if subscription and subscription.is_expired:
-        return redirect(reverse('plans:subscription_dashboard'))
+    is_subscription_expired = bool(subscription and subscription.is_expired)
 
     # --- Widgets de Métricas para el Arquitecto ---
 
@@ -127,6 +126,7 @@ def dashboard(request):
 
         # Para consistencia con la plantilla actual
         'tasks': my_tasks, 
+        'is_subscription_expired': is_subscription_expired,
     }
     
     return render(request, 'dashboard.html', context)

@@ -202,10 +202,12 @@
             <h5>No hay proyectos disponibles</h5>
             <p>No se encontraron proyectos para mostrar en el kanban</p>
             <div style="margin-top: 1.5rem;">
-                <a href="{% url 'projects:project-create' %}" class="btn-primary">
-                    <i class="fas fa-plus"></i>
-                    Crear Primer Proyecto
-                </a>
+                {% if user.is_org_admin %}
+                    <a href="{% url 'projects:project-create' %}" class="btn-primary">
+                        <i class="fas fa-plus"></i>
+                        Crear Primer Proyecto
+                    </a>
+                {% endif %}
             </div>
         </div>
     </div>

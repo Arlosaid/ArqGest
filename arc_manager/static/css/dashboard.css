@@ -781,3 +781,10 @@
         font-size: 1rem;
     }
 }
+
+/* ===== UTILIDAD: ENLACE DESHABILITADO POR SUSCRIPCIÓN VENCIDA ===== */
+.disabled-link {
+    pointer-events: none;
+    opacity: 0.55;
+    cursor: not-allowed;
+}

@@ -6,7 +6,7 @@ from django.utils.html import format_html
 from django.urls import reverse, path
 from django.utils import timezone
 from datetime import timedelta
-from .models import Plan, Subscription, UpgradeRequest, Payment
+from .models import Plan, Subscription, UpgradeRequest, Payment, RenewalRequest
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 import logging
@@ -431,6 +431,138 @@ class PaymentAdmin(ImportExportModelAdmin):
         
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('subscription__organization')
+
+@admin.register(RenewalRequest)
+class RenewalRequestAdmin(ImportExportModelAdmin):
+    list_display = [
+        'organization', 'subscription', 'renewal_amount', 'renewal_days', 
+        'status', 'created_at', 'processed_at', 'approved_by'
+    ]
+    list_filter = ['status', 'created_at', 'processed_at']
+    search_fields = ['organization__name', 'subscription__plan__display_name', 'reason']
+    readonly_fields = [
+        'organization', 'subscription', 'renewal_amount', 'renewal_days', 
+        'created_at', 'updated_at', 'processed_at', 'approved_by'
+    ]
+    fieldsets = (
+        ('Información de la Solicitud', {
+            'fields': ('organization', 'subscription', 'status')
+        }),
+        ('Detalles de Renovación', {
+            'fields': ('renewal_amount', 'renewal_days')
+        }),
+        ('Motivo', {
+            'fields': ('reason',),
+            'classes': ('collapse',)
+        }),
+        ('Procesamiento', {
+            'fields': ('approved_by', 'processed_at'),
+            'classes': ('collapse',)
+        }),
+        ('Fechas', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    ordering = ['-created_at']
+    actions = ['approve_selected_renewals', 'reject_selected_renewals']
+
+    def save_model(self, request, obj, form, change):
+        """
+        Evita que un cambio manual del campo 'status' salte la lógica de negocio.
+        Si alguien marca como 'approved' o 'rejected' desde el formulario, ejecutamos approve()/reject().
+        """
+        if change and obj.pk:
+            try:
+                original = RenewalRequest.objects.get(pk=obj.pk)
+            except RenewalRequest.DoesNotExist:
+                original = None
+
+            new_status = form.cleaned_data.get('status') if form is not None else None
+
+            # Si el original estaba pendiente y en el form viene aprobado, usar approve()
+            if original and original.status == 'pending' and new_status == 'approved':
+                result = original.approve(request.user)
+                if result.get('success'):
+                    self.message_user(request, 'Renovación aprobada y suscripción extendida.', messages.SUCCESS)
+                else:
+                    self.message_user(request, f"No se pudo aprobar la renovación: {result.get('error')}", messages.ERROR)
+                return  # No llamar a super() para evitar doble guardado
+
+            # Si el original estaba pendiente y en el form viene rechazado, usar reject()
+            if original and original.status == 'pending' and new_status == 'rejected':
+                result = original.reject(request.user, "Rechazado desde admin")
+                if result.get('success'):
+                    self.message_user(request, 'Renovación rechazada.', messages.SUCCESS)
+                else:
+                    self.message_user(request, f"No se pudo rechazar la renovación: {result.get('error')}", messages.ERROR)
+                return
+
+        # Por defecto, comportamiento estándar
+        return super().save_model(request, obj, form, change)
+
+    @admin.action(description="✅ Aprobar solicitudes seleccionadas")
+    def approve_selected_renewals(self, request, queryset):
+        approved_count = 0
+        for renewal_request in queryset.filter(status='pending'):
+            try:
+                result = renewal_request.approve(request.user)
+                if result.get('success'):
+                    approved_count += 1
+                else:
+                    self.message_user(
+                        request, 
+                        f"Error aprobando renovación para {renewal_request.organization.name}: {result.get('error')}", 
+                        messages.ERROR
+                    )
+            except Exception as e:
+                logger.error(f"Error aprobando renovación {renewal_request.id}: {e}", exc_info=True)
+                self.message_user(
+                    request, 
+                    f"Error aprobando renovación para {renewal_request.organization.name}", 
+                    messages.ERROR
+                )
+        
+        if approved_count > 0:
+            self.message_user(
+                request, 
+                f"{approved_count} solicitud{'es' if approved_count != 1 else ''} de renovación aprobada{'s' if approved_count != 1 else ''} exitosamente.", 
+                messages.SUCCESS
+            )
+
+    @admin.action(description="❌ Rechazar solicitudes seleccionadas")
+    def reject_selected_renewals(self, request, queryset):
+        rejected_count = 0
+        for renewal_request in queryset.filter(status='pending'):
+            try:
+                result = renewal_request.reject(request.user, "Rechazado desde admin")
+                if result.get('success'):
+                    rejected_count += 1
+                else:
+                    self.message_user(
+                        request, 
+                        f"Error rechazando renovación para {renewal_request.organization.name}: {result.get('error')}", 
+                        messages.ERROR
+                    )
+            except Exception as e:
+                logger.error(f"Error rechazando renovación {renewal_request.id}: {e}", exc_info=True)
+                self.message_user(
+                    request, 
+                    f"Error rechazando renovación para {renewal_request.organization.name}", 
+                    messages.ERROR
+                )
+        
+        if rejected_count > 0:
+            self.message_user(
+                request, 
+                f"{rejected_count} solicitud{'es' if rejected_count != 1 else ''} de renovación rechazada{'s' if rejected_count != 1 else ''}.", 
+                messages.SUCCESS
+            )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'organization', 'subscription__plan'
+        )
 
 admin.site.site_header = "ARC Manager - Administración"
 admin.site.site_title = "ARC Manager Admin"

@@ -2,6 +2,10 @@ from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.core.exceptions import ValidationError
 from .models import User
+import logging
+ 
+# Configurar logger del módulo
+logger = logging.getLogger(__name__)
 
 
 @receiver(pre_save, sender=User)
