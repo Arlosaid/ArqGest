@@ -112,6 +112,8 @@ MIDDLEWARE = [
     'apps.accounts.middleware.PasswordChangeRequiredMiddleware',
     'apps.accounts.middleware.SuperuserRestrictMiddleware',
     'apps.orgs.middleware.OrganizationContextMiddleware',
+    'apps.plans.middleware.SubscriptionAccessMiddleware',
+    'apps.plans.middleware.SubscriptionInfoMiddleware',
     # Logging middlewares - DEBEN ir antes del ErrorHandlingMiddleware
     'core.logging_middleware.Enhanced500LoggingMiddleware',
     'core.logging_middleware.DatabaseErrorLoggingMiddleware',
@@ -207,6 +209,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.global_settings',
             ],
         },
     },
@@ -295,6 +298,8 @@ WHITENOISE_AUTOREFRESH = DEBUG
 # Cambiar esta versión en cada deploy para forzar recarga
 STATIC_VERSION = '2025-01-15-v3'
 WHITENOISE_SKIP_COMPRESS_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'zip', 'gz', 'tgz', 'bz2', 'tbz', 'xz', 'br']
+# Ventana de renovación anticipada (días antes de end_date)
+RENEWAL_WINDOW_DAYS = int(os.environ.get('RENEWAL_WINDOW_DAYS', '2'))
 
 # Configuración de cache optimizada para móviles (iOS y Android)
 # Safari móvil y Chrome Android requieren headers específicos

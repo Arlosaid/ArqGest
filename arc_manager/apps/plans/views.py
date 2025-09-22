@@ -10,7 +10,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import JsonResponse
 import logging
 
-from .models import Plan, Subscription, UpgradeRequest
+from .models import Plan, Subscription, UpgradeRequest, RenewalRequest
 from apps.orgs.models import Organization
 from .services import SubscriptionService
 
@@ -31,7 +31,7 @@ class OrgAdminRequiredMixin(UserPassesTestMixin):
 
 
 # Vistas para usuarios autenticados
-class SubscriptionDashboardView(LoginRequiredMixin, TemplateView):
+class SubscriptionDashboardView(LoginRequiredMixin, OrgAdminRequiredMixin, TemplateView):
     """
     Dashboard de suscripción simplificado.
     La vista solo obtiene los objetos principales, y la lógica de presentación
@@ -64,13 +64,21 @@ class SubscriptionDashboardView(LoginRequiredMixin, TemplateView):
 
         # Actualiza el estado al cargar la página
         subscription.update_status()
+        # Asegura que los campos derivados como grace_end_date se recarguen
+        subscription.refresh_from_db()
 
         context['subscription'] = subscription
         context['organization'] = organization
         context['is_org_admin'] = user.is_org_admin
         
         # Pasar las solicitudes de upgrade directamente a la plantilla
-        context['pending_request'] = UpgradeRequest.objects.filter(
+        context['pending_upgrade_request'] = UpgradeRequest.objects.filter(
+            organization=organization,
+            status='pending'
+        ).first()
+        
+        # Pasar las solicitudes de renovación directamente a la plantilla
+        context['pending_renewal_request'] = RenewalRequest.objects.filter(
             organization=organization,
             status='pending'
         ).first()
@@ -168,7 +176,108 @@ class RequestUpgradeView(LoginRequiredMixin, OrgAdminRequiredMixin, TemplateView
             return redirect('plans:request_upgrade')
 
 
-class SubscriptionInfoAPIView(LoginRequiredMixin, View):
+class RenewSubscriptionView(LoginRequiredMixin, OrgAdminRequiredMixin, TemplateView):
+    """Vista para solicitar la renovación de una suscripción expirada o dentro de la ventana de renovación"""
+    template_name = 'plans/renew_subscription.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        organization = self.request.user.organization
+        subscription = get_object_or_404(Subscription, organization=organization)
+        
+        # Verificar que la suscripción puede ser renovada (expirada o en ventana de renovación)
+        from django.conf import settings
+        from django.utils import timezone
+        from datetime import timedelta
+        renewal_window_days = getattr(settings, 'RENEWAL_WINDOW_DAYS', 2)
+        now = timezone.now()
+        in_window = bool(subscription.end_date and now >= (subscription.end_date - timedelta(days=renewal_window_days)) and now <= subscription.end_date)
+        if not (subscription.is_expired or in_window):
+            messages.warning(self.request, f'Tu suscripción aún no entra en la ventana de renovación (últimos {renewal_window_days} días).')
+            return redirect('plans:subscription_dashboard')
+        
+        if subscription.plan.is_trial:
+            messages.info(self.request, 'Los planes de prueba no se pueden renovar. Debes actualizar a un plan de pago.')
+            return redirect('plans:request_upgrade')
+        
+        # Verificar si ya hay una solicitud pendiente
+        pending_renewal = RenewalRequest.objects.filter(
+            organization=organization,
+            status='pending'
+        ).first()
+        
+        if pending_renewal:
+            messages.info(self.request, 'Ya tienes una solicitud de renovación pendiente.')
+            return redirect('plans:subscription_dashboard')
+        
+        context['subscription'] = subscription
+        context['organization'] = organization
+        
+        # Calcular información de renovación
+        context['renewal_amount'] = subscription.plan.price
+        context['renewal_days'] = subscription.plan.billing_cycle_days
+        
+        # Calcular nueva fecha de vencimiento
+        from django.utils import timezone
+        from datetime import timedelta
+        now = timezone.now()
+        base_date = max(now, subscription.end_date or now)
+        context['new_end_date'] = base_date + timedelta(days=subscription.plan.billing_cycle_days)
+        
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        """Crea una solicitud de renovación"""
+        organization = request.user.organization
+        subscription = get_object_or_404(Subscription, organization=organization)
+        
+        # Verificar que la suscripción puede ser renovada (expirada o en ventana)
+        from django.conf import settings
+        from django.utils import timezone
+        from datetime import timedelta
+        renewal_window_days = getattr(settings, 'RENEWAL_WINDOW_DAYS', 2)
+        now = timezone.now()
+        in_window = bool(subscription.end_date and now >= (subscription.end_date - timedelta(days=renewal_window_days)) and now <= subscription.end_date)
+        if not (subscription.is_expired or in_window):
+            messages.error(request, f'Tu suscripción aún no entra en la ventana de renovación (últimos {renewal_window_days} días).')
+            return redirect('plans:subscription_dashboard')
+        
+        if subscription.plan.is_trial:
+            messages.error(request, 'Los planes de prueba no se pueden renovar.')
+            return redirect('plans:request_upgrade')
+        
+        # Verificar si ya hay una solicitud pendiente
+        if RenewalRequest.objects.filter(organization=organization, status='pending').exists():
+            messages.warning(request, 'Ya tienes una solicitud de renovación pendiente.')
+            return redirect('plans:subscription_dashboard')
+        
+        # Obtener motivo opcional
+        reason = request.POST.get('reason', '').strip()
+        
+        try:
+            with transaction.atomic():
+                RenewalRequest.objects.create(
+                    organization=organization,
+                    subscription=subscription,
+                    renewal_amount=subscription.plan.price,
+                    renewal_days=subscription.plan.billing_cycle_days,
+                    reason=reason
+                )
+                
+            messages.success(
+                request,
+                f'Tu solicitud de renovación para el plan {subscription.plan.display_name} ha sido enviada. '
+                'Recibirás instrucciones de pago una vez que sea aprobada por nuestro equipo.'
+            )
+            return redirect('plans:subscription_dashboard')
+                
+        except Exception as e:
+            logging.getLogger(__name__).error(f"Error creando solicitud de renovación: {e}", exc_info=True)
+            messages.error(request, 'Ocurrió un error al procesar tu solicitud. Por favor contacta al soporte.')
+            return redirect('plans:renew_subscription')
+
+
+class SubscriptionInfoAPIView(LoginRequiredMixin, OrgAdminRequiredMixin, View):
     """Vista API para obtener información de suscripción para notificaciones automáticas"""
     
     def get(self, request):

@@ -41,6 +41,7 @@ from django.utils import timezone
 from core.mixins import PageSizeMixin, ProjectPageSizeMixin
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.cache import cache
+from apps.orgs.mixins import OrganizationAdminMixin
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -210,7 +211,7 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         
         return context
 
-class ProjectCreateView(LoginRequiredMixin, CreateView):
+class ProjectCreateView(LoginRequiredMixin, OrganizationAdminMixin, CreateView):
     model = Project
     form_class = ProjectForm
     template_name = 'projects/project_form.html'
@@ -266,9 +267,14 @@ class ProjectCreateView(LoginRequiredMixin, CreateView):
         except Exception as e:
             logger.error(f"Phase creation failed for project {self.object.id}: {str(e)}", exc_info=True)
 
+        # Invalidar cache después de crear proyecto
+        from .cache_utils import invalidate_project_cache, invalidate_kanban_projects_cache
+        invalidate_project_cache(self.object.organization.id, self.object.id)
+        invalidate_kanban_projects_cache(self.object.organization.id)
+
         return redirect(self.get_success_url())
 
-class ProjectUpdateView(LoginRequiredMixin, UpdateView):
+class ProjectUpdateView(LoginRequiredMixin, OrganizationAdminMixin, UpdateView):
     model = Project
     form_class = ProjectForm
     template_name = 'projects/project_form.html'
@@ -285,13 +291,19 @@ class ProjectUpdateView(LoginRequiredMixin, UpdateView):
         try:
             result = super().form_valid(form)
             logger.info(f"Project {project_id} updated successfully")
+            
+            # Invalidar cache después de actualizar proyecto
+            from .cache_utils import invalidate_project_cache, invalidate_kanban_projects_cache
+            invalidate_project_cache(self.object.organization.id, self.object.id)
+            invalidate_kanban_projects_cache(self.object.organization.id)
+            
             return result
         except IntegrityError as e:
             logger.error(f"Project update failed for {project_id} - IntegrityError: {str(e)}")
             form.add_error('name', _('Ya existe un proyecto con este nombre en tu organización.'))
             return self.form_invalid(form)
 
-class ProjectDeleteView(LoginRequiredMixin, DeleteView):
+class ProjectDeleteView(LoginRequiredMixin, OrganizationAdminMixin, DeleteView):
     model = Project
     template_name = 'projects/project_confirm_delete.html'
     success_url = reverse_lazy('projects:project-list')
@@ -1254,7 +1266,7 @@ def phase_files_paginated(request, project_id, phase_id):
         })
 
 # PhaseTemplate Views
-class PhaseTemplateListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
+class PhaseTemplateListView(LoginRequiredMixin, OrganizationAdminMixin, ProjectPageSizeMixin, ListView):
     paginate_by = 8
     model = PhaseTemplate
     template_name = 'projects/phasetemplate_list.html'
@@ -1266,7 +1278,7 @@ class PhaseTemplateListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
             return PhaseTemplate.objects.filter(organization=self.request.user.organization)
         return PhaseTemplate.objects.none()
 
-class PhaseTemplateCreateView(LoginRequiredMixin, CreateView):
+class PhaseTemplateCreateView(LoginRequiredMixin, OrganizationAdminMixin, CreateView):
     model = PhaseTemplate
     form_class = PhaseTemplateForm
     template_name = 'projects/phasetemplate_form.html'
@@ -1306,7 +1318,7 @@ class PhaseTemplateCreateView(LoginRequiredMixin, CreateView):
 
         return super().form_valid(form)
 
-class PhaseTemplateDetailView(LoginRequiredMixin, DetailView):
+class PhaseTemplateDetailView(LoginRequiredMixin, OrganizationAdminMixin, DetailView):
     model = PhaseTemplate
     template_name = 'projects/phasetemplate_detail.html'
     context_object_name = 'template'
@@ -1317,7 +1329,7 @@ class PhaseTemplateDetailView(LoginRequiredMixin, DetailView):
             return PhaseTemplate.objects.filter(organization=self.request.user.organization)
         return PhaseTemplate.objects.none()
 
-class PhaseTemplateUpdateView(LoginRequiredMixin, UpdateView):
+class PhaseTemplateUpdateView(LoginRequiredMixin, OrganizationAdminMixin, UpdateView):
     model = PhaseTemplate
     form_class = PhaseTemplateForm
     template_name = 'projects/phasetemplate_form.html'
@@ -1364,7 +1376,7 @@ class PhaseTemplateUpdateView(LoginRequiredMixin, UpdateView):
 
         return super().form_valid(form)
 
-class PhaseTemplateDeleteView(LoginRequiredMixin, DeleteView):
+class PhaseTemplateDeleteView(LoginRequiredMixin, OrganizationAdminMixin, DeleteView):
     model = PhaseTemplate
     template_name = 'projects/phasetemplate_confirm_delete.html'
     success_url = reverse_lazy('projects:phasetemplate-list')
@@ -1417,24 +1429,30 @@ class ProjectKanbanSelectorView(LoginRequiredMixin, View):
     template_name = 'projects/kanban_selector.html'
     
     def get(self, request):
-        # Obtener proyectos del usuario
-        if request.user.is_org_admin:
-            projects = Project.objects.filter(organization=request.user.organization)
-        else:
-            # Filtrar proyectos donde el usuario tenga tareas asignadas
-            projects = (
-                Project.objects
-                .filter(
-                    organization=request.user.organization,
-                    phases__tasks__assigned_to=request.user,
-                )
-                .distinct()
-            )
+        from .cache_utils import get_or_set_user_accessible_projects
         
-        # Agrupar por estado - CORREGIDO para usar los estados reales del modelo
-        active_projects = projects.filter(status='ACTIVE')
-        completed_projects = projects.filter(status='COMPLETED')
-        archived_projects = projects.filter(status='ARCHIVED')
+        organization_id = request.user.organization.id
+        is_admin = request.user.is_org_admin
+        
+        # SOLUCIÓN ÓPTIMA: Obtener solo proyectos accesibles desde cache
+        accessible_data = get_or_set_user_accessible_projects(
+            request.user.id, 
+            organization_id, 
+            is_admin
+        )
+        
+        # Construir QuerySets solo con proyectos accesibles
+        active_projects = Project.objects.filter(
+            id__in=accessible_data['active_ids']
+        ).select_related('client').order_by('-created_at')
+        
+        completed_projects = Project.objects.filter(
+            id__in=accessible_data['completed_ids']
+        ).select_related('client').order_by('-created_at')
+        
+        archived_projects = Project.objects.filter(
+            id__in=accessible_data['archived_ids']
+        ).select_related('client').order_by('-created_at')
 
         # Paginación por sección (8 por página por solicitud)
         try:
@@ -1458,12 +1476,14 @@ class ProjectKanbanSelectorView(LoginRequiredMixin, View):
         context = {
             'active_projects': active_projects,
             'completed_projects': completed_projects,
-            'archived_projects': archived_projects,  # Colecciones completas para contadores
-            'total_projects': projects.count(),
+            'archived_projects': archived_projects,
+            'total_projects': accessible_data['total_count'],
             # Page objects
             'active_page_obj': active_page_obj,
             'completed_page_obj': completed_page_obj,
             'archived_page_obj': archived_page_obj,
             'page_size': page_size,
+            # Todos los proyectos mostrados son accesibles
+            'all_projects_accessible': True,
         }
         return render(request, self.template_name, context)

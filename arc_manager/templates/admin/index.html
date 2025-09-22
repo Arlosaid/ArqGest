@@ -147,6 +147,10 @@
         border-left-color: #9b59b6;
     }
     
+    .quick-access-card.renewals {
+        border-left-color: #16a085;
+    }
+    
     .quick-access-card.subscriptions {
         border-left-color: #3498db;
     }
@@ -464,6 +468,12 @@
                 <div class="quick-access-title">Upgrades Pendientes</div>
                 <div class="quick-access-desc">{{ dashboard_stats.notifications.pending_upgrades }} solicitudes</div>
             </a>
+
+            <a href="{% url 'admin:plans_renewalrequest_changelist' %}?status=pending" class="quick-access-card renewals">
+                <div class="quick-access-icon">🔄</div>
+                <div class="quick-access-title">Renovaciones Pendientes</div>
+                <div class="quick-access-desc">{{ dashboard_stats.notifications.pending_renewals }} solicitudes</div>
+            </a>
             
             <a href="{% url 'admin:plans_subscription_changelist' %}" class="quick-access-card subscriptions">
                 <div class="quick-access-icon">💳</div>
@@ -492,7 +502,7 @@
     </div>
     
     <!-- Alertas y Notificaciones -->
-    {% if dashboard_stats.notifications.pending_upgrades > 0 or dashboard_stats.notifications.expiring_soon > 0 or dashboard_stats.notifications.in_grace_period > 0 %}
+    {% if dashboard_stats.notifications.pending_upgrades > 0 or dashboard_stats.notifications.pending_renewals > 0 or dashboard_stats.notifications.expiring_soon > 0 or dashboard_stats.notifications.in_grace_period > 0 %}
     <div class="alerts-section">
         <h3>🚨 Alertas y Notificaciones</h3>
         <div class="alerts-grid">
@@ -503,6 +513,17 @@
                     <div class="alert-title">{{ dashboard_stats.notifications.pending_upgrades }} Solicitudes de Upgrade</div>
                     <div class="alert-description">Pendientes de revisión - Acción requerida</div>
                     <a href="{% url 'admin:plans_upgraderequest_changelist' %}?status=pending" class="alert-action">Revisar Ahora</a>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if dashboard_stats.notifications.pending_renewals > 0 %}
+            <div class="alert-card warning priority">
+                <div class="alert-icon">🔄</div>
+                <div class="alert-content">
+                    <div class="alert-title">{{ dashboard_stats.notifications.pending_renewals }} Solicitudes de Renovación</div>
+                    <div class="alert-description">Pendientes de revisión - Acción requerida</div>
+                    <a href="{% url 'admin:plans_renewalrequest_changelist' %}?status=pending" class="alert-action">Revisar Ahora</a>
                 </div>
             </div>
             {% endif %}

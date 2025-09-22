@@ -135,15 +135,22 @@ class SimpleUserCreateView(LoginRequiredMixin, View):
                         f'Se han enviado las credenciales por correo electrónico.'
                     )
                 else:
-                    # Siempre mostrar mensaje amigable, errores técnicos solo en logs
-                    messages.warning(
-                        request,
-                        f'Usuario {user.username or user.email} creado exitosamente, '
-                        f'pero no se pudo enviar el correo electrónico. '
-                        f'Por favor, proporciona las credenciales manualmente: {user.email}'
-                    )
+                    # En desarrollo no enviamos emails: mantener mensaje de éxito y evitar confusión
+                    if settings.DEBUG:
+                        messages.success(
+                            request,
+                            f'Usuario {user.username or user.email} creado exitosamente.'
+                        )
+                    else:
+                        # En producción, advertir si el email falló
+                        messages.warning(
+                            request,
+                            f'Usuario {user.username or user.email} creado exitosamente, '
+                            f'pero no se pudo enviar el correo electrónico. '
+                            f'Por favor, proporciona las credenciales manualmente: {user.email}'
+                        )
                     
-                    # Log detallado para desarrolladores (incluir contraseña temporal)
+                    # Log para diagnosticar el envío en cualquier entorno (incluye contraseña temporal)
                     logger.warning(f"Error enviando email a usuario creado: {user.email} - Contraseña temporal: {temp_password}")
                 
                 return redirect('users:user_list')

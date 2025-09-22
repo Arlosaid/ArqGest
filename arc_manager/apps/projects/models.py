@@ -263,7 +263,12 @@ class Task(models.Model):
         
         # Invalidar cache de progreso cuando sea necesario
         if is_new or status_changed:
-            from .cache_utils import invalidate_project_progress_cache, invalidate_project_cache
+            from .cache_utils import (
+                invalidate_project_progress_cache, 
+                invalidate_project_cache,
+                invalidate_user_projects_cache,
+                invalidate_kanban_projects_cache
+            )
             project_id = self.phase.project_id
             organization_id = self.phase.project.organization_id
             
@@ -272,6 +277,23 @@ class Task(models.Model):
             
             # Invalidar cache general del proyecto y dashboard
             invalidate_project_cache(organization_id, project_id)
+            
+            # Invalidar cache del selector de Kanban
+            invalidate_kanban_projects_cache(organization_id)
+        
+        # Invalidar cache de proyectos accesibles cuando se asigna/desasigna
+        assignment_changed = hasattr(self, '_original_assigned_to') and self._original_assigned_to != self.assigned_to_id
+        if assignment_changed:
+            from .cache_utils import invalidate_user_accessible_projects_cache
+            organization_id = self.phase.project.organization_id
+            
+            # Invalidar cache del usuario anterior (si había uno)
+            if hasattr(self, '_original_assigned_to') and self._original_assigned_to:
+                invalidate_user_accessible_projects_cache(self._original_assigned_to, organization_id)
+            
+            # Invalidar cache del usuario nuevo (si hay uno)
+            if self.assigned_to_id:
+                invalidate_user_accessible_projects_cache(self.assigned_to_id, organization_id)
         
         if is_new:
             logger.info(f"Task created successfully - ID: {self.pk}, Title: '{self.title}', Phase: {self.phase_id}")

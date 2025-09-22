@@ -32,7 +32,7 @@
         <div class="left-content">
             
             <!-- Solicitud de Actualización Pendiente -->
-            {% if pending_request and pending_request.status == 'pending' %}
+            {% if pending_upgrade_request and pending_upgrade_request.status == 'pending' %}
                 <div class="request-status-card pending">
                     <div class="status-icon">
                         <i class="fas fa-clock"></i>
@@ -41,16 +41,16 @@
                         <h3>Tu solicitud de actualización está en proceso</h3>
                         <p>
                             Hemos recibido tu solicitud para actualizar al plan 
-                            <strong>{{ pending_request.requested_plan.display_name }}</strong>.
+                            <strong>{{ pending_upgrade_request.requested_plan.display_name }}</strong>.
                         </p>
                         <div class="status-details">
                             <div class="detail">
                                 <span class="label">Plan solicitado:</span>
-                                <span class="value">{{ pending_request.requested_plan.display_name }}</span>
+                                <span class="value">{{ pending_upgrade_request.requested_plan.display_name }}</span>
                             </div>
                             <div class="detail">
                                 <span class="label">Fecha de solicitud:</span>
-                                <span class="value">{{ pending_request.created_at|date:"d/m/Y" }}</span>
+                                <span class="value">{{ pending_upgrade_request.created_at|date:"d/m/Y" }}</span>
                             </div>
                             <div class="detail">
                                 <span class="label">Estado:</span>
@@ -65,8 +65,50 @@
                 </div>
             {% endif %}
 
+            <!-- Solicitud de Renovación Pendiente -->
+            {% if pending_renewal_request and pending_renewal_request.status == 'pending' %}
+                <div class="request-status-card pending renewal">
+                    <div class="status-icon">
+                        <i class="fas fa-redo"></i>
+                    </div>
+                    <div class="status-content">
+                        <h3>Tu solicitud de renovación está en proceso</h3>
+                        <p>
+                            Hemos recibido tu solicitud para renovar tu plan 
+                            <strong>{{ pending_renewal_request.subscription.plan.display_name }}</strong>.
+                        </p>
+                        <div class="status-details">
+                            <div class="detail">
+                                <span class="label">Plan a renovar:</span>
+                                <span class="value">{{ pending_renewal_request.subscription.plan.display_name }}</span>
+                            </div>
+                            <div class="detail">
+                                <span class="label">Monto:</span>
+                                <span class="value">${{ pending_renewal_request.renewal_amount|floatformat:2 }}</span>
+                            </div>
+                            <div class="detail">
+                                <span class="label">Período:</span>
+                                <span class="value">{{ pending_renewal_request.renewal_days }} días</span>
+                            </div>
+                            <div class="detail">
+                                <span class="label">Fecha de solicitud:</span>
+                                <span class="value">{{ pending_renewal_request.created_at|date:"d/m/Y" }}</span>
+                            </div>
+                            <div class="detail">
+                                <span class="label">Estado:</span>
+                                <span class="badge pending">En proceso</span>
+                            </div>
+                        </div>
+                        <div class="next-steps">
+                            <h4>¿Qué sigue?</h4>
+                            <p>Nuestro equipo revisará tu solicitud y se pondrá en contacto contigo para coordinar el proceso de pago.</p>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
             <!-- Banner simple de prueba gratuita -->
-            {% if subscription.plan.is_trial and not pending_request and is_org_admin %}
+            {% if subscription.plan.is_trial and not pending_upgrade_request and not pending_renewal_request and is_org_admin %}
                 <div class="upgrade-motivator-card attention">
                     <div class="motivator-icon"><i class="fas fa-bolt"></i></div>
                     <div class="motivator-content">
@@ -105,27 +147,111 @@
             {% endif %}
 
             {% if not subscription.plan.is_trial %}
-                <div class="upgrade-motivator-card success">
-                    <div class="motivator-icon"><i class="fas fa-check-circle"></i></div>
-                    <div class="motivator-content">
-                        <h3>Plan activo</h3>
-                        <p>Tu plan actual es <strong>{{ subscription.plan.display_name }}</strong>.</p>
-                        <p>Vence el <strong>{{ subscription.end_date|date:"d/m/Y" }}</strong>.</p>
-                    </div>
-                    <div class="motivator-side">
-                        {% if subscription.days_remaining > 0 %}
-                            <div class="days-counter">
-                                <div class="days-number">{{ subscription.days_remaining }}</div>
-                                <div class="days-label">días restantes</div>
+                {# Ventana de renovación anticipada: mostrar CTA si está dentro de la ventana, no hay solicitud pendiente y no está expirada #}
+                {% if subscription.end_date and not subscription.is_expired and not pending_renewal_request %}
+                    {% with renewal_window_days=2 %}
+                    {% if subscription.days_remaining <= renewal_window_days and subscription.days_remaining >= 0 %}
+                    <div class="upgrade-motivator-card attention">
+                        <div class="motivator-icon"><i class="fas fa-redo"></i></div>
+                        <div class="motivator-content">
+                            <h3>Tu suscripción vence pronto</h3>
+                            <p>Renueva ahora y evita interrupciones. Vence el <strong>{{ subscription.end_date|date:"d/m/Y" }}</strong>.</p>
+                            <div class="motivator-action">
+                                <a href="{% url 'plans:renew_subscription' %}" class="upgrade-btn renewal-btn">
+                                    <i class="fas fa-redo"></i>
+                                    Renovar ahora
+                                </a>
+                                <p class="upgrade-note">Disponible desde 2 días antes</p>
                             </div>
-                        {% else %}
+                        </div>
+                        <div class="motivator-side">
+                            {% if subscription.days_remaining > 0 %}
+                                <div class="days-counter">
+                                    <div class="days-number">{{ subscription.days_remaining }}</div>
+                                    <div class="days-label">días restantes</div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+                {% endif %}
+                {% if subscription.is_expired and not pending_renewal_request %}
+                    <!-- Recuadro de Renovación para Suscripciones Expiradas -->
+                    <div class="upgrade-motivator-card expired">
+                        <div class="motivator-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="motivator-content">
+                            <h3>Suscripción Vencida</h3>
+                            <p>
+                                Tu plan <strong>{{ subscription.plan.display_name }}</strong> venció el 
+                                <strong>{{ subscription.end_date|date:"d/m/Y" }}</strong>.
+                            </p>
+                            <p>Renueva ahora para recuperar el acceso completo a todas las funciones.</p>
+                            <div class="motivator-action">
+                                <a href="{% url 'plans:renew_subscription' %}" class="upgrade-btn renewal-btn">
+                                    <i class="fas fa-redo"></i>
+                                    Renovar Suscripción
+                                </a>
+                                <p class="upgrade-note">Recupera el acceso inmediatamente</p>
+                            </div>
+                        </div>
+                        <div class="motivator-side">
                             <div class="days-counter expired">
                                 <div class="days-number">0</div>
                                 <div class="days-label">suscripción vencida</div>
                             </div>
-                        {% endif %}
+                        </div>
                     </div>
-                </div>
+                {% elif subscription.is_in_grace_period and not pending_renewal_request %}
+                    {# Gracia eliminada: no mostrar nada especial, tratar como expirado #}
+                    <div class="upgrade-motivator-card expired">
+                        <div class="motivator-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div class="motivator-content">
+                            <h3>Suscripción Vencida</h3>
+                            <p>
+                                Tu plan <strong>{{ subscription.plan.display_name }}</strong> venció el 
+                                <strong>{{ subscription.end_date|date:"d/m/Y" }}</strong>.
+                            </p>
+                            <p>Renueva ahora para recuperar el acceso completo a todas las funciones.</p>
+                            <div class="motivator-action">
+                                <a href="{% url 'plans:renew_subscription' %}" class="upgrade-btn renewal-btn">
+                                    <i class="fas fa-redo"></i>
+                                    Renovar Suscripción
+                                </a>
+                                <p class="upgrade-note">Recupera el acceso inmediatamente</p>
+                            </div>
+                        </div>
+                        <div class="motivator-side">
+                            <div class="days-counter expired">
+                                <div class="days-number">0</div>
+                                <div class="days-label">suscripción vencida</div>
+                            </div>
+                        </div>
+                    </div>
+                {% elif not pending_renewal_request %}
+                    <!-- Plan Activo Normal -->
+                    <div class="upgrade-motivator-card success">
+                        <div class="motivator-icon"><i class="fas fa-check-circle"></i></div>
+                        <div class="motivator-content">
+                            <h3>Plan activo</h3>
+                            <p>Tu plan actual es <strong>{{ subscription.plan.display_name }}</strong>.</p>
+                            <p>Vence el <strong>{{ subscription.end_date|date:"d/m/Y" }}</strong>.</p>
+                        </div>
+                        <div class="motivator-side">
+                            {% if subscription.days_remaining > 0 %}
+                                <div class="days-counter">
+                                    <div class="days-number">{{ subscription.days_remaining }}</div>
+                                    <div class="days-label">días restantes</div>
+                                </div>
+                            {% else %}
+                                <div class="days-counter expired">
+                                    <div class="days-number">0</div>
+                                    <div class="days-label">suscripción vencida</div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
             {% endif %}
 
             {# Se elimina la tarjeta de Detalles del Plan Actual para evitar redundancia con el banner superior #}
@@ -199,45 +325,7 @@
                 </div>
             </div>
 
-            <!-- Gestión de Almacenamiento Extra -->
-            {% if is_org_admin %}
-            <div class="storage-management-card">
-                <div class="card-header">
-                    <h3><i class="fas fa-expand"></i> Gestionar Almacenamiento</h3>
-                </div>
-                <div class="card-body">
-                    <div class="storage-info">
-                        <div class="storage-breakdown">
-                            <div class="storage-row">
-                                <span class="label">Plan base:</span>
-                                <span class="value">{{ subscription.plan.max_storage_gb|default:"No configurado" }} GB</span>
-                            </div>
-                            {% if organization.extra_storage_gb > 0 %}
-                            <div class="storage-row extra">
-                                <span class="label">Almacenamiento extra:</span>
-                                <span class="value">{{ organization.extra_storage_gb }} GB</span>
-                            </div>
-                            <div class="storage-row total">
-                                <span class="label">Total disponible:</span>
-                                <span class="value">{{ organization.get_total_storage_limit_gb }} GB</span>
-                            </div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="storage-action">
-                            <p class="help-text">
-                                ¿Necesitas más espacio para tus documentos? Puedes solicitar almacenamiento adicional.
-                            </p>
-                            <a href="mailto:soporte@arcmanager.com?subject=Solicitud de almacenamiento extra - {{ organization.name }}&body=Hola,%0A%0ASolicito almacenamiento adicional para mi organización:%0A%0A- Organización: {{ organization.name }}%0A- Plan actual: {{ subscription.plan.display_name }}%0A- Almacenamiento actual: {{ organization.get_total_storage_limit_gb }} GB%0A- GB adicionales necesarios: ______ GB%0A- Justificación: ______%0A%0AGracias." 
-                               class="btn btn-outline-primary btn-storage-request">
-                                <i class="fas fa-envelope"></i>
-                                Solicitar GB Extra
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
+            
 
             <!-- Características del Plan (compacto) -->
             <div class="features-card">

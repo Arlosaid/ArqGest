@@ -22,7 +22,7 @@ class AdminDashboard:
         try:
             # Importar modelos aquí para evitar errores de importación circular
             from apps.orgs.models import Organization
-            from apps.plans.models import Subscription, Plan, Payment, UpgradeRequest
+            from apps.plans.models import Subscription, Plan, Payment, UpgradeRequest, RenewalRequest
             from django.db.models import Sum, Count, Q
             from decimal import Decimal
             from datetime import datetime, timedelta
@@ -84,6 +84,19 @@ class AdminDashboard:
                     'created_at': request.created_at
                 })
             
+            # Solicitudes de renovación detalladas
+            renewal_requests = []
+            for r in RenewalRequest.objects.filter(status='pending').order_by('-created_at')[:10]:
+                renewal_requests.append({
+                    'id': r.id,
+                    'organization_name': r.organization.name,
+                    'plan_name': r.subscription.plan.display_name,
+                    'amount': f"{r.renewal_amount:,.0f}",
+                    'days': r.renewal_days,
+                    'status': r.status,
+                    'created_at': r.created_at
+                })
+            
             # === MÉTRICAS DE SUSCRIPCIONES ===
             active_subscriptions = Subscription.objects.filter(
                 subscription_status__in=['trial_active', 'basic_active']
@@ -108,6 +121,8 @@ class AdminDashboard:
             # === NOTIFICACIONES Y ALERTAS ===
             # Solicitudes de upgrade pendientes
             pending_upgrades = UpgradeRequest.objects.filter(status='pending').count()
+            # Solicitudes de renovación pendientes
+            pending_renewals = RenewalRequest.objects.filter(status='pending').count()
             
             # Suscripciones que expiran en los próximos 7 días
             week_from_now = timezone.now() + timedelta(days=7)
@@ -142,6 +157,7 @@ class AdminDashboard:
                     'monthly_breakdown': monthly_breakdown,
                 },
                 'upgrade_requests': upgrade_requests,
+                'renewal_requests': renewal_requests,
                 'subscriptions': {
                     'active': active_subscriptions,
                     'trial': trial_subscriptions,
@@ -151,6 +167,7 @@ class AdminDashboard:
                 },
                 'notifications': {
                     'pending_upgrades': pending_upgrades,
+                    'pending_renewals': pending_renewals,
                     'expiring_soon': expiring_soon,
                     'in_grace_period': in_grace_period,
                 },
@@ -162,8 +179,9 @@ class AdminDashboard:
                 'organizations': {'total': 0, 'active': 0},
                 'financial': {'total_revenue': '0', 'monthly_revenue': '0', 'current_month_name': 'N/A', 'monthly_breakdown': []},
                 'upgrade_requests': [],
+                'renewal_requests': [],
                 'subscriptions': {'active': 0, 'trial': 0, 'basic': 0, 'grace': 0, 'expired': 0},
-                'notifications': {'pending_upgrades': 0, 'expiring_soon': 0, 'in_grace_period': 0},
+                'notifications': {'pending_upgrades': 0, 'pending_renewals': 0, 'expiring_soon': 0, 'in_grace_period': 0},
                 'error': str(e)
             }
 

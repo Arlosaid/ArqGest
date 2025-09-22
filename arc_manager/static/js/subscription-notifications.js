@@ -117,7 +117,7 @@ class SubscriptionNotifications {
             }
 
             // Si no está en DOM, hacer petición AJAX
-            const response = await fetch('/api/subscription-info/', {
+            const response = await fetch('/plans/api/subscription-info/', {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRFToken': this.getCSRFToken()
@@ -173,24 +173,43 @@ class SubscriptionNotifications {
      * Verifica y muestra advertencia de expiración próxima
      */
     checkExpirationWarning(info) {
-        if (info.expires_soon && info.days_remaining > 0) {
-            const days = info.days_remaining;
-            const notificationType = days <= 2 ? 'expiration_critical' : 'expiration_warning';
+        // Calcular ventana con mayor precisión usando end_date cuando days_remaining == 0
+        let days = info.days_remaining || 0;
+        let remainingMs = null;
+        if (info.end_date) {
+            const end = new Date(info.end_date).getTime();
+            const now = Date.now();
+            remainingMs = end - now;
+            if (!info.is_expired && remainingMs > 0) {
+                const daysPrecise = Math.ceil(remainingMs / (24 * 60 * 60 * 1000));
+                // Usar el mayor entre days (floor) y daysPrecise (ceil) para no perder "expira hoy"
+                days = Math.max(days, daysPrecise);
+            }
+        }
+
+        // Solo mostrar dentro de la ventana de 2 días antes del vencimiento (incluye hoy)
+        const within2Days = (!info.is_expired) && (
+            (days >= 0 && days <= 2) || (remainingMs !== null && remainingMs >= 0 && remainingMs <= 2 * 24 * 60 * 60 * 1000)
+        );
+
+        if (within2Days) {
+            const notificationType = 'expiration_critical';
             
             // Verificar si ya se mostró esta notificación
             if (!this.shouldShowNotification(notificationType, days)) {
                 return;
             }
             
+            const whenText = days === 0 ? 'hoy' : `en ${days} día${days !== 1 ? 's' : ''}`;
             const message = info.is_trial 
-                ? `Tu prueba gratuita expira en ${days} día${days !== 1 ? 's' : ''}. ¡Actualiza ahora para no perder acceso!`
-                : `Tu suscripción expira en ${days} día${days !== 1 ? 's' : ''}. Renueva para continuar sin interrupciones.`;
+                ? `Tu prueba gratuita expira ${whenText}. ¡Actualiza ahora para no perder acceso!`
+                : `Tu suscripción expira ${whenText}. Renueva para continuar sin interrupciones.`;
 
             window.notifications.warning(message, {
                 title: 'Renovación Necesaria',
                 duration: days <= 2 ? 10000 : 8000, // Más tiempo para casos críticos
                 onClick: () => {
-                    window.location.href = '/plans/request-upgrade/';
+                    window.location.href = '/plans/renovar-suscripcion/';
                 }
             });
             
@@ -223,7 +242,7 @@ class SubscriptionNotifications {
                     title: 'Límite de Usuarios',
                     duration: 7000,
                     onClick: () => {
-                        window.location.href = '/plans/request-upgrade/';
+                        window.location.href = '/plans/solicitar-actualizacion/';
                     }
                 });
                 
@@ -257,7 +276,7 @@ class SubscriptionNotifications {
                     title: 'Límite de Proyectos',
                     duration: 7000,
                     onClick: () => {
-                        window.location.href = '/plans/request-upgrade/';
+                        window.location.href = '/plans/solicitar-actualizacion/';
                     }
                 });
                 
@@ -277,7 +296,7 @@ class SubscriptionNotifications {
                 title: 'Suscripción Expirada',
                 persistent: true,
                 onClick: () => {
-                    window.location.href = '/plans/request-upgrade/';
+                    window.location.href = '/plans/renovar-suscripcion/';
                 }
             });
         }

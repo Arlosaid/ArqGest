@@ -26,6 +26,11 @@
     background: rgba(6, 182, 212, 0.05);
 }
 
+.request-status-card.pending.renewal {
+    border-left: 4px solid #f59e0b;
+    background: rgba(245, 158, 11, 0.05);
+}
+
 .status-icon {
     width: 56px;
     height: 56px;
@@ -346,6 +351,310 @@
 .upgrade-motivator-card.attention .upgrade-btn:hover {
     background: #ea580c;
     filter: brightness(1);
+}
+
+/* ===== ESTILOS PARA RENOVACIÓN DE SUSCRIPCIÓN ===== */
+.upgrade-motivator-card.expired {
+    border-left: 4px solid var(--arc-color-danger);
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.upgrade-motivator-card.expired .motivator-icon {
+    background: var(--arc-color-danger);
+}
+
+.upgrade-motivator-card.expired .upgrade-btn.renewal-btn {
+    background: linear-gradient(135deg, #dc2626, #ef4444);
+    color: white;
+}
+
+.upgrade-motivator-card.expired .upgrade-btn.renewal-btn:hover {
+    background: #b91c1c;
+    transform: translateY(-1px);
+    box-shadow: var(--arc-shadow-lg);
+}
+
+.upgrade-motivator-card.grace {
+    border-left: 4px solid #f59e0b;
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.upgrade-motivator-card.grace .motivator-icon {
+    background: #f59e0b;
+}
+
+.upgrade-motivator-card.grace .upgrade-btn.renewal-btn {
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    color: white;
+}
+
+.upgrade-motivator-card.grace .upgrade-btn.renewal-btn:hover {
+    background: #d97706;
+    transform: translateY(-1px);
+    box-shadow: var(--arc-shadow-lg);
+}
+
+/* Contador de días para período de gracia */
+.days-counter.grace {
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    color: white;
+}
+
+.days-counter.expired {
+    background: linear-gradient(135deg, #dc2626, #ef4444);
+    color: white;
+}
+
+/* ===== ESTILOS PARA PÁGINA DE RENOVACIÓN ===== */
+.subscription-info-card,
+.renewal-details-card,
+.renewal-form-card {
+    background: var(--arc-bg-primary);
+    border-radius: var(--arc-border-radius);
+    box-shadow: var(--arc-shadow-md);
+    margin-bottom: var(--arc-spacing-xl);
+    border: 1px solid var(--arc-border-color);
+}
+
+.subscription-details,
+.renewal-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--arc-spacing-md);
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--arc-spacing-sm) 0;
+    border-bottom: 1px solid var(--arc-border-color-light);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-row .label {
+    font-weight: 500;
+    color: var(--arc-text-secondary);
+}
+
+.detail-row .value {
+    font-weight: 600;
+    color: var(--arc-text-primary);
+}
+
+.badge.expired {
+    background: var(--arc-color-danger);
+    color: white;
+    padding: var(--arc-spacing-xs) var(--arc-spacing-sm);
+    border-radius: var(--arc-border-radius-sm);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.badge.grace {
+    background: #f59e0b;
+    color: white;
+    padding: var(--arc-spacing-xs) var(--arc-spacing-sm);
+    border-radius: var(--arc-border-radius-sm);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.renewal-amount,
+.renewal-period,
+.new-end-date {
+    text-align: center;
+    padding: var(--arc-spacing-lg);
+    background: var(--arc-bg-secondary);
+    border-radius: var(--arc-border-radius-sm);
+    border: 1px solid var(--arc-border-color-light);
+}
+
+.amount-label,
+.period-label,
+.date-label {
+    font-size: 0.875rem;
+    color: var(--arc-text-secondary);
+    margin-bottom: var(--arc-spacing-xs);
+}
+
+.amount-value,
+.period-value,
+.date-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--arc-text-primary);
+}
+
+.amount-value {
+    color: var(--arc-color-primary);
+    font-size: 1.5rem;
+}
+
+.renewal-benefits {
+    margin-top: var(--arc-spacing-lg);
+    padding-top: var(--arc-spacing-lg);
+    border-top: 1px solid var(--arc-border-color-light);
+}
+
+.renewal-benefits h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--arc-text-primary);
+    margin-bottom: var(--arc-spacing-md);
+}
+
+.renewal-benefits ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--arc-spacing-sm);
+}
+
+.renewal-benefits li {
+    display: flex;
+    align-items: center;
+    gap: var(--arc-spacing-sm);
+    color: var(--arc-text-secondary);
+}
+
+.renewal-benefits li i {
+    color: var(--arc-color-success);
+    font-size: 0.875rem;
+}
+
+.renewal-summary {
+    background: var(--arc-bg-secondary);
+    border-radius: var(--arc-border-radius-sm);
+    padding: var(--arc-spacing-lg);
+    margin-bottom: var(--arc-spacing-lg);
+    border: 1px solid var(--arc-border-color-light);
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--arc-spacing-sm) 0;
+}
+
+.summary-row.total {
+    border-top: 1px solid var(--arc-border-color-light);
+    margin-top: var(--arc-spacing-sm);
+    padding-top: var(--arc-spacing-md);
+    font-weight: 700;
+    font-size: 1.125rem;
+}
+
+.summary-row.total .value {
+    color: var(--arc-color-primary);
+}
+
+.payment-notice {
+    display: flex;
+    gap: var(--arc-spacing-md);
+    padding: var(--arc-spacing-lg);
+    background: rgba(6, 182, 212, 0.05);
+    border: 1px solid rgba(6, 182, 212, 0.2);
+    border-radius: var(--arc-border-radius-sm);
+    margin-bottom: var(--arc-spacing-lg);
+}
+
+.notice-icon {
+    color: var(--arc-color-info);
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.notice-content h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--arc-text-primary);
+    margin-bottom: var(--arc-spacing-sm);
+}
+
+.notice-content p {
+    color: var(--arc-text-secondary);
+    margin-bottom: var(--arc-spacing-sm);
+    line-height: 1.5;
+}
+
+.notice-content p:last-child {
+    margin-bottom: 0;
+}
+
+.form-actions {
+    display: flex;
+    gap: var(--arc-spacing-md);
+    justify-content: flex-end;
+    margin-top: var(--arc-spacing-lg);
+}
+
+.renewal-btn {
+    background: linear-gradient(135deg, var(--arc-color-primary), var(--arc-color-primary-hover));
+    color: white;
+    border: none;
+    padding: var(--arc-spacing-md) var(--arc-spacing-xl);
+    border-radius: var(--arc-border-radius-sm);
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: var(--arc-transition);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--arc-spacing-sm);
+}
+
+.renewal-btn:hover {
+    background: linear-gradient(135deg, var(--arc-color-primary-hover), var(--arc-color-primary));
+    transform: translateY(-1px);
+    box-shadow: var(--arc-shadow-lg);
+}
+
+.renewal-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+
+/* Campo de motivo */
+.reason-field {
+    margin-bottom: var(--arc-spacing-lg);
+}
+
+.reason-field .form-label {
+    display: block;
+    font-weight: 600;
+    color: var(--arc-text-primary);
+    margin-bottom: var(--arc-spacing-sm);
+}
+
+.reason-field .form-control {
+    width: 100%;
+    padding: var(--arc-spacing-md);
+    border: 1px solid var(--arc-border-color);
+    border-radius: var(--arc-border-radius-sm);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 80px;
+    transition: var(--arc-transition);
+}
+
+.reason-field .form-control:focus {
+    outline: none;
+    border-color: var(--arc-color-primary);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.reason-field .form-control::placeholder {
+    color: var(--arc-text-secondary);
 }
 
 .upgrade-note {
