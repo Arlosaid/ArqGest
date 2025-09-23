@@ -73,10 +73,20 @@ class ProjectForm(forms.ModelForm):
         label=_("Plantilla de Fases"),
         widget=forms.Select(attrs={'class': 'form-control'}),
     )
+    save_as_template = forms.BooleanField(
+        required=False,
+        label=_("Guardar estas fases como plantilla"),
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+    template_name = forms.CharField(
+        required=False,
+        label=_("Nombre de la plantilla"),
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': _("Ej: Proyecto Residencial Básico")})
+    )
 
     class Meta:
         model = Project
-        fields = ['name', 'client', 'phase_creation_method', 'phase_template']
+        fields = ['name', 'client', 'phase_creation_method', 'phase_template', 'save_as_template', 'template_name']
         labels = {
             'name': _('Nombre del Proyecto'),
             'client': _('Cliente'),
@@ -90,14 +100,23 @@ class ProjectForm(forms.ModelForm):
         organization = kwargs.pop('organization', None)
         super().__init__(*args, **kwargs)
 
+        # En edición, remover campos de configuración de fases para evitar validaciones innecesarias
+        if getattr(self.instance, 'pk', None):
+            self.fields.pop('phase_creation_method', None)
+            self.fields.pop('phase_template', None)
+            self.fields.pop('save_as_template', None)
+            self.fields.pop('template_name', None)
+
         if organization:
             self.fields['client'].queryset = Client.objects.filter(organization=organization)
-            self.fields['phase_template'].queryset = PhaseTemplate.objects.filter(
-                models.Q(organization=organization) | models.Q(organization__isnull=True)
-            )
+            if 'phase_template' in self.fields:
+                self.fields['phase_template'].queryset = PhaseTemplate.objects.filter(
+                    models.Q(organization=organization) | models.Q(organization__isnull=True)
+                )
         else:
             self.fields['client'].queryset = Client.objects.none()
-            self.fields['phase_template'].queryset = PhaseTemplate.objects.none()
+            if 'phase_template' in self.fields:
+                self.fields['phase_template'].queryset = PhaseTemplate.objects.none()
             
         self.fields['client'].help_text = _("Selecciona un cliente de tu organización.")
         self.fields['client'].empty_label = _("Seleccionar un Cliente")
@@ -107,8 +126,10 @@ class ProjectForm(forms.ModelForm):
         creation_method = cleaned_data.get('phase_creation_method')
         phase_template = cleaned_data.get('phase_template')
 
-        if creation_method == 'template' and not phase_template:
-            self.add_error('phase_template', _("Este campo es obligatorio cuando se utiliza una plantilla."))
+        # Solo aplicar esta validación al CREAR proyectos.
+        if not getattr(self.instance, 'pk', None):
+            if creation_method == 'template' and not phase_template:
+                self.add_error('phase_template', _("Este campo es obligatorio cuando se utiliza una plantilla."))
 
         return cleaned_data
 

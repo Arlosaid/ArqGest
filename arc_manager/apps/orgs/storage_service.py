@@ -14,7 +14,8 @@ class StorageService:
     """
     
     CACHE_PREFIX = "org_storage"
-    CACHE_TIMEOUT = 300  # 5 minutos
+    # Permite configurar el TTL vía settings (p. ej. ORG_STORAGE_CACHE_TIMEOUT=21600 para 6h)
+    CACHE_TIMEOUT = getattr(settings, 'ORG_STORAGE_CACHE_TIMEOUT', 21600)
     
     @classmethod
     def get_cache_key(cls, organization_id):
@@ -36,7 +37,7 @@ class StorageService:
             return cached_data
         
         # Calcular desde la base de datos
-        logger.info(f"Calculating storage usage for organization {organization.id}")
+        logger.debug(f"Calculating storage usage for organization {organization.id}")
         
         try:
             # Calcular la suma total de bytes de todos los archivos de la organización
@@ -73,7 +74,7 @@ class StorageService:
             # Cachear el resultado
             cache.set(cache_key, storage_data, cls.CACHE_TIMEOUT)
             
-            logger.info(f"Storage calculated for org {organization.id}: {total_gb}GB of {plan_limit_gb}GB ({usage_percentage}%)")
+            logger.debug(f"Storage calculated for org {organization.id}: {total_gb}GB of {plan_limit_gb}GB ({usage_percentage}%)")
             
             return storage_data
             

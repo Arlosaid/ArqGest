@@ -97,7 +97,8 @@
                 </div>
             </div>
 
-            <!-- Configuración de fases -->
+            <!-- Configuración de fases (solo en creación) -->
+            {% if not form.instance.pk %}
             <div class="form-section card-like">
                 <h3 class="section-title">{% trans "Configuración de Fases" %}</h3>
                 <div class="form-group">
@@ -159,12 +160,11 @@
                                             {{ form.name }}
                                             {{ form.name.errors }}
                                         </div>
-                                        <span class="phase-badge-deleted">{% trans "Eliminada" %}</span>
                                         {% if phase_formset.can_delete %}
-                                            <div class="d-none">{{ form.DELETE }}</div>
-                                            <button type="button" class="icon-btn phase-delete-toggle" title="{% trans 'Eliminar' %}">
-                                                <i class="fas fa-trash"></i>
+                                            <button type="button" class="btn btn-outline-danger btn-sm delete-phase-btn" title="{% trans 'Eliminar fase' %}">
+                                                <i class="fas fa-trash-alt"></i>
                                             </button>
+                                            <div class="d-none">{{ form.DELETE }}</div>
                                         {% endif %}
                                     </div>
                                     <div class="phase-form-body">
@@ -183,12 +183,11 @@
                                 <div class="phase-name-wrap">
                                     {{ phase_formset.empty_form.name }}
                                 </div>
-                                <span class="phase-badge-deleted">{% trans "Eliminada" %}</span>
                                 {% if phase_formset.can_delete %}
-                                    <div class="d-none">{{ phase_formset.empty_form.DELETE }}</div>
-                                    <button type="button" class="icon-btn phase-delete-toggle" title="{% trans 'Eliminar' %}">
-                                        <i class="fas fa-trash"></i>
+                                    <button type="button" class="btn btn-outline-danger btn-sm delete-phase-btn" title="{% trans 'Eliminar fase' %}">
+                                        <i class="fas fa-trash-alt"></i>
                                     </button>
+                                    <div class="d-none">{{ phase_formset.empty_form.DELETE }}</div>
                                 {% endif %}
                             </div>
                             <div class="phase-form-body">
@@ -200,8 +199,25 @@
                     <button type="button" id="add-form" class="btn btn-secondary add-phase-btn">
                         <i class="fas fa-plus"></i> {% trans "Añadir Fase" %}
                     </button>
+
+                    <div class="mt-4">
+                        <div class="form-check">
+                            {{ form.save_as_template }}
+                            <label class="form-check-label" for="{{ form.save_as_template.id_for_label }}">
+                                {{ form.save_as_template.label }}
+                            </label>
+                        </div>
+                        <div class="mt-2" id="template-name-field" style="display:none;">
+                            <label for="{{ form.template_name.id_for_label }}" class="form-label">
+                                <i class="fas fa-tag"></i> {{ form.template_name.label }}
+                            </label>
+                            {{ form.template_name }}
+                            <div class="form-text">{% trans "Se guardará en tu organización para reutilizarla." %}</div>
+                        </div>
+                    </div>
                 </div>
             </div>
+            {% endif %}
 
             <!-- Acciones del formulario -->
             <div class="form-actions sticky-actions">
@@ -213,6 +229,11 @@
                         {% trans "Crear Proyecto" %}
                     {% endif %}
                 </button>
+                {% if form.instance.pk %}
+                <a href="{% url 'projects:project-phases-edit' form.instance.pk %}" class="btn btn-secondary">
+                    <i class="fas fa-layer-group"></i> {% trans "Editar Fases" %}
+                </a>
+                {% endif %}
                 <a href="{% url 'projects:project-list' %}" class="btn btn-secondary">
                     <i class="fas fa-times"></i> {% trans "Cancelar" %}
                 </a>
@@ -226,4 +247,34 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
 <script src="{% static 'js/projects.js' %}?v=1.0"></script>
 <script src="{% static 'js/project_form.js' %}?v=1.0"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const methodRadios = document.querySelectorAll('input[name="phase_creation_method"]');
+    const manualContainer = document.getElementById('manual-phases-container');
+    const templateContainer = document.getElementById('phase-template-container');
+    const saveAsTemplate = document.getElementById('{{ form.save_as_template.id_for_label }}');
+    const templateNameField = document.getElementById('template-name-field');
+
+    function toggleSections() {
+        const method = document.querySelector('input[name="phase_creation_method"]:checked')?.value;
+        if (method === 'manual') {
+            manualContainer.style.display = '';
+            templateContainer.style.display = 'none';
+        } else {
+            manualContainer.style.display = 'none';
+            templateContainer.style.display = '';
+        }
+    }
+
+    methodRadios.forEach(r => r.addEventListener('change', toggleSections));
+    toggleSections();
+
+    if (saveAsTemplate) {
+        const checkbox = document.getElementById(saveAsTemplate.getAttribute('id'));
+        checkbox?.addEventListener('change', function() {
+            templateNameField.style.display = this.checked ? '' : 'none';
+        });
+    }
+});
+</script>
 {% endblock extra_js %}

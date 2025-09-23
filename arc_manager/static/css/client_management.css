@@ -855,6 +855,73 @@
     border: 1px solid var(--arc-border-color);
 }
 
+/* ===== TABLA RESPONSIVE SIMPLE ===== */
+@media (max-width: 768px) {
+    .table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .modern-table {
+        min-width: 600px;
+        font-size: 0.8rem;
+        margin-bottom: 0;
+    }
+    
+    .modern-table thead th,
+    .modern-table td {
+        padding: 0.5rem 0.375rem;
+        white-space: nowrap;
+    }
+    
+    .modern-table .client-info {
+        gap: 0.5rem;
+    }
+    
+    .client-avatar {
+        width: 24px;
+        height: 24px;
+        font-size: 0.7rem;
+    }
+    
+    .client-name {
+        font-size: 0.8rem;
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .status-badge {
+        font-size: 0.65rem;
+        padding: 0.2rem 0.5rem;
+        min-width: 50px;
+    }
+    
+    .action-btn {
+        width: 24px;
+        height: 24px;
+        font-size: 0.7rem;
+    }
+    
+    .action-buttons {
+        gap: 0.25rem;
+    }
+    
+    /* Indicador de scroll */
+    .table-wrapper::after {
+        content: "← Desliza para ver más →";
+        display: block;
+        text-align: center;
+        padding: 0.5rem;
+        font-size: 0.75rem;
+        color: var(--arc-text-secondary);
+        background: var(--arc-bg-tertiary);
+        border-top: 1px solid var(--arc-border-color);
+    }
+}
+
 /* ===== BÚSQUEDA COMPACTA ===== */
 .table-search-container {
     position: relative;

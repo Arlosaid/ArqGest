@@ -111,7 +111,8 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    height: 450px; /* Increased fixed height for consistent layout */
+    min-height: 450px; /* Use min-height instead of fixed height */
+    max-height: 450px; /* Set maximum height to prevent overflow */
 }
 
 /* Card Header */
@@ -123,6 +124,8 @@
     justify-content: space-between;
     align-items: center;
     position: relative;
+    height: 80px; /* Fixed height for header */
+    flex-shrink: 0; /* Prevent header from shrinking */
 }
 
 .project-icon {
@@ -188,6 +191,8 @@
     display: flex;
     flex-direction: column;
     gap: var(--arc-spacing-md);
+    min-height: 0; /* Allow body to shrink */
+    overflow: hidden; /* Prevent content overflow */
 }
 
 .project-title {
@@ -201,13 +206,20 @@
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+    height: calc(1.3em * 2); /* Fixed height for exactly 2 lines */
+    flex-shrink: 0; /* Prevent title from shrinking */
 }
 
 .project-client {
     display: flex;
     align-items: center;
     gap: var(--arc-spacing-sm);
-    min-height: 32px; /* Reserve space even when no client */
+    height: 32px; /* Fixed height for client section */
+    flex-shrink: 0; /* Prevent client from shrinking */
 }
 
 .client-avatar {
@@ -246,6 +258,11 @@
     border-radius: var(--arc-border-radius-sm);
     padding: var(--arc-spacing-md);
     border: 1px solid var(--arc-border-color);
+    height: 60px; /* Fixed height for progress section */
+    flex-shrink: 0; /* Prevent progress from shrinking */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .progress-info {
@@ -290,6 +307,8 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: var(--arc-spacing-sm);
+    height: 80px; /* Fixed height for stats section */
+    flex-shrink: 0; /* Prevent stats from shrinking */
 }
 
 .stat-item {
@@ -331,7 +350,9 @@
     gap: var(--arc-spacing-sm);
     align-items: center;
     margin-top: auto;
-    min-height: 60px;
+    height: 60px; /* Fixed height instead of min-height */
+    flex-shrink: 0; /* Prevent footer from shrinking */
+    overflow: hidden; /* Prevent content from overflowing */
 }
 
 .btn-block {
@@ -344,6 +365,10 @@
     height: 40px;
     border-radius: var(--arc-border-radius-sm);
     box-shadow: var(--arc-shadow-sm);
+    min-width: 0; /* Allow button to shrink */
+    white-space: nowrap; /* Prevent text wrapping in button */
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .project-card .btn-primary {
@@ -370,6 +395,8 @@
     gap: var(--arc-spacing-sm);
     align-items: center;
     flex-shrink: 0;
+    min-width: 0; /* Allow container to shrink */
+    overflow: hidden; /* Prevent overflow */
 }
 
 /* Enhanced action buttons for project cards */
@@ -387,6 +414,8 @@
     background: var(--arc-bg-primary);
     color: var(--arc-text-secondary);
     flex-shrink: 0;
+    min-width: 40px; /* Ensure minimum width */
+    min-height: 40px; /* Ensure minimum height */
 }
 
 .project-card .action-btn:hover {
@@ -497,18 +526,40 @@
     }
     
     .project-card {
-        height: auto;
         min-height: 420px; /* Maintain consistent minimum height on mobile */
+        max-height: 420px; /* Set maximum height for mobile */
     }
     
-    .project-card-header,
-    .project-card-body,
+    .project-card-header {
+        height: 70px;
+        padding: var(--arc-spacing-md);
+    }
+    
+    .project-card-body {
+        padding: var(--arc-spacing-md);
+    }
+    
     .project-card-footer {
+        height: 55px;
         padding: var(--arc-spacing-md);
     }
     
     .project-stats {
         gap: var(--arc-spacing-xs);
+        height: 70px;
+    }
+    
+    .progress-container {
+        height: 50px;
+    }
+    
+    .project-title {
+        height: calc(1.3em * 2);
+        font-size: 1.1rem;
+    }
+    
+    .project-client {
+        height: 28px;
     }
     
     .stat-item {
@@ -541,6 +592,7 @@
         width: 100%;
         margin-bottom: var(--arc-spacing-sm);
         order: 1;
+        min-width: 0;
     }
     
     .project-card .action-btn {
@@ -548,11 +600,21 @@
         height: 44px;
         font-size: 1rem;
         order: 2;
+        min-width: 44px;
+        min-height: 44px;
     }
     
     .project-card-footer {
         align-items: center;
         justify-content: center;
+    }
+    
+    /* Ensure project titles don't break layout on mobile */
+    .project-title {
+        font-size: 1.1rem;
+        max-height: calc(1.3em * 2);
+        word-break: break-word;
+        hyphens: auto;
     }
     
     .empty-state {
@@ -599,6 +661,24 @@
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+}
+
+/* Additional utility for very long project names */
+.text-truncate-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+    max-height: calc(1.3em * 3);
 }
 
 /* Custom focus states for accessibility */

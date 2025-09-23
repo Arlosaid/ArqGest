@@ -24,13 +24,29 @@ document.addEventListener('DOMContentLoaded', function() {
   function wireDeleteButtons(scope) {
     const container = scope || document;
     container.querySelectorAll('.phase-form').forEach(function(formEl) {
-      const btn = formEl.querySelector('.phase-delete-toggle');
-      const checkbox = formEl.querySelector('input[type="checkbox"][name^="phases-"][name$="-DELETE"]');
+      const btn = formEl.querySelector('.delete-phase-btn, .phase-delete-toggle');
+      let checkbox = formEl.querySelector('input[type="checkbox"][name^="phases-"][name$="-DELETE"]');
       const deletedBadge = formEl.querySelector('.phase-badge-deleted');
       if (btn && checkbox && !btn.__wired) {
         btn.__wired = true;
         btn.addEventListener('click', function() {
-          checkbox.checked = !checkbox.checked;
+          // Asegurar que exista el checkbox DELETE
+          if (!checkbox) {
+            const nameInput = formEl.querySelector('input[name$="-name"]');
+            if (nameInput && nameInput.name) {
+              const deleteName = nameInput.name.replace(/-name$/, '-DELETE');
+              const hidden = document.createElement('input');
+              hidden.type = 'checkbox';
+              hidden.name = deleteName;
+              hidden.className = 'd-none';
+              formEl.appendChild(hidden);
+              checkbox = hidden;
+            }
+          }
+
+          if (checkbox) {
+            checkbox.checked = !checkbox.checked;
+          }
           if (checkbox.checked) {
             formEl.classList.add('deleted', 'removed');
             const nameInput = formEl.querySelector('input[name$="-name"]');
@@ -42,8 +58,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (nameInput) { nameInput.required = true; nameInput.disabled = false; }
             if (deletedBadge) deletedBadge.style.display = 'none';
           }
-          const evt = new Event('change', { bubbles: true });
-          checkbox.dispatchEvent(evt);
+          if (checkbox) {
+            const evt = new Event('change', { bubbles: true });
+            checkbox.dispatchEvent(evt);
+          }
           updateOrder();
         });
       }
@@ -66,6 +84,57 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         });
       }
+    });
+  }
+
+  // Delegación global para garantizar funcionamiento del botón eliminar
+  if (formsetContainer) {
+    formsetContainer.addEventListener('click', function(e) {
+      const trigger = e.target.closest('.delete-phase-btn, .phase-delete-toggle');
+      if (!trigger) return;
+      e.preventDefault();
+      const formEl = e.target.closest('.phase-form');
+      if (!formEl) return;
+      // Si el formulario es "nuevo" (no tiene input -id), eliminar del DOM y ajustar contadores
+      const idInput = formEl.querySelector('input[name$="-id"]');
+      if (!idInput) {
+        formEl.remove();
+        if (typeof formNum === 'number' && totalForms) {
+          formNum = Math.max(0, formNum - 1);
+          totalForms.value = formNum;
+        }
+        updateOrder();
+        return;
+      }
+      // Si existiera un id (no aplica en creación), marcar DELETE
+      let checkbox = formEl.querySelector('input[type="checkbox"][name^="phases-"][name$="-DELETE"]');
+      if (!checkbox) {
+        const nameInput = formEl.querySelector('input[name^="phases-"][name$="-name"]');
+        if (nameInput && nameInput.name) {
+          const deleteName = nameInput.name.replace(/-name$/, '-DELETE');
+          checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.name = deleteName;
+          checkbox.className = 'd-none';
+          formEl.appendChild(checkbox);
+        }
+      }
+      if (checkbox) {
+        checkbox.checked = !checkbox.checked;
+      }
+      const nameInput = formEl.querySelector('input[name$="-name"]');
+      const deletedBadge = formEl.querySelector('.phase-badge-deleted');
+      const isDel = checkbox && checkbox.checked;
+      if (isDel) {
+        formEl.classList.add('deleted', 'removed');
+        if (nameInput) { nameInput.required = false; nameInput.disabled = true; }
+        if (deletedBadge) deletedBadge.style.display = 'inline-flex';
+      } else {
+        formEl.classList.remove('deleted', 'removed');
+        if (nameInput) { nameInput.required = true; nameInput.disabled = false; }
+        if (deletedBadge) deletedBadge.style.display = 'none';
+      }
+      updateOrder();
     });
   }
 
@@ -101,6 +170,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
   if (window.Sortable && formsetContainer) {
     new Sortable(formsetContainer, { handle: '.drag-handle', animation: 150, onEnd: updateOrder });
+  }
+
+  // Fallback robusto: antes de enviar, garantizar que los eliminados tengan DELETE=on
+  const projectForm = document.getElementById('project-form');
+  if (projectForm) {
+    projectForm.addEventListener('submit', function() {
+      document.querySelectorAll('#phase-forms-container .phase-form').forEach(function(formEl) {
+        const isDeleted = formEl.classList.contains('deleted') || formEl.classList.contains('removed');
+        let del = formEl.querySelector('input[type="checkbox"][name^="phases-"][name$="-DELETE"]');
+        if (isDeleted) {
+          if (!del) {
+            const nameInput = formEl.querySelector('input[name^="phases-"][name$="-name"]');
+            if (nameInput && nameInput.name) {
+              const deleteName = nameInput.name.replace(/-name$/, '-DELETE');
+              del = document.createElement('input');
+              del.type = 'checkbox';
+              del.name = deleteName;
+              del.className = 'd-none';
+              projectForm.appendChild(del);
+            }
+          }
+          if (del) del.checked = true;
+        }
+      });
+    });
   }
 
   togglePhaseCreationVisibility();

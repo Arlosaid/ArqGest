@@ -116,10 +116,7 @@
     <script src="{% static 'js/sidebar.js' %}?v={{ STATIC_VERSION }}"></script>
     <script src="{% static 'js/notifications.js' %}?v={{ STATIC_VERSION }}"></script>
     
-    <!-- Demo de Notificaciones (solo en desarrollo) -->
-    {% if debug %}
-    <script src="{% static 'js/notifications-demo.js' %}?v={{ STATIC_VERSION }}"></script>
-    {% endif %}
+    
     
     <!-- Notificaciones Automáticas de Suscripción -->
     <script src="{% static 'js/subscription-notifications.js' %}?v={{ STATIC_VERSION }}"></script>
