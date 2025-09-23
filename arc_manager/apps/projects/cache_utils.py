@@ -42,6 +42,8 @@ def invalidate_task_cache(organization_id, project_id, user_id=None):
         f"project_detail_stats:{project_id}",
         f"project_kanban_stats:{project_id}",
         f"dashboard_stats:{organization_id}",
+        f"dashboard_projects_progress:{organization_id}",  # Agregado para dashboard
+        f"project_progress:{project_id}",  # Agregado para progreso específico
     ]
     
     # Si se especifica un usuario, invalidar su cache de tareas

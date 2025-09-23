@@ -111,6 +111,7 @@ class KanbanManager {
         // Solo activar drag and drop en desktop (pantallas >= 768px)
         if (window.innerWidth >= 768) {
             this.columns.forEach(column => {
+                // Eventos simplificados y optimizados
                 column.addEventListener('dragover', this.handleDragOver.bind(this));
                 column.addEventListener('drop', this.handleDrop.bind(this));
                 column.addEventListener('dragenter', this.handleDragEnter.bind(this));
@@ -120,14 +121,12 @@ class KanbanManager {
             this.cards.forEach(card => {
                 card.addEventListener('dragstart', this.handleDragStart.bind(this));
                 card.addEventListener('dragend', this.handleDragEnd.bind(this));
-                // Hacer las tarjetas arrastrables solo en desktop
                 card.draggable = true;
             });
         } else {
             // En móvil, desactivar drag and drop completamente
             this.cards.forEach(card => {
                 card.draggable = false;
-                // Remover cualquier indicador visual de drag
                 card.style.cursor = 'default';
             });
         }
@@ -160,9 +159,38 @@ class KanbanManager {
             return;
         }
         
+        // Feedback visual mínimo y eficiente
         e.target.classList.add('dragging');
         e.dataTransfer.setData('text/plain', e.target.dataset.taskId);
         e.dataTransfer.effectAllowed = 'move';
+        
+        // Usar una imagen de arrastre más simple y pequeña
+        const dragImage = document.createElement('div');
+        dragImage.style.width = '200px';
+        dragImage.style.height = '60px';
+        dragImage.style.background = 'var(--arc-color-primary)';
+        dragImage.style.borderRadius = '8px';
+        dragImage.style.color = 'white';
+        dragImage.style.display = 'flex';
+        dragImage.style.alignItems = 'center';
+        dragImage.style.justifyContent = 'center';
+        dragImage.style.fontSize = '14px';
+        dragImage.style.fontWeight = '600';
+        dragImage.textContent = 'Moviendo tarea...';
+        dragImage.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.2)';
+        dragImage.style.position = 'absolute';
+        dragImage.style.top = '-1000px';
+        dragImage.style.left = '-1000px';
+        
+        document.body.appendChild(dragImage);
+        e.dataTransfer.setDragImage(dragImage, 100, 30);
+        
+        // Limpiar inmediatamente
+        setTimeout(() => {
+            if (document.body.contains(dragImage)) {
+                document.body.removeChild(dragImage);
+            }
+        }, 10);
     }
 
     handleDragEnd(e) {
@@ -173,12 +201,20 @@ class KanbanManager {
     handleDragOver(e) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
+        
+        // Detectar la columna más cercana de forma optimizada
+        const column = this.getClosestColumn(e.clientX, e.clientY);
+        if (column) {
+            this.removeDragOverClasses();
+            column.classList.add('drag-over');
+        }
     }
 
     handleDragEnter(e) {
         e.preventDefault();
-        const column = e.target.closest('.kanban-column-body');
+        const column = this.getClosestColumn(e.clientX, e.clientY);
         if (column) {
+            this.removeDragOverClasses();
             column.classList.add('drag-over');
         }
     }
@@ -190,17 +226,53 @@ class KanbanManager {
         }
     }
 
+    // Función optimizada para encontrar la columna más cercana
+    getClosestColumn(x, y) {
+        const columns = document.querySelectorAll('.kanban-column-body');
+        let closestColumn = null;
+        let minDistance = Infinity;
+        
+        for (let col of columns) {
+            const rect = col.getBoundingClientRect();
+            
+            // Verificar si está dentro del área de la columna (con margen de 100px)
+            if (x >= rect.left - 100 && 
+                x <= rect.right + 100 && 
+                y >= rect.top - 100 && 
+                y <= rect.bottom + 100) {
+                
+                const distance = Math.sqrt(
+                    Math.pow(x - (rect.left + rect.width / 2), 2) + 
+                    Math.pow(y - (rect.top + rect.height / 2), 2)
+                );
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestColumn = col;
+                }
+            }
+        }
+        
+        return closestColumn;
+    }
+
     handleDrop(e) {
         e.preventDefault();
+        e.stopPropagation();
         if (this.isUpdating) return;
         
-        const column = e.target.closest('.kanban-column-body');
+        // Usar la función optimizada para encontrar la columna de destino
+        const column = this.getClosestColumn(e.clientX, e.clientY);
+        
         if (!column) return;
 
         const taskId = e.dataTransfer.getData('text/plain');
         const newStatus = column.dataset.statusCode;
         
-        column.classList.remove('drag-over');
+        // Limpiar todas las clases de drag-over
+        this.removeDragOverClasses();
+        
+        // Actualizar el estado de la tarea
         this.updateTaskStatusSilently(taskId, newStatus);
     }
 
@@ -227,6 +299,9 @@ class KanbanManager {
         
         this.isUpdating = true;
         
+        // Mover la tarjeta visualmente INMEDIATAMENTE para mejor UX
+        this.moveCardVisually(taskId, newStatus);
+        
         try {
             const response = await fetch(`/projects/tasks/${taskId}/update_status/`, {
                 method: 'POST',
@@ -242,14 +317,12 @@ class KanbanManager {
             const data = await response.json();
             
             if (data.success) {
-                // Actualización silenciosa - solo mover la tarjeta visualmente
-                this.moveCardVisually(taskId, newStatus);
-                
-                // Actualizar estadísticas sin recargar
+                // Actualizar estadísticas en segundo plano
                 this.updateStatisticsSilently();
             } else {
-                // Solo mostrar error si algo falla
+                // Revertir el movimiento si falla
                 console.error('Error al actualizar tarea:', data.error);
+                // Aquí podrías revertir el movimiento visual si es necesario
             }
         } catch (error) {
             console.error('Error:', error);
@@ -266,15 +339,23 @@ class KanbanManager {
         const targetColumn = document.querySelector(`[data-status-code="${newStatus}"]`);
         if (!targetColumn) return;
 
-        // Mover la tarjeta visualmente
-        targetColumn.appendChild(card);
+        // Animación ultra rápida y simple
+        card.style.transition = 'all 0.1s ease-out';
+        card.style.opacity = '0.6';
+        card.style.transform = 'scale(0.95)';
         
-        // Sin animaciones al mover
-        card.style.opacity = '1';
-        card.style.transform = 'none';
-
-        // Actualizar contadores de columnas
-        this.updateColumnCounts();
+        // Mover inmediatamente sin animación compleja
+        setTimeout(() => {
+            targetColumn.appendChild(card);
+            
+            // Restaurar estilos
+            card.style.opacity = '1';
+            card.style.transform = 'none';
+            card.style.transition = 'all 0.1s ease-out';
+            
+            // Actualizar contadores
+            this.updateColumnCounts();
+        }, 100);
     }
 
     updateColumnCounts() {
@@ -616,3 +697,4 @@ document.addEventListener('DOMContentLoaded', function() {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = KanbanManager;
 }
+
