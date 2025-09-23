@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Editar Fases" %}{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/projects.css' %}?v=1.3" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+  <div class="header-section">
+    <div class="header-content">
+      <div class="header-title">
+        <div class="header-icon"><i class="fas fa-layer-group"></i></div>
+        <h1>{% trans "Editar Fases" %} - {{ project.name }}</h1>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{% url 'projects:project-detail' project.pk %}" class="btn-primary-prominent">
+          <i class="fas fa-arrow-left"></i> {% trans "Volver" %}
+        </a>
+        <button id="savePhases" class="btn btn-primary">
+          <i class="fas fa-save"></i> {% trans "Guardar Cambios" %}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-body">
+      <div class="d-flex gap-2 align-items-end flex-wrap mb-3">
+        <div>
+          <label class="form-label small mb-1">{% trans "Reemplazar con plantilla" %}</label>
+          <select id="phaseTemplate" class="form-select">
+            <option value="">{% trans "Seleccionar plantilla" %}</option>
+            {% for t in templates %}
+              <option value="{{ t.id }}">{{ t.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="button" id="applyTemplate" class="btn btn-outline-secondary">
+          <i class="fas fa-copy"></i> {% trans "Aplicar Plantilla" %}
+        </button>
+      </div>
+      <form id="csrfHelperForm" style="display:none">{% csrf_token %}</form>
+      <div class="manual-phases-header">
+        <h4>{% trans "Fases del Proyecto" %}</h4>
+        <p class="text-muted"><i class="fas fa-arrows-alt"></i> {% trans "Arrastra para reordenar" %}</p>
+      </div>
+
+      <div id="phasesList" class="d-flex flex-column gap-2">
+        {% for p in phases %}
+        <div class="phase-form" data-id="{{ p.id }}">
+          <div class="phase-form-header">
+            <i class="fas fa-bars drag-handle"></i>
+            <div class="phase-name-wrap">
+              <input type="text" class="form-control" value="{{ p.name }}" placeholder="{% trans 'Nombre de la fase' %}">
+            </div>
+            <button type="button" class="icon-btn phase-delete-toggle" title="{% trans 'Eliminar' %}">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+        {% empty %}
+        <div class="text-muted">{% trans "Aún no hay fases. Añade una nueva." %}</div>
+        {% endfor %}
+      </div>
+
+      <button type="button" id="addPhase" class="btn btn-secondary mt-3">
+        <i class="fas fa-plus"></i> {% trans "Añadir Fase" %}
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const phasesList = document.getElementById('phasesList');
+  const addPhaseBtn = document.getElementById('addPhase');
+  const saveBtn = document.getElementById('savePhases');
+  const templateSelect = document.getElementById('phaseTemplate');
+  const applyTemplateBtn = document.getElementById('applyTemplate');
+
+  new Sortable(phasesList, { handle: '.drag-handle', animation: 0 });
+
+  function markInvalid(input, isInvalid) {
+    if (isInvalid) {
+      input.classList.add('is-invalid');
+    } else {
+      input.classList.remove('is-invalid');
+    }
+  }
+
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    // Fallback: leer desde input oculto si existe
+    const hidden = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    return hidden ? hidden.value : null;
+  }
+
+  addPhaseBtn.addEventListener('click', function() {
+    const el = document.createElement('div');
+    el.className = 'phase-form';
+    el.innerHTML = `
+      <div class="phase-form-header">
+        <i class="fas fa-bars drag-handle"></i>
+        <div class="phase-name-wrap">
+          <input type="text" class="form-control" placeholder="${'{% trans "Nombre de la fase" %}'}">
+        </div>
+        <button type="button" class="icon-btn phase-delete-toggle" title="${'{% trans "Eliminar" %}'}">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>`;
+    phasesList.appendChild(el);
+  });
+
+  phasesList.addEventListener('click', function(e) {
+    if (e.target.closest('.phase-delete-toggle')) {
+      const row = e.target.closest('.phase-form');
+      const id = row.dataset.id ? parseInt(row.dataset.id) : null;
+      // Si no tiene id (fila nueva), eliminar del DOM al instante
+      if (!id) {
+        row.remove();
+        return;
+      }
+      // Si tiene id, marcar para eliminar y ocultar (como en formset)
+      row.dataset.delete = '1';
+      row.classList.add('deleted');
+      row.style.display = 'none';
+    }
+  });
+
+  // Aplicar plantilla: POST con template_id, sin mezclar items manuales
+  if (applyTemplateBtn) {
+    applyTemplateBtn.addEventListener('click', async function() {
+      const templateId = templateSelect && templateSelect.value ? parseInt(templateSelect.value) : null;
+      if (!templateId) return;
+      applyTemplateBtn.disabled = true;
+      const resp = await fetch(window.location.href, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') || '', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ template_id: templateId })
+      });
+      applyTemplateBtn.disabled = false;
+      if (resp.ok) {
+        // Recargar página para ver nuevas fases
+        window.location = window.location.href;
+      } else {
+        alert('{% trans "No se pudo aplicar la plantilla" %}');
+      }
+    });
+  }
+
+  saveBtn.addEventListener('click', async function() {
+    const rows = Array.from(phasesList.querySelectorAll('.phase-form'));
+    const payload = { phases: [] };
+    let hasInvalid = false;
+    let orderIndex = 0; // solo para filas no eliminadas
+    rows.forEach((row) => {
+      const input = row.querySelector('input[type="text"]');
+      const name = (input?.value || '').trim();
+      const toDelete = row.dataset.delete === '1' || row.style.display === 'none';
+      markInvalid(input, !toDelete && !name);
+      if (!toDelete && !name) hasInvalid = true;
+      const item = {
+        id: row.dataset.id ? parseInt(row.dataset.id) : null,
+        name: name,
+        order: toDelete ? null : orderIndex,
+        delete: toDelete
+      };
+      if (!toDelete) orderIndex += 1;
+      payload.phases.push(item);
+    });
+
+    if (hasInvalid) {
+      alert('{% trans "Completa el nombre de todas las fases o márcalas para eliminar." %}');
+      return;
+    }
+
+    saveBtn.disabled = true;
+    const resp = await fetch(window.location.href, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') || '', 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify(payload)
+    });
+    saveBtn.disabled = false;
+    if (resp.ok) {
+      window.location = '{% url "projects:project-detail" project.pk %}?open_phase=1';
+    } else {
+      alert('Error guardando cambios');
+    }
+  });
+});
+</script>
+{% endblock %}
+
+

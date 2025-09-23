@@ -25,6 +25,7 @@ from .views import (
     ProjectKanbanSelectorView,
     phase_files_paginated,
     project_tasks_paginated,
+    ProjectPhasesEditView,
 )
 
 app_name = 'projects'
@@ -56,6 +57,7 @@ urlpatterns = [
     # Gestión de fases
     path('<int:project_pk>/phases/<int:pk>/', PhaseDetailView.as_view(), name='phase-detail'),
     path('<int:project_pk>/phases/create/', phase_create, name='phase-create'),
+    path('<int:pk>/phases/edit/', ProjectPhasesEditView.as_view(), name='project-phases-edit'),
     path('<int:project_id>/phases/<int:phase_id>/files/', phase_files_paginated, name='phase-files-paginated'),
     
     # Paginación AJAX de tareas

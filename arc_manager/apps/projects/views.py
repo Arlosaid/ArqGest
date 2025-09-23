@@ -235,6 +235,8 @@ class ProjectCreateView(LoginRequiredMixin, OrganizationAdminMixin, CreateView):
         context = self.get_context_data()
         phase_formset = context['phase_formset']
         creation_method = form.cleaned_data.get('phase_creation_method')
+        save_as_template = form.cleaned_data.get('save_as_template')
+        template_name = form.cleaned_data.get('template_name')
         
         project_name = form.cleaned_data.get('name')
         org_id = self.request.user.organization.id if self.request.user.organization else 'None'
@@ -267,6 +269,28 @@ class ProjectCreateView(LoginRequiredMixin, OrganizationAdminMixin, CreateView):
         except Exception as e:
             logger.error(f"Phase creation failed for project {self.object.id}: {str(e)}", exc_info=True)
 
+        # Guardar como plantilla si corresponde y el método fue manual
+        if creation_method == 'manual' and save_as_template:
+            try:
+                from .models import PhaseTemplate
+                phases_payload = []
+                for f in phase_formset.forms:
+                    if getattr(f, 'cleaned_data', None) and not f.cleaned_data.get('DELETE'):
+                        phases_payload.append({
+                            'name': f.cleaned_data.get('name'),
+                            'order': int(f.cleaned_data.get('order') or 0),
+                        })
+                phases_payload.sort(key=lambda x: x.get('order', 0))
+                PhaseTemplate.objects.create(
+                    name=template_name or form.cleaned_data.get('name'),
+                    description=f"Plantilla generada desde el proyecto '{form.cleaned_data.get('name')}'",
+                    organization=self.request.user.organization,
+                    phases=phases_payload
+                )
+                logger.info(f"PhaseTemplate created from project creation for org {self.request.user.organization_id}")
+            except Exception as e:
+                logger.error(f"Failed to create PhaseTemplate from project creation: {e}")
+
         # Invalidar cache después de crear proyecto
         from .cache_utils import invalidate_project_cache, invalidate_kanban_projects_cache
         invalidate_project_cache(self.object.organization.id, self.object.id)
@@ -279,6 +303,12 @@ class ProjectUpdateView(LoginRequiredMixin, OrganizationAdminMixin, UpdateView):
     form_class = ProjectForm
     template_name = 'projects/project_form.html'
     success_url = reverse_lazy('projects:project-list')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        if hasattr(self.request.user, 'organization'):
+            kwargs['organization'] = self.request.user.organization
+        return kwargs
 
     def get_queryset(self):
         return super().get_queryset().filter(organization=self.request.user.organization)
@@ -445,6 +475,132 @@ def project_kanban(request, pk):
     }
 
     return render(request, 'projects/kanban_board.html', context)
+
+
+class ProjectPhasesEditView(LoginRequiredMixin, OrganizationAdminMixin, View):
+    """Editor intuitivo de fases para un proyecto (crear/renombrar/eliminar/reordenar)."""
+
+    template_name = 'projects/phases_edit.html'
+
+    def get(self, request, pk):
+        project = get_object_or_404(Project, pk=pk, organization=request.user.organization)
+        phases = list(project.phases.order_by('order').values('id', 'name', 'order'))
+        # Plantillas disponibles (de la organización o globales)
+        try:
+            templates = PhaseTemplate.objects.filter(
+                Q(organization=request.user.organization) | Q(organization__isnull=True)
+            ).order_by('name')
+        except Exception:
+            templates = PhaseTemplate.objects.none()
+        context = {
+            'project': project,
+            'phases': phases,
+            'templates': templates,
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request, pk):
+        project = get_object_or_404(Project, pk=pk, organization=request.user.organization)
+
+        try:
+            payload = json.loads(request.body or '{}')
+            items = payload.get('phases', [])
+            template_id = payload.get('template_id')
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'invalid_json'}, status=400)
+
+        # Reemplazar por plantilla si se envía template_id
+        if template_id:
+            try:
+                template = PhaseTemplate.objects.get(
+                    pk=template_id,
+                    # Asegurar pertenencia a la organización o ser global
+                    organization__in=[request.user.organization, None]
+                )
+            except PhaseTemplate.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'template_not_found'}, status=404)
+
+            from django.db import transaction
+            try:
+                with transaction.atomic():
+                    # Eliminar fases existentes del proyecto
+                    project.phases.all().delete()
+                    # Crear nuevas fases según la plantilla
+                    ordered = sorted(template.phases or [], key=lambda x: x.get('order', 0))
+                    for idx, p in enumerate(ordered):
+                        name = (p.get('name') or '').strip()
+                        if not name:
+                            continue
+                        Phase.objects.create(project=project, name=name, order=idx)
+
+                from .cache_utils import invalidate_project_cache
+                invalidate_project_cache(project.organization.id, project.id)
+                return JsonResponse({'success': True})
+            except Exception as e:
+                logger.error(f"Failed to apply phase template for project {project.id}: {e}", exc_info=True)
+                return JsonResponse({'success': False, 'error': 'unexpected_error'}, status=500)
+
+        # Validación básica
+        names = []
+        for item in items:
+            if item.get('delete'):
+                # Eliminar no requiere nombre
+                continue
+            name = (item.get('name') or '').strip()
+            if not name:
+                return JsonResponse({'success': False, 'error': 'name_required'}, status=400)
+            if name in names:
+                return JsonResponse({'success': False, 'error': 'duplicate_name'}, status=400)
+            names.append(name)
+
+        # Aplicar cambios atómicos
+        from django.db import transaction
+        try:
+            with transaction.atomic():
+                existing = {p.id: p for p in project.phases.all()}
+
+                # Procesar elementos
+                for item in items:
+                    phase_id = item.get('id')
+                    to_delete = bool(item.get('delete'))
+                    name = (item.get('name') or '').strip()
+                    try:
+                        order = int(item.get('order') or 0)
+                    except Exception:
+                        order = 0
+
+                    if phase_id and phase_id in existing:
+                        phase = existing[phase_id]
+                        if to_delete:
+                            phase.delete()
+                        else:
+                            changed = False
+                            if name and phase.name != name:
+                                phase.name = name
+                                changed = True
+                            if phase.order != order:
+                                phase.order = order
+                                changed = True
+                            if changed:
+                                phase.save()
+                    else:
+                        if not to_delete and name:
+                            Phase.objects.create(project=project, name=name, order=order)
+
+                # Reordenar de forma consistente (0..n)
+                for idx, phase in enumerate(project.phases.order_by('order', 'id')):
+                    if phase.order != idx:
+                        phase.order = idx
+                        phase.save()
+
+            # Invalidar cache relacionada
+            from .cache_utils import invalidate_project_cache
+            invalidate_project_cache(project.organization.id, project.id)
+
+            return JsonResponse({'success': True})
+        except Exception as e:
+            logger.error(f"Failed to update phases for project {project.id}: {e}", exc_info=True)
+            return JsonResponse({'success': False, 'error': 'unexpected_error'}, status=500)
 
 
 @login_required
