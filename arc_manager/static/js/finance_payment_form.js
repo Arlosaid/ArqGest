@@ -10,8 +10,17 @@ document.addEventListener('DOMContentLoaded', function() {
   const feedback = document.getElementById('amount-feedback');
 
   if (amountInput && feedback) {
+    // Hints para móviles y evitar formatos localizados
+    amountInput.setAttribute('inputmode', 'decimal');
+    amountInput.setAttribute('step', '0.01');
+    amountInput.setAttribute('autocomplete', 'off');
+
     amountInput.addEventListener('input', function() {
-      const amount = parseFloat(this.value) || 0;
+      // Normalizar: quitar espacios (incl. NBSP) y cambiar coma por punto
+      const normalized = (this.value || '')
+        .replace(/[\s\u00A0]/g, '')
+        .replace(/,/g, '.');
+      const amount = parseFloat(normalized) || 0;
       if (amount > remaining) {
         feedback.innerHTML = '<span class="error">Monto excede el máximo disponible</span>';
       } else if (amount > 0) {
