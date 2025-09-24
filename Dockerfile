@@ -1,5 +1,5 @@
-# Python 3.11 - usando imagen base sin autenticación
-FROM python:3.11
+# Python 3.11 - usando GitHub Container Registry para evitar problemas de Docker Hub
+FROM ghcr.io/docker-library/python:3.11
 
 # Variables de entorno
 ENV PYTHONUNBUFFERED=1 \
