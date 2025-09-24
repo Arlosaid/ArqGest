@@ -17,8 +17,8 @@
             <p>Establece el presupuesto total para "{{ project.name }}"</p>
         </div>
         <div class="finance-actions-header">
-            <a href="{% url 'projects:project-detail' project.pk %}" class="btn-finance-secondary">
-                <i class="fas fa-arrow-left"></i> Volver al Proyecto
+            <a href="{% url 'projects:finance-dashboard' %}" class="btn-finance-secondary">
+                <i class="fas fa-arrow-left"></i> Volver a Finanzas
             </a>
         </div>
     </div>
@@ -67,7 +67,7 @@
                 <button type="submit" class="btn-simple primary">
                     {% if project.budget_configured %}Actualizar{% else %}Configurar{% endif %}
                 </button>
-                <a href="{% if project.budget_configured %}{% url 'projects:finance-project-detail' project.pk %}{% else %}{% url 'projects:project-detail' project.pk %}{% endif %}" 
+                <a href="{% url 'projects:finance-dashboard' %}" 
                    class="btn-simple">Cancelar</a>
             </div>
         </form>
