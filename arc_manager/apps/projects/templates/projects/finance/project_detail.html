@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load project_extras %}
+{% load l10n %}
 
 {% block title %}{{ project.name }} - Finanzas - Arc Manager{% endblock %}
 
@@ -44,7 +45,7 @@
                     <i class="fas fa-dollar-sign"></i>
                 </div>
                 <div class="metric-content">
-                    <div class="metric-value">${{ project.total_budget|floatformat:0 }}</div>
+                    <div class="metric-value">${{ project.total_budget|unlocalize|floatformat:0 }}</div>
                     <div class="metric-label">Presupuesto Total</div>
                 </div>
             </div>
@@ -54,7 +55,7 @@
                     <i class="fas fa-check-circle"></i>
                 </div>
                 <div class="metric-content">
-                    <div class="metric-value">${{ project.total_paid|floatformat:0 }}</div>
+                    <div class="metric-value">${{ project.total_paid|unlocalize|floatformat:0 }}</div>
                     <div class="metric-label">Total Pagado</div>
                 </div>
             </div>
@@ -64,7 +65,7 @@
                     <i class="fas fa-clock"></i>
                 </div>
                 <div class="metric-content">
-                    <div class="metric-value">${{ project.remaining_amount|floatformat:0 }}</div>
+                    <div class="metric-value">${{ project.remaining_amount|unlocalize|floatformat:0 }}</div>
                     <div class="metric-label">Pendiente</div>
                 </div>
             </div>
@@ -126,7 +127,7 @@
                             <i class="fas fa-credit-card"></i>
                         </div>
                         <div class="payment-details">
-                            <div class="payment-amount">${{ payment.amount|floatformat:2 }}</div>
+                            <div class="payment-amount">${{ payment.amount|unlocalize|floatformat:2 }}</div>
                             <div class="payment-date">{{ payment.date }}</div>
                             {% if payment.description %}
                                 <div class="payment-description">{{ payment.description|truncatechars:50 }}</div>

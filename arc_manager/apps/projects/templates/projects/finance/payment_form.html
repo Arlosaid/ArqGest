@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load project_extras %}
+{% load l10n %}
 
 {% block title %}Registrar Pago - {{ project.name }} - Arc Manager{% endblock %}
 
@@ -67,7 +68,7 @@
     </div>
 
     <!-- Formulario Simple -->
-    <div id="paymentFormContainer" class="payment-form-simple" data-remaining="{{ project.remaining_amount }}" data-amount-input-id="{{ form.amount.id_for_label }}" data-date-input-id="{{ form.date.id_for_label }}">
+    <div id="paymentFormContainer" class="payment-form-simple" data-remaining="{{ project.remaining_amount|unlocalize }}" data-amount-input-id="{{ form.amount.id_for_label }}" data-date-input-id="{{ form.date.id_for_label }}">
         {% if is_edit %}
             <h3>Editar Pago</h3>
         {% else %}
