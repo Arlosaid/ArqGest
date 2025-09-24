@@ -1,18 +1,19 @@
-# Python 3.11 slim
-FROM python:3.11-slim
+# Python 3.11 slim - usando imagen oficial alternativa
+FROM python:3.11-alpine
 
 # Variables de entorno
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1
 
-# Instalar dependencias del sistema
-RUN apt-get update && apt-get install -y \
+# Instalar dependencias del sistema para Alpine
+RUN apk add --no-cache \
     postgresql-client \
-    libpq-dev \
+    postgresql-dev \
     gcc \
+    musl-dev \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    libffi-dev
 
 # Directorio de trabajo
 WORKDIR /app
