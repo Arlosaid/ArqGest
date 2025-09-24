@@ -101,3 +101,27 @@ def versioned_static(static_path):
         return f"{static_url}?v={version}"
     except Exception:
         return static(static_path)
+
+
+@register.filter(name='sub')
+def sub(value, arg):
+    """
+    Resta arg de value.
+    Uso: {{ 502|sub:project.payment_percentage }}
+    """
+    try:
+        return float(value) - float(arg)
+    except (ValueError, TypeError):
+        return 0
+
+
+@register.filter(name='mul')
+def mul(value, arg):
+    """
+    Multiplica value por arg.
+    Uso: {{ 50|mul:5.02 }}
+    """
+    try:
+        return float(value) * float(arg)
+    except (ValueError, TypeError):
+        return 0

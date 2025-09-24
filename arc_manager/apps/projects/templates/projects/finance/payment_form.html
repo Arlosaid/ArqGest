@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load project_extras %}
+
+{% block title %}Registrar Pago - {{ project.name }} - Arc Manager{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/finance_simple.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    
+    <!-- Header Simple -->
+    <div class="finance-header-simple">
+        <div class="finance-title-section">
+            {% if is_edit %}
+                <h1><i class="fas fa-edit"></i> Editar Pago</h1>
+                <p>Modifica los datos del pago para "{{ project.name }}"</p>
+            {% else %}
+                <h1><i class="fas fa-plus"></i> Registrar Pago</h1>
+                <p>Añade un pago recibido para "{{ project.name }}"</p>
+            {% endif %}
+        </div>
+        <div class="finance-actions-header">
+            <a href="{% url 'projects:finance-project-detail' project.pk %}" class="btn-finance-secondary">
+                <i class="fas fa-arrow-left"></i> Volver a Finanzas
+            </a>
+        </div>
+    </div>
+
+    <!-- Información del Proyecto -->
+    <div class="project-info-card">
+        <div class="project-info-header">
+            <div class="project-avatar">
+                {{ project.name|slice:":1"|upper }}
+            </div>
+            <div class="project-info">
+                <h3>{{ project.name }}</h3>
+                <div class="project-financial-summary">
+                    <div class="financial-item">
+                        <span class="financial-label">Presupuesto:</span>
+                        <span class="financial-value">${{ project.total_budget|floatformat:0 }}</span>
+                    </div>
+                    <div class="financial-item">
+                        <span class="financial-label">Pagado:</span>
+                        <span class="financial-value paid">${{ project.total_paid|floatformat:0 }}</span>
+                    </div>
+                    <div class="financial-item">
+                        <span class="financial-label">Pendiente:</span>
+                        <span class="financial-value remaining">${{ project.remaining_amount|floatformat:0 }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Progreso Visual -->
+        <div class="progress-section">
+            <div class="progress-bar">
+                <div class="progress-fill" 
+                     style="width: {{ project.payment_percentage }}%; 
+                            background: {% if project.payment_status == 'completed' %}var(--arc-color-success){% elif project.payment_status == 'almost_complete' %}var(--arc-color-warning){% elif project.payment_status == 'in_progress' %}var(--arc-color-primary){% else %}var(--arc-color-danger){% endif %};">
+                </div>
+            </div>
+            <div class="progress-text">{{ project.payment_percentage }}% pagado</div>
+        </div>
+    </div>
+
+    <!-- Formulario Simple -->
+    <div id="paymentFormContainer" class="payment-form-simple" data-remaining="{{ project.remaining_amount }}" data-amount-input-id="{{ form.amount.id_for_label }}" data-date-input-id="{{ form.date.id_for_label }}">
+        {% if is_edit %}
+            <h3>Editar Pago</h3>
+        {% else %}
+            <h3>Registrar Pago</h3>
+        {% endif %}
+            
+        <form method="post" enctype="multipart/form-data" class="form-simple">
+            {% csrf_token %}
+            
+            <div class="form-field">
+                <label for="{{ form.amount.id_for_label }}">Monto</label>
+                <div class="input-simple">
+                    <span class="currency">$</span>
+                    {{ form.amount }}
+                </div>
+                <small>Máximo: ${{ project.remaining_amount|floatformat:0 }}</small>
+                {% if form.amount.errors %}
+                    <div class="error">{{ form.amount.errors.0 }}</div>
+                {% endif %}
+                <div id="amount-feedback" class="feedback-simple"></div>
+            </div>
+
+            <div class="form-field">
+                <label for="{{ form.date.id_for_label }}">Fecha</label>
+                <input type="date" 
+                       id="{{ form.date.id_for_label }}" 
+                       name="{{ form.date.name }}" 
+                       value="{% if form.date.value %}{{ form.date.value|date:'Y-m-d' }}{% else %}{{ today|date:'Y-m-d' }}{% endif %}"
+                       class="form-control"
+                       onkeydown="return false" onpaste="return false" autocomplete="off"
+                       required>
+                {% if form.date.errors %}
+                    <div class="error">{{ form.date.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-field">
+                <label for="{{ form.description.id_for_label }}">Descripción</label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <div class="error">{{ form.description.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-field">
+                <label for="id_receipt">Comprobante/Archivo</label>
+                <input type="file" 
+                       id="id_receipt" 
+                       name="receipt" 
+                       accept="image/*,.pdf,.doc,.docx"
+                       class="form-control">
+                <small>Puedes adjuntar una imagen del comprobante o un archivo PDF (máx. 5MB)</small>
+            </div>
+
+            <div class="form-actions-simple">
+                {% if is_edit %}
+                    <button type="submit" class="btn-simple primary">Actualizar</button>
+                    <a href="{% url 'projects:payment-delete' object.pk %}" class="btn-simple" onclick="return confirm('¿Eliminar este pago? Esta acción no se puede deshacer.');">Eliminar</a>
+                {% else %}
+                    <button type="submit" class="btn-simple primary">Registrar</button>
+                {% endif %}
+                <a href="{% url 'projects:finance-project-detail' project.pk %}" class="btn-simple">Cancelar</a>
+            </div>
+        </form>
+    </div>
+}</div>
+
+{% block extra_js %}
+<script src="{% static 'js/finance_payment_form.js' %}"></script>
+{% endblock %}
+{% endblock %}

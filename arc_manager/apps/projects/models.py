@@ -3,6 +3,7 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from apps.orgs.models import Organization, Client
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,21 @@ class Project(models.Model):
     start_date = models.DateField(_("Fecha de Inicio"), null=True, blank=True)
     end_date = models.DateField(_("Fecha de Fin"), null=True, blank=True)
     created_at = models.DateTimeField(_("Fecha de Creación"), auto_now_add=True)
+    
+    # Campos financieros
+    total_budget = models.DecimalField(
+        _("Presupuesto Total"), 
+        max_digits=12, 
+        decimal_places=2, 
+        null=True, 
+        blank=True,
+        help_text=_("Monto total del proyecto")
+    )
+    budget_configured = models.BooleanField(
+        _("Presupuesto Configurado"), 
+        default=False,
+        help_text=_("Indica si el presupuesto ha sido configurado")
+    )
 
     class Meta:
         verbose_name = _("Proyecto")
@@ -128,6 +144,50 @@ class Project(models.Model):
         ).order_by('due_date').first()
         
         return next_task.due_date if next_task else None
+    
+    # Propiedades financieras
+    @property
+    def total_paid(self):
+        """Calcula el total pagado del proyecto."""
+        from decimal import Decimal
+        return self.payments.aggregate(
+            total=models.Sum('amount')
+        )['total'] or Decimal('0.00')
+    
+    @property
+    def remaining_amount(self):
+        """Calcula el monto restante del proyecto."""
+        if not self.total_budget:
+            return None
+        return self.total_budget - self.total_paid
+    
+    @property
+    def payment_percentage(self):
+        """Calcula el porcentaje pagado del proyecto."""
+        if not self.total_budget or self.total_budget == 0:
+            return 0
+        return min(int((self.total_paid / self.total_budget) * 100), 100)
+    
+    @property
+    def payment_status(self):
+        """Determina el estado del pago para UI."""
+        if not self.budget_configured:
+            return 'not_configured'
+        
+        percentage = self.payment_percentage
+        if percentage >= 100:
+            return 'completed'
+        elif percentage >= 80:
+            return 'almost_complete'
+        elif percentage >= 40:
+            return 'in_progress'
+        else:
+            return 'started'
+    
+    @property
+    def latest_payment(self):
+        """Obtiene el último pago registrado."""
+        return self.payments.order_by('-date', '-created_at').first()
 
 class Phase(models.Model):
     """Representa una fase dentro de un proyecto, ej., Diseño Preliminar."""
@@ -345,3 +405,110 @@ class PhaseTemplate(models.Model):
     class Meta:
         verbose_name = _("Plantilla de Fase")
         verbose_name_plural = _("Plantillas de Fase")
+
+
+def payment_receipt_upload_path(instance, filename):
+    """Ruta organizada para comprobantes de pago.
+    organizations/<org_id>/projects/<project_id>/payments/<filename>
+    """
+    try:
+        org_id = instance.project.organization.id
+        project_id = instance.project.id
+    except Exception:
+        org_id = 'unknown_org'
+        project_id = 'unknown_project'
+    safe_filename = os.path.basename(filename)
+    return f"organizations/{org_id}/projects/{project_id}/payments/{safe_filename}"
+
+
+class ProjectPayment(models.Model):
+    """Representa un pago realizado para un proyecto."""
+    
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name='payments',
+        verbose_name=_("Proyecto")
+    )
+    amount = models.DecimalField(
+        _("Monto"),
+        max_digits=12,
+        decimal_places=2,
+        help_text=_("Monto del pago realizado")
+    )
+    date = models.DateField(
+        _("Fecha del Pago"),
+        help_text=_("Fecha en que se realizó el pago")
+    )
+    description = models.TextField(
+        _("Descripción"),
+        blank=True,
+        help_text=_("Descripción opcional del pago")
+    )
+    receipt_file = models.FileField(
+        _("Comprobante (archivo)"),
+        upload_to=payment_receipt_upload_path,
+        null=True,
+        blank=True,
+        help_text=_("Archivo del comprobante del pago (opcional)")
+    )
+    receipt = models.ForeignKey(
+        'files.ProjectFile',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='payment_receipts',
+        verbose_name=_("Comprobante"),
+        help_text=_("Comprobante del pago (opcional)")
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_payments',
+        verbose_name=_("Creado por")
+    )
+    created_at = models.DateTimeField(_("Fecha de Creación"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("Fecha de Actualización"), auto_now=True)
+
+    class Meta:
+        verbose_name = _("Pago de Proyecto")
+        verbose_name_plural = _("Pagos de Proyecto")
+        ordering = ['-date', '-created_at']
+        indexes = [
+            models.Index(fields=['project', '-date']),
+            models.Index(fields=['-created_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.project.name} - ${self.amount} ({self.date})"
+    
+    @property
+    def percentage_of_total(self):
+        """Calcula qué porcentaje del presupuesto total representa este pago."""
+        if not self.project.total_budget or self.project.total_budget == 0:
+            return 0
+        return round((self.amount / self.project.total_budget) * 100, 1)
+    
+    def save(self, *args, **kwargs):
+        """Override save para logging."""
+        is_new = self.pk is None
+        
+        if is_new:
+            logger.info(
+                f"Creating payment: ${self.amount} for project '{self.project.name}' "
+                f"({self.project.id}) on {self.date}"
+            )
+        
+        super().save(*args, **kwargs)
+        
+        if is_new:
+            logger.info(f"Payment created successfully - ID: {self.pk}")
+    
+    def delete(self, *args, **kwargs):
+        """Override delete para logging."""
+        logger.info(
+            f"Deleting payment: ${self.amount} from project '{self.project.name}' "
+            f"({self.project.id}) - Payment ID: {self.pk}"
+        )
+        super().delete(*args, **kwargs)

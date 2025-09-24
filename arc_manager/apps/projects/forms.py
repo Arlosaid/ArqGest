@@ -86,14 +86,16 @@ class ProjectForm(forms.ModelForm):
 
     class Meta:
         model = Project
-        fields = ['name', 'client', 'phase_creation_method', 'phase_template', 'save_as_template', 'template_name']
+        fields = ['name', 'client', 'total_budget', 'phase_creation_method', 'phase_template', 'save_as_template', 'template_name']
         labels = {
             'name': _('Nombre del Proyecto'),
             'client': _('Cliente'),
+            'total_budget': _('Presupuesto Total'),
         }
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'client': forms.Select(attrs={'class': 'form-control'}),
+            'total_budget': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
         }
 
     def __init__(self, *args, **kwargs):

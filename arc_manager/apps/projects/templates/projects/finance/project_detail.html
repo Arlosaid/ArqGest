@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load project_extras %}
+
+{% block title %}{{ project.name }} - Finanzas - Arc Manager{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/finance_simple.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    
+    <!-- Header del Proyecto -->
+    <div class="finance-header-simple">
+        <div class="finance-title-section">
+            <h1><i class="fas fa-building"></i> {{ project.name }}</h1>
+            <p>
+                {% if project.client %}
+                    Cliente: <strong>{{ project.client.name }}</strong>
+                {% else %}
+                    Sin cliente asignado
+                {% endif %}
+            </p>
+        </div>
+        <div class="finance-actions-header">
+            <a href="{% url 'projects:project-detail' project.pk %}" class="btn-finance-secondary">
+                <i class="fas fa-eye"></i> Ver Proyecto
+            </a>
+            <a href="{% url 'projects:project-kanban' project.pk %}" class="btn-finance-secondary">
+                <i class="fas fa-columns"></i> Kanban
+            </a>
+            <a href="{% url 'projects:finance-dashboard' %}" class="btn-finance-primary">
+                <i class="fas fa-arrow-left"></i> Volver a Finanzas
+            </a>
+        </div>
+    </div>
+
+    {% if project.budget_configured %}
+        <!-- Métricas del Proyecto -->
+        <div class="finance-metrics-grid">
+            <div class="metric-card">
+                <div class="metric-icon budget">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-value">${{ project.total_budget|floatformat:0 }}</div>
+                    <div class="metric-label">Presupuesto Total</div>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-icon paid">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-value">${{ project.total_paid|floatformat:0 }}</div>
+                    <div class="metric-label">Total Pagado</div>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-icon pending">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-value">${{ project.remaining_amount|floatformat:0 }}</div>
+                    <div class="metric-label">Pendiente</div>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-icon progress">
+                    <i class="fas fa-percentage"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-value">{{ project.payment_percentage }}%</div>
+                    <div class="metric-label">Progreso</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progreso Compacto -->
+        <div class="finance-progress-compact">
+            <div class="progress-content">
+                <div class="progress-info">
+                    <h3>Progreso de Pagos</h3>
+                    <div class="progress-stats">
+                        <div class="stat-item">
+                            <span class="stat-value">{{ project.payment_percentage }}%</span>
+                            <span class="stat-label">Completado</span>
+                        </div>
+                        <div class="progress-bar-compact">
+                            <div class="progress-fill-compact" 
+                                 style="width: {{ project.payment_percentage }}%; 
+                                        background: {% if project.payment_status == 'completed' %}var(--arc-color-success){% elif project.payment_status == 'almost_complete' %}var(--arc-color-warning){% elif project.payment_status == 'in_progress' %}var(--arc-color-primary){% else %}var(--arc-color-danger){% endif %};">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="progress-actions-compact">
+                    <a href="{% url 'projects:payment-create' project.pk %}" class="btn-compact primary">
+                        <i class="fas fa-plus"></i> Registrar Pago
+                    </a>
+                    <a href="{% url 'projects:budget-config' project.pk %}" class="btn-compact">
+                        <i class="fas fa-edit"></i> Editar Presupuesto
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Historial de Pagos -->
+        {% if recent_payments %}
+            <div class="finance-table-container">
+                <div class="table-header-section">
+                    <h3><i class="fas fa-history"></i> Historial de Pagos</h3>
+                    <div class="table-actions">
+                        <span class="projects-count">{{ payments_count }} pago{{ payments_count|pluralize }}</span>
+                    </div>
+                </div>
+
+                <div class="payments-list">
+                    {% for payment in recent_payments %}
+                    <div class="payment-item">
+                        <div class="payment-icon">
+                            <i class="fas fa-credit-card"></i>
+                        </div>
+                        <div class="payment-details">
+                            <div class="payment-amount">${{ payment.amount|floatformat:2 }}</div>
+                            <div class="payment-date">{{ payment.date }}</div>
+                            {% if payment.description %}
+                                <div class="payment-description">{{ payment.description|truncatechars:50 }}</div>
+                            {% endif %}
+                            {% if payment.receipt_file %}
+                                <div class="payment-document">
+                                    <i class="fas fa-file-alt"></i> 
+                                    <a href="{{ payment.receipt_file.url }}" target="_blank" class="document-link" download>
+                                        Descargar comprobante
+                                    </a>
+                                </div>
+                            {% elif payment.receipt %}
+                                <div class="payment-document">
+                                    <i class="fas fa-file-alt"></i> 
+                                    <a href="{{ payment.receipt.file.url }}" target="_blank" class="document-link" download>
+                                        Descargar comprobante
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="payment-actions">
+                            <div class="payment-percentage">
+                                {{ payment.percentage_of_total }}%
+                            </div>
+                            <div class="payment-buttons">
+                                <a href="{% url 'projects:payment-edit' payment.pk %}" class="btn-payment-action edit" title="Editar pago">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="#" class="btn-payment-action delete" title="Eliminar pago" onclick="if(confirm('¿Eliminar este pago?')) { document.getElementById('del-form-{{ payment.pk }}').submit(); } return false;">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                                <form id="del-form-{{ payment.pk }}" method="post" action="{% url 'projects:payment-delete' payment.pk %}" style="display:none;">
+                                    {% csrf_token %}
+                                </form>
+                                {% if payment.receipt_file %}
+                                    <a href="{{ payment.receipt_file.url }}" target="_blank" class="btn-payment-action view" title="Ver documento">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ payment.receipt_file.url }}" class="btn-payment-action" title="Descargar documento" download>
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                {% elif payment.receipt %}
+                                    <a href="{{ payment.receipt.file.url }}" target="_blank" class="btn-payment-action view" title="Ver documento">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ payment.receipt.file.url }}" class="btn-payment-action" title="Descargar documento" download>
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                {% if payments_count > recent_payments|length %}
+                    <div class="payments-footer">
+                        <span>Mostrando {{ recent_payments|length }} de {{ payments_count }} pagos</span>
+                    </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-receipt"></i>
+                </div>
+                <h3>No hay pagos registrados</h3>
+                <p>Comienza registrando el primer pago del proyecto.</p>
+                <a href="{% url 'projects:payment-create' project.pk %}" class="btn-finance-primary">
+                    <i class="fas fa-plus"></i> Registrar Primer Pago
+                </a>
+            </div>
+        {% endif %}
+
+    {% else %}
+        <!-- Estado: Presupuesto no configurado -->
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-cog"></i>
+            </div>
+            <h3>Presupuesto No Configurado</h3>
+            <p>Para comenzar a gestionar los pagos, primero debe establecer el presupuesto total del proyecto.</p>
+            <a href="{% url 'projects:budget-config' project.pk %}" class="btn-finance-primary">
+                <i class="fas fa-cog"></i> Configurar Presupuesto
+            </a>
+        </div>
+    {% endif %}
+
+    <!-- Información del Proyecto -->
+    <div class="finance-summary">
+        <div class="summary-section">
+            <h4>Información del Proyecto</h4>
+            <div class="project-info-grid">
+                <div class="info-item">
+                    <div class="info-icon client">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div class="info-content">
+                        <h5>Cliente</h5>
+                        <p>{{ project.client.name|default:"Sin asignar" }}</p>
+                    </div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-icon owner">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="info-content">
+                        <h5>Propietario</h5>
+                        <p>{{ project.owner.get_full_name|default:"Sin asignar" }}</p>
+                    </div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-icon date">
+                        <i class="fas fa-calendar"></i>
+                    </div>
+                    <div class="info-content">
+                        <h5>Creado</h5>
+                        <p>{{ project.created_at|date:"d/m/Y" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

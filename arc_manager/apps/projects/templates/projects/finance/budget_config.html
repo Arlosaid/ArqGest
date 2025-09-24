@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Configurar Presupuesto - {{ project.name }} - Arc Manager{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/finance_simple.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    
+    <!-- Header Simple -->
+    <div class="finance-header-simple">
+        <div class="finance-title-section">
+            <h1><i class="fas fa-cog"></i> Configurar Presupuesto</h1>
+            <p>Establece el presupuesto total para "{{ project.name }}"</p>
+        </div>
+        <div class="finance-actions-header">
+            <a href="{% url 'projects:project-detail' project.pk %}" class="btn-finance-secondary">
+                <i class="fas fa-arrow-left"></i> Volver al Proyecto
+            </a>
+        </div>
+    </div>
+
+    <!-- Información del Proyecto -->
+    <div class="project-info-card">
+        <div class="project-info-header">
+            <div class="project-avatar">
+                {{ project.name|slice:":1"|upper }}
+            </div>
+            <div class="project-info">
+                <h3>{{ project.name }}</h3>
+                <p>
+                    {% if project.client %}
+                        <i class="fas fa-user"></i> {{ project.client.name }}
+                    {% else %}
+                        <i class="fas fa-folder"></i> Sin cliente
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario Simple -->
+    <div class="budget-form-simple">
+        <h3>Configurar Presupuesto</h3>
+        {% if project.budget_configured %}
+            <p class="current-budget">Presupuesto actual: <strong>${{ project.total_budget|floatformat:0 }}</strong></p>
+        {% endif %}
+            
+        <form method="post" class="form-simple">
+            {% csrf_token %}
+            
+            <div class="form-field">
+                <label for="{{ form.total_budget.id_for_label }}">Presupuesto Total</label>
+                <div class="input-simple">
+                    <span class="currency">$</span>
+                    {{ form.total_budget }}
+                </div>
+                {% if form.total_budget.errors %}
+                    <div class="error">{{ form.total_budget.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-actions-simple">
+                <button type="submit" class="btn-simple primary">
+                    {% if project.budget_configured %}Actualizar{% else %}Configurar{% endif %}
+                </button>
+                <a href="{% if project.budget_configured %}{% url 'projects:finance-project-detail' project.pk %}{% else %}{% url 'projects:project-detail' project.pk %}{% endif %}" 
+                   class="btn-simple">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

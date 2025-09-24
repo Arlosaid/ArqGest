@@ -1,0 +1,816 @@
+/* ========================================
+   MÓDULO DE FINANZAS - NUEVA EXPERIENCIA
+   ======================================== */
+
+/* Contenedor Principal */
+.finance-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: var(--arc-bg-secondary);
+    min-height: 100vh;
+}
+
+/* Header Simple */
+.finance-header-simple {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--arc-border-color);
+}
+
+.finance-title-section h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--arc-text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.finance-title-section h1 i {
+    color: var(--arc-color-primary);
+}
+
+.finance-title-section p {
+    color: var(--arc-text-secondary);
+    margin: 0.5rem 0 0 0;
+    font-size: 0.95rem;
+}
+
+.finance-actions-header {
+    display: flex;
+    gap: 1rem;
+}
+
+/* Métricas Principales */
+.finance-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.metric-card {
+    background: var(--arc-bg-primary);
+    border-radius: var(--arc-border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--arc-shadow-md);
+    border: 1px solid var(--arc-border-color);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: var(--arc-transition);
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--arc-shadow-lg);
+}
+
+.metric-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: white;
+}
+
+.metric-icon.budget {
+    background: linear-gradient(135deg, var(--arc-color-primary), var(--arc-color-primary-hover));
+}
+
+.metric-icon.paid {
+    background: linear-gradient(135deg, var(--arc-color-success), #22c55e);
+}
+
+.metric-icon.pending {
+    background: linear-gradient(135deg, var(--arc-color-warning), #f59e0b);
+}
+
+.metric-icon.progress {
+    background: linear-gradient(135deg, var(--arc-color-info), #3b82f6);
+}
+
+.metric-content {
+    flex: 1;
+}
+
+.metric-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--arc-text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.metric-label {
+    color: var(--arc-text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* Tabla de Proyectos */
+.finance-table-container {
+    background: var(--arc-bg-primary);
+    border-radius: var(--arc-border-radius);
+    box-shadow: var(--arc-shadow-md);
+    border: 1px solid var(--arc-border-color);
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.table-header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--arc-border-color);
+    background: var(--arc-bg-tertiary);
+}
+
+.table-header-section h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--arc-text-primary);
+}
+
+.table-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.projects-count {
+    color: var(--arc-text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.finance-table {
+    overflow-x: auto;
+}
+
+.table-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr 1fr 120px;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    background: var(--arc-bg-tertiary);
+    border-bottom: 1px solid var(--arc-border-color);
+    font-weight: 600;
+    color: var(--arc-text-secondary);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr 1fr 120px;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--arc-border-color);
+    align-items: center;
+    transition: background-color 0.2s ease;
+}
+
+.table-row:hover {
+    background-color: var(--arc-bg-tertiary);
+}
+
+.table-row:last-child {
+    border-bottom: none;
+}
+
+/* Columnas específicas */
+.col-project {
+    display: flex;
+    align-items: center;
+}
+
+.project-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.project-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--arc-color-primary), var(--arc-color-primary-hover));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.project-details h4 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--arc-text-primary);
+    line-height: 1.2;
+}
+
+.project-details p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--arc-text-secondary);
+}
+
+.col-client {
+    display: flex;
+    align-items: center;
+}
+
+.client-name {
+    color: var(--arc-text-primary);
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.no-client {
+    color: var(--arc-text-secondary);
+    font-size: 0.875rem;
+    font-style: italic;
+}
+
+.col-budget, .col-paid {
+    display: flex;
+    align-items: center;
+}
+
+.budget-amount, .paid-amount {
+    color: var(--arc-text-primary);
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.no-budget, .no-data {
+    color: var(--arc-text-secondary);
+    font-size: 0.875rem;
+    font-style: italic;
+}
+
+.col-progress {
+    display: flex;
+    align-items: center;
+}
+
+.progress-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    width: 100%;
+}
+
+.progress-bar {
+    height: 6px;
+    background: var(--arc-border-color);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 0.75rem;
+    color: var(--arc-text-secondary);
+    font-weight: 500;
+}
+
+.no-progress {
+    color: var(--arc-text-secondary);
+    font-size: 0.875rem;
+    font-style: italic;
+}
+
+.col-status {
+    display: flex;
+    align-items: center;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.status-badge.completed {
+    background: #dcfce7;
+    color: var(--arc-color-success);
+}
+
+.status-badge.almost {
+    background: #fef3c7;
+    color: var(--arc-color-warning);
+}
+
+.status-badge.progress {
+    background: #dbeafe;
+    color: var(--arc-color-primary);
+}
+
+.status-badge.pending {
+    background: #e0f2fe;
+    color: var(--arc-color-info);
+}
+
+.status-badge.not-configured {
+    background: #f1f5f9;
+    color: var(--arc-color-secondary);
+}
+
+.col-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.btn-action {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: var(--arc-transition);
+    border: none;
+    cursor: pointer;
+}
+
+.btn-action.primary {
+    background: var(--arc-color-primary);
+    color: white;
+}
+
+.btn-action.primary:hover {
+    background: var(--arc-color-primary-hover);
+    color: white;
+}
+
+.btn-action.secondary {
+    background: var(--arc-color-success);
+    color: white;
+}
+
+.btn-action.secondary:hover {
+    background: #22c55e;
+    color: white;
+}
+
+.btn-action.configure {
+    background: var(--arc-color-warning);
+    color: white;
+}
+
+.btn-action.configure:hover {
+    background: #f59e0b;
+    color: white;
+}
+
+/* Botones principales */
+.btn-finance-primary {
+    background: var(--arc-color-primary);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--arc-border-radius-sm);
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: var(--arc-transition);
+    border: none;
+    cursor: pointer;
+}
+
+.btn-finance-primary:hover {
+    background: var(--arc-color-primary-hover);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.btn-finance-secondary {
+    background: var(--arc-bg-tertiary);
+    color: var(--arc-text-primary);
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--arc-border-radius-sm);
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: var(--arc-transition);
+    border: 1px solid var(--arc-border-color);
+    cursor: pointer;
+}
+
+.btn-finance-secondary:hover {
+    background: var(--arc-border-color);
+    color: var(--arc-text-primary);
+    transform: translateY(-1px);
+}
+
+/* Breadcrumb Navigation */
+.breadcrumb-nav {
+    margin-bottom: 0.5rem;
+}
+
+.breadcrumb-link {
+    color: var(--arc-text-secondary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: color 0.2s ease;
+}
+
+.breadcrumb-link:hover {
+    color: var(--arc-color-primary);
+}
+
+/* Progreso Visual */
+.finance-progress-section {
+    background: var(--arc-bg-primary);
+    border-radius: var(--arc-border-radius);
+    box-shadow: var(--arc-shadow-md);
+    border: 1px solid var(--arc-border-color);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.progress-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--arc-text-primary);
+}
+
+.progress-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.progress-visual {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.progress-circle-container {
+    position: relative;
+    display: inline-block;
+}
+
+.progress-circle {
+    position: relative;
+    display: inline-block;
+}
+
+.progress-circle-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.progress-circle-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--arc-text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.progress-circle-label {
+    font-size: 0.75rem;
+    color: var(--arc-text-secondary);
+    font-weight: 500;
+}
+
+/* Lista de Pagos */
+.payments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.payment-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--arc-bg-tertiary);
+    border-radius: 8px;
+    border-left: 4px solid var(--arc-color-success);
+    transition: background-color 0.2s ease;
+}
+
+.payment-item:hover {
+    background: var(--arc-border-color);
+}
+
+.payment-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: var(--arc-color-success);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.payment-details {
+    flex: 1;
+}
+
+.payment-amount {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--arc-text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.payment-date {
+    font-size: 0.875rem;
+    color: var(--arc-text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.payment-description {
+    font-size: 0.8rem;
+    color: var(--arc-text-secondary);
+    font-style: italic;
+}
+
+.payment-percentage {
+    background: #dcfce7;
+    color: var(--arc-color-success);
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.payments-footer {
+    text-align: center;
+    padding: 1rem;
+    color: var(--arc-text-secondary);
+    font-size: 0.875rem;
+    border-top: 1px solid var(--arc-border-color);
+}
+
+/* Información del Proyecto */
+.project-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--arc-bg-tertiary);
+    border-radius: 8px;
+    border: 1px solid var(--arc-border-color);
+}
+
+.info-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1rem;
+}
+
+.info-icon.client {
+    background: var(--arc-color-primary);
+}
+
+.info-icon.owner {
+    background: var(--arc-color-secondary);
+}
+
+.info-icon.date {
+    background: var(--arc-color-info);
+}
+
+.info-content h5 {
+    margin: 0 0 0.25rem 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--arc-text-primary);
+}
+
+.info-content p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--arc-text-secondary);
+}
+
+/* Estado Vacío */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--arc-bg-primary);
+    border-radius: var(--arc-border-radius);
+    box-shadow: var(--arc-shadow-md);
+    border: 1px solid var(--arc-border-color);
+}
+
+.empty-icon {
+    font-size: 3rem;
+    color: var(--arc-border-color);
+    margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+    margin: 0 0 0.5rem 0;
+    color: var(--arc-text-primary);
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.empty-state p {
+    margin: 0 0 2rem 0;
+    color: var(--arc-text-secondary);
+    font-size: 0.95rem;
+}
+
+/* Resumen Rápido */
+.finance-summary {
+    background: var(--arc-bg-primary);
+    border-radius: var(--arc-border-radius);
+    box-shadow: var(--arc-shadow-md);
+    border: 1px solid var(--arc-border-color);
+    padding: 1.5rem;
+}
+
+.summary-section h4 {
+    margin: 0 0 1rem 0;
+    color: var(--arc-text-primary);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.summary-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+}
+
+.summary-stat {
+    text-align: center;
+    padding: 1rem;
+    background: var(--arc-bg-tertiary);
+    border-radius: 8px;
+    border: 1px solid var(--arc-border-color);
+}
+
+.stat-number {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--arc-color-primary);
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--arc-text-secondary);
+    font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .finance-container {
+        padding: 1.5rem;
+    }
+    
+    .finance-metrics-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+    
+    .table-header,
+    .table-row {
+        grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr 1fr 100px;
+    }
+}
+
+@media (max-width: 768px) {
+    .finance-container {
+        padding: 1rem;
+    }
+    
+    .finance-header-simple {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .finance-metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .table-header,
+    .table-row {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    
+    .table-header {
+        display: none;
+    }
+    
+    .table-row {
+        display: block;
+        padding: 1rem;
+        border: 1px solid var(--arc-border-color);
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+    }
+    
+    .col-project,
+    .col-client,
+    .col-budget,
+    .col-paid,
+    .col-progress,
+    .col-status,
+    .col-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    
+    .col-actions {
+        justify-content: flex-end;
+        margin-bottom: 0;
+    }
+    
+    .col-project::before { content: "Proyecto: "; font-weight: 600; color: var(--arc-text-secondary); }
+    .col-client::before { content: "Cliente: "; font-weight: 600; color: var(--arc-text-secondary); }
+    .col-budget::before { content: "Presupuesto: "; font-weight: 600; color: var(--arc-text-secondary); }
+    .col-paid::before { content: "Pagado: "; font-weight: 600; color: var(--arc-text-secondary); }
+    .col-progress::before { content: "Progreso: "; font-weight: 600; color: var(--arc-text-secondary); }
+    .col-status::before { content: "Estado: "; font-weight: 600; color: var(--arc-text-secondary); }
+    
+    .summary-stats {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .finance-container {
+        padding: 0.5rem;
+    }
+    
+    .finance-title-section h1 {
+        font-size: 1.5rem;
+    }
+    
+    .metric-card {
+        padding: 1rem;
+    }
+    
+    .metric-value {
+        font-size: 1.5rem;
+    }
+}
