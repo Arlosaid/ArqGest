@@ -26,6 +26,13 @@ from .views import (
     phase_files_paginated,
     project_tasks_paginated,
     ProjectPhasesEditView,
+    # Finance module views
+    FinanceDashboardView,
+    ProjectFinanceDetailView,
+    ProjectBudgetConfigView,
+    PaymentCreateView,
+    PaymentUpdateView,
+    PaymentDeleteView,
 )
 
 app_name = 'projects'
@@ -73,4 +80,12 @@ urlpatterns = [
     path('templates/<int:pk>/edit/', PhaseTemplateUpdateView.as_view(), name='phasetemplate-update'),
     path('templates/<int:pk>/delete/', PhaseTemplateDeleteView.as_view(), name='phasetemplate-delete'),
     path('kanban-selector/', ProjectKanbanSelectorView.as_view(), name='kanban-selector'),
+    
+    # Finance module URLs
+    path('finance/', FinanceDashboardView.as_view(), name='finance-dashboard'),
+    path('<int:pk>/finance/', ProjectFinanceDetailView.as_view(), name='finance-project-detail'),
+    path('<int:pk>/budget/config/', ProjectBudgetConfigView.as_view(), name='budget-config'),
+    path('<int:project_id>/payments/new/', PaymentCreateView.as_view(), name='payment-create'),
+    path('payments/<int:pk>/edit/', PaymentUpdateView.as_view(), name='payment-edit'),
+    path('payments/<int:pk>/delete/', PaymentDeleteView.as_view(), name='payment-delete'),
 ]

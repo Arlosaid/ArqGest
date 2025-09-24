@@ -47,6 +47,14 @@
                             <span class="nav-text">Kanban de Proyectos</span>
                         </a>
                     </li>
+
+                    <!-- Finanzas -->
+                    <li class="nav-item">
+                        <a href="{% url 'projects:finance-dashboard' %}" class="nav-link {% if 'finance' in request.resolver_match.url_name %}active{% endif %}" data-sidebar-nav="true">
+                            <span class="nav-icon"><i class="fas fa-chart-line"></i></span>
+                            <span class="nav-text">Finanzas</span>
+                        </a>
+                    </li>
                 {% endif %}
                 {% endwith %}
 

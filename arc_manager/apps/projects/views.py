@@ -13,7 +13,9 @@ from django.db.models import Q
 import logging
 import time
 from datetime import datetime
-from .models import Project, Task, Phase, PhaseTemplate
+import os
+from django.core.files.storage import default_storage
+from .models import Project, Task, Phase, PhaseTemplate, ProjectPayment
 from core.error_codes import (
     log_operation, 
     TaskErrorCodes, 
@@ -237,6 +239,7 @@ class ProjectCreateView(LoginRequiredMixin, OrganizationAdminMixin, CreateView):
         creation_method = form.cleaned_data.get('phase_creation_method')
         save_as_template = form.cleaned_data.get('save_as_template')
         template_name = form.cleaned_data.get('template_name')
+        total_budget = form.cleaned_data.get('total_budget')
         
         project_name = form.cleaned_data.get('name')
         org_id = self.request.user.organization.id if self.request.user.organization else 'None'
@@ -249,6 +252,13 @@ class ProjectCreateView(LoginRequiredMixin, OrganizationAdminMixin, CreateView):
 
         form.instance.owner = self.request.user
         form.instance.organization = self.request.user.organization
+        # Si se proporcionó presupuesto, marcar como configurado
+        if total_budget is not None and total_budget != "":
+            try:
+                # Solo marcar, el valor ya viene en form.instance.total_budget
+                form.instance.budget_configured = True
+            except Exception:
+                pass
         
         try:
             self.object = form.save()
@@ -292,9 +302,14 @@ class ProjectCreateView(LoginRequiredMixin, OrganizationAdminMixin, CreateView):
                 logger.error(f"Failed to create PhaseTemplate from project creation: {e}")
 
         # Invalidar cache después de crear proyecto
-        from .cache_utils import invalidate_project_cache, invalidate_kanban_projects_cache
+        from .cache_utils import invalidate_project_cache, invalidate_kanban_projects_cache, invalidate_user_accessible_projects_cache
         invalidate_project_cache(self.object.organization.id, self.object.id)
         invalidate_kanban_projects_cache(self.object.organization.id)
+        # Asegurar que el nuevo proyecto aparezca para el creador (owner)
+        try:
+            invalidate_user_accessible_projects_cache(self.request.user.id, self.object.organization.id, self.request.user.is_org_admin)
+        except Exception:
+            pass
 
         return redirect(self.get_success_url())
 
@@ -1643,3 +1658,348 @@ class ProjectKanbanSelectorView(LoginRequiredMixin, View):
             'all_projects_accessible': True,
         }
         return render(request, self.template_name, context)
+
+
+# ================================
+# FINANCE MODULE VIEWS
+# ================================
+
+class FinanceDashboardView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
+    """Dashboard principal del módulo financiero con paginación y filtros."""
+    model = Project
+    template_name = 'projects/finance/dashboard.html'
+    context_object_name = 'projects'
+    paginate_by = 8
+    
+    def get_queryset(self):
+        """Obtener todos los proyectos de la organización con filtros simples."""
+        queryset = Project.objects.filter(
+            organization=self.request.user.organization
+        ).select_related('client', 'owner').prefetch_related('payments')
+        
+        # Filtros
+        search = self.request.GET.get('search', '').strip()
+        budget_status = self.request.GET.get('budget_status', '')
+        
+        # Filtro de búsqueda (por nombre de proyecto o cliente)
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) |
+                Q(client__name__icontains=search)
+            )
+        
+        # Filtro de estado de presupuesto
+        if budget_status == 'configured':
+            queryset = queryset.filter(budget_configured=True)
+        elif budget_status == 'not_configured':
+            queryset = queryset.filter(budget_configured=False)
+        
+        # Se elimina filtro por estado de proyecto en dashboard financiero
+        
+        # Ordenar por fecha de creación (más recientes primero)
+        return queryset.order_by('-created_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        projects = context['projects']
+        
+        # Obtener todos los proyectos para estadísticas (sin filtros)
+        all_projects = Project.objects.filter(
+            organization=self.request.user.organization
+        ).select_related('client', 'owner').prefetch_related('payments')
+        
+        # SOLUCIÓN: Filtrar solo proyectos ACTIVOS para estadísticas financieras
+        active_projects = all_projects.filter(status='ACTIVE')
+        
+        # Estadísticas generales (todos los proyectos)
+        total_projects = all_projects.count()
+        configured_projects = all_projects.filter(budget_configured=True).count()
+        
+        # Estadísticas financieras (solo proyectos activos)
+        active_configured = active_projects.filter(budget_configured=True).count()
+        total_budget = sum(p.total_budget or 0 for p in active_projects if p.total_budget)
+        total_paid = sum(p.total_paid for p in active_projects)
+        
+        # Calcular monto pendiente
+        pending_amount = total_budget - total_paid if total_budget > 0 else 0
+        
+        # Parámetros de filtros actuales
+        current_filters = {
+            'search': self.request.GET.get('search', ''),
+            'budget_status': self.request.GET.get('budget_status', ''),
+        }
+        
+        # Construir extra_params para el partial de paginación (preserva filtros)
+        params = self.request.GET.copy()
+        params.pop('page', None)
+        extra_params = params.urlencode()
+        if extra_params:
+            extra_params = f"{extra_params}&"
+
+        context.update({
+            'total_projects': total_projects,
+            'configured_projects': configured_projects,
+            'pending_configuration': total_projects - configured_projects,
+            'active_configured': active_configured,
+            'total_budget': total_budget,
+            'total_paid': total_paid,
+            'pending_amount': pending_amount,
+            'overall_percentage': int((total_paid / total_budget * 100)) if total_budget > 0 else 0,
+            'current_filters': current_filters,
+            'extra_params': extra_params,
+        })
+        
+        return context
+
+
+class ProjectFinanceDetailView(LoginRequiredMixin, DetailView):
+    """Vista detallada de finanzas de un proyecto específico."""
+    model = Project
+    template_name = 'projects/finance/project_detail.html'
+    context_object_name = 'project'
+    
+    def get_object(self):
+        """Obtener proyecto por organización del usuario (sin lógica de accesibles)."""
+        project_id = self.kwargs.get('pk')
+        return get_object_or_404(Project, pk=project_id, organization=self.request.user.organization)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        project = context['project']
+        
+        # Pagos recientes (últimos 10)
+        recent_payments = project.payments.all()[:10]
+        
+        context.update({
+            'recent_payments': recent_payments,
+            'payments_count': project.payments.count(),
+        })
+        
+        return context
+
+
+class ProjectBudgetConfigView(LoginRequiredMixin, UpdateView):
+    """Vista para configurar el presupuesto de un proyecto."""
+    model = Project
+    fields = ['total_budget']
+    template_name = 'projects/finance/budget_config.html'
+    
+    def get_object(self):
+        """Verificar acceso al proyecto."""
+        from .cache_utils import get_user_accessible_projects
+        
+        project_id = self.kwargs.get('pk')
+        accessible_projects = get_user_accessible_projects(
+            self.request.user, 
+            self.request.user.organization
+        )
+        
+        try:
+            return accessible_projects.get(pk=project_id)
+        except Project.DoesNotExist:
+            raise Http404("Proyecto no encontrado o sin acceso")
+    
+    def form_valid(self, form):
+        """Marcar presupuesto como configurado."""
+        form.instance.budget_configured = True
+        
+        # Manejar caso cuando total_budget es None
+        if form.instance.total_budget is not None:
+            budget_display = f"${form.instance.total_budget:,.2f}"
+            budget_amount = float(form.instance.total_budget)
+        else:
+            budget_display = "No especificado"
+            budget_amount = 0.0
+        
+        messages.success(
+            self.request, 
+            f"Presupuesto configurado exitosamente: {budget_display}"
+        )
+        
+        log_project_operation(
+            'PROJECT_BUDGET_CONFIGURED',
+            self.request.user.email,
+            level='INFO',
+            project_id=form.instance.pk,
+            budget_amount=budget_amount
+        )
+        
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse_lazy(
+            'projects:finance-project-detail', 
+            kwargs={'pk': self.object.pk}
+        )
+
+
+class PaymentCreateView(LoginRequiredMixin, CreateView):
+    """Vista para registrar un nuevo pago."""
+    model = ProjectPayment
+    fields = ['amount', 'date', 'description']
+    template_name = 'projects/finance/payment_form.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        """Cargar el proyecto por organización sin filtros adicionales."""
+        self.project_id = kwargs.get('project_id')
+        self.project = get_object_or_404(Project, pk=self.project_id, organization=request.user.organization)
+        
+        return super().dispatch(request, *args, **kwargs)
+    
+    def form_valid(self, form):
+        """Asignar proyecto y usuario al pago."""
+        form.instance.project = self.project
+        form.instance.created_by = self.request.user
+        # Manejar archivo de comprobante (opcional)
+        try:
+            uploaded = self.request.FILES.get('receipt')
+            if uploaded:
+                # Validar extensión permitida
+                allowed_exts = {'.jpg', '.jpeg', '.png', '.gif', '.pdf', '.doc', '.docx'}
+                ext = os.path.splitext(uploaded.name)[1].lower()
+                if ext not in allowed_exts:
+                    form.add_error('description', _('Tipo de archivo no permitido. Usa imagen, PDF o Word.'))
+                    return super().form_invalid(form)
+                form.instance.receipt_file = uploaded
+        except Exception:
+            pass
+        
+        # Validar que no exceda el presupuesto
+        if self.project.total_budget:
+            new_total = self.project.total_paid + form.instance.amount
+            if new_total > self.project.total_budget:
+                form.add_error(
+                    'amount', 
+                    f"Este pago excedería el presupuesto total. "
+                    f"Máximo disponible: ${self.project.remaining_amount:,.2f}"
+                )
+                return super().form_invalid(form)
+        
+        messages.success(
+            self.request, 
+            f"Pago registrado exitosamente: ${form.instance.amount:,.2f}"
+        )
+        
+        return super().form_valid(form)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['project'] = self.project
+        return context
+    
+    def get_success_url(self):
+        return reverse_lazy(
+            'projects:finance-project-detail', 
+            kwargs={'pk': self.project.pk}
+        )
+
+
+class PaymentUpdateView(LoginRequiredMixin, UpdateView):
+    """Vista para editar un pago existente."""
+    model = ProjectPayment
+    fields = ['amount', 'date', 'description']
+    template_name = 'projects/finance/payment_form.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        """Cargar el proyecto por organización sin filtros adicionales."""
+        self.payment = self.get_object()
+        self.project = self.payment.project
+        
+        # Validar organización
+        if self.project.organization_id != request.user.organization_id:
+            raise Http404("Proyecto no encontrado o sin acceso")
+        
+        return super().dispatch(request, *args, **kwargs)
+    
+    def form_valid(self, form):
+        """Validar que no exceda el presupuesto."""
+        # Calcular el monto que se restaría del total actual
+        old_amount = self.object.amount
+        new_amount = form.instance.amount
+        difference = new_amount - old_amount
+        # Guardar referencia del archivo anterior para limpieza post-guardado
+        old_receipt_name = self.object.receipt_file.name if getattr(self.object, 'receipt_file', None) else None
+        
+        if self.project.total_budget:
+            new_total = self.project.total_paid + difference
+            if new_total > self.project.total_budget:
+                form.add_error(
+                    'amount', 
+                    f"Este cambio excedería el presupuesto total. "
+                    f"Máximo disponible: ${self.project.remaining_amount + old_amount:,.2f}"
+                )
+                return super().form_invalid(form)
+        
+        # Manejar reemplazo de comprobante si se sube uno nuevo
+        try:
+            uploaded = self.request.FILES.get('receipt')
+            if uploaded:
+                allowed_exts = {'.jpg', '.jpeg', '.png', '.gif', '.pdf', '.doc', '.docx'}
+                ext = os.path.splitext(uploaded.name)[1].lower()
+                if ext not in allowed_exts:
+                    form.add_error('description', _('Tipo de archivo no permitido. Usa imagen, PDF o Word.'))
+                    return super().form_invalid(form)
+                form.instance.receipt_file = uploaded  # Reemplaza referencia al archivo
+        except Exception:
+            pass
+
+        # Guardar cambios primero y luego eliminar el archivo anterior de forma segura
+        response = super().form_valid(form)
+
+        try:
+            if uploaded and old_receipt_name and default_storage.exists(old_receipt_name):
+                default_storage.delete(old_receipt_name)
+        except Exception:
+            # No bloquear el flujo si falla la eliminación; se puede limpiar con tareas programadas
+            pass
+
+        messages.success(
+            self.request, 
+            f"Pago actualizado exitosamente: ${form.instance.amount:,.2f}"
+        )
+
+        return response
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['project'] = self.project
+        context['is_edit'] = True
+        return context
+    
+    def get_success_url(self):
+        return reverse_lazy(
+            'projects:finance-project-detail', 
+            kwargs={'pk': self.project.pk}
+        )
+
+
+class PaymentDeleteView(LoginRequiredMixin, DeleteView):
+    """Eliminar un pago y su comprobante asociado del storage."""
+    model = ProjectPayment
+    template_name = 'projects/finance/payment_confirm_delete.html'
+    context_object_name = 'payment'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.payment = self.get_object()
+        self.project = self.payment.project
+        if self.project.organization_id != request.user.organization_id:
+            raise Http404("Pago no encontrado o sin acceso")
+        return super().dispatch(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        old_receipt_name = self.payment.receipt_file.name if getattr(self.payment, 'receipt_file', None) else None
+        response = super().delete(request, *args, **kwargs)
+        try:
+            if old_receipt_name and default_storage.exists(old_receipt_name):
+                default_storage.delete(old_receipt_name)
+        except Exception:
+            pass
+        messages.success(request, 'Pago eliminado correctamente')
+        return response
+
+    def get_success_url(self):
+        return reverse_lazy('projects:finance-project-detail', kwargs={'pk': self.project.pk})
+
+    def get(self, request, *args, **kwargs):
+        # No mostramos plantilla de confirmación; flujo simple y directo
+        return redirect(self.get_success_url())

@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Finanzas - Arc Manager{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/finance_clean.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- Usar el container estándar de base.css -->
+<div class="page-container">
+    <!-- Header Section como en tasks -->
+    <div class="finance-container">
+        <div class="finance-header">
+            <div class="finance-header-content">
+                <div class="finance-title">
+                    <h1><i class="fas fa-dollar-sign"></i> Finanzas</h1>
+                    <p class="finance-subtitle">Gestiona el presupuesto y pagos de tus proyectos</p>
+                </div>
+                <div class="finance-actions">
+                    <a href="{% url 'projects:project-list' %}" class="btn-secondary">
+                        <i class="fas fa-folder-open"></i> Ver Proyectos
+                    </a>
+                </div>
+                
+                <!-- Estadísticas como en tasks -->
+                <div class="finance-stats">
+                    <div class="finance-stat">
+                        <span class="finance-stat-number">${{ total_budget|floatformat:0 }}</span>
+                        <span class="finance-stat-label"><i class="fas fa-wallet"></i> Total</span>
+                    </div>
+                    <div class="finance-stat">
+                        <span class="finance-stat-number">${{ total_paid|floatformat:0 }}</span>
+                        <span class="finance-stat-label"><i class="fas fa-check-circle"></i> Cobrado</span>
+                    </div>
+                    <div class="finance-stat">
+                        <span class="finance-stat-number">${{ pending_amount|floatformat:0 }}</span>
+                        <span class="finance-stat-label"><i class="fas fa-clock"></i> Pendiente</span>
+                    </div>
+                    <div class="finance-stat">
+                        <span class="finance-stat-number">{{ overall_percentage }}%</span>
+                        <span class="finance-stat-label"><i class="fas fa-chart-line"></i> Progreso</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- Filtros Minimalistas -->
+    <div class="finance-filters">
+        <form method="get" class="table-search-box" autocomplete="off">
+            <div class="finance-search">
+                <input type="text" 
+                       placeholder="Buscar proyectos..." 
+                       name="search"
+                       value="{{ current_filters.search }}"
+                       class="table-search-input finance-search-input"
+                       style="width: 360px; max-width: 100%;">
+                <i class="fas fa-search table-search-icon"></i>
+                {% if current_filters.search %}
+                    <a href="{% url 'projects:finance-dashboard' %}" class="clear-search-btn"><i class="fas fa-times"></i></a>
+                {% endif %}
+            </div>
+            
+            <div class="finance-filter">
+                <select name="budget_status" class="budget-status-filter">
+                    <option value="">Todos los proyectos</option>
+                    <option value="configured" {% if current_filters.budget_status == 'configured' %}selected{% endif %}>
+                        Con presupuesto
+                    </option>
+                    <option value="not_configured" {% if current_filters.budget_status == 'not_configured' %}selected{% endif %}>
+                        Sin presupuesto
+                    </option>
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <!-- Lista Compacta de Proyectos -->
+    {% if projects %}
+        <div class="projects-container">
+            
+            <div class="projects-list">
+                {% for project in projects %}
+                <div class="project-item">
+                    <!-- Información del Proyecto -->
+                    <div class="project-info">
+                        <div class="project-avatar">
+                            {{ project.name|first|upper }}
+                        </div>
+                        <div class="project-details">
+                            <h4 class="project-name">{{ project.name }}</h4>
+                            <div class="project-meta">
+                                {% if project.client %}
+                                    <span class="project-client">
+                                        <i class="fas fa-user"></i> {{ project.client.name }}
+                                    </span>
+                                {% else %}
+                                    <span class="project-client">
+                                        <i class="fas fa-folder"></i> Sin cliente
+                                    </span>
+                                {% endif %}
+                                <span class="project-date">
+                                    <i class="fas fa-calendar"></i> {{ project.created_at|date:"d/m/Y" }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Estado del Proyecto -->
+                    <div class="project-status">
+                        {% if project.budget_configured %}
+                            <div class="status-badge configured">
+                                <i class="fas fa-check-circle"></i> Configurado
+                            </div>
+                        {% else %}
+                            <div class="status-badge not-configured">
+                                <i class="fas fa-exclamation-circle"></i> Sin presupuesto
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Información Financiera -->
+                    <div class="project-financial">
+                        {% if project.budget_configured %}
+                            <div class="financial-metrics">
+                                <div class="financial-metric">
+                                    <div class="label"><i class="fas fa-coins"></i> Total</div>
+                                    <div class="value">${{ project.total_budget|floatformat:0 }}</div>
+                                </div>
+                                <div class="financial-metric">
+                                    <div class="label"><i class="fas fa-money-bill-wave"></i> Pagado</div>
+                                    <div class="value paid">${{ project.total_paid|floatformat:0 }}</div>
+                                </div>
+                                <div class="financial-metric">
+                                    <div class="label"><i class="fas fa-hourglass-half"></i> Pendiente</div>
+                                    <div class="value pending">${{ project.remaining_amount|floatformat:0 }}</div>
+                                </div>
+                                <div class="financial-metric">
+                                    <div class="label"><i class="fas fa-percentage"></i> Progreso</div>
+                                    <div class="value">{{ project.payment_percentage }}%</div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="no-budget">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>Presupuesto no configurado</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Acciones -->
+                    <div class="project-actions">
+                        {% if project.budget_configured %}
+                            <a href="{% url 'projects:finance-project-detail' project.pk %}" class="action-btn view">
+                                <i class="fas fa-eye"></i>
+                                <span>Ver</span>
+                            </a>
+                            <a href="{% url 'projects:payment-create' project.pk %}" class="action-btn primary">
+                                <i class="fas fa-plus"></i>
+                                <span>Pago</span>
+                            </a>
+                        {% else %}
+                            <a href="{% url 'projects:budget-config' project.pk %}" class="action-btn configure">
+                                <i class="fas fa-cog"></i>
+                                <span>Configurar</span>
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Paginación -->
+        {% if is_paginated %}
+            {% include 'partials/pagination.html' with page_obj=page_obj page_param='page' item_label='proyectos' extra_params=extra_params %}
+        {% endif %}
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-folder-open"></i>
+            </div>
+            <h3>No hay proyectos disponibles</h3>
+            <p>{% if current_filters.search or current_filters.budget_status %}No se encontraron proyectos con los filtros aplicados.{% else %}Aún no hay proyectos en tu organización.{% endif %}</p>
+            {% if not current_filters.search and not current_filters.budget_status %}
+            <a href="{% url 'projects:project-create' %}" class="btn-primary">
+                <i class="fas fa-plus"></i> Crear Proyecto
+            </a>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/finance_dashboard.js' %}"></script>
+{% endblock %}

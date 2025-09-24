@@ -84,6 +84,18 @@
                         <div class="form-text">{% trans "Cliente asociado al proyecto" %}</div>
                     </div>
 
+                    <div class="form-group">
+                        <label for="{{ form.total_budget.id_for_label }}" class="form-label">
+                            <i class="fas fa-sack-dollar"></i> {{ form.total_budget.label }}
+                        </label>
+                        <div class="input-simple">
+                            <span class="currency">$</span>
+                            {{ form.total_budget }}
+                        </div>
+                        {{ form.total_budget.errors }}
+                        <div class="form-text">{% trans "Opcional. Si lo defines ahora, activará el módulo de pagos." %}</div>
+                    </div>
+
                     {% if form.description %}
                     <div class="form-group basic-full">
                         <label for="{{ form.description.id_for_label }}" class="form-label">

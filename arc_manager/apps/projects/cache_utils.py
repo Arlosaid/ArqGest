@@ -197,16 +197,22 @@ def get_or_set_user_accessible_projects(user_id, organization_id, is_admin=False
             completed_ids = set(all_projects.filter(status='COMPLETED').values_list('id', flat=True))
             archived_ids = set(all_projects.filter(status='ARCHIVED').values_list('id', flat=True))
         else:
-            # Usuarios normales solo ven proyectos donde tienen tareas
-            # Query optimizada con una sola consulta
+            # Usuarios normales ven:
+            # - Proyectos donde tienen tareas asignadas
+            # - Proyectos donde son propietarios (owner)
             projects_with_tasks = Project.objects.filter(
                 organization_id=organization_id,
                 phases__tasks__assigned_to_id=user_id,
-            ).distinct()
+            )
+            projects_owned = Project.objects.filter(
+                organization_id=organization_id,
+                owner_id=user_id,
+            )
+            projects_qs = (projects_with_tasks | projects_owned).distinct()
             
-            active_ids = set(projects_with_tasks.filter(status='ACTIVE').values_list('id', flat=True))
-            completed_ids = set(projects_with_tasks.filter(status='COMPLETED').values_list('id', flat=True))
-            archived_ids = set(projects_with_tasks.filter(status='ARCHIVED').values_list('id', flat=True))
+            active_ids = set(projects_qs.filter(status='ACTIVE').values_list('id', flat=True))
+            completed_ids = set(projects_qs.filter(status='COMPLETED').values_list('id', flat=True))
+            archived_ids = set(projects_qs.filter(status='ARCHIVED').values_list('id', flat=True))
         
         accessible_projects = {
             'active_ids': active_ids,
@@ -296,3 +302,39 @@ def invalidate_kanban_projects_cache(organization_id):
     """
     cache_key = f"kanban_projects_data:{organization_id}"
     cache.delete(cache_key)
+
+
+def get_user_accessible_projects(user, organization):
+    """
+    Obtiene un QuerySet de proyectos accesibles para un usuario.
+    Esta función es un wrapper de get_or_set_user_accessible_projects
+    que devuelve un QuerySet en lugar de IDs.
+    
+    Args:
+        user: Usuario actual
+        organization: Organización del usuario
+    
+    Returns:
+        QuerySet: Proyectos accesibles para el usuario
+    """
+    from .models import Project
+    
+    # Obtener IDs de proyectos accesibles
+    accessible_data = get_or_set_user_accessible_projects(
+        user.id, 
+        organization.id, 
+        user.is_org_admin
+    )
+    
+    # Combinar todos los IDs accesibles
+    all_accessible_ids = (
+        accessible_data['active_ids'] | 
+        accessible_data['completed_ids'] | 
+        accessible_data['archived_ids']
+    )
+    
+    # Devolver QuerySet con proyectos accesibles
+    return Project.objects.filter(
+        id__in=all_accessible_ids,
+        organization=organization
+    )
