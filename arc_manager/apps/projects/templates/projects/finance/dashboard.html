@@ -4,7 +4,7 @@
 {% block title %}Finanzas - Arc Manager{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/finance_clean.css' %}">
+<link rel="stylesheet" href="{% static 'css/finance_simple.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -18,11 +18,7 @@
                     <h1><i class="fas fa-dollar-sign"></i> Finanzas</h1>
                     <p class="finance-subtitle">Gestiona el presupuesto y pagos de tus proyectos</p>
                 </div>
-                <div class="finance-actions">
-                    <a href="{% url 'projects:project-list' %}" class="btn-secondary">
-                        <i class="fas fa-folder-open"></i> Ver Proyectos
-                    </a>
-                </div>
+                
                 
                 <!-- Estadísticas como en tasks -->
                 <div class="finance-stats">
@@ -54,8 +50,7 @@
                        placeholder="Buscar proyectos..." 
                        name="search"
                        value="{{ current_filters.search }}"
-                       class="table-search-input finance-search-input"
-                       style="width: 360px; max-width: 100%;">
+                       class="table-search-input finance-search-input">
                 <i class="fas fa-search table-search-icon"></i>
                 {% if current_filters.search %}
                     <a href="{% url 'projects:finance-dashboard' %}" class="clear-search-btn"><i class="fas fa-times"></i></a>
