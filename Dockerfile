@@ -1,10 +1,11 @@
 # Python 3.11 - usando imagen base sin autenticación
-FROM python:3.11-slim
+FROM python:3.11
 
 # Variables de entorno
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    DEBIAN_FRONTEND=noninteractive
 
 # Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y \
@@ -12,7 +13,8 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     gcc \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # Directorio de trabajo
 WORKDIR /app
