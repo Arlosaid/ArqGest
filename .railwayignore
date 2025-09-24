@@ -1,0 +1,15 @@
+# Archivos a ignorar en Railway
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+.venv/
+.env
+.git/
+.gitignore
+README.md
+tests/
+*.log
