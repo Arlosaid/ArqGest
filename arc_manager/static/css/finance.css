@@ -1,136 +1,436 @@
-/* ========================================
-   MÓDULO DE FINANZAS - NUEVA EXPERIENCIA
+aun/* ========================================
+   MÓDULO DE FINANZAS - HOMOLOGADO CON USUARIOS
+   Usa los mismos estilos base que user_management.css
    ======================================== */
 
-/* Contenedor Principal */
-.finance-container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 2rem;
-    background: var(--arc-bg-secondary);
-    min-height: 100vh;
+/* Variables específicas para finanzas - heredan de base.css */
+:root {
+    --finance-card-bg: #ffffff;
+    --finance-card-border: #e2e8f0;
+    --finance-card-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    --finance-hover-bg: #f8fafc;
+    --finance-action-size: 32px;
 }
 
-/* Header Simple */
+/* Variables Bootstrap que sobrescriben las de base.css */
+:root {
+    --bs-primary: var(--arc-color-primary);
+    --bs-primary-rgb: 66, 133, 244;
+    --bs-success: var(--arc-color-success);
+    --bs-warning: var(--arc-color-warning);
+    --bs-info: var(--arc-color-info);
+    --bs-light: var(--arc-bg-tertiary);
+    --bs-dark: var(--arc-text-primary);
+}
+
+/* ===== LAYOUT PRINCIPAL PARA FINANZAS (HEREDADO DE BASE.CSS) ===== */
+.page-container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 2.5rem;
+    background: #ffffff;
+    min-height: calc(100vh - var(--arc-layout-navbar-height));
+}
+
+/* Contenedor específico de finanzas - usa el mismo patrón que usuarios */
+.finance-container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0;
+    background: transparent;
+    min-height: auto;
+}
+
+/* ===== HEADER SECTION - USANDO ESTILOS UNIFICADOS DE BASE.CSS ===== */
+/* Usar header-section de base.css en lugar de crear uno nuevo */
 .finance-header-simple {
+    background: linear-gradient(135deg, #f8faff 0%, #eef5ff 100%);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid #e8f2ff;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.finance-header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 2px solid var(--arc-border-color);
+    flex-wrap: wrap;
+    gap: var(--arc-spacing-md);
+}
+
+.finance-title-section {
+    display: flex;
+    align-items: center;
+    gap: var(--arc-spacing-sm);
 }
 
 .finance-title-section h1 {
-    font-size: 2rem;
+    font-size: 1.75rem;
     font-weight: 700;
     color: var(--arc-text-primary);
     margin: 0;
+    line-height: 1.2;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: var(--arc-spacing-sm);
 }
 
 .finance-title-section h1 i {
     color: var(--arc-color-primary);
+    font-size: 1.25rem;
 }
 
 .finance-title-section p {
     color: var(--arc-text-secondary);
-    margin: 0.5rem 0 0 0;
-    font-size: 0.95rem;
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.3;
 }
 
 .finance-actions-header {
     display: flex;
-    gap: 1rem;
+    gap: var(--arc-spacing-md);
+    align-items: center;
 }
 
-/* Métricas Principales */
+/* Métricas Principales - Grid Compacto */
 .finance-metrics-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 3rem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1rem;
 }
 
+/* Cards de Métricas - Estilo Minimalista */
+.finance-metric-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0.5rem;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    min-height: 80px;
+    justify-content: center;
+}
+
+.finance-metric-card::before {
+    display: none;
+}
+
+.finance-metric-card:hover {
+    background: #f1f5f9;
+    transform: none;
+    box-shadow: none;
+    border-color: #cbd5e1;
+}
+
+.finance-metric-card:hover::before {
+    display: none;
+}
+
+/* Estilos específicos para el contenido de las tarjetas de métricas */
+.finance-metric-card .card-body {
+    padding: 0.5rem !important;
+}
+
+.finance-metric-card .metric-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.finance-metric-card .card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    line-height: 1.2;
+}
+
+.finance-metric-card .card-text {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin: 0;
+    font-weight: 400;
+}
+
+/* Estilos para las tarjetas de métricas en detalle del proyecto */
 .metric-card {
-    background: var(--arc-bg-primary);
-    border-radius: var(--arc-border-radius);
-    padding: 1.5rem;
-    box-shadow: var(--arc-shadow-md);
-    border: 1px solid var(--arc-border-color);
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0;
+    padding: 0.5rem;
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.75rem;
+    min-height: 60px;
 }
 
-.metric-card:hover {
-    box-shadow: var(--arc-shadow-lg);
-}
-
-.metric-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 10px;
+.metric-card .metric-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+}
+
+.metric-card .metric-icon.budget {
+    background: #3b82f6;
     color: white;
 }
 
-.metric-icon.budget {
-    background: linear-gradient(135deg, var(--arc-color-primary), var(--arc-color-primary-hover));
+.metric-card .metric-icon.paid {
+    background: #10b981;
+    color: white;
 }
 
-.metric-icon.paid {
-    background: linear-gradient(135deg, var(--arc-color-success), #22c55e);
+.metric-card .metric-icon.pending {
+    background: #f59e0b;
+    color: white;
 }
 
-.metric-icon.pending {
-    background: linear-gradient(135deg, var(--arc-color-warning), #f59e0b);
-}
-
-.metric-icon.progress {
-    background: linear-gradient(135deg, var(--arc-color-info), #3b82f6);
-}
-
-.metric-content {
+.metric-card .metric-content {
     flex: 1;
 }
 
-.metric-value {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: var(--arc-text-primary);
-    margin-bottom: 0.25rem;
+.metric-card .metric-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.125rem;
 }
 
-.metric-label {
-    color: var(--arc-text-secondary);
-    font-size: 0.875rem;
-    font-weight: 500;
+.metric-card .metric-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 400;
 }
 
-/* Tabla de Proyectos */
-.finance-table-container {
-    background: var(--arc-bg-primary);
-    border-radius: var(--arc-border-radius);
-    box-shadow: var(--arc-shadow-lg);
-    border: 2px solid var(--arc-border-color);
-    overflow: hidden;
-    margin-bottom: 2rem;
+/* Resumen Simple - Estilo Compacto y Minimalista */
+.finance-summary-simple {
+    background: #ffffff;
+    border: none;
+    border-radius: 4px;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    box-shadow: none;
     position: relative;
+    overflow: hidden;
+    border-top: 2px solid #e5e7eb;
+}
+
+.finance-summary-simple:hover {
+    background: #f8fafc;
+}
+
+.finance-summary-simple::before {
+    display: none;
+}
+
+.summary-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.summary-item {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 2px;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    box-shadow: none;
+    transition: none;
+    position: relative;
+    overflow: hidden;
+    min-height: 60px;
+}
+
+.summary-item::before {
+    display: none;
+}
+
+.summary-item:hover {
+    background: #f1f5f9;
+    transform: none;
+    box-shadow: none;
+    border-color: #cbd5e1;
+}
+
+.summary-item:hover::before {
+    display: none;
+}
+
+.summary-item .label {
+    color: #64748b;
+    font-weight: 400;
+    font-size: 0.75rem;
+    margin: 0;
+    text-transform: none;
+    letter-spacing: 0;
+    opacity: 1;
+    flex: 1;
+}
+
+.summary-item .value {
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin: 0;
+    line-height: 1;
+    color: #1e293b;
+    text-align: right;
+}
+
+.summary-item .value.paid {
+    color: #059669;
+}
+
+.summary-item .value.pending {
+    color: #d97706;
+}
+
+.summary-item .value.progress {
+    color: #2563eb;
+}
+
+/* Iconos para cada métrica - Eliminados para diseño más limpio */
+.summary-item::after {
+    display: none;
+}
+
+.summary-item:hover::after {
+    display: none;
+}
+
+.summary-item:nth-child(1)::after,
+.summary-item:nth-child(2)::after,
+.summary-item:nth-child(3)::after,
+.summary-item:nth-child(4)::after {
+    display: none;
+}
+
+/* Filtros y Búsqueda */
+.finance-filters-container {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.finance-search-box {
+    position: relative;
+    flex: 1;
+    min-width: 300px;
+}
+
+.finance-search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--arc-text-secondary);
+    font-size: 0.9rem;
+}
+
+.finance-search-input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.finance-search-input:focus {
+    outline: none;
+    border-color: var(--arc-color-primary);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.1);
+}
+
+.clear-search-btn {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--arc-text-secondary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.3s ease;
+}
+
+.clear-search-btn:hover {
+    color: var(--arc-color-danger);
+}
+
+.finance-filter-select {
+    min-width: 200px;
+}
+
+.budget-status-filter {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.budget-status-filter:focus {
+    outline: none;
+    border-color: var(--arc-color-primary);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.1);
+}
+
+/* ===== TABLA MODERNA COMPACTA - HOMOLOGADA CON USER_MANAGEMENT.CSS ===== */
+.finance-table-container {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--arc-bg-primary);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--arc-border-color);
 }
 
 .table-header-section {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    padding: 1rem 1.25rem;
+    text-align: center;
+    font-weight: 600;
+    color: var(--arc-text-primary);
+    border-bottom: 1px solid var(--arc-border-color);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.5rem;
-    border-bottom: 2px solid var(--arc-border-color);
-    background: var(--arc-bg-tertiary);
 }
 
 .table-header-section h3 {
@@ -147,7 +447,7 @@
 }
 
 .projects-count {
-    color: var(--text-secondary);
+    color: var(--arc-text-secondary);
     font-size: 0.875rem;
     font-weight: 500;
 }
@@ -160,40 +460,31 @@
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr 1fr 120px;
     gap: 1rem;
-    padding: 1.25rem 1.5rem;
-    background: #f8fafc;
-    border-bottom: 2px solid var(--arc-border-color);
-    font-weight: 700;
-    color: var(--arc-text-primary);
+    padding: 1rem 1.5rem;
+    background: var(--arc-bg-tertiary);
+    border-bottom: 1px solid var(--arc-border-color);
+    font-weight: 600;
+    color: var(--arc-text-secondary);
     font-size: 0.875rem;
     text-transform: uppercase;
-    letter-spacing: 0.75px;
-    position: sticky;
-    top: 0;
-    z-index: 10;
+    letter-spacing: 0.5px;
 }
 
 .table-row {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr 1fr 120px;
     gap: 1rem;
-    padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid #e2e8f0;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.3);
     align-items: center;
-    background: var(--arc-bg-primary);
-    position: relative;
+    transition: all 0.2s ease;
+    background: transparent;
 }
 
 .table-row:hover {
-    background: #f8fafc;
-}
-
-.table-row:nth-child(even) {
-    background: #fafbfc;
-}
-
-.table-row:nth-child(even):hover {
-    background: #f1f5f9;
+    background: rgba(66, 133, 244, 0.03);
+    transform: none;
+    box-shadow: none;
 }
 
 .table-row:last-child {
@@ -210,37 +501,33 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    width: 100%;
 }
 
 .project-avatar {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     border-radius: 8px;
-    background: var(--arc-color-primary);
+    background: linear-gradient(135deg, var(--arc-color-primary), var(--arc-color-primary-hover));
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-weight: 700;
-    font-size: 1.1rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-weight: 600;
+    font-size: 1rem;
 }
 
 .project-details h4 {
     margin: 0;
-    font-size: 1rem;
-    font-weight: 700;
+    font-size: 0.95rem;
+    font-weight: 600;
     color: var(--arc-text-primary);
-    line-height: 1.3;
-    margin-bottom: 0.25rem;
+    line-height: 1.2;
 }
 
 .project-details p {
     margin: 0;
     font-size: 0.8rem;
     color: var(--arc-text-secondary);
-    font-weight: 500;
 }
 
 .col-client {
@@ -250,22 +537,14 @@
 
 .client-name {
     color: var(--arc-text-primary);
-    font-weight: 600;
-    font-size: 0.9rem;
-    padding: 0.25rem 0.75rem;
-    background: rgba(59, 130, 246, 0.1);
-    border-radius: 6px;
-    border: 1px solid rgba(59, 130, 246, 0.2);
+    font-weight: 500;
+    font-size: 0.875rem;
 }
 
 .no-client {
     color: var(--arc-text-secondary);
     font-size: 0.875rem;
     font-style: italic;
-    padding: 0.25rem 0.75rem;
-    background: rgba(156, 163, 175, 0.1);
-    border-radius: 6px;
-    border: 1px solid rgba(156, 163, 175, 0.2);
 }
 
 .col-budget, .col-paid {
@@ -275,22 +554,14 @@
 
 .budget-amount, .paid-amount {
     color: var(--arc-text-primary);
-    font-weight: 700;
-    font-size: 0.95rem;
-    padding: 0.25rem 0.75rem;
-    background: rgba(34, 197, 94, 0.1);
-    border-radius: 6px;
-    border: 1px solid rgba(34, 197, 94, 0.2);
+    font-weight: 600;
+    font-size: 0.875rem;
 }
 
 .no-budget, .no-data {
     color: var(--arc-text-secondary);
     font-size: 0.875rem;
     font-style: italic;
-    padding: 0.25rem 0.75rem;
-    background: rgba(156, 163, 175, 0.1);
-    border-radius: 6px;
-    border: 1px solid rgba(156, 163, 175, 0.2);
 }
 
 .col-progress {
@@ -301,42 +572,33 @@
 .progress-container {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.25rem;
     width: 100%;
 }
 
 .progress-bar {
-    height: 8px;
-    background: rgba(156, 163, 175, 0.2);
-    border-radius: 4px;
+    height: 6px;
+    background: var(--arc-border-color);
+    border-radius: 3px;
     overflow: hidden;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .progress-fill {
     height: 100%;
-    border-radius: 4px;
+    border-radius: 3px;
+    transition: width 0.3s ease;
 }
 
 .progress-text {
-    font-size: 0.8rem;
-    color: var(--arc-text-primary);
-    font-weight: 600;
-    text-align: center;
-    padding: 0.25rem 0.5rem;
-    background: rgba(59, 130, 246, 0.1);
-    border-radius: 4px;
-    border: 1px solid rgba(59, 130, 246, 0.2);
+    font-size: 0.75rem;
+    color: var(--arc-text-secondary);
+    font-weight: 500;
 }
 
 .no-progress {
     color: var(--arc-text-secondary);
     font-size: 0.875rem;
     font-style: italic;
-    padding: 0.25rem 0.75rem;
-    background: rgba(156, 163, 175, 0.1);
-    border-radius: 6px;
-    border: 1px solid rgba(156, 163, 175, 0.2);
 }
 
 .col-status {
@@ -345,48 +607,42 @@
 }
 
 .status-badge {
-    padding: 0.5rem 1rem;
-    border-radius: 16px;
-    font-size: 0.8rem;
-    font-weight: 700;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
     text-align: center;
     white-space: nowrap;
-    border: 1px solid transparent;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.status-badge:hover {
-    opacity: 0.9;
 }
 
 .status-badge.completed {
-    background: rgba(34, 197, 94, 0.15);
+    background: #f0fdf4;
     color: #16a34a;
-    border-color: rgba(34, 197, 94, 0.3);
+    border: 1px solid #bbf7d0;
 }
 
 .status-badge.almost {
-    background: rgba(245, 158, 11, 0.15);
-    color: #d97706;
-    border-color: rgba(245, 158, 11, 0.3);
+    background: #fffbeb;
+    color: #ca8a04;
+    border: 1px solid #fed7aa;
 }
 
 .status-badge.progress {
-    background: rgba(59, 130, 246, 0.15);
+    background: #eff6ff;
     color: #2563eb;
-    border-color: rgba(59, 130, 246, 0.3);
+    border: 1px solid #bfdbfe;
 }
 
 .status-badge.pending {
-    background: rgba(99, 102, 241, 0.15);
-    color: #4f46e5;
-    border-color: rgba(99, 102, 241, 0.3);
+    background: #f8fafc;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
 }
 
 .status-badge.not-configured {
-    background: rgba(156, 163, 175, 0.15);
+    background: #f9fafb;
     color: #6b7280;
-    border-color: rgba(156, 163, 175, 0.3);
+    border: 1px solid #e5e7eb;
 }
 
 .col-actions {
@@ -396,28 +652,22 @@
 }
 
 .btn-action {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
     text-decoration: none;
-    font-size: 0.9rem;
-    border: 1px solid transparent;
+    font-size: 0.875rem;
+    transition: var(--arc-transition);
+    border: none;
     cursor: pointer;
-    position: relative;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.btn-action:hover {
-    opacity: 0.9;
 }
 
 .btn-action.primary {
     background: var(--arc-color-primary);
     color: white;
-    border-color: var(--arc-color-primary);
 }
 
 .btn-action.primary:hover {
@@ -428,7 +678,6 @@
 .btn-action.secondary {
     background: var(--arc-color-success);
     color: white;
-    border-color: var(--arc-color-success);
 }
 
 .btn-action.secondary:hover {
@@ -439,7 +688,6 @@
 .btn-action.configure {
     background: var(--arc-color-warning);
     color: white;
-    border-color: var(--arc-color-warning);
 }
 
 .btn-action.configure:hover {
@@ -447,97 +695,54 @@
     color: white;
 }
 
-/* Tooltip para botones de acción */
-.btn-action::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: -35px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.9);
-    color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    white-space: nowrap;
-    opacity: 0;
-    visibility: hidden;
-    z-index: 1000;
-}
-
-.btn-action:hover::after {
-    opacity: 1;
-    visibility: visible;
-}
-
-/* Botones principales */
+/* ===== BOTONES Y ACCIONES - HOMOLOGADOS CON USER_MANAGEMENT.CSS ===== */
 .btn-finance-primary {
-    background: var(--primary);
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
     color: white;
     padding: 0.75rem 1.5rem;
-    border-radius: 6px;
+    border-radius: 0.5rem;
     text-decoration: none;
-    font-weight: 600;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    font-weight: 600;
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+    transition: all 0.2s ease;
     border: none;
     cursor: pointer;
 }
 
 .btn-finance-primary:hover {
-    background: var(--primary-dark);
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    box-shadow: 0 6px 12px -1px rgba(59, 130, 246, 0.4);
     color: white;
-    opacity: 0.9;
+    text-decoration: none;
+    transform: translateY(-1px);
 }
 
 .btn-finance-secondary {
-    background: var(--background-light);
-    color: var(--text-primary);
+    background: transparent;
+    color: var(--arc-text-secondary);
+    border: 2px solid var(--arc-border-color);
     padding: 0.75rem 1.5rem;
-    border-radius: 6px;
+    border-radius: var(--arc-border-radius-sm);
     text-decoration: none;
-    font-weight: 600;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    border: 1px solid var(--border-light);
+    font-weight: 600;
+    transition: all 0.3s ease;
     cursor: pointer;
+    font-size: 0.875rem;
 }
 
 .btn-finance-secondary:hover {
-    background: var(--border-light);
-    color: var(--text-primary);
-    opacity: 0.9;
-}
-
-/* Estado Vacío */
-.empty-state {
-    text-align: center;
-    padding: 4rem 2rem;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    border: 1px solid var(--border-light);
-}
-
-.empty-icon {
-    font-size: 3rem;
-    color: var(--border);
-    margin-bottom: 1rem;
-}
-
-.empty-state h3 {
-    margin: 0 0 0.5rem 0;
-    color: var(--text-primary);
-    font-size: 1.25rem;
-    font-weight: 600;
-}
-
-.empty-state p {
-    margin: 0 0 2rem 0;
-    color: var(--text-secondary);
-    font-size: 0.95rem;
+    background: var(--arc-bg-secondary);
+    border-color: var(--arc-color-primary);
+    color: var(--arc-color-primary);
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* Breadcrumb Navigation */
@@ -546,7 +751,7 @@
 }
 
 .breadcrumb-link {
-    color: var(--text-secondary);
+    color: var(--arc-text-secondary);
     text-decoration: none;
     font-size: 0.875rem;
     font-weight: 500;
@@ -557,15 +762,15 @@
 }
 
 .breadcrumb-link:hover {
-    color: var(--primary);
+    color: var(--arc-color-primary);
 }
 
 /* Progreso Visual */
 .finance-progress-section {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    border: 1px solid var(--border-light);
+    background: var(--arc-bg-primary);
+    border-radius: var(--arc-border-radius);
+    box-shadow: var(--arc-shadow-md);
+    border: 1px solid var(--arc-border-color);
     padding: 1.5rem;
     margin-bottom: 2rem;
 }
@@ -581,7 +786,7 @@
     margin: 0;
     font-size: 1.25rem;
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--arc-text-primary);
 }
 
 .progress-actions {
@@ -616,13 +821,13 @@
 .progress-circle-value {
     font-size: 1.5rem;
     font-weight: 700;
-    color: var(--text-primary);
+    color: var(--arc-text-primary);
     margin-bottom: 0.25rem;
 }
 
 .progress-circle-label {
     font-size: 0.75rem;
-    color: var(--text-secondary);
+    color: var(--arc-text-secondary);
     font-weight: 500;
 }
 
@@ -638,21 +843,21 @@
     align-items: center;
     gap: 1rem;
     padding: 1rem;
-    background: var(--background-light);
+    background: var(--arc-bg-tertiary);
     border-radius: 8px;
-    border-left: 4px solid var(--success);
+    border-left: 4px solid var(--arc-color-success);
     transition: background-color 0.2s ease;
 }
 
 .payment-item:hover {
-    background: var(--border-light);
+    background: var(--arc-border-color);
 }
 
 .payment-icon {
     width: 40px;
     height: 40px;
     border-radius: 8px;
-    background: var(--success);
+    background: var(--arc-color-success);
     color: white;
     display: flex;
     align-items: center;
@@ -667,25 +872,25 @@
 .payment-amount {
     font-size: 1.1rem;
     font-weight: 700;
-    color: var(--text-primary);
+    color: var(--arc-text-primary);
     margin-bottom: 0.25rem;
 }
 
 .payment-date {
     font-size: 0.875rem;
-    color: var(--text-secondary);
+    color: var(--arc-text-secondary);
     margin-bottom: 0.25rem;
 }
 
 .payment-description {
     font-size: 0.8rem;
-    color: var(--text-secondary);
+    color: var(--arc-text-secondary);
     font-style: italic;
 }
 
 .payment-percentage {
-    background: var(--success-light);
-    color: var(--success);
+    background: #dcfce7;
+    color: var(--arc-color-success);
     padding: 0.25rem 0.75rem;
     border-radius: 12px;
     font-size: 0.75rem;
@@ -696,9 +901,9 @@
 .payments-footer {
     text-align: center;
     padding: 1rem;
-    color: var(--text-secondary);
+    color: var(--arc-text-secondary);
     font-size: 0.875rem;
-    border-top: 1px solid var(--border-light);
+    border-top: 1px solid var(--arc-border-color);
 }
 
 /* Información del Proyecto */
@@ -713,9 +918,9 @@
     align-items: center;
     gap: 1rem;
     padding: 1rem;
-    background: var(--background-light);
+    background: var(--arc-bg-tertiary);
     border-radius: 8px;
-    border: 1px solid var(--border-light);
+    border: 1px solid var(--arc-border-color);
 }
 
 .info-icon {
@@ -730,42 +935,71 @@
 }
 
 .info-icon.client {
-    background: var(--primary);
+    background: var(--arc-color-primary);
 }
 
 .info-icon.owner {
-    background: var(--secondary);
+    background: var(--arc-color-secondary);
 }
 
 .info-icon.date {
-    background: var(--info);
+    background: var(--arc-color-info);
 }
 
 .info-content h5 {
     margin: 0 0 0.25rem 0;
     font-size: 0.875rem;
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--arc-text-primary);
 }
 
 .info-content p {
     margin: 0;
     font-size: 0.8rem;
-    color: var(--text-secondary);
+    color: var(--arc-text-secondary);
+}
+
+/* Estado Vacío */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--arc-bg-primary);
+    border-radius: var(--arc-border-radius);
+    box-shadow: var(--arc-shadow-md);
+    border: 1px solid var(--arc-border-color);
+}
+
+.empty-icon {
+    font-size: 3rem;
+    color: var(--arc-border-color);
+    margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+    margin: 0 0 0.5rem 0;
+    color: var(--arc-text-primary);
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.empty-state p {
+    margin: 0 0 2rem 0;
+    color: var(--arc-text-secondary);
+    font-size: 0.95rem;
 }
 
 /* Resumen Rápido */
 .finance-summary {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    border: 1px solid var(--border-light);
+    background: var(--arc-bg-primary);
+    border-radius: var(--arc-border-radius);
+    box-shadow: var(--arc-shadow-md);
+    border: 1px solid var(--arc-border-color);
     padding: 1.5rem;
 }
 
 .summary-section h4 {
     margin: 0 0 1rem 0;
-    color: var(--text-primary);
+    color: var(--arc-text-primary);
     font-size: 1.1rem;
     font-weight: 600;
 }
@@ -779,236 +1013,1017 @@
 .summary-stat {
     text-align: center;
     padding: 1rem;
-    background: var(--background-light);
+    background: var(--arc-bg-tertiary);
     border-radius: 8px;
-    border: 1px solid var(--border-light);
+    border: 1px solid var(--arc-border-color);
 }
 
 .stat-number {
     display: block;
     font-size: 1.5rem;
     font-weight: 700;
-    color: var(--primary);
+    color: var(--arc-color-primary);
     margin-bottom: 0.25rem;
 }
 
 .stat-label {
     font-size: 0.8rem;
-    color: var(--text-secondary);
+    color: var(--arc-text-secondary);
     font-weight: 500;
 }
 
-/* Responsive Design */
-@media (max-width: 1200px) {
-    .finance-container {
-        padding: 1.5rem;
-    }
-    
-    .finance-metrics-grid {
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    }
-    
-    .table-header,
-    .table-row {
-        grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr 1fr 100px;
-        gap: 0.75rem;
-        padding: 1rem 1.25rem;
-    }
-    
-    .btn-action {
-        width: 32px;
-        height: 32px;
-        font-size: 0.8rem;
-    }
-    
-    .project-avatar {
-        width: 40px;
-        height: 40px;
-        font-size: 1rem;
-    }
-    
-    .status-badge {
-        padding: 0.4rem 0.8rem;
-        font-size: 0.75rem;
-    }
+/* Estilos para campos de formulario */
+.form-field input[type="date"],
+.form-field input[type="file"],
+.form-field textarea {
+    border: 1px solid var(--arc-border-color);
+    border-radius: 4px;
+    padding: 0.4rem 0.5rem;
+    background: var(--arc-bg-primary);
+    width: 100%;
+    font-size: 0.9rem;
 }
 
-@media (max-width: 768px) {
-    .finance-container {
-        padding: 1rem;
-    }
-    
-    .finance-header-simple {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
-    }
-    
-    .finance-metrics-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-    }
-    
-    .table-header-section {
-        padding: 1rem;
-    }
-    
-    .table-header-section h3 {
-        font-size: 1.1rem;
-    }
-    
-    .table-header {
-        display: none;
-    }
-    
-    .table-row {
-        display: block;
-        padding: 1.5rem;
-        border: 2px solid #e2e8f0;
-        border-radius: 12px;
-        margin-bottom: 1rem;
-        background: white;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    }
-    
-    .table-row:hover {
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-    }
-    
-    .col-project,
-    .col-client,
-    .col-budget,
-    .col-paid,
-    .col-progress,
-    .col-status,
-    .col-actions {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-        padding: 0.5rem 0;
-        border-bottom: 1px solid #f1f5f9;
-    }
-    
-    .col-actions {
-        justify-content: flex-end;
-        margin-bottom: 0;
-        padding-bottom: 0;
-        border-bottom: none;
-    }
-    
-    .col-project::before { 
-        content: "Proyecto: "; 
-        font-weight: 700; 
-        color: var(--arc-text-primary); 
-        font-size: 0.9rem;
-    }
-    .col-client::before { 
-        content: "Cliente: "; 
-        font-weight: 700; 
-        color: var(--arc-text-primary); 
-        font-size: 0.9rem;
-    }
-    .col-budget::before { 
-        content: "Presupuesto: "; 
-        font-weight: 700; 
-        color: var(--arc-text-primary); 
-        font-size: 0.9rem;
-    }
-    .col-paid::before { 
-        content: "Pagado: "; 
-        font-weight: 700; 
-        color: var(--arc-text-primary); 
-        font-size: 0.9rem;
-    }
-    .col-progress::before { 
-        content: "Progreso: "; 
-        font-weight: 700; 
-        color: var(--arc-text-primary); 
-        font-size: 0.9rem;
-    }
-    .col-status::before { 
-        content: "Estado: "; 
-        font-weight: 700; 
-        color: var(--arc-text-primary); 
-        font-size: 0.9rem;
-    }
-    
-    .summary-stats {
-        grid-template-columns: 1fr;
-    }
-    
-    .btn-action {
-        width: 40px;
-        height: 40px;
-        font-size: 1rem;
-    }
-    
-    .project-avatar {
-        width: 48px;
-        height: 48px;
-        font-size: 1.2rem;
-    }
+.form-field input:focus,
+.form-field textarea:focus {
+    outline: none;
+    border-color: var(--arc-color-primary);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
-@media (max-width: 480px) {
-    .finance-container {
-        padding: 0.5rem;
+/* Estilos especiales para el campo de archivo */
+.form-field input[type="file"] {
+    border: 1px dashed var(--arc-border-color);
+    padding: 0.75rem;
+    text-align: center;
+    cursor: pointer;
+    background: var(--arc-bg-tertiary);
+    font-size: 0.9rem;
+}
+
+.form-field input[type="file"]:hover {
+    border-color: var(--arc-color-primary);
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.form-field input[type="file"]:focus {
+    border-color: var(--arc-color-primary);
+    border-style: solid;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* Estilos para formularios de presupuesto y pagos - Estilo Compacto */
+.budget-form-simple,
+.payment-form-simple {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 2px;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    box-shadow: none;
+    border-left: 2px solid #3b82f6;
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
+    transition: none;
+}
+
+.budget-form-simple:hover,
+.payment-form-simple:hover {
+    background: #f8fafc;
+    box-shadow: none;
+    border-left-color: #1d4ed8;
+}
+
+.budget-form-simple h3,
+.payment-form-simple h3 {
+    margin: 0 0 1rem 0;
+    color: var(--arc-text-primary);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.current-budget {
+    margin: 0 0 0.5rem 0;
+    color: #64748b;
+    font-size: 0.8rem;
+    padding: 0.5rem;
+    background: #f8fafc;
+    border-radius: 2px;
+    border: 1px solid #e2e8f0;
+    transition: none;
+}
+
+.current-budget:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.form-simple {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    column-gap: 1rem;
+    row-gap: 0.75rem;
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.form-field label {
+    font-weight: 600;
+    color: var(--arc-text-primary);
+    font-size: 0.85rem;
+}
+
+.input-simple {
+    display: flex;
+    align-items: center;
+    border: 1px solid #d1d5db;
+    border-radius: 2px;
+    overflow: hidden;
+    transition: none;
+    background: #ffffff;
+}
+
+.input-simple:focus-within {
+    border-color: #3b82f6;
+    box-shadow: none;
+    background: #ffffff;
+}
+
+.input-simple .currency {
+    background: #f3f4f6;
+    padding: 0.375rem 0.5rem;
+    border-right: 1px solid #d1d5db;
+    font-weight: 500;
+    color: #374151;
+    font-size: 0.8rem;
+}
+
+.input-simple input {
+    border: none;
+    padding: 0.375rem 0.5rem;
+    flex: 1;
+    background: transparent;
+    font-size: 0.8rem;
+    color: #1e293b;
+    font-weight: 400;
+}
+
+.input-simple input:focus {
+    outline: none;
+}
+
+.form-field small {
+    color: var(--arc-text-secondary);
+    font-size: 0.75rem;
+}
+
+.form-field .error {
+    color: var(--arc-color-danger);
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+.feedback-simple .error {
+    color: var(--arc-color-danger);
+    font-size: 0.8rem;
+}
+
+.feedback-simple .success {
+    color: var(--arc-color-success);
+    font-size: 0.8rem;
+}
+
+.form-actions-simple {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+}
+
+/* Información del proyecto - Estilo Minimalista */
+.project-info-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 2px;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    box-shadow: none;
+    border-left: 2px solid #3b82f6;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: start;
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    overflow: hidden;
+    transition: none;
+}
+
+.project-info-card:hover {
+    background: #f8fafc;
+    transform: none;
+    box-shadow: none;
+    border-left-color: #1d4ed8;
+}
+
+.project-info-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.project-info h3 {
+    margin: 0 0 0.15rem 0;
+    color: var(--arc-text-primary);
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.project-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.project-info p {
+    margin: 0;
+    color: var(--arc-text-secondary);
+    font-size: 0.9rem;
+}
+
+.project-financial-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+    align-content: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 600px;
+}
+
+.financial-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 2px;
+    gap: 0.5rem;
+    min-height: 36px;
+    min-width: 140px;
+    flex: 1;
+    transition: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.financial-item::before {
+    display: none;
+}
+
+.financial-item:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    transform: none;
+    box-shadow: none;
+}
+
+.financial-item:hover::before {
+    display: none;
+}
+
+.financial-item:last-child {
+    border-bottom: none;
+}
+
+.financial-label {
+    font-size: 0.85rem;
+    color: var(--arc-text-secondary);
+    font-weight: 500;
+}
+
+.financial-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--arc-text-primary);
+}
+
+.financial-value.paid {
+    color: #16a34a;
+}
+
+.financial-value.remaining {
+    color: #ca8a04;
+}
+
+/* Progreso */
+.progress-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: 0.25rem;
+    grid-column: 1 / -1;
+}
+
+.progress-bar {
+    height: 6px;
+    background: #f3f4f6;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: #6b7280;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 0.8rem;
+    color: #6b7280;
+    font-weight: 600;
+    text-align: center;
+    display: inline-block;
+    align-self: center;
+    padding: 0.2rem 0.4rem;
+    border-radius: 999px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    letter-spacing: 0.2px;
+}
+
+/* ========================================
+   RESPONSIVE DESIGN BOOTSTRAP
+   ======================================== */
+
+/* Mobile First - Bootstrap Breakpoints */
+@media (max-width: 576px) {
+    .container-fluid {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
     }
     
     .finance-title-section h1 {
         font-size: 1.5rem;
     }
     
-    .metric-card {
-        padding: 1rem;
-        flex-direction: column;
-        text-align: center;
-        gap: 0.75rem;
-    }
-    
-    .metric-value {
-        font-size: 1.5rem;
-    }
-    
-    .table-row {
-        padding: 1rem;
-        margin-bottom: 0.75rem;
-    }
-    
-    .col-project,
-    .col-client,
-    .col-budget,
-    .col-paid,
-    .col-progress,
-    .col-status,
-    .col-actions {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-        margin-bottom: 0.75rem;
-    }
-    
-    .col-actions {
-        flex-direction: row;
-        justify-content: center;
+    .summary-row {
+        grid-template-columns: 1fr;
         gap: 1rem;
     }
     
-    .btn-action {
-        width: 44px;
-        height: 44px;
-        font-size: 1.1rem;
+    .summary-item {
+        padding: 1.25rem;
     }
     
-    .project-avatar {
-        width: 52px;
-        height: 52px;
-        font-size: 1.3rem;
+    .finance-filters-container {
+        flex-direction: column;
+        gap: 1rem;
     }
     
-    .status-badge {
-        padding: 0.6rem 1.2rem;
-        font-size: 0.85rem;
+    .finance-search-box {
+        min-width: auto;
+    }
+    
+    .finance-filter-select {
+        min-width: auto;
+    }
+    
+    .finance-header-simple {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .form-simple { 
+        grid-template-columns: 1fr; 
+    }
+    
+    .project-financial-summary { 
+        flex-direction: column;
+        gap: 0.5rem; 
+    }
+    
+    .financial-item {
+        min-width: auto;
+        flex: none;
+    }
+    
+    .financial-item { 
+        min-height: 36px; 
+        padding: 0.5rem; 
+    }
+    
+    .btn-simple { 
+        width: 100%; 
+        font-size: 1rem; 
+        padding: 0.75rem 1rem; 
+    }
+    
+    .form-actions-simple { 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 0.5rem; 
+        justify-content: center;
+    }
+    
+    .btn-simple {
+        text-align: center;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .finance-header-simple {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .finance-actions-header {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .btn-group {
+        width: 100%;
+    }
+    
+    .btn-group .btn {
+        flex: 1;
+    }
+}
+
+@media (max-width: 992px) {
+    .d-lg-none .project-avatar {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .d-lg-none .border-bottom {
+        border-bottom: 1px solid #dee2e6 !important;
+    }
+}
+
+/* Utilities adicionales - Usa variables de base.css */
+.text-primary-emphasis {
+    color: var(--arc-color-primary) !important;
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, var(--arc-color-primary), var(--arc-color-primary-hover)) !important;
+}
+
+.shadow-custom {
+    box-shadow: var(--arc-shadow-md) !important;
+}
+
+/* Animaciones suaves - Hereda transiciones de base.css */
+.finance-metric-card,
+.project-avatar,
+.btn {
+    transition: var(--arc-transition);
+}
+
+/* Estados de hover mejorados */
+.finance-metric-card:hover .metric-icon {
+    transform: scale(1.1);
+}
+
+.project-avatar:hover {
+    transform: scale(1.05);
+    box-shadow: var(--arc-shadow-md);
+}
+
+/* Progress bars personalizados - Usa colores de la app */
+.progress {
+    height: 8px;
+    border-radius: var(--arc-border-radius-sm);
+    background: var(--arc-bg-tertiary);
+}
+
+.progress-bar {
+    border-radius: var(--arc-border-radius-sm);
+    transition: width 0.6s ease;
+    background: var(--arc-color-primary);
+}
+
+/* Badges personalizados - Consistente con el diseño */
+.badge {
+    font-weight: 500;
+    padding: var(--arc-spacing-sm) var(--arc-spacing-md);
+    border-radius: var(--arc-border-radius-sm);
+}
+
+.badge.bg-success {
+    background-color: var(--arc-color-success) !important;
+}
+
+.badge.bg-warning {
+    background-color: var(--arc-color-warning) !important;
+}
+
+.badge.bg-primary {
+    background-color: var(--arc-color-primary) !important;
+}
+
+/* Tooltips */
+[data-bs-toggle="tooltip"] {
+    cursor: pointer;
+}
+
+/* Botones - Usa colores de la aplicación */
+.btn-primary {
+    background-color: var(--arc-color-primary);
+    border-color: var(--arc-color-primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--arc-color-primary-hover);
+    border-color: var(--arc-color-primary-hover);
+}
+
+.btn-outline-primary {
+    color: var(--arc-color-primary);
+    border-color: var(--arc-color-primary);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--arc-color-primary);
+    border-color: var(--arc-color-primary);
+    color: white;
+}
+
+/* ===== BOTONES SIMPLES - HOMOLOGADOS CON USER_MANAGEMENT.CSS ===== */
+.btn-simple {
+    background: transparent;
+    color: var(--arc-text-secondary);
+    border: 2px solid var(--arc-border-color);
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--arc-border-radius-sm);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.btn-simple:hover {
+    background: var(--arc-bg-secondary);
+    border-color: var(--arc-color-primary);
+    color: var(--arc-color-primary);
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn-simple.primary {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.btn-simple.primary:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    box-shadow: 0 6px 12px -1px rgba(0, 0, 0, 0.15);
+    color: white;
+    text-decoration: none;
+}
+
+/* ===== BOTONES DE AGREGAR PAGO - MEJORADOS ===== */
+/* Botón de agregar pago - estilo mejorado */
+.btn-primary[title="Agregar pago"] {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border: none;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+    transition: all 0.3s ease;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-primary[title="Agregar pago"]:hover {
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+    transform: translateY(-1px);
+    color: white;
+}
+
+/* Responsive para botones de pago */
+@media (max-width: 768px) {
+    .btn-primary[title="Agregar pago"] {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+        padding: 0.75rem 1rem;
+        font-weight: 600;
+    }
+}
+
+/* Botón compacto de registrar pago */
+.btn-compact.primary {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.25rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.btn-compact.primary:hover {
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+    color: white;
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+}
+
+/* Botón compacto secundario */
+.btn-compact {
+    background: transparent;
+    color: var(--arc-text-secondary);
+    border: 2px solid var(--arc-border-color);
+    padding: 0.75rem 1.25rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.btn-compact:hover {
+    background: var(--arc-bg-secondary);
+    border-color: var(--arc-color-primary);
+    color: var(--arc-color-primary);
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive para botones compactos */
+@media (max-width: 768px) {
+    .btn-compact.primary {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+        padding: 1rem;
+        font-size: 1rem;
+    }
+    
+    .btn-compact {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+        padding: 1rem;
+        font-size: 1rem;
+    }
+}
+
+/* ===== ESTILOS ESPECÍFICOS PARA VISTA DE DETALLE DE PROYECTO ===== */
+.finance-progress-compact {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.progress-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.progress-info h3 {
+    margin: 0 0 1rem 0;
+    color: var(--arc-text-primary);
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.progress-stats {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--arc-color-primary);
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--arc-text-secondary);
+    font-weight: 500;
+}
+
+.progress-bar-compact {
+    width: 200px;
+    height: 8px;
+    background: #f3f4f6;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill-compact {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-actions-compact {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Responsive para progress compact */
+@media (max-width: 768px) {
+    .progress-content {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+    
+    .progress-stats {
+        justify-content: center;
+    }
+    
+    .progress-bar-compact {
+        width: 100%;
+        max-width: 300px;
+    }
+    
+    .progress-actions-compact {
+        justify-content: center;
+        flex-direction: column;
+    }
+    
+    .btn-compact {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ===== BOTONES DE ACCIONES DE PAGOS ===== */
+.payment-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.payment-buttons {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.btn-payment-action {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-payment-action.edit {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-payment-action.edit:hover {
+    background: #2563eb;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.btn-payment-action.delete {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-payment-action.delete:hover {
+    background: #dc2626;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.btn-payment-action.view {
+    background: #10b981;
+    color: white;
+}
+
+.btn-payment-action.view:hover {
+    background: #059669;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.btn-payment-action.download {
+    background: #8b5cf6;
+    color: white;
+}
+
+.btn-payment-action.download:hover {
+    background: #7c3aed;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.btn-payment-action:not(.edit):not(.delete):not(.view):not(.download) {
+    background: #6b7280;
+    color: white;
+}
+
+.btn-payment-action:not(.edit):not(.delete):not(.view):not(.download):hover {
+    background: #4b5563;
+    color: white;
+    transform: translateY(-1px);
+}
+
+/* Responsive para botones de pago */
+@media (max-width: 768px) {
+    .payment-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+    
+    .payment-buttons {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .btn-payment-action {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+}
+
+/* ===== BOTONES DE PRESUPUESTO - MÁS INTUITIVOS ===== */
+/* Botón de configurar presupuesto - estilo mejorado */
+.btn-warning[title="Configurar presupuesto"],
+.btn-warning:contains("Presupuesto"),
+.btn-warning:contains("Configurar Presupuesto"),
+.btn-warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border: none;
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 3px 6px rgba(245, 158, 11, 0.3);
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-warning[title="Configurar presupuesto"]:hover,
+.btn-warning:contains("Presupuesto"):hover,
+.btn-warning:contains("Configurar Presupuesto"):hover,
+.btn-warning:hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    box-shadow: 0 5px 12px rgba(245, 158, 11, 0.4);
+    transform: translateY(-2px);
+    color: white;
+    text-decoration: none;
+}
+
+/* Botón compacto de presupuesto */
+.btn-compact:contains("Configurar Presupuesto") {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    border: none;
+    box-shadow: 0 3px 6px rgba(245, 158, 11, 0.3);
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-compact:contains("Configurar Presupuesto"):hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 12px rgba(245, 158, 11, 0.4);
+    text-decoration: none;
+}
+
+/* Botón principal de presupuesto */
+.btn-finance-primary:contains("Configurar Presupuesto") {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-finance-primary:contains("Configurar Presupuesto"):hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    box-shadow: 0 6px 15px rgba(245, 158, 11, 0.4);
+    transform: translateY(-2px);
+    text-decoration: none;
+}
+
+/* Iconos más intuitivos para presupuesto */
+.fa-dollar-sign {
+    color: inherit;
+    font-weight: 600;
+}
+
+/* Estilos específicos para botones de presupuesto en la página de finanzas */
+.btn-warning.btn-sm {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border: none;
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+    transition: all 0.3s ease;
+    border-radius: 6px;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.btn-warning.btn-sm:hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    box-shadow: 0 3px 8px rgba(245, 158, 11, 0.4);
+    transform: translateY(-1px);
+    color: white;
+    text-decoration: none;
+}
+
+/* Responsive para botones de presupuesto */
+@media (max-width: 768px) {
+    .btn-warning[title="Configurar presupuesto"],
+    .btn-warning:contains("Presupuesto"),
+    .btn-warning:contains("Configurar Presupuesto"),
+    .btn-warning.btn-sm {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
     }
 }

@@ -1703,25 +1703,13 @@ class FinanceDashboardView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
         context = super().get_context_data(**kwargs)
         projects = context['projects']
         
-        # Obtener todos los proyectos para estadísticas (sin filtros)
-        all_projects = Project.objects.filter(
-            organization=self.request.user.organization
-        ).select_related('client', 'owner').prefetch_related('payments')
+        # OPTIMIZACIÓN: Usar caché Redis para estadísticas financieras
+        from .finance_cache import get_organization_finance_stats
         
-        # SOLUCIÓN: Filtrar solo proyectos ACTIVOS para estadísticas financieras
-        active_projects = all_projects.filter(status='ACTIVE')
-        
-        # Estadísticas generales (todos los proyectos)
-        total_projects = all_projects.count()
-        configured_projects = all_projects.filter(budget_configured=True).count()
-        
-        # Estadísticas financieras (solo proyectos activos)
-        active_configured = active_projects.filter(budget_configured=True).count()
-        total_budget = sum(p.total_budget or 0 for p in active_projects if p.total_budget)
-        total_paid = sum(p.total_paid for p in active_projects)
-        
-        # Calcular monto pendiente
-        pending_amount = total_budget - total_paid if total_budget > 0 else 0
+        # Obtener estadísticas desde caché (15 minutos)
+        finance_stats = get_organization_finance_stats(
+            self.request.user.organization.id
+        )
         
         # Parámetros de filtros actuales
         current_filters = {
@@ -1736,15 +1724,16 @@ class FinanceDashboardView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
         if extra_params:
             extra_params = f"{extra_params}&"
 
+        # Usar estadísticas desde caché Redis
         context.update({
-            'total_projects': total_projects,
-            'configured_projects': configured_projects,
-            'pending_configuration': total_projects - configured_projects,
-            'active_configured': active_configured,
-            'total_budget': total_budget,
-            'total_paid': total_paid,
-            'pending_amount': pending_amount,
-            'overall_percentage': int((total_paid / total_budget * 100)) if total_budget > 0 else 0,
+            'total_projects': finance_stats['total_projects'],
+            'configured_projects': finance_stats['configured_projects'],
+            'pending_configuration': finance_stats['pending_configuration'],
+            'active_configured': finance_stats['active_configured'],
+            'total_budget': finance_stats['total_budget'],
+            'total_paid': finance_stats['total_paid'],
+            'pending_amount': finance_stats['pending_amount'],
+            'overall_percentage': finance_stats['overall_percentage'],
             'current_filters': current_filters,
             'extra_params': extra_params,
         })
@@ -1767,12 +1756,19 @@ class ProjectFinanceDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         project = context['project']
         
-        # Pagos recientes (últimos 10)
-        recent_payments = project.payments.all()[:10]
+        # OPTIMIZACIÓN: Usar caché Redis para estadísticas del proyecto
+        from .finance_cache import get_project_finance_stats
+        
+        # Obtener estadísticas financieras desde caché
+        finance_stats = get_project_finance_stats(project.id)
+        
+        # Pagos recientes (últimos 10) - optimizado con select_related
+        recent_payments = project.payments.select_related('created_by').all()[:10]
         
         context.update({
             'recent_payments': recent_payments,
             'payments_count': project.payments.count(),
+            'finance_stats': finance_stats,
         })
         
         return context
@@ -1880,6 +1876,13 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
             f"Pago registrado exitosamente: ${form.instance.amount:,.2f}"
         )
         
+        # OPTIMIZACIÓN: Invalidar caché financiero después de crear pago
+        from .finance_cache import invalidate_finance_cache
+        invalidate_finance_cache(
+            organization_id=self.project.organization.id,
+            project_id=self.project.id
+        )
+        
         return super().form_valid(form)
     
     def get_context_data(self, **kwargs):
@@ -1956,6 +1959,13 @@ class PaymentUpdateView(LoginRequiredMixin, UpdateView):
         messages.success(
             self.request, 
             f"Pago actualizado exitosamente: ${form.instance.amount:,.2f}"
+        )
+        
+        # OPTIMIZACIÓN: Invalidar caché financiero después de actualizar pago
+        from .finance_cache import invalidate_finance_cache
+        invalidate_finance_cache(
+            organization_id=self.project.organization.id,
+            project_id=self.project.id
         )
 
         return response

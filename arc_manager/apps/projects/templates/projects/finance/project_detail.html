@@ -6,34 +6,36 @@
 {% block title %}{{ project.name }} - Finanzas - Arc Manager{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/finance_simple.css' %}">
+<link rel="stylesheet" href="{% static 'css/finance.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="page-container">
     
-    <!-- Header del Proyecto -->
+    <!-- Header del Proyecto Homologado -->
     <div class="finance-header-simple">
-        <div class="finance-title-section">
-            <h1><i class="fas fa-building"></i> {{ project.name }}</h1>
-            <p>
-                {% if project.client %}
-                    Cliente: <strong>{{ project.client.name }}</strong>
-                {% else %}
-                    Sin cliente asignado
-                {% endif %}
-            </p>
-        </div>
-        <div class="finance-actions-header">
-            <a href="{% url 'projects:project-detail' project.pk %}" class="btn-finance-secondary">
-                <i class="fas fa-eye"></i> Ver Proyecto
-            </a>
-            <a href="{% url 'projects:project-kanban' project.pk %}" class="btn-finance-secondary">
-                <i class="fas fa-columns"></i> Kanban
-            </a>
-            <a href="{% url 'projects:finance-dashboard' %}" class="btn-finance-primary">
-                <i class="fas fa-arrow-left"></i> Volver a Finanzas
-            </a>
+        <div class="finance-header-content">
+            <div class="finance-title-section">
+                <h1><i class="fas fa-building"></i> {{ project.name }}</h1>
+                <p>
+                    {% if project.client %}
+                        Cliente: <strong>{{ project.client.name }}</strong>
+                    {% else %}
+                        Sin cliente asignado
+                    {% endif %}
+                </p>
+            </div>
+            <div class="finance-actions-header">
+                <a href="{% url 'projects:project-detail' project.pk %}" class="btn-finance-secondary">
+                    <i class="fas fa-eye"></i> Ver Proyecto
+                </a>
+                <a href="{% url 'projects:project-kanban' project.pk %}" class="btn-finance-secondary">
+                    <i class="fas fa-columns"></i> Kanban
+                </a>
+                <a href="{% url 'projects:finance-dashboard' %}" class="btn-finance-primary">
+                    <i class="fas fa-arrow-left"></i> Volver a Finanzas
+                </a>
+            </div>
         </div>
     </div>
 
@@ -91,10 +93,10 @@
                 </div>
                 <div class="progress-actions-compact">
                     <a href="{% url 'projects:payment-create' project.pk %}" class="btn-compact primary">
-                        <i class="fas fa-plus"></i> Registrar Pago
+                        <i class="fas fa-plus me-1"></i> Agregar Pago
                     </a>
                     <a href="{% url 'projects:budget-config' project.pk %}" class="btn-compact">
-                        <i class="fas fa-edit"></i> Editar Presupuesto
+                        <i class="fas fa-dollar-sign"></i> Configurar Presupuesto
                     </a>
                 </div>
             </div>
@@ -156,14 +158,14 @@
                                     <a href="{{ payment.receipt_file.url }}" target="_blank" class="btn-payment-action view" title="Ver documento">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="{{ payment.receipt_file.url }}" class="btn-payment-action" title="Descargar documento" download>
+                                    <a href="{{ payment.receipt_file.url }}" class="btn-payment-action download" title="Descargar documento" download>
                                         <i class="fas fa-download"></i>
                                     </a>
                                 {% elif payment.receipt %}
                                     <a href="{{ payment.receipt.file.url }}" target="_blank" class="btn-payment-action view" title="Ver documento">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="{{ payment.receipt.file.url }}" class="btn-payment-action" title="Descargar documento" download>
+                                    <a href="{{ payment.receipt.file.url }}" class="btn-payment-action download" title="Descargar documento" download>
                                         <i class="fas fa-download"></i>
                                     </a>
                                 {% endif %}
@@ -187,7 +189,7 @@
                 <h3>No hay pagos registrados</h3>
                 <p>Comienza registrando el primer pago del proyecto.</p>
                 <a href="{% url 'projects:payment-create' project.pk %}" class="btn-finance-primary">
-                    <i class="fas fa-plus"></i> Registrar Primer Pago
+                    <i class="fas fa-plus me-1"></i> Agregar Pago
                 </a>
             </div>
         {% endif %}
@@ -201,7 +203,7 @@
             <h3>Presupuesto No Configurado</h3>
             <p>Para comenzar a gestionar los pagos, primero debe establecer el presupuesto total del proyecto.</p>
             <a href="{% url 'projects:budget-config' project.pk %}" class="btn-finance-primary">
-                <i class="fas fa-cog"></i> Configurar Presupuesto
+                <i class="fas fa-dollar-sign me-1"></i> Configurar Presupuesto
             </a>
         </div>
     {% endif %}
