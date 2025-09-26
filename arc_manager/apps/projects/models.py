@@ -148,11 +148,26 @@ class Project(models.Model):
     # Propiedades financieras
     @property
     def total_paid(self):
-        """Calcula el total pagado del proyecto."""
+        """Calcula el total pagado del proyecto con caché Redis."""
         from decimal import Decimal
-        return self.payments.aggregate(
+        from django.core.cache import cache
+        
+        # Intentar obtener desde caché primero
+        cache_key = f"project_total_paid:{self.id}"
+        cached_total = cache.get(cache_key)
+        
+        if cached_total is not None:
+            return Decimal(str(cached_total))
+        
+        # Si no está en caché, calcular y guardar
+        total = self.payments.aggregate(
             total=models.Sum('amount')
         )['total'] or Decimal('0.00')
+        
+        # Guardar en caché por 10 minutos
+        cache.set(cache_key, float(total), 600)
+        
+        return total
     
     @property
     def remaining_amount(self):
@@ -491,7 +506,7 @@ class ProjectPayment(models.Model):
         return round((self.amount / self.project.total_budget) * 100, 1)
     
     def save(self, *args, **kwargs):
-        """Override save para logging."""
+        """Override save para logging y invalidación de caché."""
         is_new = self.pk is None
         
         if is_new:
@@ -504,11 +519,24 @@ class ProjectPayment(models.Model):
         
         if is_new:
             logger.info(f"Payment created successfully - ID: {self.pk}")
+        
+        # OPTIMIZACIÓN: Invalidar caché financiero después de guardar
+        from django.core.cache import cache
+        cache.delete(f"project_total_paid:{self.project.id}")
+        cache.delete(f"project_finance_stats:{self.project.id}")
+        cache.delete_pattern(f"org_finance_stats:{self.project.organization.id}")
     
     def delete(self, *args, **kwargs):
-        """Override delete para logging."""
+        """Override delete para logging e invalidación de caché."""
         logger.info(
             f"Deleting payment: ${self.amount} from project '{self.project.name}' "
             f"({self.project.id}) - Payment ID: {self.pk}"
         )
+        
+        # OPTIMIZACIÓN: Invalidar caché financiero antes de eliminar
+        from django.core.cache import cache
+        cache.delete(f"project_total_paid:{self.project.id}")
+        cache.delete(f"project_finance_stats:{self.project.id}")
+        cache.delete_pattern(f"org_finance_stats:{self.project.organization.id}")
+        
         super().delete(*args, **kwargs)

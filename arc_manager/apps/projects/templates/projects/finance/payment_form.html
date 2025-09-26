@@ -6,27 +6,29 @@
 {% block title %}Registrar Pago - {{ project.name }} - Arc Manager{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/finance_simple.css' %}">
+<link rel="stylesheet" href="{% static 'css/finance.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="page-container">
     
-    <!-- Header Simple -->
+    <!-- Header Simple Homologado -->
     <div class="finance-header-simple">
-        <div class="finance-title-section">
-            {% if is_edit %}
-                <h1><i class="fas fa-edit"></i> Editar Pago</h1>
-                <p>Modifica los datos del pago para "{{ project.name }}"</p>
-            {% else %}
-                <h1><i class="fas fa-plus"></i> Registrar Pago</h1>
-                <p>Añade un pago recibido para "{{ project.name }}"</p>
-            {% endif %}
-        </div>
-        <div class="finance-actions-header">
-            <a href="{% url 'projects:finance-project-detail' project.pk %}" class="btn-finance-secondary">
-                <i class="fas fa-arrow-left"></i> Volver a Finanzas
-            </a>
+        <div class="finance-header-content">
+            <div class="finance-title-section">
+                {% if is_edit %}
+                    <h1><i class="fas fa-edit"></i> Editar Pago</h1>
+                    <p>Modifica los datos del pago para "{{ project.name }}"</p>
+                {% else %}
+                    <h1><i class="fas fa-plus"></i> Registrar Pago</h1>
+                    <p>Añade un pago recibido para "{{ project.name }}"</p>
+                {% endif %}
+            </div>
+            <div class="finance-actions-header">
+                <a href="{% url 'projects:finance-project-detail' project.pk %}" class="btn-finance-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver a Finanzas
+                </a>
+            </div>
         </div>
     </div>
 
@@ -137,6 +139,6 @@
 </div>
 
 {% block extra_js %}
-<script src="{% static 'js/finance_payment_form.js' %}"></script>
+<script src="{% static 'js/finance.js' %}"></script>
 {% endblock %}
 {% endblock %}
