@@ -5,14 +5,18 @@ FROM python:3.11
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    DEBIAN_FRONTEND=noninteractive
+    DEBIAN_FRONTEND=noninteractive \
+    DOCKER_CONTAINER=true
 
 # Instalar dependencias del sistema
+# OPTIMIZACIÓN: Incluir libmagic para validación MIME type
 RUN apt-get update && apt-get install -y \
     postgresql-client \
     libpq-dev \
     gcc \
     curl \
+    libmagic1 \
+    file \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -27,9 +31,13 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 COPY . .
 
 # Crear directorios
+# OPTIMIZACIÓN: Incluir directorio para uploads temporales grandes
+# Nota: logs/ solo para desarrollo local, en Docker los logs van a STDOUT/STDERR
 RUN mkdir -p /app/arc_manager/staticfiles \
     && mkdir -p /app/arc_manager/media \
-    && mkdir -p /app/arc_manager/logs
+    && mkdir -p /app/arc_manager/logs \
+    && mkdir -p /app/temp_uploads \
+    && chmod 777 /app/temp_uploads
 
 # Directorio Django
 WORKDIR /app/arc_manager
@@ -45,8 +53,8 @@ echo "✅ Archivos estáticos con cache busting listos"\n\
 # echo "🔍 Ejecutando diagnóstico de conexión SMTP..."\n\
 # python manage.py check_smtp_connection\n\
 # echo "✅ Diagnóstico finalizado"\n\
-echo "🚀 Iniciando servidor..."\n\
-exec gunicorn --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120 core.wsgi:application' > /app/start.sh && chmod +x /app/start.sh
+echo "🚀 Iniciando servidor con timeouts extendidos para uploads masivos..."\n\
+exec gunicorn --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 1800 --worker-class sync --max-requests 1000 --max-requests-jitter 50 core.wsgi:application' > /app/start.sh && chmod +x /app/start.sh
 
 # Puerto (Railway asignará automáticamente)
 EXPOSE ${PORT:-8000}

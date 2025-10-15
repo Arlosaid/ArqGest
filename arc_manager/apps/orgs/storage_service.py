@@ -33,12 +33,9 @@ class StorageService:
         # Intentar obtener del cache
         cached_data = cache.get(cache_key)
         if cached_data is not None:
-            logger.debug(f"Storage data retrieved from cache for org {organization.id}")
             return cached_data
         
         # Calcular desde la base de datos
-        logger.debug(f"Calculating storage usage for organization {organization.id}")
-        
         try:
             # Calcular la suma total de bytes de todos los archivos de la organización
             total_bytes = ProjectFile.objects.filter(
@@ -74,8 +71,6 @@ class StorageService:
             # Cachear el resultado
             cache.set(cache_key, storage_data, cls.CACHE_TIMEOUT)
             
-            logger.debug(f"Storage calculated for org {organization.id}: {total_gb}GB of {plan_limit_gb}GB ({usage_percentage}%)")
-            
             return storage_data
             
         except Exception as e:
@@ -97,7 +92,6 @@ class StorageService:
         """Invalida el cache de una organización específica"""
         cache_key = cls.get_cache_key(organization_id)
         cache.delete(cache_key)
-        logger.debug(f"Storage cache invalidated for organization {organization_id}")
     
     @classmethod
     def get_storage_summary(cls, organization):

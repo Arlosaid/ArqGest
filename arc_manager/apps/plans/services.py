@@ -19,8 +19,6 @@ class SubscriptionService:
         """
         Crea una suscripción trial automática para nuevas organizaciones.
         """
-        logger.info(f"Creando suscripción trial para {organization.name}")
-        
         try:
             if hasattr(organization, 'subscription'):
                 logger.warning(f"La organización {organization.name} ya tiene una suscripción.")
@@ -49,7 +47,7 @@ class SubscriptionService:
                     # created_at se asigna automáticamente con timezone.now() por auto_now_add=True
                 )
             
-            logger.info(f"Suscripción trial creada exitosamente para {organization.name}")
+            logger.info(f"Suscripción trial creada para organización: {organization.name}")
             return {'success': True, 'subscription': subscription}
             
         except Exception as e:

@@ -101,6 +101,7 @@ AUTH_USER_MODEL = 'accounts.User'
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'django.middleware.gzip.GZipMiddleware',  # Compresión de respuestas
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -401,18 +402,8 @@ if not DEBUG and os.environ.get('RAILWAY_ENVIRONMENT'):
             'sql_mode': 'STRICT_TRANS_TABLES',
         })
     
-    # Logging optimizado para Railway (reducir overhead)
-    if 'LOGGING' in locals():
-        # Reducir nivel de logs en producción para mejorar performance
-        LOGGING['handlers']['production']['level'] = 'INFO'
-        LOGGING['loggers']['django.db.backends']['level'] = 'WARNING'
-        
-        # Agregar handler específico para Railway
-        LOGGING['handlers']['railway'] = {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
-            'formatter': 'production',
-        }
+    # Logging optimizado para Railway - ya configurado arriba con STDOUT/STDERR
+    # No es necesario agregar handlers adicionales - Docker los maneja
     
     # Configuración de sesiones optimizada para Railway
     SESSION_ENGINE = 'django.contrib.sessions.backends.db'
@@ -509,9 +500,9 @@ if os.environ.get('ENABLE_STORAGES', 'false').lower() == 'true':
         'CacheControl': 'max-age=86400',  # Cache por 1 día
     }
     
-    print(f"🌍 Usando almacenamiento Cloudflare R2: {AWS_S3_ENDPOINT_URL}")
+    logging.info(f"Storage: Cloudflare R2 - {AWS_S3_ENDPOINT_URL}")
 else:
-    print("💾 Usando almacenamiento local: FileSystemStorage")
+    logging.info("Storage: Local FileSystemStorage")
 
 # Configuración de sesiones (usando Redis)
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
@@ -566,6 +557,15 @@ MESSAGE_TAGS = {
     messages.ERROR: 'danger',
 }
 
+# ========================================
+# CONFIGURACIÓN DE LOGGING OPTIMIZADA PARA DOCKER
+# ========================================
+# En Docker, los logs deben ir a STDOUT/STDERR para mejor rendimiento
+# Docker maneja la rotación y límites automáticamente
+
+# Determinar si estamos en un entorno containerizado
+IS_DOCKER = os.environ.get('DOCKER_CONTAINER', 'false').lower() == 'true'
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -578,6 +578,11 @@ LOGGING = {
             'format': '[{asctime}] {levelname} {message}',
             'style': '{',
             'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        # Formato JSON estructurado para producción/Docker
+        'json': {
+            'format': '{"time": "{asctime}", "level": "{levelname}", "logger": "{name}", "message": "{message}", "process": {process}, "thread": {thread}}',
+            'style': '{',
         },
     },
     'filters': {
@@ -595,41 +600,27 @@ LOGGING = {
         'filter_sensitive_data': {'()': 'core.logging_filters.SensitiveDataFilter'},
     },
     'handlers': {
+        # Handler para desarrollo (consola simple)
         'console': {
             'level': 'INFO',
             'filters': ['require_debug_true', 'ignore_timezone_warnings', 'ignore_payment_warnings', 'clean_request_logs', 'filter_sensitive_data'],
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
+        # Handler para producción/Docker (STDOUT con formato verbose o JSON)
         'console_prod': {
             'level': 'INFO',
             'filters': ['require_debug_false', 'ignore_timezone_warnings', 'ignore_payment_warnings', 'clean_request_logs', 'filter_sensitive_data'],
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
+            'formatter': 'json' if IS_DOCKER else 'verbose',  # JSON en Docker para mejor parsing
         },
-        'debug_file': {
-            'level': 'DEBUG',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs/debug.log'),
-            'maxBytes': 1024 * 1024 * 5,
-            'backupCount': 5,
-            'formatter': 'verbose',
-        },
-        'error_file': {
+        # Handler de errores críticos a STDERR
+        'stderr': {
             'level': 'ERROR',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs/errors.log'),
-            'maxBytes': 1024 * 1024 * 5,
-            'backupCount': 5,
-            'formatter': 'verbose',
-        },
-        'security_file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs/security.log'),
-            'maxBytes': 1024 * 1024 * 2,
-            'backupCount': 3,
-            'formatter': 'verbose',
+            'filters': ['filter_sensitive_data'],
+            'class': 'logging.StreamHandler',
+            'stream': 'ext://sys.stderr',  # Errores van a STDERR
+            'formatter': 'json' if IS_DOCKER else 'verbose',
         },
         'mail_admins': {
             'level': 'ERROR',
@@ -640,50 +631,74 @@ LOGGING = {
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'console_prod', 'error_file'],
+            'handlers': ['console', 'console_prod'],
             'level': 'INFO',
             'propagate': False,
         },
         'django.request': {
-            'handlers': ['error_file', 'mail_admins'],
-            'level': 'INFO',
+            'handlers': ['stderr', 'mail_admins'],
+            'level': 'WARNING',  # Solo errores importantes
             'propagate': False,
         },
         'django.security': {
-            'handlers': ['security_file', 'mail_admins'],
-            'level': 'INFO',
+            'handlers': ['stderr', 'mail_admins'],
+            'level': 'WARNING',
             'propagate': False,
         },
         'apps': {
-            'handlers': ['console', 'console_prod', 'error_file', 'debug_file'],
+            'handlers': ['console', 'console_prod'],
             'level': 'INFO',
             'propagate': False,
         },
         'apps.plans': {
-            'level': 'DEBUG',
-            'propagate': True,
+            'handlers': ['console', 'console_prod'],
+            'level': 'INFO' if not DEBUG else 'DEBUG',
+            'propagate': False,
         },
         'apps.accounts': {
-            'handlers': ['console', 'console_prod', 'security_file', 'debug_file'],
+            'handlers': ['console', 'console_prod', 'stderr'],
             'level': 'INFO',
             'propagate': False,
         },
         'core': {
-            'handlers': ['console', 'console_prod', 'error_file', 'debug_file'],
+            'handlers': ['console', 'console_prod'],
             'level': 'INFO',
             'propagate': False,
         },
         'core.error_handler': {
-            'handlers': ['console', 'console_prod', 'error_file', 'debug_file'],
+            'handlers': ['console', 'console_prod', 'stderr'],
             'level': 'INFO',
             'propagate': False,
         },
     },
     'root': {
-        'handlers': ['console_prod', 'error_file'],
+        'handlers': ['console_prod', 'stderr'],
         'level': 'WARNING',
     },
 }
+
+# En desarrollo local (no Docker), agregar handlers de archivo opcionales
+if DEBUG and not IS_DOCKER:
+    LOGGING['handlers']['debug_file'] = {
+        'level': 'DEBUG',
+        'class': 'logging.handlers.RotatingFileHandler',
+        'filename': os.path.join(BASE_DIR, 'logs/debug.log'),
+        'maxBytes': 1024 * 1024 * 5,  # 5MB
+        'backupCount': 3,  # Reducido a 3 para ahorrar espacio
+        'formatter': 'verbose',
+    }
+    LOGGING['handlers']['error_file'] = {
+        'level': 'ERROR',
+        'class': 'logging.handlers.RotatingFileHandler',
+        'filename': os.path.join(BASE_DIR, 'logs/errors.log'),
+        'maxBytes': 1024 * 1024 * 5,  # 5MB
+        'backupCount': 3,
+        'formatter': 'verbose',
+    }
+    # Agregar handlers de archivo a los loggers en desarrollo
+    LOGGING['loggers']['django']['handlers'].append('error_file')
+    LOGGING['loggers']['apps']['handlers'].append('debug_file')
+    LOGGING['loggers']['core']['handlers'].append('debug_file')
 
 # Configuración del sitio
 SITE_NAME = os.environ.get('SITE_NAME', 'ARC Manager')
@@ -696,25 +711,25 @@ if DEBUG:
     DEFAULT_FROM_EMAIL = 'ARC MANAGER <noreply@archmanager.local>'
 else:
     # ========================================
-    # 🚀 CONFIGURACIÓN RESEND (REEMPLAZA AWS SES)
+    # CONFIGURACIÓN RESEND (REEMPLAZA AWS SES)
     # ========================================
     
     # Verificar si tenemos API key de Resend
     RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
     
     if RESEND_API_KEY:
-        # 📧 Railway bloquea SMTP, usamos API de Resend
+        # Railway bloquea SMTP, usamos API de Resend
         # Mantenemos el backend console para compatibilidad con Django
         EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
         
-        # 📮 Email de remitente - debe estar verificado en Resend
+        # Email de remitente - debe estar verificado en Resend
         DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'adroal08@gmail.com')
         SERVER_EMAIL = DEFAULT_FROM_EMAIL
         
-        print("📧 Email configurado (temporalmente deshabilitado)")
+        logging.info("Email: Resend API configured")
     
     if not RESEND_API_KEY:
-        # 🔄 Fallback a AWS SES (si no hay Resend configurado)
+        # Fallback a AWS SES (si no hay Resend configurado)
         EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
         
         EMAIL_HOST = os.environ.get('AWS_SES_HOST', 'email-smtp.us-west-1.amazonaws.com')
@@ -733,7 +748,7 @@ else:
         EMAIL_CONNECTION_TIMEOUT = 8
         EMAIL_READ_TIMEOUT = 8
         
-        print("📧 AWS SES configurado (fallback)")
+        logging.info("Email: AWS SES configured (fallback)")
 
 
 # Configuración para el sistema de pagos
@@ -794,10 +809,10 @@ if IS_PRODUCTION:
     
     HEALTH_CHECK_URL = '/health/'
     
-    print("🚀 Configuración de producción activada")
+    logging.info("Environment: Production mode enabled")
 
 else:
-    print("🏠 Ejecutándose en ambiente local")
+    logging.info("Environment: Local development mode")
 
 # Health check endpoint para monitoreo
 def health_check(request):

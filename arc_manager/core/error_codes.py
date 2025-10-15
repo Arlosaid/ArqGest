@@ -332,6 +332,7 @@ class FileErrorCodes:
     FILE_UPLOAD_TOO_MANY_FILES = "F014"
     FILE_UPLOAD_EMPTY_FILE = "F015"
     FILE_UPLOAD_SUSPICIOUS_FILE = "F016"
+    FILE_UPLOAD_DUPLICATE_CHECKSUM = "F017"  # 🔥 NUEVO: Archivo duplicado por checksum
     
     # Descarga de archivos (F101-F199)
     FILE_DOWNLOAD_NOT_FOUND = "F101"

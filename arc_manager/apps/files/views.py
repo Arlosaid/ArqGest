@@ -40,22 +40,6 @@ def upload_file(request, project_id, phase_id):
     user_agent = request.headers.get('User-Agent', '')
     is_mobile_device = any(keyword in user_agent.lower() for keyword in 
                           ['android', 'iphone', 'ipad', 'mobile', 'tablet'])
-    # Log inicial de intento de upload (con info de mobile)
-    log_operation(
-        'FILE_UPLOAD_ATTEMPT',
-        request.user.email,
-        logger,
-        level='INFO',
-        project_id=project_id,
-        phase_id=phase_id,
-        user_id=request.user.id,
-        organization_id=request.user.organization.id if request.user.organization else None,
-        ip_address=request.META.get('REMOTE_ADDR', 'unknown'),
-        user_agent=request.META.get('HTTP_USER_AGENT', 'unknown')[:100],
-        is_mobile_upload=is_mobile_upload,
-        is_mobile_device=is_mobile_device
-    )
-    
     phase = get_object_or_404(Phase, id=phase_id, project_id=project_id)
     
     if request.user.organization != phase.project.organization:
@@ -70,22 +54,9 @@ def upload_file(request, project_id, phase_id):
         )
         return HttpResponseForbidden(_("You do not have permission to access this resource."))
 
-    # Log detalles de archivos recibidos
     files_list = request.FILES.getlist('files')
     total_files = len(files_list)
     total_size = sum(f.size or 0 for f in files_list)
-    
-    log_operation(
-        'FILE_UPLOAD_FILES_RECEIVED',
-        request.user.email,
-        logger,
-        level='INFO',
-        project_id=project_id,
-        phase_id=phase_id,
-        files_count=total_files,
-        total_size_bytes=total_size,
-        file_names=[f.name for f in files_list[:5]]  # Máximo 5 nombres para el log
-    )
     
     if not files_list:
         # This case might not be hit if the input is 'required', but it's good practice.
@@ -324,21 +295,6 @@ def upload_file(request, project_id, phase_id):
     if validation_errors:
         error_msg = f"Archivos no válidos encontrados:\n• " + "\n• ".join(validation_errors)
         
-        # Log general de error de validación
-        log_operation(
-            'FILE_UPLOAD_VALIDATION_FAILED',
-            request.user.email,
-            logger,
-            level='WARNING',
-            error_code=FileErrorCodes.FILE_UPLOAD_UNEXPECTED_ERROR,
-            project_id=project_id,
-            phase_id=phase_id,
-            total_files=len(files_list),
-            invalid_files=len(validation_errors),
-            valid_files=len(valid_files),
-            validation_errors=validation_errors[:5]  # Primeros 5 para el log
-        )
-        
         messages.error(request, error_msg)
         if request.headers.get('HX-Request') == 'true':
             return JsonResponse({
@@ -358,6 +314,12 @@ def upload_file(request, project_id, phase_id):
     for uploaded_file in valid_files:
 
         try:
+            # 🔥 CRÍTICO: Asegurar que el puntero del archivo esté al inicio antes de guardar
+            try:
+                uploaded_file.seek(0)
+            except Exception:
+                pass  # No crítico si falla
+            
             instance = ProjectFile.objects.create(
                 phase=phase,
                 file=uploaded_file,
@@ -395,15 +357,61 @@ def upload_file(request, project_id, phase_id):
                     instance.checksum_sha256 = hasher.hexdigest()
                     instance.save(update_fields=["checksum_sha256"])
                     
-                    # Log de checksum calculado
-                    log_operation(
-                        'FILE_CHECKSUM_CALCULATED',
-                        request.user.email,
-                        logger,
-                        level='DEBUG',
-                        file_id=instance.id,
-                        checksum=instance.checksum_sha256
-                    )
+                    # Detectar archivos duplicados por checksum
+                    if instance.checksum_sha256:
+                        duplicate = ProjectFile.objects.filter(
+                            phase=phase,
+                            checksum_sha256=instance.checksum_sha256
+                        ).exclude(pk=instance.pk).first()
+                        
+                        if duplicate:
+                            log_operation(
+                                'FILE_UPLOAD_DUPLICATE_DETECTED',
+                                request.user.email,
+                                logger,
+                                level='WARNING',
+                                error_code=FileErrorCodes.FILE_UPLOAD_DUPLICATE_CHECKSUM,
+                                file_id=instance.id,
+                                duplicate_file_id=duplicate.id,
+                                checksum=instance.checksum_sha256,
+                                filename=uploaded_file.name,
+                                duplicate_filename=duplicate.filename
+                            )
+                            
+                            # Eliminar el archivo duplicado recién subido
+                            instance.file.delete(save=False)
+                            instance.delete()
+                            
+                            # Notificar al usuario sobre el duplicado
+                            duplicate_msg = f"Este archivo ya existe como '{duplicate.filename}' (subido el {duplicate.uploaded_at.strftime('%d/%m/%Y')})"
+                            
+                            if request.headers.get('HX-Request') == 'true':
+                                html_response = f'''
+                                <script>
+                                    if (window.notifications) {{
+                                        window.notifications.warning('{duplicate_msg}');
+                                    }} else if (window.showGlobalNotification) {{
+                                        window.showGlobalNotification('{duplicate_msg}', 'warning');
+                                    }}
+                                    
+                                    // Trigger para recargar la lista
+                                    setTimeout(() => {{
+                                        const container = document.getElementById('files-container-{phase.id}');
+                                        if (container && window.htmx) {{
+                                            htmx.trigger(container, 'fileUploaded');
+                                        }}
+                                    }}, 100);
+                                </script>
+                                '''
+                                return HttpResponse(html_response)
+                            else:
+                                return JsonResponse({
+                                    "success": False,
+                                    "duplicate": True,
+                                    "existing_file_id": duplicate.id,
+                                    "message": duplicate_msg
+                                }, status=200)  # 200 porque técnicamente no es un error
+                    
             except Exception as e:
                 # Log de error en cálculo de checksum
                 log_operation(
@@ -441,22 +449,6 @@ def upload_file(request, project_id, phase_id):
             if request.headers.get('HX-Request') == 'true':
                 return JsonResponse({"error": error_msg, "success": False}, status=500)
             return HttpResponse(status=500)
-    
-    # Log de resumen final del upload batch
-    log_operation(
-        'FILE_UPLOAD_BATCH_COMPLETED',
-        request.user.email,
-        logger,
-        level='INFO',
-        project_id=project_id,
-        phase_id=phase_id,
-        total_files=total_files,
-        successful_uploads=successful_uploads,
-        failed_uploads=failed_uploads,
-        total_size_bytes=total_size,
-        failed_reasons=failed_reasons[:3] if failed_reasons else [],  # Máximo 3 razones de fallo
-        duration_ms=None  # Podríamos calcular tiempo si fuera necesario
-    )
     
     # Invalidar caché de archivos para esta fase
     if successful_uploads > 0:
@@ -540,19 +532,6 @@ def delete_file(request, file_id):
     - Si es HTMX, responde vacío (204) para que el frontend remueva el elemento.
     - Si es una llamada normal/fetch, responde JSON con success.
     """
-    # Log inicial de intento de eliminación
-    log_operation(
-        'FILE_DELETE_ATTEMPT',
-        request.user.email,
-        logger,
-        level='INFO',
-        file_id=file_id,
-        user_id=request.user.id,
-        organization_id=request.user.organization.id if request.user.organization else None,
-        ip_address=request.META.get('REMOTE_ADDR', 'unknown'),
-        user_agent=request.META.get('HTTP_USER_AGENT', 'unknown')[:100]
-    )
-    
     project_file = get_object_or_404(ProjectFile, id=file_id)
     
     if request.user.organization != project_file.phase.project.organization:
@@ -569,31 +548,14 @@ def delete_file(request, file_id):
         )
         return HttpResponseForbidden("No tienes permiso para acceder a este recurso.")
 
-    # Guardar información del archivo para el log antes de eliminarlo
+    # Guardar información mínima para logging
     file_info = {
         'filename': project_file.filename,
         'size_bytes': project_file.size_bytes,
         'extension': project_file.extension,
         'project_id': project_file.phase.project.id,
-        'phase_id': project_file.phase.id,
-        'checksum': project_file.checksum_sha256,
-        'uploaded_at': project_file.uploaded_at.isoformat() if project_file.uploaded_at else None,
-        'uploaded_by_id': project_file.uploaded_by.id if project_file.uploaded_by else None,
-        'uploaded_by_email': project_file.uploaded_by.email if project_file.uploaded_by else None,
-        'file_path': project_file.file.name if project_file.file else None,
-        'project_name': project_file.phase.project.name if project_file.phase and project_file.phase.project else None,
-        'phase_name': project_file.phase.name if project_file.phase else None
+        'phase_id': project_file.phase.id
     }
-    
-    # Log detalles del archivo antes de eliminación
-    log_operation(
-        'FILE_DELETE_DETAILS',
-        request.user.email,
-        logger,
-        level='INFO',
-        file_id=file_id,
-        **file_info
-    )
 
     try:
         # Eliminar archivo físico del almacenamiento
@@ -928,14 +890,26 @@ def confirm_upload(request):
         return HttpResponseForbidden("No tienes permiso para acceder a este recurso.")
 
     try:
-        instance = ProjectFile(phase=phase, uploaded_by=request.user, size_bytes=size_bytes, content_type=content_type)
-        # Asignar el key directamente al FileField (django-storages S3)
+        instance = ProjectFile(
+            phase=phase, 
+            uploaded_by=request.user, 
+            size_bytes=size_bytes, 
+            content_type=content_type
+        )
+        
+        # 🔥 CRÍTICO: Asignar el key directamente al FileField (django-storages S3)
+        # Para R2/S3, el archivo ya fue subido directamente, solo asignamos la referencia
         instance.file.name = key
-        # Derivar ext_upper
+        
+        # Derivar ext_upper del key
         try:
             instance.ext_upper = os.path.splitext(key)[1].replace('.', '').upper()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Could not derive extension from key {key}: {e}")
+            instance.ext_upper = ''
+        
+        # 🔥 CRÍTICO: Guardar sin intentar volver a subir el archivo
+        # Como el archivo ya está en R2, solo guardamos el registro en la DB
         instance.save()
         
         # Log exitoso de confirmación de subida
@@ -952,6 +926,10 @@ def confirm_upload(request):
             content_type=content_type,
             extension=instance.ext_upper
         )
+        
+        # 🔥 FIX: Invalidar caché de archivos para que aparezcan inmediatamente
+        from .cache_utils import invalidate_phase_files_cache
+        invalidate_phase_files_cache(phase_id)
         
         return JsonResponse({"success": True, "id": instance.id})
         

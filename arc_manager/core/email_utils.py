@@ -60,7 +60,7 @@ def send_resend_email(to_email, subject, html_content, text_content=None):
         # Validar configuración primero
         is_valid, error_message = validate_resend_config()
         if not is_valid:
-            logger.error(f"❌ Configuración inválida: {error_message}")
+            logger.error(f"Invalid configuration: {error_message}")
             return None
         
         # Configurar API key
@@ -91,17 +91,17 @@ def send_resend_email(to_email, subject, html_content, text_content=None):
         
         # Resend retorna un dict con 'id' cuando es exitoso
         if response and isinstance(response, dict) and 'id' in response:
-            logger.info(f"✅ Email enviado exitosamente")
+            logger.info("Email sent successfully")
             return response
         elif response:
-            logger.info(f"✅ Email enviado")
+            logger.info("Email sent")
             return response
         else:
-            logger.error(f"❌ Error: respuesta inválida")
+            logger.error("Error: invalid response")
             return None
         
     except Exception as e:
-        logger.error(f"❌ Error enviando email: {e}")
+        logger.error(f"Error sending email: {e}")
         
         # Solo mostrar código de error si es ResendError
         if hasattr(e, 'code'):
@@ -164,7 +164,7 @@ def test_resend_connection():
     Returns:
         dict: Resultado del test con información detallada
     """
-    logger.info("🧪 Iniciando test de conexión con Resend...")
+    logger.info("Testing Resend connection...")
     
     # Validar configuración
     is_valid, error_message = validate_resend_config()

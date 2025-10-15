@@ -57,8 +57,6 @@ class ProjectListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
 
     def get_queryset(self):
         if hasattr(self.request.user, 'organization') and self.request.user.organization:
-            org_id = self.request.user.organization.id
-            logger.info(f"Fetching projects for organization {org_id} - User: {self.request.user.email}")
             return Project.objects.filter(
                 organization=self.request.user.organization
             ).select_related('client', 'owner').order_by('-created_at')
@@ -112,8 +110,6 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
 
     def get_queryset(self):
         if hasattr(self.request.user, 'organization') and self.request.user.organization:
-            org_id = self.request.user.organization.id
-            logger.debug(f"Filtering project detail for organization {org_id}")
             return super().get_queryset().filter(organization=self.request.user.organization)
         logger.warning(f"User {self.request.user.email} attempted to access project detail without organization")
         return super().get_queryset().none()
@@ -243,8 +239,6 @@ class ProjectCreateView(LoginRequiredMixin, OrganizationAdminMixin, CreateView):
         
         project_name = form.cleaned_data.get('name')
         org_id = self.request.user.organization.id if self.request.user.organization else 'None'
-        
-        logger.info(f"Starting project creation - Name: '{project_name}', Org: {org_id}, User: {self.request.user.email}, Method: {creation_method}")
 
         if creation_method == 'manual' and not phase_formset.is_valid():
             logger.warning(f"Project creation failed - Invalid phase formset for project '{project_name}'")
@@ -262,7 +256,7 @@ class ProjectCreateView(LoginRequiredMixin, OrganizationAdminMixin, CreateView):
         
         try:
             self.object = form.save()
-            logger.info(f"Project created successfully - ID: {self.object.id}, Name: '{project_name}', Owner: {self.request.user.email}")
+            logger.info(f"Proyecto creado - ID: {self.object.id}, Nombre: '{project_name}', Org: {org_id}, Usuario: {self.request.user.email}")
         except IntegrityError as e:
             logger.error(f"Project creation failed - IntegrityError for '{project_name}': {str(e)}")
             form.add_error('name', _('Ya existe un proyecto con este nombre en tu organización.'))
@@ -275,7 +269,6 @@ class ProjectCreateView(LoginRequiredMixin, OrganizationAdminMixin, CreateView):
                 phase_template=form.cleaned_data.get('phase_template'),
                 phase_formset=phase_formset
             )
-            logger.info(f"Phases created for project {self.object.id} using method: {creation_method}")
         except Exception as e:
             logger.error(f"Phase creation failed for project {self.object.id}: {str(e)}", exc_info=True)
 
@@ -297,7 +290,7 @@ class ProjectCreateView(LoginRequiredMixin, OrganizationAdminMixin, CreateView):
                     organization=self.request.user.organization,
                     phases=phases_payload
                 )
-                logger.info(f"PhaseTemplate created from project creation for org {self.request.user.organization_id}")
+                logger.debug(f"PhaseTemplate created from project creation for org {self.request.user.organization_id}")
             except Exception as e:
                 logger.error(f"Failed to create PhaseTemplate from project creation: {e}")
 
@@ -331,11 +324,10 @@ class ProjectUpdateView(LoginRequiredMixin, OrganizationAdminMixin, UpdateView):
     def form_valid(self, form):
         project_name = form.cleaned_data.get('name')
         project_id = self.object.id
-        logger.info(f"Updating project {project_id} - New name: '{project_name}', User: {self.request.user.email}")
         
         try:
             result = super().form_valid(form)
-            logger.info(f"Project {project_id} updated successfully")
+            logger.info(f"Proyecto actualizado - ID: {project_id}, Nombre: '{project_name}', Usuario: {self.request.user.email}")
             
             # Invalidar cache después de actualizar proyecto
             from .cache_utils import invalidate_project_cache, invalidate_kanban_projects_cache
@@ -362,11 +354,9 @@ class ProjectDeleteView(LoginRequiredMixin, OrganizationAdminMixin, DeleteView):
         project_id = self.object.id
         org_id = self.object.organization.id
         
-        logger.warning(f"Deleting project {project_id} - Name: '{project_name}', Org: {org_id}, User: {request.user.email}")
-        
         try:
             result = super().delete(request, *args, **kwargs)
-            logger.info(f"Project {project_id} ('{project_name}') deleted successfully")
+            logger.info(f"Proyecto eliminado - ID: {project_id}, Nombre: '{project_name}', Org: {org_id}, Usuario: {request.user.email}")
             return result
         except Exception as e:
             logger.error(f"Failed to delete project {project_id}: {str(e)}", exc_info=True)
@@ -663,8 +653,6 @@ def task_create(request, project_pk):
     """Crear una nueva tarea."""
     project = get_object_or_404(Project, pk=project_pk, organization=request.user.organization)
     
-    logger.debug(f"Task creation request for project {project_pk} by user {request.user.email}")
-    
     if request.method == 'POST':
         title = request.POST.get('title')
         description = request.POST.get('description', '')
@@ -697,16 +685,6 @@ def task_create(request, project_pk):
             try:
                 phase = Phase.objects.get(pk=phase_id, project=project)
                 
-                log_msg, log_data = log_task_operation(
-                    'CREATE_TASK',
-                    request.user.email,
-                    project_id=project_pk,
-                    phase_id=phase_id,
-                    title=title,
-                    priority=priority
-                )
-                logger.info(log_msg)
-                
                 task = Task.objects.create(
                     phase=phase,
                     title=title,
@@ -729,14 +707,6 @@ def task_create(request, project_pk):
                     if assignee_exists:
                         task.assigned_to_id = assigned_to_id
                         task.save()
-                        
-                        log_msg, log_data = log_task_operation(
-                            'ASSIGN_TASK',
-                            request.user.email,
-                            task_id=task.id,
-                            assignee_id=assigned_to_id
-                        )
-                        logger.info(log_msg)
                     else:
                         # Si el usuario no pertenece a la organización, no asignar y reportar
                         log_msg, log_data = log_task_operation(
@@ -765,15 +735,6 @@ def task_create(request, project_pk):
                 
                 # Solo mostrar mensaje Django para peticiones normales (no AJAX)
                 messages.success(request, f'Tarea "{title}" creada exitosamente.')
-                
-                log_msg, log_data = log_task_operation(
-                    'CREATE_TASK_SUCCESS',
-                    request.user.email,
-                    task_id=task.id,
-                    project_id=project_pk,
-                    title=title
-                )
-                logger.info(log_msg)
 
                 # Redirecciones para peticiones normales
                 if 'kanban' in request.META.get('HTTP_REFERER', ''):
@@ -834,20 +795,25 @@ class TaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
         query_time = time.time() - start_time
         task_count = queryset.count()
         
-        log_msg, log_data = log_task_operation(
-            'LIST_ALL_TASKS',
-            self.request.user.email,
-            org_id=self.request.user.organization.id,
-            task_count=task_count,
-            query_time_ms=round(query_time * 1000, 2)
-        )
-        
-        if query_time > 2.0:  # Log slow queries
+        # Solo loguear si hay problema de performance
+        if query_time > 2.0:
+            log_msg, log_data = log_task_operation(
+                'LIST_ALL_TASKS',
+                self.request.user.email,
+                org_id=self.request.user.organization.id,
+                task_count=task_count,
+                query_time_ms=round(query_time * 1000, 2)
+            )
             logger.warning(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_QUERY_SLOW}")
-        elif task_count > 1000:  # Log large datasets
+        elif task_count > 1000:
+            log_msg, log_data = log_task_operation(
+                'LIST_ALL_TASKS',
+                self.request.user.email,
+                org_id=self.request.user.organization.id,
+                task_count=task_count,
+                query_time_ms=round(query_time * 1000, 2)
+            )
             logger.warning(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_LIST_LARGE_DATASET}")
-        else:
-            logger.info(log_msg)
             
         return queryset
 
@@ -896,19 +862,17 @@ class MyTaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
         query_time = time.time() - start_time
         task_count = queryset.count()
         
-        log_msg, log_data = log_task_operation(
-            'LIST_MY_TASKS',
-            self.request.user.email,
-            org_id=self.request.user.organization.id,
-            task_count=task_count,
-            query_time_ms=round(query_time * 1000, 2),
-            filters={'status': status_filter, 'priority': priority_filter, 'search': search_filter}
-        )
-        
+        # Solo loguear si hay problema de performance
         if query_time > 2.0:
+            log_msg, log_data = log_task_operation(
+                'LIST_MY_TASKS',
+                self.request.user.email,
+                org_id=self.request.user.organization.id,
+                task_count=task_count,
+                query_time_ms=round(query_time * 1000, 2),
+                filters={'status': status_filter, 'priority': priority_filter, 'search': search_filter}
+            )
             logger.warning(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_QUERY_SLOW}")
-        else:
-            logger.info(log_msg)
         
         return queryset
 
@@ -989,15 +953,6 @@ def update_task_status(request, task_pk):
         if status in dict(Task.Status.choices):
             task.status = status
             task.save()
-            
-            log_msg, log_data = log_task_operation(
-                'UPDATE_TASK_STATUS',
-                request.user.email,
-                task_id=task_pk,
-                old_status=old_status,
-                new_status=status
-            )
-            logger.info(log_msg)
             return JsonResponse({'success': True})
         else:
             log_msg, log_data = log_task_operation(
@@ -1054,17 +1009,6 @@ def move_task(request, task_pk):
                 new_phase = Phase.objects.get(pk=phase_id, project=task.phase.project)
                 task.phase = new_phase
                 task.save()
-                
-                log_msg, log_data = log_task_operation(
-                    'MOVE_TASK',
-                    request.user.email,
-                    task_id=task_pk,
-                    old_phase_id=old_phase_id,
-                    old_phase_name=old_phase_name,
-                    new_phase_id=phase_id,
-                    new_phase_name=new_phase.name
-                )
-                logger.info(log_msg)
                 return JsonResponse({'success': True})
             except Phase.DoesNotExist:
                 log_msg, log_data = log_task_operation(
@@ -1102,14 +1046,6 @@ def task_edit(request, pk):
     try:
         task = get_object_or_404(Task, pk=pk, phase__project__organization=request.user.organization)
         project = task.phase.project
-        
-        log_msg, log_data = log_task_operation(
-            'ACCESS_TASK_EDIT',
-            request.user.email,
-            task_id=pk,
-            method=request.method
-        )
-        logger.info(log_msg)
 
     except Task.DoesNotExist:
         log_msg, log_data = log_task_operation(
@@ -1179,8 +1115,6 @@ def task_edit(request, pk):
             task.due_date = due_date
             task.save()
             
-            logger.info(f"Tarea {task.id} actualizada por {request.user.email}")
-            
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return HttpResponse('Tarea actualizada correctamente', status=200)
             else:
@@ -1234,26 +1168,8 @@ def task_delete(request, pk):
     task_title = task.title
     project_id = task.phase.project.id
     
-    log_msg, log_data = log_task_operation(
-        'DELETE_TASK_ATTEMPT',
-        request.user.email,
-        task_id=pk,
-        title=task_title,
-        project_id=project_id
-    )
-    logger.warning(log_msg)
-    
     try:
         task.delete()
-        
-        log_msg, log_data = log_task_operation(
-            'DELETE_TASK_SUCCESS',
-            request.user.email,
-            task_id=pk,
-            title=task_title,
-            project_id=project_id
-        )
-        logger.info(log_msg)
         return JsonResponse({'success': True})
     except Exception as e:
         log_msg, log_data = log_task_operation(
@@ -1277,16 +1193,6 @@ def project_tasks_paginated(request, project_pk):
     
     # Filtros
     phase_filter = request.GET.get('phase', '')
-    
-    log_msg, log_data = log_task_operation(
-        'VIEW_PAGINATED_TASKS',
-        request.user.email,
-        project_id=project_pk,
-        page=page,
-        per_page=per_page,
-        phase_filter=phase_filter
-    )
-    logger.info(log_msg)
 
     # Queryset base
     tasks_qs = Task.objects.filter(phase__project=project).select_related('phase', 'assigned_to')
@@ -1559,12 +1465,6 @@ class PhaseTemplateDeleteView(LoginRequiredMixin, OrganizationAdminMixin, Delete
 @login_required
 def task_detail(request, pk):
     """Vista para mostrar los detalles de una tarea en formato modal"""
-    log_msg, log_data = log_task_operation(
-        'VIEW_TASK_DETAILS',
-        request.user.email,
-        task_id=pk
-    )
-    logger.info(log_msg)
     task = get_object_or_404(Task, pk=pk, phase__project__organization=request.user.organization)
     
     # Generate a project-specific color based on project ID for consistency

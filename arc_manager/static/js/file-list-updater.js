@@ -6,24 +6,31 @@
 class FileListUpdater {
     constructor() {
         this.pendingUpdates = new Set();
+        this.listenersInitialized = false;
         this.init();
     }
 
     init() {
-        // Escuchar eventos de archivo subido
-        document.body.addEventListener('fileUploaded', (e) => {
-            this.updateAllFileLists();
-        });
+        // Solo inicializar listeners una vez para evitar duplicados
+        if (!this.listenersInitialized) {
+            // Escuchar eventos de archivo subido
+            document.body.addEventListener('fileUploaded', (e) => {
+                this.updateAllFileLists();
+            });
 
-        // Escuchar eventos de archivo eliminado
-        document.body.addEventListener('fileDeleted', (e) => {
-            this.updateAllFileLists();
-        });
+            // Escuchar eventos de archivo eliminado
+            document.body.addEventListener('fileDeleted', (e) => {
+                this.updateAllFileLists();
+            });
 
-        // Escuchar respuestas HTMX exitosas
-        document.body.addEventListener('htmx:afterRequest', (e) => {
-            this.handleHTMXResponse(e);
-        });
+            // Escuchar respuestas HTMX exitosas
+            document.body.addEventListener('htmx:afterRequest', (e) => {
+                this.handleHTMXResponse(e);
+            });
+            
+            this.listenersInitialized = true;
+            console.log('✅ FileListUpdater listeners inicializados');
+        }
     }
 
     handleHTMXResponse(event) {
@@ -176,14 +183,21 @@ class FileListUpdater {
     }
 }
 
-// Instanciar el actualizador cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', () => {
-    window.fileListUpdater = new FileListUpdater();
-});
+// Patrón singleton para evitar múltiples instancias
+if (!window.fileListUpdater) {
+    // Instanciar el actualizador cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!window.fileListUpdater) {
+            window.fileListUpdater = new FileListUpdater();
+            console.log('✅ FileListUpdater inicializado (singleton)');
+        }
+    });
 
-// También inicializar en contenido dinámico
-document.addEventListener('htmx:afterSwap', () => {
-    if (!window.fileListUpdater) {
-        window.fileListUpdater = new FileListUpdater();
-    }
-});
+    // También inicializar en contenido dinámico si no existe aún
+    document.addEventListener('htmx:afterSwap', () => {
+        if (!window.fileListUpdater) {
+            window.fileListUpdater = new FileListUpdater();
+            console.log('✅ FileListUpdater inicializado en HTMX swap (singleton)');
+        }
+    });
+}
