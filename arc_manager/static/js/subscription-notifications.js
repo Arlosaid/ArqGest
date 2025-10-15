@@ -173,6 +173,11 @@ class SubscriptionNotifications {
      * Verifica y muestra advertencia de expiración próxima
      */
     checkExpirationWarning(info) {
+        // No mostrar si ya hay una solicitud de renovación pendiente
+        if (info.has_pending_renewal) {
+            return;
+        }
+        
         // Calcular ventana con mayor precisión usando end_date cuando days_remaining == 0
         let days = info.days_remaining || 0;
         let remainingMs = null;
@@ -290,8 +295,24 @@ class SubscriptionNotifications {
      * Verifica si está en período de gracia
      */
     checkGracePeriod(info) {
-        if (info.is_in_grace) {
-            // Las notificaciones de período de gracia siempre se muestran (críticas)
+        // Si hay una solicitud de renovación pendiente, mostrar mensaje de "en proceso"
+        if (info.is_in_grace && info.has_pending_renewal) {
+            // Mostrar notificación informativa de que está en proceso
+            if (!this.shouldShowNotification('renewal_in_process', 'grace')) {
+                return;
+            }
+            
+            window.notifications.info('Tu solicitud de renovación está en proceso. Completa el pago para activar tu plan.', {
+                title: 'Renovación en Proceso',
+                duration: 8000,
+                onClick: () => {
+                    window.location.href = '/plans/suscripcion/';
+                }
+            });
+            
+            this.markNotificationShown('renewal_in_process', 'grace');
+        } else if (info.is_in_grace) {
+            // Sin solicitud pendiente, mostrar mensaje urgente
             window.notifications.error('Tu suscripción ha expirado pero tienes acceso limitado. Renueva inmediatamente para evitar la suspensión.', {
                 title: 'Suscripción Expirada',
                 persistent: true,

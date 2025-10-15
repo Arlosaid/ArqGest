@@ -120,6 +120,11 @@ MIDDLEWARE = [
     'core.logging_middleware.PerformanceLoggingMiddleware',
     'apps.accounts.middleware.ErrorHandlingMiddleware',
     'core.mixins.PerformanceMiddleware',
+    
+    # OPTIMIZACIÓN ULTRA: Middleware para uploads masivos
+    'core.middleware.upload_optimization.UploadOptimizationMiddleware',
+    'core.middleware.upload_optimization.R2ConnectionPoolMiddleware',
+    'core.middleware.upload_optimization.UploadProgressMiddleware',
 ]
 
 # Insertar Debug Toolbar Middleware si DEBUG está activado
@@ -341,9 +346,9 @@ else:
 # Archivos más grandes se escriben a disco temporalmente
 DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get('DATA_UPLOAD_MAX_MEMORY_SIZE', '26214400'))  # 25MB en bytes
 
-# Tamaño máximo total de la petición HTTP (650MB para múltiples archivos)
-# Permite múltiples archivos hasta el límite total
-DATA_UPLOAD_MAX_NUMBER_SIZE = int(os.environ.get('DATA_UPLOAD_MAX_NUMBER_SIZE', '681574400'))  # 650MB en bytes
+# CRÍTICO: Tamaño máximo total de la petición HTTP actualizado para arquitectos
+# Permite archivos hasta 1.2GB + overhead HTTP
+DATA_UPLOAD_MAX_NUMBER_SIZE = int(os.environ.get('DATA_UPLOAD_MAX_NUMBER_SIZE', '1342177280'))  # 1.25GB en bytes
 
 # Directorio temporal para archivos grandes durante upload
 FILE_UPLOAD_TEMP_DIR = os.environ.get('FILE_UPLOAD_TEMP_DIR', os.path.join(BASE_DIR, 'temp_uploads'))
@@ -464,9 +469,42 @@ if os.environ.get('ENABLE_STORAGES', 'false').lower() == 'true':
     AWS_S3_SIGNATURE_VERSION = 's3v4'
     AWS_DEFAULT_ACL = None
     
-    # Configuración específica para Cloudflare R2
+    # Configuración específica para Cloudflare R2 optimizada para archivos grandes
     AWS_S3_CUSTOM_DOMAIN = None  # Usar dominio directo de R2
     AWS_S3_FILE_OVERWRITE = False  # No sobrescribir archivos con mismo nombre
+    
+    # CONFIGURACIÓN ULTRA-OPTIMIZADA para archivos grandes en R2
+    AWS_S3_MAX_MEMORY_SIZE = 26214400  # 25MB - archivos más grandes usan multipart
+    
+    # Configuración de transferencia optimizada para arquitectos
+    AWS_S3_TRANSFER_CONFIG = {
+        'multipart_threshold': 26214400,  # 25MB - iniciar multipart upload
+        'max_concurrency': 15,  # 15 conexiones concurrentes (aumentado)
+        'multipart_chunksize': 52428800,  # 50MB por chunk (chunks más grandes = menos overhead)
+        'max_bandwidth': None,  # Sin límite de ancho de banda
+        'use_threads': True,  # Threading para máximo paralelismo
+        'max_io_queue': 1000,  # Cola I/O grande para archivos masivos
+    }
+    
+    # Timeouts y retries ultra-robustos
+    AWS_S3_REQUEST_CONFIG = {
+        'retries': {
+            'max_attempts': 5,  # 5 intentos (aumentado)
+            'mode': 'adaptive',  # Retry inteligente
+            'total_max_attempts': 10  # Máximo absoluto
+        },
+        'connect_timeout': 120,  # 2 minutos para conectar (redes lentas)
+        'read_timeout': 1800,    # 30 minutos para archivos masivos (2x aumentado)
+        'max_pool_connections': 50,  # Pool de conexiones grande
+    }
+    
+    # Configuración de streaming para archivos masivos
+    AWS_S3_STREAM_CONFIG = {
+        'enable_checksum': True,  # Verificación de integridad
+        'checksum_algorithm': 'SHA256',  # Algoritmo robusto
+        'enable_payload_signing': False,  # Desactivar para performance
+    }
+    
     AWS_S3_OBJECT_PARAMETERS = {
         'CacheControl': 'max-age=86400',  # Cache por 1 día
     }
@@ -713,6 +751,14 @@ SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000' if DEBUG else 'htt
 # Información de contacto de soporte
 SUPPORT_PHONE = os.environ.get('SUPPORT_PHONE', '55 1234 5678')
 SUPPORT_EMAIL = os.environ.get('SUPPORT_EMAIL', 'soporte@tuempresa.com')
+
+# ========================================
+# CONFIGURACIONES DE PLANES Y SUSCRIPCIONES
+# ========================================
+
+# Ventana de días antes del vencimiento en la que se permite renovar anticipadamente
+# La nueva vigencia comienza cuando termina la actual, sin perder días pagados
+RENEWAL_WINDOW_DAYS = int(os.environ.get('RENEWAL_WINDOW_DAYS', '3'))
 
 # ========================================
 # CONFIGURACIONES ESPECÍFICAS PARA PRODUCCIÓN

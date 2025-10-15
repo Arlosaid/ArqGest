@@ -1,6 +1,10 @@
 <!-- templates/projects/partials/_files_tab.html -->
 {% load i18n %}
 
+<!-- Meta tags para configuración de uploads -->
+<meta name="max-file-size" content="600">
+<meta name="allowed-extensions" content="PDF,JPG,JPEG,PNG,GIF,DWG,DXF,RVT,SKP,ZIP,RAR,TIFF,DOC,DOCX,XLS,XLSX,PPT,PPTX,TXT,MD">
+
 <div class="card shadow mb-4">
     <div class="card-header py-3">
         <h6 class="m-0 font-weight-bold text-primary">{% trans "Documentos" %}</h6>
@@ -23,6 +27,10 @@
                 <div id="collapse-{{ phase.id }}" class="accordion-collapse collapse{% if open_phase|default:'' == phase.id|stringformat:'s' %} show{% endif %}" aria-labelledby="heading-{{ phase.id }}" data-bs-parent="#filesAccordion">
                     <div class="accordion-body">
                         <form class="mb-3 file-upload-form" 
+                              data-upload-type="large-file"
+                              data-project-id="{{ project.pk }}"
+                              data-phase-id="{{ phase.id }}"
+                              action="{% url 'files:upload_file' project_id=project.pk phase_id=phase.pk %}"
                               hx-post="{% url 'files:upload_file' project_id=project.pk phase_id=phase.pk %}"
                               hx-target="#upload-response-{{ phase.id }}"
                               hx-swap="innerHTML"
@@ -294,29 +302,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Trigger personalizado para recargar archivos después de subir
+// El sistema de actualización ahora se maneja en file-list-updater.js
+// Mantener solo compatibilidad básica para casos edge
 document.body.addEventListener('htmx:afterRequest', function(evt) {
     if (evt.detail.xhr.status === 200 && evt.detail.requestConfig.path.includes('/files/upload/')) {
-        // Disparar evento personalizado para recargar archivos
-        document.body.dispatchEvent(new CustomEvent('fileUploaded'));
-        
-        // Limpiar el formulario después de subir exitosamente
-        const form = evt.target.closest('form');
-        if (form && form.classList.contains('file-upload-form')) {
-            // Resetear estado de selección de archivos
-            const fileInput = form.querySelector('.file-input');
-            if (fileInput) {
-                const phaseId = fileInput.id.split('-').pop();
-                const selectedFilesDiv = document.getElementById('selected-files-' + phaseId);
-                const fileLabel = form.querySelector('.file-label-text');
-                
-                // Solo resetear si no está siendo manejado por UploadProgressManager
-                if (!window.uploadProgressManager || !window.uploadProgressManager.activeUploads.has(phaseId)) {
-                    selectedFilesDiv.style.display = 'none';
-                    fileLabel.textContent = 'Seleccionar archivos';
-                    form.reset();
-                }
-            }
+        // El FileListUpdater maneja esto automáticamente
+        // Solo disparar evento si no está presente
+        if (!window.fileListUpdater) {
+            document.body.dispatchEvent(new CustomEvent('fileUploaded'));
         }
     }
 });

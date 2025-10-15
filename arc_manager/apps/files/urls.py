@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import views, api
 
 app_name = 'files'
 
@@ -11,4 +11,11 @@ urlpatterns = [
     # Presigned URL endpoints (opcional para R2/S3)
     path('projects/<int:project_id>/phases/<int:phase_id>/files/presign-upload/', views.get_presigned_upload, name='presign_upload'),
     path('files/confirm-upload/', views.confirm_upload, name='confirm_upload'),
+    
+    # OPTIMIZACIÓN ULTRA: APIs para uploads masivos
+    path('api/upload-progress/<str:upload_id>/', api.upload_progress, name='upload_progress'),
+    path('api/upload-progress/<str:upload_id>/update/', api.update_upload_progress, name='update_upload_progress'),
+    path('api/r2-health/', api.r2_health_check, name='r2_health_check'),
+    path('api/upload-stats/', api.upload_stats, name='upload_stats'),
+    path('api/optimize-settings/', api.optimize_upload_settings, name='optimize_upload_settings'),
 ]

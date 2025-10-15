@@ -39,6 +39,7 @@
     <link href="{% static 'css/sidebar.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
     <link href="{% static 'css/notifications.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
     <link href="{% static 'css/task_detail_modal.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
+    <link href="{% static 'css/file-updates.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
     
     <!-- Optimizaciones específicas para Safari móvil iOS -->
     {% comment %}{% mobile_css 'css/mobile_ios_fixes.css' 'screen and (max-width: 991.98px)' %}{% endcomment %}
@@ -49,7 +50,8 @@
     <!-- Estilos adicionales específicos por página -->
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body data-task-detail-url-template="{% url 'projects:task-detail' 0 %}"
+      data-task-edit-url-template="{% url 'projects:task-edit' 0 %}">
     <!-- Incluir Sidebar -->
     {% include 'includes/sidebar.html' %}
     
@@ -62,13 +64,70 @@
         <main class="content-area">
             {% if request.subscription_info %}
                 {% with info=request.subscription_info %}
-                {% if info.is_expired %}
-                    <div class="alert alert-danger" role="alert" style="margin:12px 12px 0 12px;">
-                        Tu suscripción está expirada. <a href="{% url 'plans:renew_subscription' %}" class="alert-link">Renueva ahora</a> para recuperar el acceso completo.
+                {% if info.has_pending_renewal %}
+                    {# Mostrar banner de solicitud pendiente (ya sea expirada o activa) #}
+                    <div class="alert alert-info alert-dismissible fade subscription-alert" 
+                         role="alert" 
+                         style="margin:12px 12px 0 12px; padding:16px; display:none;"
+                         data-alert-key="subscription-pending-renewal">
+                        <div style="display:flex; align-items:start; gap:12px;">
+                            <div style="font-size:24px; color:#0d6efd;">
+                                <i class="fas fa-hourglass-half"></i>
+                            </div>
+                            <div style="flex:1;">
+                                <strong style="font-size:1.1rem;"><i class="fas fa-check-circle"></i> Solicitud de renovación enviada</strong>
+                                <div style="margin-top:8px; line-height:1.6;">
+                                    {% if info.is_expired %}
+                                        <div style="background:#fff3cd; padding:10px; border-radius:6px; margin-top:8px; border-left:3px solid #ffc107;">
+                                            <div style="color:#856404;">
+                                                <strong>⚠️ Tu suscripción expiró el {{ info.end_date|date:"d/m/Y" }}</strong>
+                                            </div>
+                                            {% if info.new_subscription_start %}
+                                            <div style="margin-top:8px; color:#28a745;">
+                                                <strong>✅ Nueva vigencia (cuando se apruebe):</strong> {{ info.new_subscription_start|date:"d/m/Y" }} - {{ info.new_subscription_end|date:"d/m/Y" }}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <div style="background:#e7f3ff; padding:10px; border-radius:6px; margin-top:8px;">
+                                            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                                                <span><strong>📅 Tu plan actual vence:</strong></span>
+                                                <span><strong>{{ info.end_date|date:"d/m/Y" }}</strong> ({{ info.days_remaining }} día{{ info.days_remaining|pluralize:"s" }} restante{{ info.days_remaining|pluralize:"s" }})</span>
+                                            </div>
+                                            {% if info.new_subscription_start %}
+                                            <div style="display:flex; justify-content:space-between; color:#28a745;">
+                                                <span><strong>✅ Nueva vigencia (si se aprueba):</strong></span>
+                                                <span><strong>{{ info.new_subscription_start|date:"d/m/Y" }} - {{ info.new_subscription_end|date:"d/m/Y" }}</strong></span>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                    <p style="margin:10px 0 0 0;">
+                                        <strong>Siguiente paso:</strong> Realiza el pago y contacta al equipo para que aprueben tu renovación.
+                                        {% if not info.is_expired %}No perderás ningún día de tu plan actual.{% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
                     </div>
-                {% elif info.expires_soon or info.days_remaining <= 7 and info.days_remaining > 0 %}
-                    <div class="alert alert-warning" role="alert" style="margin:12px 12px 0 12px;">
-                        Tu suscripción vence en {{ info.days_remaining }} día{{ info.days_remaining|pluralize:"s" }}. <a href="{% url 'plans:renew_subscription' %}" class="alert-link">Renueva aquí</a>.
+                {% elif info.is_expired and not info.has_pending_renewal %}
+                    <div class="alert alert-danger alert-dismissible fade subscription-alert" 
+                         role="alert" 
+                         style="margin:12px 12px 0 12px; display:none;"
+                         data-alert-key="subscription-expired-{{ info.days_remaining }}">
+                        <strong><i class="fas fa-exclamation-triangle"></i> Suscripción expirada</strong> 
+                        <a href="{% url 'plans:renew_subscription' %}" class="alert-link">Renueva ahora</a> para recuperar el acceso completo.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                    </div>
+                {% elif info.days_remaining <= 3 and info.days_remaining > 0 and not info.is_trial and not info.has_pending_renewal %}
+                    <div class="alert alert-warning alert-dismissible fade subscription-alert" 
+                         role="alert" 
+                         style="margin:12px 12px 0 12px; display:none;"
+                         data-alert-key="subscription-expires-{{ info.days_remaining }}">
+                        <strong><i class="fas fa-clock"></i> Tu suscripción vence en {{ info.days_remaining }} día{{ info.days_remaining|pluralize:"s" }}</strong>. 
+                        <a href="{% url 'plans:renew_subscription' %}" class="alert-link">Renueva aquí</a> para evitar interrupciones.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
                     </div>
                 {% endif %}
                 {% endwith %}
@@ -109,6 +168,12 @@
     
     <!-- Mobile Upload Optimizer -->
     <script src="{% static 'js/mobile_upload_optimizer.js' %}?v={{ STATIC_VERSION }}"></script>
+    
+    <!-- Large File Upload System (Cloudflare R2 Direct Upload) -->
+    <script src="{% static 'js/large-file-upload.js' %}?v={{ STATIC_VERSION }}"></script>
+    
+    <!-- File List Updater (maneja actualización inmediata de listas) -->
+    <script src="{% static 'js/file-list-updater.js' %}?v={{ STATIC_VERSION }}"></script>
     
     <!-- Scripts base estables -->
     <script src="{% static 'js/base.js' %}?v={{ STATIC_VERSION }}"></script>
@@ -290,6 +355,103 @@
         sidebar.addEventListener('touchmove', function(e) {
             e.stopPropagation();
         }, { passive: true });
+    });
+    
+    // ============================================
+    // GESTIÓN INTELIGENTE DE BANNERS DE SUSCRIPCIÓN
+    // ============================================
+    (function() {
+        // Ejecutar inmediatamente para evitar parpadeos
+        const subscriptionAlerts = document.querySelectorAll('.subscription-alert');
+        
+        subscriptionAlerts.forEach(alert => {
+            const alertKey = alert.getAttribute('data-alert-key');
+            
+            if (!alertKey) return;
+            
+            // Verificar si el usuario ya cerró este banner específico
+            const dismissed = localStorage.getItem(`alert-dismissed-${alertKey}`);
+            
+            if (dismissed === 'true') {
+                // Mantener oculto - ya fue cerrado por el usuario
+                alert.remove();
+            } else {
+                // Mostrar el banner con animación suave
+                alert.style.display = 'block';
+                // Agregar clase 'show' después de un pequeño delay para animación
+                setTimeout(() => {
+                    alert.classList.add('show');
+                }, 10);
+            }
+        });
+    })();
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const subscriptionAlerts = document.querySelectorAll('.subscription-alert');
+        
+        subscriptionAlerts.forEach(alert => {
+            const alertKey = alert.getAttribute('data-alert-key');
+            
+            if (!alertKey) return;
+            
+            // Escuchar cuando el usuario cierra el banner
+            const closeButton = alert.querySelector('.btn-close');
+            if (closeButton) {
+                closeButton.addEventListener('click', function(e) {
+                    // Guardar en localStorage que el usuario cerró este banner
+                    localStorage.setItem(`alert-dismissed-${alertKey}`, 'true');
+                    console.log('Banner cerrado y guardado:', alertKey);
+                });
+            }
+            
+            // También manejar el evento cuando Bootstrap cierra la alerta
+            alert.addEventListener('closed.bs.alert', function() {
+                const alertKey = this.getAttribute('data-alert-key');
+                if (alertKey && !localStorage.getItem(`alert-dismissed-${alertKey}`)) {
+                    localStorage.setItem(`alert-dismissed-${alertKey}`, 'true');
+                    console.log('Banner cerrado (Bootstrap event):', alertKey);
+                }
+            });
+        });
+        
+        // Limpiar registros realmente antiguos de localStorage
+        function cleanOldAlertDismissals() {
+            const prefix = 'alert-dismissed-subscription-';
+            const validKeys = [
+                'subscription-expires-3',
+                'subscription-expires-2', 
+                'subscription-expires-1',
+                'subscription-expired-0',
+                'subscription-pending-renewal',
+                'subscription-pending-upgrade'
+            ];
+            
+            const keysToRemove = [];
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('alert-dismissed-')) {
+                    // Extraer la parte después de 'alert-dismissed-'
+                    const alertKey = key.replace('alert-dismissed-', '');
+                    
+                    // Si NO está en la lista de claves válidas, es obsoleto
+                    if (!validKeys.includes(alertKey)) {
+                        keysToRemove.push(key);
+                    }
+                }
+            }
+            
+            // Eliminar solo los registros obsoletos
+            if (keysToRemove.length > 0) {
+                keysToRemove.forEach(key => {
+                    localStorage.removeItem(key);
+                    console.log('Limpiado registro obsoleto:', key);
+                });
+            }
+        }
+        
+        // Limpiar solo al cargar la página (no después de cerrar banners)
+        cleanOldAlertDismissals();
     });
     </script>
 </body>

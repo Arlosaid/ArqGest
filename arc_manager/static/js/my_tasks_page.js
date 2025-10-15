@@ -189,40 +189,24 @@ function updateTaskUIInstant(taskId, newStatus) {
 
 // Función para actualizar los botones según el nuevo estado
 function updateTaskActions(taskCard, status) {
-    const actionsContainer = taskCard.querySelector('.task-card-actions');
+    const actionsContainer = taskCard.querySelector('.status-actions');
     if (!actionsContainer) return;
     
     const taskId = taskCard.dataset.taskId;
-    const kanbanUrl = taskCard.querySelector('.action-kanban')?.href || '#';
-    const taskTitle = taskCard.querySelector('.task-title-compact')?.textContent || 'Tarea';
     
-    // Nueva estructura con botones principales siempre visibles
-    let actionsHTML = `
-        <!-- Botones principales siempre visibles -->
-        <div class="primary-actions">
-            <button type="button" class="action-btn-primary action-view"
-                    data-modal-url="/projects/tasks/${taskId}/"
-                    data-modal-title="Detalles de la tarea"
-                    title="Ver detalles">
-                <i class="fas fa-eye"></i>
-                <span>Ver detalles</span>
-            </button>
-            
-            <button type="button" class="action-btn-primary action-delete"
-                    onclick="confirmDeleteTask(${taskId}, '${taskTitle.replace(/'/g, "\\'")}')"
-                    title="Eliminar tarea">
-                <i class="fas fa-trash-alt"></i>
-                <span>Eliminar</span>
-            </button>
-        </div>
-        
-        <!-- Botones de estado -->
-        <div class="status-actions">
-    `;
+    // Guardar el botón de kanban antes de reemplazar
+    const kanbanBtn = actionsContainer.querySelector('.action-kanban');
+    const kanbanUrl = kanbanBtn?.href || '#';
     
-    // Botones según estado
+    // Limpiar solo los botones de estado (no todos los botones)
+    const stateButtons = actionsContainer.querySelectorAll('.action-start, .action-pause, .action-complete, .action-resume, .action-reopen');
+    stateButtons.forEach(btn => btn.remove());
+    
+    // Crear nuevos botones según estado
+    let newButtonsHTML = '';
+    
     if (status === 'TODO') {
-        actionsHTML += `
+        newButtonsHTML = `
             <button type="button" class="action-btn action-start" 
                     onclick="updateTaskStatus(${taskId}, 'IN_PROGRESS')"
                     title="Iniciar tarea">
@@ -230,7 +214,7 @@ function updateTaskActions(taskCard, status) {
             </button>
         `;
     } else if (status === 'IN_PROGRESS') {
-        actionsHTML += `
+        newButtonsHTML = `
             <button type="button" class="action-btn action-pause" 
                     onclick="updateTaskStatus(${taskId}, 'PAUSED')"
                     title="Pausar tarea">
@@ -243,26 +227,37 @@ function updateTaskActions(taskCard, status) {
             </button>
         `;
     } else if (status === 'PAUSED') {
-        actionsHTML += `
+        newButtonsHTML = `
             <button type="button" class="action-btn action-resume" 
                     onclick="updateTaskStatus(${taskId}, 'IN_PROGRESS')"
                     title="Reanudar tarea">
                 <i class="fas fa-play"></i>
             </button>
         `;
+    } else if (status === 'DONE') {
+        newButtonsHTML = `
+            <button type="button" class="action-btn action-reopen" 
+                    onclick="updateTaskStatus(${taskId}, 'IN_PROGRESS')"
+                    title="Reabrir tarea">
+                <i class="fas fa-undo"></i>
+            </button>
+        `;
     }
     
-    // Siempre agregar botón de kanban
-    actionsHTML += `
+    // Insertar los nuevos botones antes del botón de kanban
+    if (kanbanBtn) {
+        kanbanBtn.insertAdjacentHTML('beforebegin', newButtonsHTML);
+    } else {
+        // Si no hay botón de kanban, agregar los botones de estado y recrear el botón de kanban
+        actionsContainer.insertAdjacentHTML('beforeend', newButtonsHTML);
+        actionsContainer.insertAdjacentHTML('beforeend', `
             <a href="${kanbanUrl}" 
                class="action-btn action-kanban"
                title="Ir al Kanban">
                 <i class="fas fa-columns"></i>
             </a>
-        </div>
-    `;
-    
-    actionsContainer.innerHTML = actionsHTML;
+        `);
+    }
 }
 
 // Función para obtener cookie CSRF

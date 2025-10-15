@@ -229,11 +229,83 @@ body #taskUniversalModal .modal-header[style*="background"] {
     padding: 1.5rem !important;
     max-height: 40vh !important;
     overflow-y: auto !important;
+    overflow-x: hidden !important;
+    width: 100% !important;
+    /* Scroll suave */
+    scroll-behavior: smooth !important;
+    /* Scroll personalizado */
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(59, 130, 246, 0.2) transparent !important;
+}
+
+/* Scrollbar del body principal */
+.task-detail-simple .task-body-simple::-webkit-scrollbar {
+    width: 8px !important;
+}
+
+.task-detail-simple .task-body-simple::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+.task-detail-simple .task-body-simple::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.2) !important;
+    border-radius: 10px !important;
+    transition: background 0.3s ease !important;
+}
+
+.task-detail-simple .task-body-simple::-webkit-scrollbar-thumb:hover {
+    background: rgba(59, 130, 246, 0.4) !important;
 }
 
 /* Descripción principal */
 .task-detail-simple .task-description-simple {
     margin-bottom: 1.25rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+}
+
+/* Indicador de "scroll para ver más" */
+.task-detail-simple .task-description-simple::after {
+    content: '\f078' !important; /* Font Awesome chevron-down */
+    font-family: 'Font Awesome 6 Free' !important;
+    font-weight: 900 !important;
+    position: absolute !important;
+    bottom: -8px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    background: var(--project-color, #3b82f6) !important;
+    color: white !important;
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 0.625rem !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.3s ease, transform 0.3s ease !important;
+    z-index: 10 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    animation: bounce 2s infinite !important;
+}
+
+.task-detail-simple .task-description-simple.has-more-content::after {
+    opacity: 1 !important;
+}
+
+/* Animación de rebote sutil */
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateX(-50%) translateY(0);
+    }
+    40% {
+        transform: translateX(-50%) translateY(-4px);
+    }
+    60% {
+        transform: translateX(-50%) translateY(-2px);
+    }
 }
 
 .task-detail-simple .description-title {
@@ -253,7 +325,91 @@ body #taskUniversalModal .modal-header[style*="background"] {
     background: #f8f9fa !important;
     padding: 1rem !important;
     border-radius: 8px !important;
-    border-left: 3px solid #3b82f6 !important;
+    border-left: 3px solid var(--project-color, #3b82f6) !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+    max-width: 100% !important;
+    max-height: 200px !important;
+    overflow-y: auto !important;
+    position: relative !important;
+    /* Scroll personalizado */
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(59, 130, 246, 0.3) transparent !important;
+}
+
+/* Scrollbar personalizado para Webkit (Chrome, Safari, Edge) */
+.task-detail-simple .description-text::-webkit-scrollbar {
+    width: 6px !important;
+}
+
+.task-detail-simple .description-text::-webkit-scrollbar-track {
+    background: transparent !important;
+    border-radius: 10px !important;
+}
+
+.task-detail-simple .description-text::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.3) !important;
+    border-radius: 10px !important;
+    transition: background 0.3s ease !important;
+}
+
+.task-detail-simple .description-text::-webkit-scrollbar-thumb:hover {
+    background: rgba(59, 130, 246, 0.6) !important;
+}
+
+/* Indicador de scroll - sombra superior cuando hay scroll */
+.task-detail-simple .task-description-simple {
+    position: relative !important;
+}
+
+.task-detail-simple .description-text::before {
+    content: '' !important;
+    position: sticky !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 20px !important;
+    background: linear-gradient(to bottom, #f8f9fa 0%, transparent 100%) !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+    transition: opacity 0.3s ease !important;
+    z-index: 1 !important;
+}
+
+.task-detail-simple .description-text.has-scroll::before {
+    opacity: 1 !important;
+}
+
+/* Indicador de más contenido abajo */
+.task-detail-simple .description-text::after {
+    content: '' !important;
+    position: sticky !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 20px !important;
+    background: linear-gradient(to top, #f8f9fa 0%, transparent 100%) !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+    transition: opacity 0.3s ease !important;
+    z-index: 1 !important;
+}
+
+.task-detail-simple .description-text.has-scroll-bottom::after {
+    opacity: 1 !important;
+}
+
+/* Párrafos dentro de la descripción */
+.task-detail-simple .description-text p {
+    margin: 0 !important;
+    padding: 0 !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+}
+
+.task-detail-simple .description-text p:not(:last-child) {
+    margin-bottom: 0.5rem !important;
 }
 
 /* Información básica en línea */
@@ -496,6 +652,12 @@ body #taskUniversalModal .modal-header[style*="background"] {
     .task-detail-simple .description-text {
         padding: 0.75rem !important;
         font-size: 0.875rem !important;
+        max-height: 150px !important;
+    }
+    
+    /* Ajustar scrollbar en móvil */
+    .task-detail-simple .description-text::-webkit-scrollbar {
+        width: 4px !important;
     }
     
     #taskUniversalModal .form-control,

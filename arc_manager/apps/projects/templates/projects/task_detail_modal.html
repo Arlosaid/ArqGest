@@ -16,12 +16,12 @@
         {% if task.description %}
         <div class="task-description-simple">
             <h6 class="description-title">{% trans "¿Qué se debe hacer?" %}</h6>
-            <p class="description-text">{{ task.description|linebreaks }}</p>
+            <div class="description-text">{{ task.description|linebreaks }}</div>
         </div>
         {% else %}
         <div class="task-description-simple">
             <h6 class="description-title">{% trans "¿Qué se debe hacer?" %}</h6>
-            <p class="description-text text-muted">{% trans "No hay descripción disponible" %}</p>
+            <div class="description-text text-muted">{% trans "No hay descripción disponible" %}</div>
         </div>
         {% endif %}
 
@@ -61,4 +61,64 @@
     </div>
 </div>
 
+<script>
+// Función para detectar y actualizar indicadores de scroll
+function updateScrollIndicators() {
+    const descriptionBox = document.querySelector('.task-detail-simple .description-text');
+    const descriptionContainer = document.querySelector('.task-detail-simple .task-description-simple');
+    
+    if (!descriptionBox || !descriptionContainer) return;
+    
+    const hasScroll = descriptionBox.scrollHeight > descriptionBox.clientHeight;
+    const isScrolledFromTop = descriptionBox.scrollTop > 10;
+    const isScrolledToBottom = (descriptionBox.scrollHeight - descriptionBox.scrollTop - descriptionBox.clientHeight) < 10;
+    
+    // Agregar clase si tiene scroll y no está en el tope
+    if (hasScroll && isScrolledFromTop) {
+        descriptionBox.classList.add('has-scroll');
+    } else {
+        descriptionBox.classList.remove('has-scroll');
+    }
+    
+    // Agregar clase si hay más contenido abajo
+    if (hasScroll && !isScrolledToBottom) {
+        descriptionBox.classList.add('has-scroll-bottom');
+        descriptionContainer.classList.add('has-more-content');
+    } else {
+        descriptionBox.classList.remove('has-scroll-bottom');
+        descriptionContainer.classList.remove('has-more-content');
+    }
+}
 
+// Ejecutar al cargar
+document.addEventListener('DOMContentLoaded', updateScrollIndicators);
+
+// Ejecutar cuando se carga el contenido del modal
+setTimeout(updateScrollIndicators, 100);
+setTimeout(updateScrollIndicators, 300); // Segundo intento por si acaso
+
+// Actualizar mientras se hace scroll
+const descBox = document.querySelector('.task-detail-simple .description-text');
+if (descBox) {
+    descBox.addEventListener('scroll', updateScrollIndicators);
+    
+    // Observar cambios de tamaño
+    if (typeof ResizeObserver !== 'undefined') {
+        const resizeObserver = new ResizeObserver(updateScrollIndicators);
+        resizeObserver.observe(descBox);
+    }
+    
+    // Click en el indicador hace scroll suave hacia abajo
+    const descContainer = document.querySelector('.task-detail-simple .task-description-simple');
+    if (descContainer) {
+        descContainer.addEventListener('click', function(e) {
+            if (this.classList.contains('has-more-content')) {
+                descBox.scrollBy({
+                    top: 100,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    }
+}
+</script>
