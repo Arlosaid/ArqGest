@@ -41,20 +41,20 @@ def generate_random_password(length=12):
 
 def send_user_credentials_email(user_email, password, username, subject=None, user_obj=None):
     """
-    🚀 Función principal para enviar credenciales de usuario (TEMPORALMENTE DESHABILITADO)
+    Función principal para enviar credenciales de usuario (TEMPORALMENTE DESHABILITADO)
     """
     # TODO: Reactivar cuando tengas dominio propio
     # Validaciones básicas
     if not user_email or '@' not in user_email:
-        logger.error(f"❌ Email inválido: {user_email}")
+        logger.error(f"Invalid email: {user_email}")
         return False
         
     if not password or not username:
-        logger.error(f"❌ Datos faltantes para {user_email}")
+        logger.error(f"Missing data for {user_email}")
         return False
     
     # TEMPORALMENTE DESHABILITADO - No enviar emails hasta tener dominio
-    logger.info(f"📧 Email deshabilitado - usar 'Generar y mostrar contraseñas' en admin")
+    logger.info("Email disabled - use 'Generate and show passwords' in admin")
     
     # Simular éxito para no romper el flujo
     return True
@@ -76,13 +76,13 @@ def send_user_credentials_email(user_email, password, username, subject=None, us
 
 def send_welcome_email(user_email, username, subject=None):
     """
-    🎉 Función para enviar email de bienvenida (SIMPLE)
+    Función para enviar email de bienvenida (SIMPLE)
     """
-    logger.info(f"🎉 [EMAIL] Enviando bienvenida para {user_email}")
+    logger.info(f"[EMAIL] Sending welcome email to {user_email}")
     
     # Validaciones
     if not user_email or '@' not in user_email:
-        logger.error(f"❌ [EMAIL] Email inválido: {user_email}")
+        logger.error(f"[EMAIL] Invalid email: {user_email}")
         return False
     
     from core.email_utils import send_resend_email
@@ -113,36 +113,36 @@ def send_welcome_email(user_email, username, subject=None):
     try:
         result = send_resend_email(user_email, subject, html_content)
         if result:
-            logger.info(f"✅ [EMAIL] Bienvenida enviada exitosamente a {user_email}")
+            logger.info(f"[EMAIL] Welcome email sent to {user_email}")
             return True
         else:
-            logger.error(f"❌ [EMAIL] Error enviando bienvenida a {user_email}")
+            logger.error(f"[EMAIL] Error sending welcome email to {user_email}")
             return False
     except Exception as e:
-        logger.error(f"❌ [EMAIL] Error enviando bienvenida a {user_email}: {e}")
+        logger.error(f"[EMAIL] Error sending welcome email to {user_email}: {e}")
         return False
 
 
 def test_email_configuration():
     """
-    🧪 Test simple de configuración de email
+    Test simple de configuración de email
     """
-    logger.info("🧪 [EMAIL] Iniciando test de configuración...")
+    logger.info("[EMAIL] Testing email configuration...")
     
     # Verificar que tenemos API key de Resend
     api_key = getattr(settings, 'RESEND_API_KEY', None)
     if not api_key:
-        logger.error("❌ [EMAIL] RESEND_API_KEY no configurado")
+        logger.error("[EMAIL] RESEND_API_KEY not configured")
         return False
     
-    logger.info("✅ [EMAIL] RESEND_API_KEY configurado")
-    logger.info("✅ [EMAIL] Configuración básica OK")
+    logger.info("[EMAIL] RESEND_API_KEY configured")
+    logger.info("[EMAIL] Basic configuration OK")
     return True
 
 
 def send_new_user_email(user, password, request=None, background=True):
     """
-    📧 Envía email de credenciales a nuevo usuario (SIMPLE)
+    Envía email de credenciales a nuevo usuario (SIMPLE)
     """
     # Usar el nombre completo o email como username para el email
     username_for_email = user.full_name or user.email

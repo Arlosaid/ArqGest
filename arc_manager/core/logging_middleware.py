@@ -77,14 +77,7 @@ class Enhanced500LoggingMiddleware(MiddlewareMixin):
         
         # En desarrollo, también imprimir a consola para debugging
         if settings.DEBUG:
-            print(f"\n🚨 ERROR 500 CAPTURED:")
-            print(f"   Path: {request.path}")
-            print(f"   User: {user_email}")
-            print(f"   Error: {type(exception).__name__}: {str(exception)}")
-            print(f"   Code: {error_code}")
-            print(f"   IP: {client_ip}")
-            print(f"   Traceback: {traceback.format_exc()}")
-            print("="*80)
+            logger.debug(f"HTTP 500 ERROR: {request.path} - {type(exception).__name__}: {str(exception)} - User: {user_email} - Code: {error_code}")
         
         # No retornar nada para que otros middlewares puedan manejar la respuesta
         return None

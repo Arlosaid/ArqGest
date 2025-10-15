@@ -41,12 +41,6 @@ class UploadOptimizationMiddleware(MiddlewareMixin):
         request.upload_size_mb = content_length / (1024 * 1024)
         request.upload_start_time = time.time()
         
-        # Log inicio de upload grande
-        logger.info(
-            f"🚀 Large upload detected: {request.upload_size_mb:.1f}MB "
-            f"from {request.META.get('REMOTE_ADDR', 'unknown')}"
-        )
-        
         # Optimizaciones de memoria para uploads grandes
         if hasattr(settings, 'FILE_UPLOAD_HANDLERS'):
             # Forzar uso de archivo temporal para uploads grandes
@@ -60,20 +54,14 @@ class UploadOptimizationMiddleware(MiddlewareMixin):
         request.META['HTTP_X_UPLOAD_SIZE'] = str(content_length)
     
     def process_response(self, request, response):
-        """Log resultado de uploads grandes"""
+        """Log solo errores en uploads grandes"""
         
         if hasattr(request, 'is_large_upload') and request.is_large_upload:
-            duration = time.time() - request.upload_start_time
-            
-            # Log resultado
-            if response.status_code < 400:
-                logger.info(
-                    f"✅ Large upload completed: {request.upload_size_mb:.1f}MB "
-                    f"in {duration:.1f}s ({request.upload_size_mb/duration:.1f}MB/s)"
-                )
-            else:
+            # Solo loguear si hubo error
+            if response.status_code >= 400:
+                duration = time.time() - request.upload_start_time
                 logger.warning(
-                    f"❌ Large upload failed: {request.upload_size_mb:.1f}MB "
+                    f"Large upload failed: {request.upload_size_mb:.1f}MB "
                     f"after {duration:.1f}s - Status: {response.status_code}"
                 )
         
@@ -95,9 +83,8 @@ class R2ConnectionPoolMiddleware(MiddlewareMixin):
         try:
             from core.r2_config import get_optimized_r2_client
             self.r2_client = get_optimized_r2_client()
-            logger.info("✅ R2 connection pool initialized")
         except Exception as e:
-            logger.warning(f"⚠️ R2 connection pool not available: {e}")
+            logger.warning(f"R2 connection pool not available: {e}")
     
     def process_request(self, request):
         """Proporcionar cliente R2 optimizado al request"""

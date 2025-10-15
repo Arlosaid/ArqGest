@@ -226,7 +226,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
             )
             return
         
-        logger.info(f"📧 [ADMIN_SIMPLE] Iniciando envío a {users_count} usuarios")
+        logger.info(f"[ADMIN] Sending credentials to {users_count} users")
         
         success_count = 0
         error_count = 0
@@ -252,16 +252,16 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
                     send_new_user_email(user, new_password)
                     success_count += 1
                     processed_emails.append(user.email)
-                    logger.info(f"✅ [ADMIN_SIMPLE] Enviado a {user.email}")
+                    logger.info(f"[ADMIN] Credentials sent to {user.email}")
                 except Exception as e:
                     error_count += 1
                     error_details.append(f"{user.email} - {str(e)[:50]}...")
-                    logger.error(f"❌ [ADMIN_SIMPLE] Error con {user.email}: {str(e)}")
+                    logger.error(f"[ADMIN] Error sending to {user.email}: {str(e)}")
                     
             except Exception as e:
                 error_count += 1
                 error_details.append(f"{user.email} - {str(e)[:50]}...")
-                logger.error(f"❌ [ADMIN_SIMPLE] Error procesando {user.email}: {str(e)}")
+                logger.error(f"[ADMIN] Error processing {user.email}: {str(e)}")
         
         # Mostrar resultados
         if success_count > 0:
@@ -283,15 +283,15 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
                 level=messages.ERROR
             )
         
-        logger.info(f"📊 [ADMIN_SIMPLE] Resumen: {success_count} éxitos, {error_count} errores")
+        logger.info(f"[ADMIN] Summary: {success_count} success, {error_count} errors")
     
     send_credentials_simple.short_description = "📧 Enviar credenciales (Simple)"
 
     def generate_and_show_passwords(self, request, queryset):
         """
-        🔑 Generar nuevas contraseñas y mostrarlas en pantalla (respaldo cuando falla email)
+        Generar nuevas contraseñas y mostrarlas en pantalla (respaldo cuando falla email)
         """
-        logger.info(f"🔑 [ADMIN_BACKUP] Iniciando generación de contraseñas para {queryset.count()} usuarios")
+        logger.info(f"[ADMIN] Generating passwords for {queryset.count()} users")
         
         if queryset.count() > 10:
             self.message_user(
@@ -323,11 +323,11 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
                     'password': new_password
                 })
                 
-                logger.info(f"🔑 [ADMIN_BACKUP] Contraseña generada para {user.email}")
+                logger.info(f"[ADMIN] Password generated for {user.email}")
                 
             except Exception as e:
                 error_count += 1
-                logger.error(f"❌ [ADMIN_BACKUP] Error con {user.email}: {str(e)}")
+                logger.error(f"[ADMIN] Error with {user.email}: {str(e)}")
         
         # Mostrar contraseñas en pantalla
         if passwords_generated:
@@ -353,7 +353,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
                 level=messages.SUCCESS
             )
             
-            logger.info(f"📊 [ADMIN_BACKUP] {len(passwords_generated)} contraseñas mostradas, {error_count} errores")
+            logger.info(f"[ADMIN] {len(passwords_generated)} passwords shown, {error_count} errors")
         else:
             self.message_user(
                 request,

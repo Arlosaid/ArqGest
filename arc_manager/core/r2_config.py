@@ -74,11 +74,11 @@ def get_optimized_r2_client():
         # Verificar conectividad
         client.head_bucket(Bucket=settings.AWS_STORAGE_BUCKET_NAME)
         
-        logger.info(f"✅ Cliente R2 optimizado configurado: {settings.AWS_S3_ENDPOINT_URL}")
+        logger.info(f"R2 client configured: {settings.AWS_S3_ENDPOINT_URL}")
         return client
         
     except Exception as e:
-        logger.error(f"❌ Error configurando cliente R2: {e}")
+        logger.error(f"Error configuring R2 client: {e}")
         raise
 
 
@@ -93,11 +93,11 @@ def test_r2_large_file_upload():
         # Test de configuración multipart
         response = client.list_multipart_uploads(Bucket=bucket)
         
-        logger.info("✅ R2 configurado correctamente para archivos grandes")
+        logger.info("R2 configured for large files")
         return True, "Configuración R2 OK"
         
     except Exception as e:
-        logger.error(f"❌ Error en test R2: {e}")
+        logger.error(f"Error in R2 test: {e}")
         return False, str(e)
 
 

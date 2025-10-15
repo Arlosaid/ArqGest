@@ -31,12 +31,7 @@
                               data-project-id="{{ project.pk }}"
                               data-phase-id="{{ phase.id }}"
                               action="{% url 'files:upload_file' project_id=project.pk phase_id=phase.pk %}"
-                              hx-post="{% url 'files:upload_file' project_id=project.pk phase_id=phase.pk %}"
-                              hx-target="#upload-response-{{ phase.id }}"
-                              hx-swap="innerHTML"
-                              hx-encoding="multipart/form-data"
-                              enctype="multipart/form-data"
-                              onsubmit="return validateFormBeforeSubmit(this, '{{ phase.id }}')">
+                              enctype="multipart/form-data">
                             {% csrf_token %}
                             <div class="file-upload-wrapper">
                                 <div class="file-input-container">

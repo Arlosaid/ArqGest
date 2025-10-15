@@ -14,12 +14,16 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function setupFileFilters() {
+    console.log('🔧 Configurando filtros de archivos...');
+    
     // Configurar filtros por tipo
     document.querySelectorAll('[id^="fileTypeFilter-"]').forEach(filter => {
         const phaseId = filter.id.replace('fileTypeFilter-', '');
         
         // Remover listeners anteriores para evitar duplicados
-        filter.removeEventListener('change', filter._filterHandler);
+        if (filter._filterHandler) {
+            filter.removeEventListener('change', filter._filterHandler);
+        }
         
         // Crear y asignar nuevo handler
         filter._filterHandler = () => applyFilters(phaseId);
@@ -30,7 +34,11 @@ function setupFileFilters() {
     document.querySelectorAll('[id^="fileDateFilter-"]').forEach(filter => {
         const phaseId = filter.id.replace('fileDateFilter-', '');
         
-        filter.removeEventListener('change', filter._filterHandler);
+        // Remover listeners anteriores para evitar duplicados
+        if (filter._filterHandler) {
+            filter.removeEventListener('change', filter._filterHandler);
+        }
+        
         filter._filterHandler = () => applyFilters(phaseId);
         filter.addEventListener('change', filter._filterHandler);
     });
@@ -39,10 +47,16 @@ function setupFileFilters() {
     document.querySelectorAll('[id^="clearFilters-"]').forEach(button => {
         const phaseId = button.id.replace('clearFilters-', '');
         
-        button.removeEventListener('click', button._clearHandler);
+        // Remover listeners anteriores para evitar duplicados
+        if (button._clearHandler) {
+            button.removeEventListener('click', button._clearHandler);
+        }
+        
         button._clearHandler = () => clearFilters(phaseId);
         button.addEventListener('click', button._clearHandler);
     });
+    
+    console.log('✅ Filtros de archivos configurados');
 }
 
 function applyFilters(phaseId) {

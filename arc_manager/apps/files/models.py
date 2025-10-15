@@ -148,6 +148,23 @@ class ProjectFile(models.Model):
         
         is_new = self.pk is None
         
+        # 🔥 CRÍTICO: Si es un archivo nuevo, asegurar que el puntero esté al inicio
+        if is_new and self.file:
+            try:
+                # Resetear puntero antes de guardar
+                if hasattr(self.file, 'seek'):
+                    self.file.seek(0)
+                    logger.debug(f"File pointer reset: {self.file.name}")
+                
+                # Verificar que el archivo tenga contenido
+                if hasattr(self.file, 'size') and (self.file.size or 0) > 0:
+                    logger.debug(f"File with content: {self.file.size} bytes")
+                else:
+                    logger.warning(f"File without defined size: {self.file.name}")
+                    
+            except Exception as e:
+                logger.warning(f"Could not reset file pointer: {e}")
+        
         # Completar metadatos si están disponibles
         try:
             if self.file and hasattr(self.file, 'size'):

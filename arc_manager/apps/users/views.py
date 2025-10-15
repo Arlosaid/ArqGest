@@ -181,11 +181,6 @@ class SimpleUserCreateView(LoginRequiredMixin, View):
                 
                 # Siempre mostrar mensaje amigable, nunca errores técnicos
                 messages.error(request, "Ha ocurrido un error al crear el usuario. Por favor, contacta con soporte técnico.")
-                    
-        else:
-            # Log solo errores críticos
-            if form.non_field_errors():
-                logger.warning(f"Errores de validación al crear usuario: {form.non_field_errors()}")
         
         return render(request, self.template_name, {'form': form})
     

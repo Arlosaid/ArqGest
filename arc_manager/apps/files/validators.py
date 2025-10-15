@@ -28,8 +28,11 @@ class FileValidator:
         'SKP': ['application/octet-stream'],  # Archivos SketchUp
         '3DS': ['application/octet-stream'],  # Archivos 3D Studio Max
         'MAX': ['application/octet-stream'],  # Archivos 3D Studio Max
-        'ZIP': ['application/zip', 'application/x-zip-compressed'],
-        'RAR': ['application/x-rar-compressed', 'application/vnd.rar'],
+        'ZIP': ['application/zip', 'application/x-zip-compressed', 'application/octet-stream'],
+        'RAR': ['application/x-rar-compressed', 'application/vnd.rar', 'application/octet-stream'],
+        '7Z': ['application/x-7z-compressed', 'application/octet-stream'],
+        'TIFF': ['image/tiff', 'application/octet-stream'],
+        'TIF': ['image/tiff', 'application/octet-stream'],
         'DOC': ['application/msword'],
         'DOCX': ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
         'XLS': ['application/vnd.ms-excel'],
@@ -151,12 +154,31 @@ class FileValidator:
     
     def _is_mime_acceptable(self, detected_mime, extension):
         """Casos especiales donde MIME puede variar"""
-        # Algunos archivos CAD pueden tener MIME genérico
-        if extension in ['DWG', 'DXF'] and 'application/octet-stream' in detected_mime:
-            return True
+        # 🔥 FIX: Muchos archivos binarios legítimos se detectan como application/octet-stream
+        # Esto es NORMAL y NO debe rechazarse
+        if detected_mime == 'application/octet-stream':
+            # Archivos de arquitectura/diseño que usan formatos binarios propietarios
+            if extension in ['DWG', 'DXF', 'RVT', 'SKP', '3DS', 'MAX']:
+                return True
+            
+            # Archivos comprimidos (ZIP, RAR, 7Z) pueden detectarse como octet-stream
+            if extension in ['ZIP', 'RAR', '7Z']:
+                return True
+            
+            # Archivos de imagen TIFF (común en arquitectura)
+            if extension in ['TIFF', 'TIF']:
+                return True
         
         # Archivos de texto pueden detectarse como diferentes tipos
         if extension in ['TXT', 'MD'] and detected_mime.startswith('text/'):
+            return True
+        
+        # Imágenes pueden tener variaciones en el MIME type
+        if extension in ['JPG', 'JPEG'] and detected_mime in ['image/jpeg', 'image/jpg']:
+            return True
+        
+        # PDFs a veces se detectan con variaciones
+        if extension == 'PDF' and 'pdf' in detected_mime.lower():
             return True
         
         return False

@@ -20,20 +20,16 @@ class CustomLoginView(LoginView):
     authentication_form = CustomAuthenticationForm
     
     def dispatch(self, request, *args, **kwargs):
-        """Log cuando se accede a la página de login"""
-        client_ip = self.get_client_ip()
-        if request.method == 'GET':
-            logger.debug(f"Página de login solicitada - IP: {client_ip}")
-        elif request.method == 'POST':
-            logger.info(f"Intento de login iniciado - IP: {client_ip}")
+        """Log intentos de login para seguridad"""
+        if request.method == 'POST':
+            client_ip = self.get_client_ip()
+            logger.info(f"Intento de login - IP: {client_ip}")
         return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
         user = form.get_user()
         client_ip = self.get_client_ip()
         user_agent = self.request.META.get('HTTP_USER_AGENT', '')[:200]  # Limitar longitud
-        
-        logger.info(f"Intento de login exitoso - Usuario: {user.email}, IP: {client_ip}, User-Agent: {user_agent[:50]}...")
         
         # Limpiar cualquier flag de sesión anterior (para evitar mensajes cruzados)
         session_keys_to_clear = [
@@ -54,8 +50,8 @@ class CustomLoginView(LoginView):
             # Hacer login primero
             login(self.request, user)
             
-            # Log de seguridad para superusuarios
-            logger.info(f"Superuser login - Usuario: {user.email}, IP: {client_ip}, Redirigido a admin")
+            # Log de seguridad CRÍTICO para superusuarios
+            logger.warning(f"SUPERUSER LOGIN - Usuario: {user.email}, IP: {client_ip}, User-Agent: {user_agent[:50]}")
             
             # Redirigir directamente al admin sin mensaje
             # El mensaje se mostrará en el admin mediante el middleware
@@ -65,7 +61,7 @@ class CustomLoginView(LoginView):
         if getattr(user, 'password_change_required', False):
             # Hacer login primero
             login(self.request, user)
-            logger.info(f"Usuario {user.email} requiere cambio de contraseña - Redirigido a force-password-change")
+            logger.info(f"Usuario requiere cambio de contraseña - {user.email}, IP: {client_ip}")
             # Redirigir al cambio forzado de contraseña
             return redirect('/accounts/force-password-change/')
         
@@ -79,16 +75,16 @@ class CustomLoginView(LoginView):
         # Proceder con el login normal
         response = super().form_valid(form)
         
-        # Registrar login exitoso con información completa
+        # Registrar login exitoso con información completa para SEGURIDAD
         logger.info(
-            f"Login exitoso - Usuario: {user_info['email']} (ID: {user_info['id']}), "
-            f"Rol: {user_info['role']}, Organización: {user_info['organization']}, "
-            f"IP: {client_ip}, Sesión: {self.request.session.session_key}"
+            f"LOGIN EXITOSO - Usuario: {user_info['email']} (ID: {user_info['id']}), "
+            f"Rol: {user_info['role']}, Org: {user_info['organization']}, "
+            f"IP: {client_ip}"
         )
         
         # Log de seguridad adicional para admins
         if user.is_org_admin:
-            logger.info(f"Admin login - {user.email} accedió con permisos administrativos")
+            logger.info(f"ADMIN LOGIN - {user.email} con permisos administrativos, IP: {client_ip}")
         
         return response
     
@@ -99,18 +95,13 @@ class CustomLoginView(LoginView):
         user_agent = self.request.META.get('HTTP_USER_AGENT', '')[:100]
         errors = form.errors.as_text() if form.errors else 'Errores no especificados'
         
-        logger.warning(
-            f"Login fallido - Email: {username}, IP: {client_ip}, "
-            f"User-Agent: {user_agent}, Errores: {errors}"
-        )
-        
         # Log adicional si el usuario existe pero la contraseña es incorrecta
         try:
             user_exists = User.objects.filter(email=username).exists()
             if user_exists:
-                logger.warning(f"Login fallido - Usuario {username} existe pero contraseña incorrecta (IP: {client_ip})")
+                logger.warning(f"LOGIN FALLIDO - Usuario EXISTE pero contraseña incorrecta: {username}, IP: {client_ip}")
             else:
-                logger.warning(f"Login fallido - Usuario {username} no existe (IP: {client_ip})")
+                logger.warning(f"LOGIN FALLIDO - Usuario NO EXISTE: {username}, IP: {client_ip}")
         except Exception as e:
             logger.error(f"Error al verificar existencia de usuario {username}: {str(e)}")
         
@@ -145,8 +136,8 @@ class CustomLogoutView(View):
             session_key = request.session.session_key
             
             logger.info(
-                f"Logout - Usuario: {email} (ID: {user_id}), Rol: {role}, "
-                f"Organización: {organization}, IP: {client_ip}, Sesión: {session_key}"
+                f"LOGOUT - Usuario: {email} (ID: {user_id}), Rol: {role}, "
+                f"Org: {organization}, IP: {client_ip}"
             )
         
         # Limpiar flags de sesión específicos antes del logout
@@ -236,10 +227,9 @@ class ForcePasswordChangeView(View):
     def get(self, request):
         # Si el usuario no necesita cambiar contraseña, redirigir al dashboard
         if not getattr(request.user, 'password_change_required', False):
-            logger.info(f"Usuario {request.user.email} accedió a force-password-change sin requerimiento")
+            logger.warning(f"User {request.user.email} accessed force-password-change without requirement")
             return redirect('/')
         
-        logger.info(f"Mostrando formulario de cambio forzado de contraseña para: {request.user.email}")
         form = ForcePasswordChangeForm(user=request.user)
         return render(request, self.template_name, {'form': form})
     

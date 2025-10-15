@@ -10,6 +10,14 @@ services:
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     restart: unless-stopped
+    
+    # Configuración de logging optimizada para PostgreSQL
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+        compress: "true"
 
   web:
     build: .
@@ -20,6 +28,8 @@ services:
           echo 'PostgreSQL is unavailable - sleeping'
           sleep 2
         done &&
+        echo '📦 Running migrations...' &&
+        python manage.py migrate --noinput &&
         echo '🚀 Starting development server...' &&
         python manage.py runserver 0.0.0.0:8000
       "
@@ -27,23 +37,68 @@ services:
       - ./arc_manager:/app/arc_manager
       - static_volume:/app/arc_manager/staticfiles
       - media_volume:/app/arc_manager/media
+      - temp_uploads:/app/temp_uploads  # Volumen para uploads temporales
     ports:
       - "${WEB_PORT:-8000}:8000"
     depends_on:
       - db
+      - redis
+    
+    # ========================================
+    # 📊 CONFIGURACIÓN DE LOGGING OPTIMIZADA
+    # ========================================
+    # Docker maneja los logs de forma eficiente - sin escribir a disco
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"      # Máximo 10MB por archivo de log
+        max-file: "3"        # Mantener solo 3 archivos (30MB total)
+        compress: "true"     # Comprimir logs antiguos
+    
+    # OPTIMIZACIÓN: Límites de recursos para archivos grandes
+    deploy:
+      resources:
+        limits:
+          memory: 2G  # Memoria suficiente para archivos grandes
+        reservations:
+          memory: 512M
+    
     environment:
+      # Indicador de que estamos en Docker (para optimizar logging)
+      - DOCKER_CONTAINER=true
+      
       - DEBUG=${DEBUG:-True}
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres123@db:5432/arc_manager_dev}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0}
       - ENABLE_STORAGES=${ENABLE_STORAGES:-false}
-      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-600}
+      # OPTIMIZACIÓN ULTRA: Archivos masivos de arquitectura
+      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-1200}  # 1.2GB para modelos BIM
       - ENABLE_SINGLE_FILE_UPLOAD=${ENABLE_SINGLE_FILE_UPLOAD:-true}
-      # Configuración optimizada de uploads para rendimiento
-      - DATA_UPLOAD_MAX_MEMORY_SIZE=${DATA_UPLOAD_MAX_MEMORY_SIZE:-26214400}  # 25MB
-      - DATA_UPLOAD_MAX_NUMBER_SIZE=${DATA_UPLOAD_MAX_NUMBER_SIZE:-681574400} # 650MB
+      
+      # Configuración ultra-optimizada de uploads para rendimiento
+      - DATA_UPLOAD_MAX_MEMORY_SIZE=${DATA_UPLOAD_MAX_MEMORY_SIZE:-26214400}  # 25MB en memoria
+      - DATA_UPLOAD_MAX_NUMBER_SIZE=${DATA_UPLOAD_MAX_NUMBER_SIZE:-1342177280} # 1.25GB request HTTP
       - FILE_UPLOAD_TEMP_DIR=${FILE_UPLOAD_TEMP_DIR:-/app/temp_uploads}
-      - ALLOWED_EXTENSIONS=${ALLOWED_EXTENSIONS:-PDF,JPG,JPEG,PNG,GIF,DWG,DXF,RVT,SKP,ZIP,RAR,TIFF,DOC,DOCX,XLS,XLSX,PPT,PPTX,TXT,MD}
+      
+      # Extensiones para arquitectos (incluye 3DS, MAX, 7Z)
+      - ALLOWED_EXTENSIONS=${ALLOWED_EXTENSIONS:-PDF,JPG,JPEG,PNG,GIF,DWG,DXF,RVT,SKP,3DS,MAX,ZIP,RAR,7Z,TIFF,DOC,DOCX,XLS,XLSX,PPT,PPTX,TXT,MD}
+      
+      # Rate limiting optimizado para arquitectos
+      - FILE_UPLOAD_RATE_LIMIT_MINUTE=${FILE_UPLOAD_RATE_LIMIT_MINUTE:-15}
+      - FILE_UPLOAD_RATE_LIMIT_HOUR=${FILE_UPLOAD_RATE_LIMIT_HOUR:-200}
+      - FILE_UPLOAD_SIZE_LIMIT_HOUR_MB=${FILE_UPLOAD_SIZE_LIMIT_HOUR_MB:-5000}
+      
+      # Configuración R2 ultra-optimizada
+      - AWS_S3_MULTIPART_THRESHOLD=${AWS_S3_MULTIPART_THRESHOLD:-26214400}  # 25MB
+      - AWS_S3_MULTIPART_CHUNKSIZE=${AWS_S3_MULTIPART_CHUNKSIZE:-52428800}  # 50MB chunks
+      - AWS_S3_MAX_CONCURRENCY=${AWS_S3_MAX_CONCURRENCY:-15}  # 15 conexiones
+      - AWS_S3_CONNECT_TIMEOUT=${AWS_S3_CONNECT_TIMEOUT:-120}  # 2 minutos
+      - AWS_S3_READ_TIMEOUT=${AWS_S3_READ_TIMEOUT:-1800}  # 30 minutos
+      - AWS_S3_MAX_POOL_CONNECTIONS=${AWS_S3_MAX_POOL_CONNECTIONS:-50}
+      - AWS_S3_RETRY_ATTEMPTS=${AWS_S3_RETRY_ATTEMPTS:-5}
+      - PRESIGN_EXPIRES_SECONDS=${PRESIGN_EXPIRES_SECONDS:-7200}  # 2 horas
+      - MAX_CHECKSUM_MB=${MAX_CHECKSUM_MB:-50}
     restart: unless-stopped
 
   # Opcional: Redis para cache
@@ -52,8 +107,17 @@ services:
     ports:
       - "${REDIS_PORT:-6379}:6379"
     restart: unless-stopped
+    
+    # Configuración de logging optimizada para Redis
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+        compress: "true"
 
 volumes:
   postgres_data:
   static_volume:
   media_volume:
+  temp_uploads:  # Volumen para uploads temporales grandes

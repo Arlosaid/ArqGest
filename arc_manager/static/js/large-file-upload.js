@@ -13,6 +13,9 @@ class LargeFileUploader {
             ...options
         };
         
+        // Rastrear formularios ya inicializados para evitar duplicados
+        this.initializedForms = new Set();
+        
         this.init();
     }
 
@@ -32,15 +35,36 @@ class LargeFileUploader {
     }
 
     initializeForm(form) {
+        // Evitar inicializar el mismo formulario múltiples veces
+        const formId = form.getAttribute('data-phase-id') || form.action;
+        if (this.initializedForms.has(formId)) {
+            console.log(`⚠️ Formulario ${formId} ya inicializado, saltando...`);
+            return;
+        }
+        
         const fileInput = form.querySelector('input[type="file"]');
         if (!fileInput) return;
 
         this.enhanceFileInput(fileInput, form);
         
-        form.addEventListener('submit', (e) => {
+        // Remover listener anterior si existe
+        if (form._submitHandler) {
+            form.removeEventListener('submit', form._submitHandler);
+        }
+        
+        // Crear y asignar nuevo handler
+        form._submitHandler = (e) => {
             e.preventDefault();
+            e.stopPropagation(); // Evitar propagación del evento
+            console.log('📤 Submit interceptado por LargeFileUploader');
             this.handleFormSubmit(form);
-        });
+        };
+        
+        form.addEventListener('submit', form._submitHandler);
+        
+        // Marcar como inicializado
+        this.initializedForms.add(formId);
+        console.log(`✅ Formulario ${formId} inicializado`);
     }
 
     enhanceFileInput(fileInput, form) {
@@ -199,7 +223,29 @@ class LargeFileUploader {
             const projectId = form.dataset.projectId || this.extractProjectId(form.action);
             const phaseId = form.dataset.phaseId || this.extractPhaseId(form.action);
             
-            const presignedData = await this.getPresignedUrl(projectId, phaseId, file);
+            let presignedData;
+            try {
+                presignedData = await this.getPresignedUrl(projectId, phaseId, file);
+            } catch (presignError) {
+                // 🔥 FALLBACK: Si R2 no está disponible (desarrollo local), usar upload normal
+                console.log('⚠️ R2 no disponible, usando upload normal:', presignError.message);
+                console.log('💡 Para habilitar R2 en local, configura ENABLE_STORAGES=true en .env');
+                this.updateProgress(progressBar, statusDiv, 10, 'Usando método alternativo de upload...');
+                
+                // Verificar si el archivo es muy grande para upload normal
+                const fileSizeMB = file.size / (1024 * 1024);
+                const maxSizeMB = parseInt(document.querySelector('meta[name="max-file-size"]')?.content) || 1200;
+                
+                if (fileSizeMB > 500) {
+                    this.showNotification(
+                        `⚠️ Archivo muy grande (${fileSizeMB.toFixed(0)}MB). En producción se usará R2 para mejor rendimiento.`,
+                        'warning'
+                    );
+                }
+                
+                await this.handleRegularUpload(form);
+                return; // Salir de handleLargeFileUpload
+            }
             
             this.updateProgress(progressBar, statusDiv, 10, 'URL de upload obtenida, subiendo archivo...');
             detailsDiv.textContent = `Subiendo directamente a almacenamiento (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
@@ -464,12 +510,26 @@ class LargeFileUploader {
     }
 }
 
+// Patrón singleton para evitar múltiples instancias y event listeners duplicados
+let largeFileUploaderInstance = null;
+
+function initializeLargeFileUploader() {
+    if (!largeFileUploaderInstance) {
+        largeFileUploaderInstance = new LargeFileUploader();
+        console.log('✅ LargeFileUploader inicializado (singleton)');
+    } else {
+        // Solo reinicializar formularios nuevos sin crear nueva instancia
+        largeFileUploaderInstance.init();
+        console.log('🔄 LargeFileUploader reinicializado (reutilizando instancia)');
+    }
+}
+
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
-    new LargeFileUploader();
+    initializeLargeFileUploader();
 });
 
 // También inicializar en contenido dinámico (HTMX)
 document.addEventListener('htmx:afterSwap', () => {
-    new LargeFileUploader();
+    initializeLargeFileUploader();
 });

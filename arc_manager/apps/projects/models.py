@@ -74,20 +74,8 @@ class Project(models.Model):
         return self.name
     
     def save(self, *args, **kwargs):
-        """Override save to add logging for critical operations."""
-        is_new = self.pk is None
-        
-        if is_new:
-            logger.info(f"Creating new project: '{self.name}' for organization {self.organization_id}")
-        else:
-            # Log status changes
-            if hasattr(self, '_original_status') and self._original_status != self.status:
-                logger.info(f"Project {self.pk} status changed from '{self._original_status}' to '{self.status}'")
-        
+        """Override save method."""
         super().save(*args, **kwargs)
-        
-        if is_new:
-            logger.info(f"Project created successfully - ID: {self.pk}, Name: '{self.name}'")
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
