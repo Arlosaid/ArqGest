@@ -217,6 +217,30 @@ class SubscriptionInfoMiddleware(MiddlewareMixin):
                 except Exception:
                     pass
 
+                # Verificar si hay solicitudes pendientes
+                from .models import RenewalRequest, UpgradeRequest
+                has_pending_renewal = RenewalRequest.objects.filter(
+                    organization=request.user.organization,
+                    status='pending'
+                ).exists()
+                has_pending_upgrade = UpgradeRequest.objects.filter(
+                    organization=request.user.organization,
+                    status='pending'
+                ).exists()
+                
+                # Calcular fecha de inicio de la nueva suscripción (si hay renovación pendiente)
+                from django.utils import timezone
+                from datetime import timedelta
+                new_subscription_start = None
+                new_subscription_end = None
+                
+                if has_pending_renewal and subscription.end_date:
+                    # La nueva suscripción comienza cuando termina la actual
+                    now = timezone.now()
+                    base_date = max(now, subscription.end_date)
+                    new_subscription_start = base_date
+                    new_subscription_end = base_date + timedelta(days=subscription.plan.billing_cycle_days)
+                
                 # Agregar información útil al request
                 request.subscription_info = {
                     'status': subscription.subscription_status,
@@ -224,10 +248,16 @@ class SubscriptionInfoMiddleware(MiddlewareMixin):
                     'is_active': subscription.is_active,
                     'is_expired': subscription.is_expired,
                     'is_in_grace': subscription.is_in_grace_period,
+                    'is_trial': subscription.plan.is_trial,
                     'days_remaining': subscription.days_remaining,
                     'plan_name': subscription.plan.display_name,
+                    'end_date': subscription.end_date,
                     'expires_soon': subscription.days_remaining <= 7 and subscription.days_remaining > 0,
                     'needs_attention': subscription.is_expired or subscription.is_in_grace_period,
+                    'has_pending_renewal': has_pending_renewal,
+                    'has_pending_upgrade': has_pending_upgrade,
+                    'new_subscription_start': new_subscription_start,
+                    'new_subscription_end': new_subscription_end,
                 }
         
         return None

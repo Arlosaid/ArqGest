@@ -18,6 +18,10 @@ def project_file_path(instance, filename):
 
 class ProjectFile(models.Model):
     """Represents a file associated with a project's phase."""
+    
+    # Import the manager
+    from .managers import ProjectFileManager
+    
     phase = models.ForeignKey(
         Phase,
         on_delete=models.CASCADE,
@@ -42,6 +46,9 @@ class ProjectFile(models.Model):
     ext_upper = models.CharField(max_length=16, blank=True, db_index=True)
     content_type = models.CharField(max_length=128, blank=True)
     checksum_sha256 = models.CharField(max_length=64, blank=True, db_index=True)
+    
+    # Manager optimizado
+    objects = ProjectFileManager()
 
     class Meta:
         verbose_name = _("Project File")
@@ -50,6 +57,11 @@ class ProjectFile(models.Model):
         indexes = [
             models.Index(fields=['uploaded_at']),
             models.Index(fields=['ext_upper', 'size_bytes']),
+            # OPTIMIZACIÓN: Índice compuesto para consultas frecuentes
+            models.Index(fields=['phase', 'uploaded_at']),
+            models.Index(fields=['phase', 'ext_upper']),
+            # OPTIMIZACIÓN: Índice para búsquedas por usuario
+            models.Index(fields=['uploaded_by', 'uploaded_at']),
         ]
 
     def __str__(self):

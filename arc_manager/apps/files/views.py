@@ -6,6 +6,7 @@ from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.contrib import messages
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from .models import ProjectFile, project_file_path
 from apps.projects.models import Phase
 from core.error_codes import log_operation, FileErrorCodes
@@ -106,10 +107,10 @@ def upload_file(request, project_id, phase_id):
 
     # Validaciones básicas en servidor (con optimizaciones para mobile)
     try:
-        base_max_size = float(os.environ.get('MAX_FILE_SIZE_MB', '600'))
-        # Aplicar límites específicos para mobile
+        base_max_size = float(os.environ.get('MAX_FILE_SIZE_MB', '1200'))  # 1.2GB para archivos de arquitectura
+        # Aplicar límites específicos para mobile (archivos de arquitectura pueden ser pesados)
         if is_mobile_upload or is_mobile_device:
-            MAX_FILE_SIZE_MB = min(base_max_size, 50.0)  # Max 50MB en mobile
+            MAX_FILE_SIZE_MB = min(base_max_size, 200.0)  # Max 200MB en mobile para planos/renders
             MAX_FILES_MOBILE = int(os.environ.get('MAX_FILES_MOBILE', '10'))  # Max 10 archivos en mobile
         else:
             MAX_FILE_SIZE_MB = base_max_size
@@ -122,7 +123,7 @@ def upload_file(request, project_id, phase_id):
             messages.error(request, error_msg)
             return HttpResponse(status=500)
     
-    ALLOWED_EXTENSIONS = set(os.environ.get('ALLOWED_EXTENSIONS', 'PDF,JPG,JPEG,PNG,GIF,DWG,DXF,RVT,SKP,ZIP,RAR,TIFF,DOC,DOCX,XLS,XLSX,PPT,PPTX,TXT,MD').split(','))
+    ALLOWED_EXTENSIONS = set(os.environ.get('ALLOWED_EXTENSIONS', 'PDF,JPG,JPEG,PNG,GIF,DWG,DXF,RVT,SKP,3DS,MAX,ZIP,RAR,7Z,TIFF,DOC,DOCX,XLS,XLSX,PPT,PPTX,TXT,MD').split(','))
 
     # Limitación a 1 archivo por vez (MVP simplificado)
     if total_files > 1:
@@ -184,7 +185,27 @@ def upload_file(request, project_id, phase_id):
         ext = os.path.splitext(uploaded_file.name)[1].replace('.', '').upper()
         file_errors = []
         
-        # Validar extensión
+        # OPTIMIZACIÓN: Usar validador robusto
+        try:
+            from .validators import validate_project_file
+            validate_project_file(uploaded_file)
+        except ValidationError as e:
+            file_errors.extend(e.messages)
+            log_operation(
+                'FILE_UPLOAD_ERROR',
+                request.user.email,
+                logger,
+                level='WARNING',
+                error_code=FileErrorCodes.FILE_UPLOAD_INVALID_TYPE,
+                project_id=project_id,
+                phase_id=phase_id,
+                filename=uploaded_file.name,
+                extension=ext,
+                validation_errors=e.messages[:3]  # Primeros 3 errores
+            )
+            continue  # Saltar al siguiente archivo
+        
+        # Validar extensión (fallback si no se usó el validador completo)
         if ext not in ALLOWED_EXTENSIONS:
             file_errors.append(f"Tipo de archivo no permitido (.{ext.lower()})")
             log_operation(
@@ -366,6 +387,8 @@ def upload_file(request, project_id, phase_id):
             try:
                 max_checksum_mb = int(os.environ.get('MAX_CHECKSUM_MB', '50'))
                 if (uploaded_file.size or 0) <= max_checksum_mb * 1024 * 1024:
+                    # OPTIMIZACIÓN: Resetear puntero del archivo antes del checksum
+                    uploaded_file.seek(0)
                     hasher = hashlib.sha256()
                     for chunk in uploaded_file.chunks():
                         hasher.update(chunk)
@@ -622,9 +645,30 @@ def delete_file(request, file_id):
             return JsonResponse({"error": "Error al eliminar el archivo."}, status=500)
         return JsonResponse({"success": False, "error": "Error al eliminar el archivo."}, status=500)
     
-    # HTMX: devolver 200 con cuerpo vacío para que outerHTML se reemplace por nada
+    # HTMX: devolver script para recargar la lista y mostrar notificación
     if request.headers.get('HX-Request') == 'true':
-        return HttpResponse("")
+        html_response = f'''
+        <script>
+            // Mostrar notificación de éxito
+            if (window.notifications) {{
+                window.notifications.success('Archivo eliminado exitosamente');
+            }} else if (window.showGlobalNotification) {{
+                window.showGlobalNotification('Archivo eliminado exitosamente', 'success');
+            }}
+            
+            // Trigger para recargar archivos
+            setTimeout(() => {{
+                document.body.dispatchEvent(new CustomEvent('fileUploaded'));
+                
+                // También recargar contenedor específico si existe
+                const container = document.getElementById('files-container-{file_info["phase_id"]}');
+                if (container && window.htmx) {{
+                    htmx.trigger(container, 'fileUploaded');
+                }}
+            }}, 100);
+        </script>
+        '''
+        return HttpResponse(html_response)
 
     # Fetch/normal: JSON
     return JsonResponse({"success": True, "id": file_id})
@@ -726,12 +770,18 @@ def get_presigned_upload(request, project_id, phase_id):
         dummy = ProjectFile(phase=phase)
         key = project_file_path(dummy, filename)
 
-        session = boto3.session.Session(
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=getattr(settings, 'AWS_S3_REGION_NAME', 'auto'),
-        )
-        s3 = session.client('s3', endpoint_url=getattr(settings, 'AWS_S3_ENDPOINT_URL', None))
+        # OPTIMIZACIÓN: Usar cliente R2 optimizado para archivos grandes
+        try:
+            from core.r2_config import get_optimized_r2_client
+            s3 = get_optimized_r2_client()
+        except ImportError:
+            # Fallback al cliente básico
+            session = boto3.session.Session(
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=getattr(settings, 'AWS_S3_REGION_NAME', 'auto'),
+            )
+            s3 = session.client('s3', endpoint_url=getattr(settings, 'AWS_S3_ENDPOINT_URL', None))
         params = {
             'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
             'Key': key,
@@ -739,10 +789,13 @@ def get_presigned_upload(request, project_id, phase_id):
         if content_type:
             params['ContentType'] = content_type
 
+        # CRÍTICO: Tiempo de expiración extendido para archivos grandes
+        expires_seconds = int(os.environ.get('PRESIGN_EXPIRES_SECONDS', '7200'))  # 2 horas por defecto
+        
         url = s3.generate_presigned_url(
             ClientMethod='put_object',
             Params=params,
-            ExpiresIn=int(os.environ.get('PRESIGN_EXPIRES_SECONDS', '3600')),
+            ExpiresIn=expires_seconds,
         )
         
         # Log exitoso de generación de URL presignada

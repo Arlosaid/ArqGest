@@ -30,7 +30,13 @@ def get_cache_key(phase_id, offset=0, limit=20, file_type_filter='', date_filter
     """
     Genera clave de caché consistente para consultas de archivos
     """
-    return f"files_phase_{phase_id}_{offset}_{limit}_{file_type_filter}_{date_filter}"
+    # OPTIMIZACIÓN: Hash para claves muy largas
+    import hashlib
+    key_components = f"{phase_id}_{offset}_{limit}_{file_type_filter}_{date_filter}"
+    if len(key_components) > 200:  # Límite de Redis para claves
+        key_hash = hashlib.md5(key_components.encode()).hexdigest()
+        return f"files_phase_{key_hash}"
+    return f"files_phase_{key_components}"
 
 def cache_files_result(phase_id, files_data, has_more, offset=0, limit=20, 
                       file_type_filter='', date_filter='', timeout=600):

@@ -34,9 +34,26 @@
 
                         <div class="renewal-summary compact">
                             <div class="summary-row"><span class="label">Plan</span><span class="value">{{ subscription.plan.display_name }}</span></div>
-                            <div class="summary-row"><span class="label">Período</span><span class="value">{{ renewal_days }} días</span></div>
-                            <div class="summary-row"><span class="label">Nueva fecha</span><span class="value">{{ new_end_date|date:"d/m/Y" }}</span></div>
+                            <div class="summary-row"><span class="label">Vence actualmente</span><span class="value">{{ subscription.end_date|date:"d/m/Y" }}</span></div>
+                            <div class="summary-row"><span class="label">Período de renovación</span><span class="value">{{ renewal_days }} días</span></div>
+                            <div class="summary-row"><span class="label">Nueva fecha de vencimiento</span><span class="value">{{ new_end_date|date:"d/m/Y" }}</span></div>
                             <div class="summary-row total"><span class="label">Total</span><span class="value">${{ renewal_amount|floatformat:2 }}</span></div>
+                        </div>
+                        
+                        <div class="alert alert-info" style="margin-top:16px;padding:12px;background:#e7f3ff;border-left:3px solid #2196F3;border-radius:4px;">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Renovación anticipada:</strong> La nueva vigencia comienza cuando termine tu suscripción actual ({{ subscription.end_date|date:"d/m/Y" }}), por lo que no pierdes ningún día pagado.
+                        </div>
+                        
+                        <div class="alert alert-warning" style="margin-top:12px;padding:12px;background:#fff8e1;border-left:3px solid #ff9800;border-radius:4px;">
+                            <i class="fas fa-hand-holding-usd"></i>
+                            <strong>Proceso de pago:</strong>
+                            <ol style="margin:8px 0 0 0;padding-left:20px;font-size:0.95rem;">
+                                <li>Envía esta solicitud haciendo clic en el botón de abajo</li>
+                                <li>Realiza el pago por <strong>${{ renewal_amount|floatformat:2 }} MXN</strong> mediante transferencia/depósito</li>
+                                <li>Contacta al equipo en <strong>{{ support_phone }}</strong> o <strong>{{ support_email }}</strong> con tu comprobante</li>
+                                <li>Una vez verificado el pago, tu suscripción se renovará automáticamente</li>
+                            </ol>
                         </div>
 
                         <div class="form-actions" style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
@@ -75,7 +92,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const confirmed = confirm(
                 '¿Estás seguro de que quieres enviar la solicitud de renovación?\n\n' +
-                'Se enviará una solicitud de pago de ${{ renewal_amount|floatformat:2 }} para extender tu suscripción por {{ renewal_days }} días más.'
+                'Monto a pagar: ${{ renewal_amount|floatformat:2 }} MXN\n' +
+                'Después de enviar la solicitud, deberás realizar el pago y contactar al equipo para que lo verifiquen.\n\n' +
+                'Tu suscripción se renovará una vez que el pago sea aprobado por el administrador.'
             );
             
             if (confirmed) {

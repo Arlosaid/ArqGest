@@ -4,7 +4,7 @@
 {% block title %}Mi Suscripción - Arc Manager{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/plans.css' %}?v=10.3">
+<link rel="stylesheet" href="{% static 'css/plans.css' %}?v=10.4">
 {% endblock %}
 
 {% block extra_js %}{% endblock %}
@@ -59,7 +59,11 @@
                         </div>
                         <div class="next-steps">
                             <h4>¿Qué sigue?</h4>
-                            <p>Nuestro equipo se pondrá en contacto contigo para coordinar el proceso de pago y activar tu nuevo plan.</p>
+                            <p>
+                                <strong>1.</strong> Realiza el pago de <strong>${{ pending_upgrade_request.amount|floatformat:2 }} MXN</strong> mediante transferencia o depósito.<br>
+                                <strong>2.</strong> Contacta al equipo en <strong>{{ support_phone }}</strong> o <strong>{{ support_email }}</strong> con tu comprobante de pago.<br>
+                                <strong>3.</strong> Una vez verificado el pago, el administrador aprobará la actualización y tu plan se activará automáticamente.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -69,22 +73,76 @@
             {% if pending_renewal_request and pending_renewal_request.status == 'pending' %}
                 <div class="request-status-card pending renewal">
                     <div class="status-icon">
-                        <i class="fas fa-redo"></i>
+                        <i class="fas fa-hourglass-half"></i>
                     </div>
                     <div class="status-content">
-                        <h3>Tu solicitud de renovación está en proceso</h3>
+                        <h3><i class="fas fa-check-circle" style="color:#28a745;"></i> Solicitud de renovación enviada</h3>
                         <p>
-                            Hemos recibido tu solicitud para renovar tu plan 
+                            Hemos recibido tu solicitud para renovar el plan 
                             <strong>{{ pending_renewal_request.subscription.plan.display_name }}</strong>.
                         </p>
+                        
+                        <!-- Información de vigencias -->
+                        <div class="status-details" style="background:#f8f9fa; padding:16px; border-radius:8px; margin:16px 0;">
+                            <h4 style="margin:0 0 12px 0; color:#0d6efd;"><i class="fas fa-calendar-alt"></i> Información de vigencias</h4>
+                            
+                            {% if subscription.is_expired %}
+                                <!-- Suscripción ya expirada -->
+                                <div class="detail" style="padding:8px; background:#fff3cd; border-left:3px solid #ffc107; margin-bottom:8px;">
+                                    <span class="label" style="color:#856404;"><strong>⚠️ Suscripción actual:</strong></span>
+                                    <span class="value" style="color:#856404;"><strong>Expiró el {{ subscription.end_date|date:"d/m/Y" }}</strong></span>
+                                </div>
+                            {% else %}
+                                <!-- Suscripción aún activa -->
+                                <div class="detail" style="padding:8px; background:#d1ecf1; border-left:3px solid #0d6efd;">
+                                    <span class="label"><strong>📅 Tu plan actual vence:</strong></span>
+                                    <span class="value"><strong>{{ subscription.end_date|date:"d/m/Y" }}</strong> ({{ subscription.days_remaining }} día{{ subscription.days_remaining|pluralize:"s" }} restante{{ subscription.days_remaining|pluralize:"s" }})</span>
+                                </div>
+                            {% endif %}
+                            
+                            <!-- Nueva vigencia calculada -->
+                            {% with now=subscription.end_date|default:pending_renewal_request.created_at %}
+                                {% with new_start=subscription.end_date new_days=pending_renewal_request.renewal_days %}
+                                <div class="detail" style="padding:8px; background:#d4edda; border-left:3px solid #28a745; margin-top:8px;">
+                                    <span class="label"><strong>✅ Nueva vigencia (cuando se apruebe):</strong></span>
+                                    <span class="value" style="color:#28a745;">
+                                        <strong>
+                                            {% if subscription.end_date %}
+                                                {{ subscription.end_date|date:"d/m/Y" }}
+                                            {% else %}
+                                                (Al aprobar)
+                                            {% endif %}
+                                            → 
+                                            {% if subscription.end_date %}
+                                                {{ subscription.end_date|date:"d/m/Y" }}
+                                            {% endif %}
+                                            + {{ new_days }} días
+                                        </strong>
+                                    </span>
+                                </div>
+                                
+                                {% if not subscription.is_expired %}
+                                <div style="padding:8px; margin-top:8px; background:#e7f3ff; border-radius:4px;">
+                                    <small style="color:#0d6efd;">
+                                        <i class="fas fa-info-circle"></i> 
+                                        <strong>Renovación anticipada:</strong> La nueva vigencia comienza cuando termine tu plan actual, 
+                                        por lo que no pierdes ningún día de servicio ya pagado.
+                                    </small>
+                                </div>
+                                {% endif %}
+                                {% endwith %}
+                            {% endwith %}
+                        </div>
+                        
+                        <!-- Detalles de la solicitud -->
                         <div class="status-details">
                             <div class="detail">
-                                <span class="label">Plan a renovar:</span>
+                                <span class="label">Plan:</span>
                                 <span class="value">{{ pending_renewal_request.subscription.plan.display_name }}</span>
                             </div>
                             <div class="detail">
-                                <span class="label">Monto:</span>
-                                <span class="value">${{ pending_renewal_request.renewal_amount|floatformat:2 }}</span>
+                                <span class="label">Monto a pagar:</span>
+                                <span class="value"><strong>${{ pending_renewal_request.renewal_amount|floatformat:2 }} MXN</strong></span>
                             </div>
                             <div class="detail">
                                 <span class="label">Período:</span>
@@ -92,16 +150,29 @@
                             </div>
                             <div class="detail">
                                 <span class="label">Fecha de solicitud:</span>
-                                <span class="value">{{ pending_renewal_request.created_at|date:"d/m/Y" }}</span>
+                                <span class="value">{{ pending_renewal_request.created_at|date:"d/m/Y H:i" }}</span>
                             </div>
                             <div class="detail">
                                 <span class="label">Estado:</span>
-                                <span class="badge pending">En proceso</span>
+                                <span class="badge pending"><i class="fas fa-clock"></i> Pendiente de aprobación</span>
                             </div>
                         </div>
+                        
+                        <!-- Siguientes pasos -->
                         <div class="next-steps">
-                            <h4>¿Qué sigue?</h4>
-                            <p>Nuestro equipo revisará tu solicitud y se pondrá en contacto contigo para coordinar el proceso de pago.</p>
+                            <h4><i class="fas fa-list-check"></i> Siguientes pasos</h4>
+                            <p>
+                                <strong>1. Realiza el pago</strong><br>
+                                Transfiere o deposita <strong>${{ pending_renewal_request.renewal_amount|floatformat:2 }} MXN</strong> en la cuenta del equipo.
+                            </p>
+                            <p>
+                                <strong>2. Envía tu comprobante</strong><br>
+                                Contacta al equipo en <strong>{{ support_phone }}</strong> o <strong>{{ support_email }}</strong> con tu comprobante de pago.
+                            </p>
+                            <p>
+                                <strong>3. Espera la aprobación</strong><br>
+                                Una vez verificado el pago, el administrador aprobará tu solicitud y tu suscripción se renovará automáticamente.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -148,35 +219,36 @@
 
             {% if not subscription.plan.is_trial %}
                 {# Ventana de renovación anticipada: mostrar CTA si está dentro de la ventana, no hay solicitud pendiente y no está expirada #}
-                {% if subscription.end_date and not subscription.is_expired and not pending_renewal_request %}
-                    {% with renewal_window_days=2 %}
+                {% if subscription.end_date and not subscription.is_expired and not pending_renewal_request and is_org_admin %}
                     {% if subscription.days_remaining <= renewal_window_days and subscription.days_remaining >= 0 %}
                     <div class="upgrade-motivator-card attention">
                         <div class="motivator-icon"><i class="fas fa-redo"></i></div>
                         <div class="motivator-content">
                             <h3>Tu suscripción vence pronto</h3>
-                            <p>Renueva ahora y evita interrupciones. Vence el <strong>{{ subscription.end_date|date:"d/m/Y" }}</strong>.</p>
+                            <p>
+                                Renueva ahora y evita interrupciones. Vence el <strong>{{ subscription.end_date|date:"d/m/Y" }}</strong>.
+                                La nueva vigencia comenzará cuando termine tu plan actual, por lo que no pierdes días pagados.
+                            </p>
                             <div class="motivator-action">
                                 <a href="{% url 'plans:renew_subscription' %}" class="upgrade-btn renewal-btn">
                                     <i class="fas fa-redo"></i>
-                                    Renovar ahora
+                                    Renovar Suscripción
                                 </a>
-                                <p class="upgrade-note">Disponible desde 2 días antes</p>
+                                <p class="upgrade-note">Disponible desde {{ renewal_window_days }} día{{ renewal_window_days|pluralize }} antes del vencimiento</p>
                             </div>
                         </div>
                         <div class="motivator-side">
                             {% if subscription.days_remaining > 0 %}
-                                <div class="days-counter">
+                                <div class="days-counter warning">
                                     <div class="days-number">{{ subscription.days_remaining }}</div>
-                                    <div class="days-label">días restantes</div>
+                                    <div class="days-label">día{{ subscription.days_remaining|pluralize }} restante{{ subscription.days_remaining|pluralize }}</div>
                                 </div>
                             {% endif %}
                         </div>
                     </div>
                     {% endif %}
-                    {% endwith %}
                 {% endif %}
-                {% if subscription.is_expired and not pending_renewal_request %}
+                {% if subscription.is_expired and not pending_renewal_request and is_org_admin %}
                     <!-- Recuadro de Renovación para Suscripciones Expiradas -->
                     <div class="upgrade-motivator-card expired">
                         <div class="motivator-icon"><i class="fas fa-exclamation-triangle"></i></div>
@@ -192,7 +264,7 @@
                                     <i class="fas fa-redo"></i>
                                     Renovar Suscripción
                                 </a>
-                                <p class="upgrade-note">Recupera el acceso inmediatamente</p>
+                                <p class="upgrade-note">Solicita renovación y realiza el pago</p>
                             </div>
                         </div>
                         <div class="motivator-side">
@@ -202,29 +274,29 @@
                             </div>
                         </div>
                     </div>
-                {% elif subscription.is_in_grace_period and not pending_renewal_request %}
-                    {# Gracia eliminada: no mostrar nada especial, tratar como expirado #}
+                {% elif subscription.is_in_grace_period and not pending_renewal_request and is_org_admin %}
+                    {# Período de gracia: tratar como expirado y urgente #}
                     <div class="upgrade-motivator-card expired">
                         <div class="motivator-icon"><i class="fas fa-exclamation-triangle"></i></div>
                         <div class="motivator-content">
-                            <h3>Suscripción Vencida</h3>
+                            <h3>Suscripción Vencida - Período de Gracia</h3>
                             <p>
                                 Tu plan <strong>{{ subscription.plan.display_name }}</strong> venció el 
                                 <strong>{{ subscription.end_date|date:"d/m/Y" }}</strong>.
                             </p>
-                            <p>Renueva ahora para recuperar el acceso completo a todas las funciones.</p>
+                            <p><strong>⚠️ Acceso limitado hasta el {{ subscription.grace_end_date|date:"d/m/Y" }}.</strong> Renueva ahora para mantener todas las funciones activas.</p>
                             <div class="motivator-action">
                                 <a href="{% url 'plans:renew_subscription' %}" class="upgrade-btn renewal-btn">
                                     <i class="fas fa-redo"></i>
-                                    Renovar Suscripción
+                                    Renovar Suscripción Urgente
                                 </a>
-                                <p class="upgrade-note">Recupera el acceso inmediatamente</p>
+                                <p class="upgrade-note">Solicita renovación y realiza el pago</p>
                             </div>
                         </div>
                         <div class="motivator-side">
                             <div class="days-counter expired">
-                                <div class="days-number">0</div>
-                                <div class="days-label">suscripción vencida</div>
+                                <div class="days-number">!</div>
+                                <div class="days-label">período de gracia</div>
                             </div>
                         </div>
                     </div>

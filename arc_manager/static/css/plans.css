@@ -27,8 +27,44 @@
 }
 
 .request-status-card.pending.renewal {
-    border-left: 4px solid #f59e0b;
-    background: rgba(245, 158, 11, 0.05);
+    border-left: 4px solid #10b981;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.03) 100%);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05);
+    border: 2px solid rgba(16, 185, 129, 0.2);
+    position: relative;
+    overflow: visible;
+}
+
+.request-status-card.pending.renewal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #10b981, #059669);
+    border-radius: var(--arc-border-radius) var(--arc-border-radius) 0 0;
+}
+
+.request-status-card.pending.renewal .status-icon {
+    background: linear-gradient(135deg, #10b981, #059669);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.request-status-card.pending.renewal .status-content h3 {
+    color: #059669;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.request-status-card.pending.renewal .next-steps {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(255, 255, 255, 0.5) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+.request-status-card.pending.renewal .next-steps h4 {
+    color: #059669;
 }
 
 .status-icon {
