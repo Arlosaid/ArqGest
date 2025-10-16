@@ -31,6 +31,17 @@ class CustomLoginView(LoginView):
         client_ip = self.get_client_ip()
         user_agent = self.request.META.get('HTTP_USER_AGENT', '')[:200]  # Limitar longitud
         
+        # Configurar duración de sesión según checkbox "Recordarme"
+        remember_me = form.cleaned_data.get('remember_me', False)
+        if remember_me:
+            # Extender sesión a 30 días (2592000 segundos)
+            self.request.session.set_expiry(2592000)
+            session_duration = "30 días"
+        else:
+            # Usar duración predeterminada de 7 días
+            self.request.session.set_expiry(604800)
+            session_duration = "7 días"
+        
         # Limpiar cualquier flag de sesión anterior (para evitar mensajes cruzados)
         session_keys_to_clear = [
             'admin_welcome_shown',
@@ -51,7 +62,7 @@ class CustomLoginView(LoginView):
             login(self.request, user)
             
             # Log de seguridad CRÍTICO para superusuarios
-            logger.warning(f"SUPERUSER LOGIN - Usuario: {user.email}, IP: {client_ip}, User-Agent: {user_agent[:50]}")
+            logger.warning(f"SUPERUSER LOGIN - Usuario: {user.email}, IP: {client_ip}, User-Agent: {user_agent[:50]}, Sesión: {session_duration}")
             
             # Redirigir directamente al admin sin mensaje
             # El mensaje se mostrará en el admin mediante el middleware
@@ -79,7 +90,7 @@ class CustomLoginView(LoginView):
         logger.info(
             f"LOGIN EXITOSO - Usuario: {user_info['email']} (ID: {user_info['id']}), "
             f"Rol: {user_info['role']}, Org: {user_info['organization']}, "
-            f"IP: {client_ip}"
+            f"IP: {client_ip}, Sesión: {session_duration}"
         )
         
         # Log de seguridad adicional para admins

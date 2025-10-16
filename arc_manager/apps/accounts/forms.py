@@ -26,6 +26,14 @@ class CustomAuthenticationForm(AuthenticationForm):
             'placeholder': 'Contraseña'
         })
     )
+    remember_me = forms.BooleanField(
+        required=False,
+        initial=False,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input'
+        }),
+        label='Recordarme por 30 días'
+    )
 
     def clean(self):
         username = self.cleaned_data.get('username')

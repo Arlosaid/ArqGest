@@ -129,8 +129,10 @@ MIDDLEWARE = [
 ]
 
 # Insertar Debug Toolbar Middleware si DEBUG está activado
+# Debe ir DESPUÉS de GZipMiddleware para evitar warnings
 if DEBUG:
-    MIDDLEWARE.insert(0, 'debug_toolbar.middleware.DebugToolbarMiddleware')
+    # Insertar después de GZipMiddleware (posición 3, después de Security, WhiteNoise y GZip)
+    MIDDLEWARE.insert(3, 'debug_toolbar.middleware.DebugToolbarMiddleware')
 else:
     # Remover debug_toolbar de INSTALLED_APPS en producción para evitar warnings
     if 'debug_toolbar' in INSTALLED_APPS:
@@ -406,9 +408,10 @@ if not DEBUG and os.environ.get('RAILWAY_ENVIRONMENT'):
     # No es necesario agregar handlers adicionales - Docker los maneja
     
     # Configuración de sesiones optimizada para Railway
+    # Usar DB en Railway (más confiable que cache en entornos efímeros)
     SESSION_ENGINE = 'django.contrib.sessions.backends.db'
     SESSION_CACHE_ALIAS = 'default'
-    SESSION_COOKIE_AGE = 86400  # 24 horas
+    SESSION_COOKIE_AGE = 604800  # 7 días (consistente con config general)
     
     # Optimización de middleware para Railway
     MIDDLEWARE = [m for m in MIDDLEWARE if 'debug_toolbar' not in m]
@@ -504,19 +507,30 @@ if os.environ.get('ENABLE_STORAGES', 'false').lower() == 'true':
 else:
     logging.info("Storage: Local FileSystemStorage")
 
-# Configuración de sesiones (usando Redis)
+# ========================================
+# CONFIGURACIÓN OPTIMIZADA DE SESIONES
+# ========================================
+# Usando Redis para sesiones (más rápido y escalable que DB)
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'sessions'
-SESSION_SAVE_EVERY_REQUEST = False  # Mejora de rendimiento
+
+# Rendimiento: No guardar en cada petición (solo cuando cambia)
+SESSION_SAVE_EVERY_REQUEST = False
+
+# DURACIÓN DE SESIÓN: 7 días (604800 segundos)
+# Balance óptimo entre seguridad y experiencia de usuario para apps empresariales
+# Los usuarios no tendrán que iniciar sesión diariamente
+SESSION_COOKIE_AGE = 604800  # 7 días
 
 # Configuración de la cookie de sesión
 SESSION_COOKIE_NAME = 'sessionid'
 SESSION_COOKIE_PATH = '/'
-SESSION_COOKIE_AGE = 1209600
-SESSION_EXPIRE_AT_BROWSER_CLOSE = False
-SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_COOKIE_SECURE = False
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Mantener sesión al cerrar navegador
+
+# Seguridad de cookies
+SESSION_COOKIE_HTTPONLY = True  # Protección contra XSS
+SESSION_COOKIE_SAMESITE = 'Lax'  # Protección contra CSRF
+SESSION_COOKIE_SECURE = False  # Se activa a True en producción automáticamente
 
 # Authentication URLs
 LOGIN_URL = '/accounts/login/'
@@ -579,11 +593,6 @@ LOGGING = {
             'style': '{',
             'datefmt': '%Y-%m-%d %H:%M:%S',
         },
-        # Formato JSON estructurado para producción/Docker
-        'json': {
-            'format': '{"time": "{asctime}", "level": "{levelname}", "logger": "{name}", "message": "{message}", "process": {process}, "thread": {thread}}',
-            'style': '{',
-        },
     },
     'filters': {
         'require_debug_true': {'()': 'django.utils.log.RequireDebugTrue'},
@@ -607,12 +616,12 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
-        # Handler para producción/Docker (STDOUT con formato verbose o JSON)
+        # Handler para producción/Docker (STDOUT con formato verbose)
         'console_prod': {
             'level': 'INFO',
             'filters': ['require_debug_false', 'ignore_timezone_warnings', 'ignore_payment_warnings', 'clean_request_logs', 'filter_sensitive_data'],
             'class': 'logging.StreamHandler',
-            'formatter': 'json' if IS_DOCKER else 'verbose',  # JSON en Docker para mejor parsing
+            'formatter': 'verbose',
         },
         # Handler de errores críticos a STDERR
         'stderr': {
@@ -620,7 +629,7 @@ LOGGING = {
             'filters': ['filter_sensitive_data'],
             'class': 'logging.StreamHandler',
             'stream': 'ext://sys.stderr',  # Errores van a STDERR
-            'formatter': 'json' if IS_DOCKER else 'verbose',
+            'formatter': 'verbose',
         },
         'mail_admins': {
             'level': 'ERROR',

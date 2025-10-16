@@ -526,8 +526,8 @@
     }
     
     .project-card {
-        min-height: 420px; /* Maintain consistent minimum height on mobile */
-        max-height: 420px; /* Set maximum height for mobile */
+        min-height: auto;
+        max-height: none;
     }
     
     .project-card-header {
@@ -540,8 +540,10 @@
     }
     
     .project-card-footer {
-        height: 55px;
+        height: auto;
+        min-height: 55px;
         padding: var(--arc-spacing-md);
+        flex-wrap: wrap;
     }
     
     .project-stats {
@@ -579,34 +581,63 @@
         height: 40px;
         font-size: 1rem;
     }
+    
+    .action-buttons {
+        display: flex;
+        gap: var(--arc-spacing-sm);
+    }
+    
+    .btn-block {
+        flex: 1;
+        min-width: 0;
+    }
 }
 
 @media (max-width: 480px) {
+    .project-card {
+        min-height: auto;
+        max-height: none;
+    }
+    
     .project-card-footer {
         flex-direction: column;
-        gap: var(--arc-spacing-md);
-        padding: var(--arc-spacing-md);
+        gap: 0.75rem;
+        padding: 1rem;
+        align-items: stretch;
+        height: auto;
+        min-height: auto;
     }
     
     .btn-block {
         width: 100%;
-        margin-bottom: var(--arc-spacing-sm);
         order: 1;
         min-width: 0;
+        flex: none;
+        margin-bottom: 0;
+    }
+    
+    .action-buttons {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 0.75rem;
+        justify-content: center;
+        align-items: center;
+        order: 2;
+        width: 100%;
+        margin-top: 0.5rem;
     }
     
     .project-card .action-btn {
-        width: 44px;
-        height: 44px;
-        font-size: 1rem;
-        order: 2;
-        min-width: 44px;
-        min-height: 44px;
-    }
-    
-    .project-card-footer {
-        align-items: center;
-        justify-content: center;
+        width: 50px;
+        height: 50px;
+        font-size: 1.1rem;
+        min-width: 50px;
+        min-height: 50px;
+        max-width: 50px;
+        max-height: 50px;
+        flex-shrink: 0;
+        flex-grow: 0;
+        flex-basis: 50px;
     }
     
     /* Ensure project titles don't break layout on mobile */
