@@ -61,8 +61,16 @@ class User(AbstractUser):
     )
     email = models.EmailField("Correo electrónico", unique=True)
     # Hacemos obligatorios first_name y last_name
-    first_name = models.CharField("Nombre", max_length=150)
-    last_name = models.CharField("Apellido", max_length=150)
+    first_name = models.CharField(
+        "Nombre", 
+        max_length=50,
+        help_text="Máximo 50 caracteres"
+    )
+    last_name = models.CharField(
+        "Apellido", 
+        max_length=50,
+        help_text="Máximo 50 caracteres"
+    )
     is_org_admin = models.BooleanField("Administrador de organización", default=False)
     password_change_required = models.BooleanField(
         "Cambio de contraseña requerido", 

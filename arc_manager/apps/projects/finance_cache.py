@@ -3,7 +3,7 @@ Módulo de caché específico para optimización del módulo de finanzas.
 Implementa estrategias de caché con Redis para mejorar el rendimiento.
 """
 from django.core.cache import cache
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum, Count, Q, Max
 from django.conf import settings
 import logging
 from decimal import Decimal

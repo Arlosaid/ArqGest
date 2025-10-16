@@ -620,3 +620,109 @@
     border-radius: var(--arc-border-radius-sm);
 }
 
+/* ========================================
+   BOTONES SIMPLES PARA CENTRO DE TAREAS
+   ======================================== */
+
+.task-simple-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.btn-action {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--arc-border-color);
+    background: white;
+    color: var(--arc-text-secondary);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    white-space: nowrap;
+}
+
+.btn-action i {
+    font-size: 0.875rem;
+}
+
+.btn-action:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Botón Ver detalles */
+.btn-view {
+    border-color: #4285f4;
+    color: #4285f4;
+}
+
+.btn-view:hover {
+    background: #4285f4;
+    color: white;
+    border-color: #4285f4;
+}
+
+/* Botón Editar */
+.btn-edit {
+    border-color: #6c757d;
+    color: #6c757d;
+}
+
+.btn-edit:hover {
+    background: #6c757d;
+    color: white;
+    border-color: #6c757d;
+}
+
+/* Botón Eliminar */
+.btn-delete {
+    border-color: #dc2626;
+    color: #dc2626;
+}
+
+.btn-delete:hover {
+    background: #dc2626;
+    color: white;
+    border-color: #dc2626;
+}
+
+/* Responsive - Mobile */
+@media (max-width: 768px) {
+    .task-simple-actions {
+        gap: 0.375rem;
+        justify-content: center;
+    }
+    
+    .btn-action {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .btn-action span {
+        display: none;
+    }
+    
+    .btn-action {
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        border-radius: 8px;
+    }
+    
+    .btn-action i {
+        margin: 0;
+    }
+}
+

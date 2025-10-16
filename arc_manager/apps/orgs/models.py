@@ -7,7 +7,12 @@ from django.core.cache import cache
 class Organization(models.Model):
     """Modelo simplificado de organización"""
     
-    name = models.CharField("Nombre de la organización", max_length=200, db_index=True)
+    name = models.CharField(
+        "Nombre de la organización", 
+        max_length=100, 
+        db_index=True,
+        help_text="Máximo 100 caracteres"
+    )
     description = models.TextField("Descripción", blank=True, null=True)
     is_active = models.BooleanField("Activa", default=True, db_index=True)
     
@@ -390,9 +395,25 @@ class Client(models.Model):
         related_name='clients',
         verbose_name="Organización"
     )
-    name = models.CharField("Nombre del cliente", max_length=255)
-    email = models.EmailField("Correo electrónico", max_length=254, blank=True, null=True)
-    phone_number = models.CharField("Teléfono", max_length=50, blank=True, null=True)
+    name = models.CharField(
+        "Nombre del cliente", 
+        max_length=100,
+        help_text="Máximo 100 caracteres"
+    )
+    email = models.EmailField(
+        "Correo electrónico", 
+        max_length=254, 
+        blank=True, 
+        null=True,
+        help_text="Email de contacto del cliente"
+    )
+    phone_number = models.CharField(
+        "Teléfono", 
+        max_length=50, 
+        blank=True, 
+        null=True,
+        help_text="Formato: +52 123 456 7890 o 1234567890"
+    )
     address = models.TextField("Dirección", blank=True, null=True)
     
     is_active = models.BooleanField("Activo", default=True)

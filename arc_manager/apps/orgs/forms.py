@@ -3,6 +3,12 @@ from .models import Organization, Client
 from apps.plans.models import Plan
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Field, Submit
+from core.validators import (
+    validate_client_name, 
+    validate_organization_name,
+    validate_phone_number,
+    validate_business_email
+)
 
 class ClientForm(forms.ModelForm):
     """
@@ -17,10 +23,19 @@ class ClientForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Guardar organización para validaciones y asignación en save
         self.organization = organization or getattr(self.instance, 'organization', None)
+        
+        # Agregar validadores
+        if 'name' in self.fields:
+            self.fields['name'].validators.append(validate_client_name)
+        if 'email' in self.fields:
+            self.fields['email'].validators.append(validate_business_email)
+        if 'phone_number' in self.fields:
+            self.fields['phone_number'].validators.append(validate_phone_number)
 
         self.helper = FormHelper()
         self.helper.layout = Layout(
-            Field('name', css_class='form-control', placeholder='Nombre completo o Razón Social'),
+            Field('name', css_class='form-control', placeholder='Nombre completo o Razón Social',
+                  **{'data-char-counter': 'true', 'data-max-length': '100'}),
             Field('email', css_class='form-control', placeholder='correo@ejemplo.com'),
             Field('phone_number', css_class='form-control', placeholder='+52 1 234 567 890'),
             Field('address', css_class='form-control', rows='3', placeholder='Dirección completa'),
@@ -71,7 +86,9 @@ class OrganizationForm(forms.ModelForm):
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Nombre de la organización'
+                'placeholder': 'Nombre de la organización',
+                'data-char-counter': 'true',
+                'data-max-length': '100'
             }),
             'description': forms.Textarea(attrs={
                 'class': 'form-control',
@@ -85,6 +102,10 @@ class OrganizationForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        # Agregar validador al campo name
+        if 'name' in self.fields:
+            self.fields['name'].validators.append(validate_organization_name)
         
         if not self.instance.pk:
             try:

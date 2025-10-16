@@ -5,11 +5,25 @@ from django.utils.translation import gettext_lazy as _
 from .models import Task, Project, PhaseTemplate
 from apps.orgs.models import Client
 from django.forms import formset_factory
+from core.validators import (
+    validate_project_name, 
+    validate_task_title, 
+    validate_phase_name,
+    validate_end_date_after_start_date,
+    validate_budget_amount,
+    validate_date_not_too_far_future
+)
 
 class PhaseForm(forms.Form):
     name = forms.CharField(
         max_length=100,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Nombre de la fase')})
+        validators=[validate_phase_name],
+        widget=forms.TextInput(attrs={
+            'class': 'form-control', 
+            'placeholder': _('Nombre de la fase'),
+            'data-char-counter': 'true',
+            'data-max-length': '100'
+        })
     )
     order = forms.IntegerField(
         required=False,
@@ -93,7 +107,12 @@ class ProjectForm(forms.ModelForm):
             'total_budget': _('Presupuesto Total'),
         }
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'data-char-counter': 'true',
+                'data-max-length': '100',
+                'placeholder': _('Ej: Casa Residencial San Miguel')
+            }),
             'client': forms.Select(attrs={'class': 'form-control'}),
             'total_budget': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
         }
@@ -101,6 +120,10 @@ class ProjectForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         organization = kwargs.pop('organization', None)
         super().__init__(*args, **kwargs)
+        
+        # Agregar validador al campo name
+        if 'name' in self.fields:
+            self.fields['name'].validators.append(validate_project_name)
 
         # En edición, remover campos de configuración de fases para evitar validaciones innecesarias
         if getattr(self.instance, 'pk', None):
@@ -127,11 +150,26 @@ class ProjectForm(forms.ModelForm):
         cleaned_data = super().clean()
         creation_method = cleaned_data.get('phase_creation_method')
         phase_template = cleaned_data.get('phase_template')
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+        total_budget = cleaned_data.get('total_budget')
 
         # Solo aplicar esta validación al CREAR proyectos.
         if not getattr(self.instance, 'pk', None):
             if creation_method == 'template' and not phase_template:
                 self.add_error('phase_template', _("Este campo es obligatorio cuando se utiliza una plantilla."))
+
+        # Validar fechas
+        if start_date and end_date and end_date < start_date:
+            self.add_error('end_date', _("La fecha de fin debe ser posterior a la fecha de inicio."))
+        
+        # Validar presupuesto
+        if total_budget is not None:
+            from core.validators import validate_budget_amount
+            try:
+                validate_budget_amount(total_budget)
+            except ValidationError as e:
+                self.add_error('total_budget', e.message)
 
         return cleaned_data
 
@@ -151,7 +189,12 @@ class TaskForm(forms.ModelForm):
             'due_date': _('Fecha de Vencimiento'),
         }
         widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Título de la tarea')}),
+            'title': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': _('Ej: Diseñar planos arquitectónicos'),
+                'data-char-counter': 'true',
+                'data-max-length': '120'
+            }),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': _('Añade una descripción...')}),
             'assigned_to': forms.Select(attrs={'class': 'form-select'}),
             'priority': forms.Select(attrs={'class': 'form-select'}),
@@ -162,6 +205,10 @@ class TaskForm(forms.ModelForm):
         user = kwargs.pop('user', None)
         project = kwargs.pop('project', None)
         super().__init__(*args, **kwargs)
+        
+        # Agregar validador al campo title
+        if 'title' in self.fields:
+            self.fields['title'].validators.append(validate_task_title)
         
         # Determinar la organización desde user o project
         organization = None
@@ -186,6 +233,11 @@ class PhaseTemplateForm(forms.ModelForm):
             'description': _('Descripción'),
         }
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'data-char-counter': 'true',
+                'data-max-length': '100',
+                'placeholder': _('Ej: Proyecto Residencial Estándar')
+            }),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }

@@ -3,6 +3,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from apps.orgs.models import Organization
 from .utils import generate_random_password, send_new_user_email
+from core.validators import validate_user_name
 
 
 User = get_user_model()
@@ -15,12 +16,24 @@ class SimpleUserCreateForm(forms.Form):
     first_name = forms.CharField(
         max_length=50, 
         label="Nombre",
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Juan'})
+        validators=[validate_user_name],
+        widget=forms.TextInput(attrs={
+            'class': 'form-control', 
+            'placeholder': 'Ej: Juan',
+            'data-char-counter': 'true',
+            'data-max-length': '50'
+        })
     )
     last_name = forms.CharField(
         max_length=50, 
         label="Apellido",
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Pérez'})
+        validators=[validate_user_name],
+        widget=forms.TextInput(attrs={
+            'class': 'form-control', 
+            'placeholder': 'Ej: Pérez',
+            'data-char-counter': 'true',
+            'data-max-length': '50'
+        })
     )
     email = forms.EmailField(
         label="Correo electrónico",
@@ -202,8 +215,16 @@ class SimpleUserEditForm(forms.ModelForm):
         model = User
         fields = ['first_name', 'last_name', 'is_active']
         widgets = {
-            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'data-char-counter': 'true',
+                'data-max-length': '50'
+            }),
+            'last_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'data-char-counter': 'true',
+                'data-max-length': '50'
+            }),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
         labels = {
@@ -215,6 +236,12 @@ class SimpleUserEditForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.editing_user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        
+        # Agregar validadores
+        if 'first_name' in self.fields:
+            self.fields['first_name'].validators.append(validate_user_name)
+        if 'last_name' in self.fields:
+            self.fields['last_name'].validators.append(validate_user_name)
         
         # Configurar rol actual
         if self.instance:

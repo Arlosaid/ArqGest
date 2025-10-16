@@ -324,15 +324,30 @@ class ProjectUpdateView(LoginRequiredMixin, OrganizationAdminMixin, UpdateView):
     def form_valid(self, form):
         project_name = form.cleaned_data.get('name')
         project_id = self.object.id
+        total_budget = form.cleaned_data.get('total_budget')
+        
+        # Actualizar budget_configured según el presupuesto
+        if total_budget is not None and total_budget > 0:
+            # Si se proporcionó presupuesto válido, marcar como configurado
+            form.instance.budget_configured = True
+        elif total_budget is None or total_budget <= 0:
+            # Si se eliminó o se puso en 0, desmarcar
+            form.instance.budget_configured = False
         
         try:
             result = super().form_valid(form)
             logger.info(f"Proyecto actualizado - ID: {project_id}, Nombre: '{project_name}', Usuario: {self.request.user.email}")
             
-            # Invalidar cache después de actualizar proyecto
+            # Invalidar cache después de actualizar proyecto (incluyendo cache financiero)
             from .cache_utils import invalidate_project_cache, invalidate_kanban_projects_cache
+            from .finance_cache import invalidate_finance_cache
             invalidate_project_cache(self.object.organization.id, self.object.id)
             invalidate_kanban_projects_cache(self.object.organization.id)
+            # Invalidar cache financiero siempre que se toque el presupuesto
+            invalidate_finance_cache(
+                organization_id=self.object.organization.id,
+                project_id=self.object.id
+            )
             
             return result
         except IntegrityError as e:
@@ -1753,12 +1768,20 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
                 # Validar extensión permitida
                 allowed_exts = {'.jpg', '.jpeg', '.png', '.gif', '.pdf', '.doc', '.docx'}
                 ext = os.path.splitext(uploaded.name)[1].lower()
+                
+                # Debug: Log del archivo para diagnóstico
+                logger.info(f"Archivo recibido en creación: {uploaded.name}, tamaño: {uploaded.size}, tipo: {uploaded.content_type}, extensión: {ext}")
+                
                 if ext not in allowed_exts:
+                    logger.warning(f"Extensión {ext} no permitida para archivo {uploaded.name}")
                     form.add_error('description', _('Tipo de archivo no permitido. Usa imagen, PDF o Word.'))
                     return super().form_invalid(form)
+                
                 form.instance.receipt_file = uploaded
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"Error al procesar archivo en creación de pago: {str(e)}", exc_info=True)
+            form.add_error('description', f'Error al procesar el archivo: {str(e)}')
+            return super().form_invalid(form)
         
         # Validar que no exceda el presupuesto
         if self.project.total_budget:
@@ -1839,12 +1862,20 @@ class PaymentUpdateView(LoginRequiredMixin, UpdateView):
             if uploaded:
                 allowed_exts = {'.jpg', '.jpeg', '.png', '.gif', '.pdf', '.doc', '.docx'}
                 ext = os.path.splitext(uploaded.name)[1].lower()
+                
+                # Debug: Log del archivo para diagnóstico
+                logger.info(f"Archivo recibido en edición: {uploaded.name}, tamaño: {uploaded.size}, tipo: {uploaded.content_type}, extensión: {ext}")
+                
                 if ext not in allowed_exts:
+                    logger.warning(f"Extensión {ext} no permitida para archivo {uploaded.name}")
                     form.add_error('description', _('Tipo de archivo no permitido. Usa imagen, PDF o Word.'))
                     return super().form_invalid(form)
+                
                 form.instance.receipt_file = uploaded  # Reemplaza referencia al archivo
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"Error al procesar archivo en edición de pago: {str(e)}", exc_info=True)
+            form.add_error('description', f'Error al procesar el archivo: {str(e)}')
+            return super().form_invalid(form)
 
         # Guardar cambios primero y luego eliminar el archivo anterior de forma segura
         response = super().form_valid(form)
