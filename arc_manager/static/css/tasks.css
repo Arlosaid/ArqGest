@@ -1255,3 +1255,191 @@
         opacity: 1; /* Siempre visible en móvil */
     }
 }
+
+/* ========================================
+   ESTILOS PARA BOTONES DE ESTADO DE TAREAS
+   ======================================== */
+
+/* Mejorar el layout de los botones para evitar que se hagan dos renglones */
+.task-compact-actions {
+    display: flex;
+    gap: 0.375rem;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    min-width: 0; /* Permite que el contenedor se encoja */
+}
+
+.task-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.5rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    white-space: nowrap;
+    flex-shrink: 0; /* Evita que los botones se encojan */
+}
+
+/* Estilos específicos para botones de estado */
+.task-action-start {
+    background-color: #3b82f6;
+    color: white;
+    border: 1px solid #3b82f6;
+}
+
+.task-action-start:hover {
+    background-color: #2563eb;
+    color: white;
+    border-color: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.task-action-pause {
+    background-color: #f59e0b;
+    color: white;
+    border: 1px solid #f59e0b;
+}
+
+.task-action-pause:hover {
+    background-color: #d97706;
+    color: white;
+    border-color: #d97706;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+.task-action-complete {
+    background-color: #10b981;
+    color: white;
+    border: 1px solid #10b981;
+}
+
+.task-action-complete:hover {
+    background-color: #059669;
+    color: white;
+    border-color: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.task-action-resume {
+    background-color: #06b6d4;
+    color: white;
+    border: 1px solid #06b6d4;
+}
+
+.task-action-resume:hover {
+    background-color: #0891b2;
+    color: white;
+    border-color: #0891b2;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
+}
+
+.task-action-reopen {
+    background-color: #6b7280;
+    color: white;
+    border: 1px solid #6b7280;
+}
+
+.task-action-reopen:hover {
+    background-color: #4b5563;
+    color: white;
+    border-color: #4b5563;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(107, 114, 128, 0.3);
+}
+
+/* Botones de acción generales */
+.task-action-view {
+    background-color: #10b981;
+    color: white;
+    border: 1px solid #10b981;
+}
+
+.task-action-view:hover {
+    background-color: #059669;
+    color: white;
+    border-color: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.task-action-edit {
+    background-color: #3b82f6;
+    color: white;
+    border: 1px solid #3b82f6;
+}
+
+.task-action-edit:hover {
+    background-color: #2563eb;
+    color: white;
+    border-color: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.task-action-delete {
+    background-color: #ef4444;
+    color: white;
+    border: 1px solid #ef4444;
+}
+
+.task-action-delete:hover {
+    background-color: #dc2626;
+    color: white;
+    border-color: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+/* Iconos en botones de acción */
+.task-action-btn i {
+    font-size: 0.875rem;
+}
+
+/* Texto en botones de acción */
+.task-action-btn span {
+    font-weight: 500;
+}
+
+/* Responsive para botones de acción */
+@media (max-width: 768px) {
+    .task-action-btn span {
+        display: none; /* Ocultar texto en móvil */
+    }
+    
+    .task-action-btn {
+        padding: 0.375rem;
+        min-width: 36px;
+        justify-content: center;
+        gap: 0;
+    }
+    
+    .task-compact-actions {
+        gap: 0.25rem;
+        flex-wrap: wrap; /* Permitir wrap en móvil si es necesario */
+    }
+}
+
+@media (max-width: 480px) {
+    .task-compact-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.25rem;
+    }
+    
+    .task-action-btn {
+        width: 100%;
+        justify-content: center;
+        min-width: unset;
+    }
+}

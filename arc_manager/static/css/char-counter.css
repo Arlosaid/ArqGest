@@ -1,0 +1,196 @@
+/**
+ * Character Counter Styles
+ * Estilos para contadores de caracteres con feedback visual progresivo
+ * Siguiendo mejores prácticas de UX/UI
+ */
+
+.char-counter {
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    transition: all 0.2s ease-in-out;
+    font-weight: 500;
+    visibility: hidden;
+}
+
+/* Estado normal (0-74% del límite) */
+.char-counter--normal {
+    color: #6c757d;
+}
+
+/* Estado informativo (75-89% del límite) */
+.char-counter--info {
+    color: #0dcaf0;
+}
+
+/* Estado de advertencia (90-99% del límite) */
+.char-counter--warning {
+    color: #ffc107;
+    font-weight: 600;
+}
+
+/* Estado de error (100%+ del límite) */
+.char-counter--error {
+    color: #dc3545;
+    font-weight: 700;
+    animation: pulse-error 1s ease-in-out;
+}
+
+/* Animación sutil para el estado de error */
+@keyframes pulse-error {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Estilos para campos con error de validación */
+.is-invalid ~ .char-counter--error,
+.error ~ .char-counter--error {
+    color: #dc3545;
+}
+
+/* Estilos para inputs cuando están cerca del límite */
+input[data-char-counter="true"]:focus,
+textarea[data-char-counter="true"]:focus {
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+/* Feedback visual en el input cuando está en warning */
+input[data-char-counter="true"].char-limit-warning,
+textarea[data-char-counter="true"].char-limit-warning {
+    border-color: #ffc107 !important;
+}
+
+/* Feedback visual en el input cuando está en error */
+input[data-char-counter="true"].char-limit-error,
+textarea[data-char-counter="true"].char-limit-error {
+    border-color: #dc3545 !important;
+}
+
+/* Wrapper para el contador en form-groups */
+.form-group .char-counter,
+.mb-3 .char-counter,
+.field-wrapper .char-counter {
+    display: block;
+    text-align: right;
+}
+
+/* Versión compacta para formularios en línea */
+.form-inline .char-counter {
+    display: inline-block;
+    margin-left: 0.5rem;
+}
+
+/* Responsive: Ocultar en pantallas muy pequeñas si es necesario */
+@media (max-width: 576px) {
+    .char-counter {
+        font-size: 0.75rem;
+    }
+}
+
+/* Modo oscuro (opcional) */
+@media (prefers-color-scheme: dark) {
+    .char-counter--normal {
+        color: #adb5bd;
+    }
+    
+    .char-counter--info {
+        color: #3dd5f3;
+    }
+    
+    .char-counter--warning {
+        color: #ffcd39;
+    }
+    
+    .char-counter--error {
+        color: #ea868f;
+    }
+}
+
+/* Accesibilidad: Asegurar contraste suficiente */
+.char-counter {
+    /* WCAG AA compliance */
+    min-height: 1.25rem;
+}
+
+/* Estilos para errores de validación de Django/Bootstrap */
+.invalid-feedback + .char-counter,
+.error-message + .char-counter {
+    margin-top: 0.5rem;
+}
+
+/* Integración con Bootstrap 5 */
+.form-control:focus ~ .char-counter,
+.form-select:focus ~ .char-counter {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Animación de entrada suave */
+.char-counter[style*="opacity: 1"] {
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Helper text con contador */
+.form-text.char-counter {
+    margin-bottom: 0;
+}
+
+/* Estilos para contadores en modales */
+.modal .char-counter {
+    position: relative;
+    z-index: 1;
+}
+
+/* Estilos para contadores en cards */
+.card .char-counter {
+    padding-right: 0.5rem;
+}
+
+/* Estado de foco mejorado */
+input[data-char-counter="true"]:focus,
+textarea[data-char-counter="true"]:focus {
+    outline: none;
+}
+
+/* Indicador visual discreto para campos obligatorios */
+input[data-char-counter="true"][required]:not(:focus)::placeholder,
+textarea[data-char-counter="true"][required]:not(:focus)::placeholder {
+    opacity: 0.6;
+}
+
+/* Tooltip opcional para información adicional */
+.char-counter-tooltip {
+    position: relative;
+    cursor: help;
+}
+
+.char-counter-tooltip:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    z-index: 1000;
+    margin-bottom: 0.25rem;
+}
+

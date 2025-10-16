@@ -38,7 +38,12 @@ class Project(models.Model):
         related_name='projects',
         verbose_name=_("Cliente")
     )
-    name = models.CharField(_("Nombre del Proyecto"), max_length=255, db_index=True)
+    name = models.CharField(
+        _("Nombre del Proyecto"), 
+        max_length=100, 
+        db_index=True,
+        help_text=_("Máximo 100 caracteres. Sea claro y específico.")
+    )
     status = models.CharField(
         _("Estado"),
         max_length=20,
@@ -206,7 +211,11 @@ class Phase(models.Model):
         related_name='phases',
         verbose_name=_("Proyecto")
     )
-    name = models.CharField(_("Nombre de la Fase"), max_length=255)
+    name = models.CharField(
+        _("Nombre de la Fase"), 
+        max_length=100,
+        help_text=_("Máximo 100 caracteres")
+    )
     status = models.CharField(
         _("Estado"),
         max_length=20,
@@ -276,7 +285,11 @@ class Task(models.Model):
         related_name='assigned_tasks',
         verbose_name=_("Asignado a")
     )
-    title = models.CharField(_("Título de la Tarea"), max_length=255)
+    title = models.CharField(
+        _("Título de la Tarea"), 
+        max_length=120,
+        help_text=_("Máximo 120 caracteres. Sea breve y descriptivo.")
+    )
     description = models.TextField(_("Descripción"), blank=True)
     status = models.CharField(
         _("Estado"),
@@ -390,7 +403,11 @@ class Task(models.Model):
         return self.due_date <= date.today() + timedelta(days=3)
 
 class PhaseTemplate(models.Model):
-    name = models.CharField(_("Nombre"), max_length=100)
+    name = models.CharField(
+        _("Nombre"), 
+        max_length=100,
+        help_text=_("Máximo 100 caracteres")
+    )
     description = models.TextField(_("Descripción"), blank=True)
     organization = models.ForeignKey(
         Organization, 

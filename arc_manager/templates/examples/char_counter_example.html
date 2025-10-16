@@ -1,0 +1,350 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Ejemplo - Contadores de Caracteres{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h2 class="mb-4">
+                <i class="fas fa-keyboard"></i> 
+                Ejemplos de Contadores de Caracteres
+            </h2>
+            
+            <p class="lead mb-4">
+                Esta página muestra diferentes ejemplos de uso del sistema de contadores de caracteres.
+            </p>
+
+            <!-- Ejemplo 1: Campo de texto básico -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-1 text-primary"></i> 
+                        Campo de Texto Básico
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form>
+                        <div class="mb-3">
+                            <label for="ejemplo1" class="form-label">
+                                Nombre del Proyecto
+                            </label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="ejemplo1"
+                                data-char-counter="true"
+                                data-max-length="100"
+                                placeholder="Ej: Casa Residencial San Miguel"
+                            >
+                            <div class="form-text">
+                                Máximo 100 caracteres. Sea claro y específico.
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <div class="alert alert-info mb-0">
+                        <strong>Código HTML:</strong>
+                        <pre class="mb-0 mt-2"><code>&lt;input type="text" 
+       class="form-control"
+       data-char-counter="true"
+       data-max-length="100"&gt;</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ejemplo 2: Tarea con límite de 120 caracteres -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-2 text-primary"></i> 
+                        Título de Tarea (120 caracteres)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form>
+                        <div class="mb-3">
+                            <label for="ejemplo2" class="form-label">
+                                Título de la Tarea
+                            </label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="ejemplo2"
+                                data-char-counter="true"
+                                data-max-length="120"
+                                placeholder="Ej: Diseñar planos arquitectónicos de la planta baja"
+                            >
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Ejemplo 3: Nombre de usuario (50 caracteres) -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-3 text-primary"></i> 
+                        Nombres de Usuario (50 caracteres)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="ejemplo3a" class="form-label">
+                                    Nombre
+                                </label>
+                                <input 
+                                    type="text" 
+                                    class="form-control" 
+                                    id="ejemplo3a"
+                                    data-char-counter="true"
+                                    data-max-length="50"
+                                    placeholder="Juan"
+                                >
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="ejemplo3b" class="form-label">
+                                    Apellido
+                                </label>
+                                <input 
+                                    type="text" 
+                                    class="form-control" 
+                                    id="ejemplo3b"
+                                    data-char-counter="true"
+                                    data-max-length="50"
+                                    placeholder="Pérez"
+                                >
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Ejemplo 4: Múltiples campos en un formulario -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-4 text-primary"></i> 
+                        Formulario Completo
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form>
+                        <div class="mb-3">
+                            <label for="nombreOrg" class="form-label">
+                                Nombre de Organización
+                            </label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="nombreOrg"
+                                data-char-counter="true"
+                                data-max-length="100"
+                                placeholder="Ej: Arquitectos Asociados SA de CV"
+                            >
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="nombreCliente" class="form-label">
+                                Nombre de Cliente
+                            </label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="nombreCliente"
+                                data-char-counter="true"
+                                data-max-length="100"
+                                placeholder="Constructora ejemplo"
+                            >
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="nombreFase" class="form-label">
+                                Nombre de Fase
+                            </label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="nombreFase"
+                                data-char-counter="true"
+                                data-max-length="100"
+                                placeholder="Diseño preliminar"
+                            >
+                        </div>
+                        
+                        <button type="button" class="btn btn-primary">
+                            Guardar
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Ejemplo 5: Prueba de estados -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-5 text-primary"></i> 
+                        Prueba de Estados Visuales
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Instrucciones:</strong> Escribe en este campo para ver cómo cambian los colores:
+                        <ul class="mb-0 mt-2">
+                            <li><span class="badge bg-secondary">0-74%</span> → Color gris (normal)</li>
+                            <li><span class="badge bg-info">75-89%</span> → Color azul (informativo)</li>
+                            <li><span class="badge bg-warning">90-99%</span> → Color amarillo (advertencia)</li>
+                            <li><span class="badge bg-danger">100%+</span> → Color rojo (error)</li>
+                        </ul>
+                    </div>
+                    
+                    <form>
+                        <div class="mb-3">
+                            <label for="ejemploEstados" class="form-label">
+                                Campo de Prueba (límite: 50 caracteres)
+                            </label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="ejemploEstados"
+                                data-char-counter="true"
+                                data-max-length="50"
+                                placeholder="Escribe aquí para ver los cambios de color..."
+                            >
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Guía de Implementación -->
+            <div class="card mb-4 border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-code"></i> 
+                        Guía Rápida de Implementación
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h6>Para agregar un contador a cualquier campo:</h6>
+                    
+                    <ol>
+                        <li class="mb-2">
+                            <strong>Agrega los atributos al campo:</strong>
+                            <pre class="mb-0"><code>data-char-counter="true"
+data-max-length="100"  <!-- Tu límite deseado --></code></pre>
+                        </li>
+                        
+                        <li class="mb-2">
+                            <strong>En formularios Django, usa el widget:</strong>
+<pre class="mb-0"><code>widgets = {
+    'nombre': forms.TextInput(attrs={
+        'class': 'form-control',
+        'data-char-counter': 'true',
+        'data-max-length': '100'
+    })
+}</code></pre>
+                        </li>
+                        
+                        <li class="mb-2">
+                            <strong>El contador se inicializa automáticamente.</strong>
+                            <br>
+                            No necesitas JavaScript adicional.
+                        </li>
+                        
+                        <li class="mb-2">
+                            <strong>Para contenido dinámico (modales, AJAX):</strong>
+<pre class="mb-0"><code>// Llamar después de cargar contenido nuevo
+window.reinitCharCounters();</code></pre>
+                        </li>
+                    </ol>
+                    
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <strong><i class="fas fa-lightbulb"></i> Tip:</strong>
+                        Los archivos CSS y JS ya están incluidos en <code>base.html</code>.
+                        No necesitas importarlos manualmente en tus templates.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Referencia de Límites -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-table"></i> 
+                        Referencia Rápida de Límites
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Entidad</th>
+                                <th>Campo</th>
+                                <th>Límite</th>
+                                <th>Ejemplo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Proyecto</td>
+                                <td>Nombre</td>
+                                <td><span class="badge bg-primary">100</span></td>
+                                <td><code>data-max-length="100"</code></td>
+                            </tr>
+                            <tr>
+                                <td>Tarea</td>
+                                <td>Título</td>
+                                <td><span class="badge bg-primary">120</span></td>
+                                <td><code>data-max-length="120"</code></td>
+                            </tr>
+                            <tr>
+                                <td>Cliente</td>
+                                <td>Nombre</td>
+                                <td><span class="badge bg-primary">100</span></td>
+                                <td><code>data-max-length="100"</code></td>
+                            </tr>
+                            <tr>
+                                <td>Usuario</td>
+                                <td>Nombre/Apellido</td>
+                                <td><span class="badge bg-primary">50</span></td>
+                                <td><code>data-max-length="50"</code></td>
+                            </tr>
+                            <tr>
+                                <td>Organización</td>
+                                <td>Nombre</td>
+                                <td><span class="badge bg-primary">100</span></td>
+                                <td><code>data-max-length="100"</code></td>
+                            </tr>
+                            <tr>
+                                <td>Fase</td>
+                                <td>Nombre</td>
+                                <td><span class="badge bg-primary">100</span></td>
+                                <td><code>data-max-length="100"</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    pre code {
+        background-color: #f8f9fa;
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+        display: block;
+        overflow-x: auto;
+    }
+    
+    .card-header h5 {
+        margin-bottom: 0;
+    }
+</style>
+{% endblock %}
+

@@ -17,7 +17,7 @@ class FileValidator:
     
     # MIME types permitidos por extensión
     ALLOWED_MIME_TYPES = {
-        'PDF': ['application/pdf'],
+        'PDF': ['application/pdf', 'application/octet-stream', 'application/x-pdf'],
         'JPG': ['image/jpeg'],
         'JPEG': ['image/jpeg'],
         'PNG': ['image/png'],
@@ -167,6 +167,16 @@ class FileValidator:
             
             # Archivos de imagen TIFF (común en arquitectura)
             if extension in ['TIFF', 'TIF']:
+                return True
+            
+            # 🔥 FIX: Archivos PDF pueden detectarse como octet-stream en algunos casos
+            if extension == 'PDF':
+                return True
+        
+        # Archivos PDF pueden tener diferentes MIME types dependiendo del creador
+        if extension == 'PDF':
+            # Aceptar cualquier MIME type que contenga 'pdf' o sea application/octet-stream
+            if 'pdf' in detected_mime.lower() or detected_mime == 'application/octet-stream':
                 return True
         
         # Archivos de texto pueden detectarse como diferentes tipos

@@ -329,3 +329,73 @@ document.addEventListener('DOMContentLoaded', function () {
   document.addEventListener('taskUpdated', reloadTasks);
 });
 
+// Función global para actualizar el estado de las tareas
+async function updateTaskStatus(taskId, newStatus) {
+  try {
+    const response = await fetch(`/projects/tasks/${taskId}/update-status/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+      },
+      body: JSON.stringify({ status: newStatus })
+    });
+
+    if (response.ok) {
+      // Recargar las tareas para mostrar el cambio
+      const tasksContainer = document.getElementById('tasksContainer');
+      if (tasksContainer) {
+        const phaseFilter = document.getElementById('phaseFilter')?.value || '';
+        const projectId = tasksContainer.getAttribute('data-project-id');
+        const paginatedUrl = tasksContainer.getAttribute('data-paginated-url');
+        
+        if (projectId && paginatedUrl) {
+          const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+          const perPage = isMobile() ? 5 : 9;
+          const currentPage = document.querySelector('.pagination .page-item.active .page-link');
+          const page = currentPage ? currentPage.textContent.trim() : '1';
+          
+          const params = new URLSearchParams({
+            page: page,
+            per_page: perPage,
+            phase: phaseFilter
+          });
+          
+          const reloadResponse = await fetch(`${paginatedUrl}?${params}`);
+          if (reloadResponse.ok) {
+            const html = await reloadResponse.text();
+            tasksContainer.innerHTML = html;
+            
+            // Re-configurar event listeners después de cargar contenido
+            const setupPaginationEvents = () => {
+              tasksContainer.querySelectorAll('.pagination .page-link[data-page]').forEach(link => {
+                link.addEventListener('click', (e) => {
+                  e.preventDefault();
+                  const page = link.getAttribute('data-page');
+                  const phaseFilter = document.getElementById('phaseFilter')?.value || '';
+                  loadTasksPage(page, phaseFilter);
+                });
+              });
+            };
+            setupPaginationEvents();
+          }
+        }
+      }
+      
+      // Mostrar notificación de éxito
+      if (window.notifications) {
+        window.notifications.success('Estado de tarea actualizado correctamente');
+      }
+    } else {
+      if (window.notifications) {
+        window.notifications.error('Error al actualizar el estado de la tarea');
+      }
+    }
+  } catch (error) {
+    console.error('Error actualizando estado de tarea:', error);
+    if (window.notifications) {
+      window.notifications.error('Error al actualizar el estado de la tarea');
+    }
+  }
+}
+

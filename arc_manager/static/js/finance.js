@@ -303,11 +303,32 @@ document.addEventListener('DOMContentLoaded', function() {
         input.addEventListener('change', function() {
             const file = this.files[0];
             if (file) {
+                console.log('Archivo seleccionado:', {
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    lastModified: new Date(file.lastModified)
+                });
+                
                 const maxSize = 5 * 1024 * 1024; // 5MB
                 if (file.size > maxSize) {
                     alert('El archivo es demasiado grande. Máximo 5MB.');
                     this.value = '';
+                    return;
                 }
+                
+                // Validar extensión permitida
+                const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.pdf', '.doc', '.docx'];
+                const fileName = file.name.toLowerCase();
+                const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
+                
+                if (!hasValidExtension) {
+                    alert('Tipo de archivo no permitido. Usa imagen, PDF o Word.');
+                    this.value = '';
+                    return;
+                }
+                
+                console.log('Archivo válido, permitiendo selección');
             }
         });
     });
