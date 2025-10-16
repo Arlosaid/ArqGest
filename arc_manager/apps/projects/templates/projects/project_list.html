@@ -140,12 +140,14 @@
                     Ver Proyecto
                 </a>
                 {% if user.is_org_admin %}
+                <div class="action-buttons">
                     <a href="{% url 'projects:project-update' project.pk %}" class="action-btn edit" title="Editar">
                         <i class="fas fa-edit"></i>
                     </a>
                     <a href="{% url 'projects:project-delete' project.pk %}" class="action-btn delete" title="Eliminar">
                         <i class="fas fa-trash"></i>
                     </a>
+                </div>
                 {% endif %}
             </div>
         </div>

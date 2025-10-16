@@ -52,6 +52,15 @@
             </div>
         </div>
 
+        <div class="remember-me-wrapper">
+            <div class="form-check">
+                <input type="checkbox" name="remember_me" id="id_remember_me" class="form-check-input">
+                <label for="id_remember_me" class="form-check-label">
+                    Recordarme por 30 días
+                </label>
+            </div>
+        </div>
+
         <div class="login-options">
             <button type="submit" class="sign-in-btn">Iniciar Sesión</button>
             <a href="{% url 'accounts:password_reset' %}" class="forgot-link">¿Olvidaste tu contraseña?</a>

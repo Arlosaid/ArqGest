@@ -240,6 +240,76 @@
   box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.15);
 }
 
+/* Estilos para checkbox "Recordarme" */
+.remember-me-wrapper {
+  margin-bottom: 1.5rem;
+  animation: fadeIn 0.4s ease-out 0.25s;
+  animation-fill-mode: both;
+}
+
+.form-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-left: 0;
+}
+
+.login-form input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  cursor: pointer;
+  border: 2px solid var(--auth-color-gray-light);
+  border-radius: 4px;
+  transition: var(--auth-transition);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: white;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.login-form input[type="checkbox"]:hover {
+  border-color: var(--auth-color-primary);
+}
+
+.login-form input[type="checkbox"]:checked {
+  background-color: var(--auth-color-primary);
+  border-color: var(--auth-color-primary);
+}
+
+.login-form input[type="checkbox"]:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.login-form input[type="checkbox"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.form-check-label {
+  font-size: 14px;
+  color: var(--auth-color-gray);
+  font-weight: 400;
+  cursor: pointer;
+  user-select: none;
+  margin: 0;
+  line-height: 1.4;
+  transition: var(--auth-transition);
+}
+
+.form-check-label:hover {
+  color: var(--auth-color-dark);
+}
+
 .login-options {
   display: flex;
   flex-direction: column; /* Cambiamos a columna para apilar elementos */
@@ -630,6 +700,20 @@
   .login-form input[type="email"] {
     padding: 0.8rem 1rem 0.8rem 2.5rem;
     font-size: 16px; /* Evita zoom en iOS */
+  }
+  
+  /* Checkbox más grande en móvil para mejor usabilidad */
+  .login-form input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .form-check-label {
+    font-size: 15px;
+  }
+  
+  .remember-me-wrapper {
+    margin-bottom: 1.25rem;
   }
 }
 
