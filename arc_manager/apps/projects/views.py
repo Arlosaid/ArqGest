@@ -57,9 +57,10 @@ class ProjectListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
 
     def get_queryset(self):
         if hasattr(self.request.user, 'organization') and self.request.user.organization:
-            return Project.objects.filter(
+            # OPTIMIZACIÓN: Usar manager optimizado para listados completos
+            return Project.objects.with_complete_data().filter(
                 organization=self.request.user.organization
-            ).select_related('client', 'owner').order_by('-created_at')
+            ).order_by('-created_at')
         logger.warning(f"User {self.request.user.email} accessed project list without organization")
         return Project.objects.none()
 
@@ -110,7 +111,10 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
 
     def get_queryset(self):
         if hasattr(self.request.user, 'organization') and self.request.user.organization:
-            return super().get_queryset().filter(organization=self.request.user.organization)
+            # OPTIMIZACIÓN: Prefetch de payments para evitar N+1 en datos financieros
+            return super().get_queryset().filter(
+                organization=self.request.user.organization
+            ).select_related('client', 'owner').prefetch_related('payments')
         logger.warning(f"User {self.request.user.email} attempted to access project detail without organization")
         return super().get_queryset().none()
 
@@ -1527,18 +1531,18 @@ class ProjectKanbanSelectorView(LoginRequiredMixin, View):
             is_admin
         )
         
-        # Construir QuerySets solo con proyectos accesibles
-        active_projects = Project.objects.filter(
+        # OPTIMIZACIÓN: Construir QuerySets con datos completos para evitar N+1
+        active_projects = Project.objects.with_complete_data().filter(
             id__in=accessible_data['active_ids']
-        ).select_related('client').order_by('-created_at')
+        ).order_by('-created_at')
         
-        completed_projects = Project.objects.filter(
+        completed_projects = Project.objects.with_complete_data().filter(
             id__in=accessible_data['completed_ids']
-        ).select_related('client').order_by('-created_at')
+        ).order_by('-created_at')
         
-        archived_projects = Project.objects.filter(
+        archived_projects = Project.objects.with_complete_data().filter(
             id__in=accessible_data['archived_ids']
-        ).select_related('client').order_by('-created_at')
+        ).order_by('-created_at')
 
         # Paginación por sección (8 por página por solicitud)
         try:
@@ -1588,9 +1592,10 @@ class FinanceDashboardView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
     
     def get_queryset(self):
         """Obtener todos los proyectos de la organización con filtros simples."""
-        queryset = Project.objects.filter(
+        # OPTIMIZACIÓN: Usar manager optimizado con financial_data
+        queryset = Project.objects.with_financial_data().filter(
             organization=self.request.user.organization
-        ).select_related('client', 'owner').prefetch_related('payments')
+        )
         
         # Filtros
         search = self.request.GET.get('search', '').strip()
@@ -1665,7 +1670,12 @@ class ProjectFinanceDetailView(LoginRequiredMixin, DetailView):
     def get_object(self):
         """Obtener proyecto por organización del usuario (sin lógica de accesibles)."""
         project_id = self.kwargs.get('pk')
-        return get_object_or_404(Project, pk=project_id, organization=self.request.user.organization)
+        # OPTIMIZACIÓN: Prefetch payments para evitar N+1 queries
+        return get_object_or_404(
+            Project.objects.select_related('client', 'owner').prefetch_related('payments'),
+            pk=project_id, 
+            organization=self.request.user.organization
+        )
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1700,10 +1710,11 @@ class ProjectBudgetConfigView(LoginRequiredMixin, UpdateView):
         from .cache_utils import get_user_accessible_projects
         
         project_id = self.kwargs.get('pk')
+        # OPTIMIZACIÓN: Obtener proyectos accesibles con prefetch
         accessible_projects = get_user_accessible_projects(
             self.request.user, 
             self.request.user.organization
-        )
+        ).prefetch_related('payments')
         
         try:
             return accessible_projects.get(pk=project_id)
@@ -1753,7 +1764,12 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
     def dispatch(self, request, *args, **kwargs):
         """Cargar el proyecto por organización sin filtros adicionales."""
         self.project_id = kwargs.get('project_id')
-        self.project = get_object_or_404(Project, pk=self.project_id, organization=request.user.organization)
+        # OPTIMIZACIÓN: Prefetch payments para calcular total_paid sin query adicional
+        self.project = get_object_or_404(
+            Project.objects.prefetch_related('payments'),
+            pk=self.project_id, 
+            organization=request.user.organization
+        )
         
         return super().dispatch(request, *args, **kwargs)
     
@@ -1825,6 +1841,10 @@ class PaymentUpdateView(LoginRequiredMixin, UpdateView):
     model = ProjectPayment
     fields = ['amount', 'date', 'description']
     template_name = 'projects/finance/payment_form.html'
+    
+    def get_queryset(self):
+        """OPTIMIZACIÓN: Select related del proyecto con payments prefetchados."""
+        return super().get_queryset().select_related('project').prefetch_related('project__payments')
     
     def dispatch(self, request, *args, **kwargs):
         """Cargar el proyecto por organización sin filtros adicionales."""

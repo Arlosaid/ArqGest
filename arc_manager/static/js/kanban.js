@@ -353,9 +353,69 @@ class KanbanManager {
             card.style.transform = 'none';
             card.style.transition = 'all 0.1s ease-out';
             
+            // Actualizar botones de estado en la tarjeta (importante para móvil)
+            this.updateCardStatusButtons(card, newStatus);
+            
             // Actualizar contadores
             this.updateColumnCounts();
         }, 100);
+    }
+
+    updateCardStatusButtons(card, newStatus) {
+        // Buscar el contenedor de botones de estado en la tarjeta
+        const statusButtonsContainer = card.querySelector('.task-status-buttons');
+        if (!statusButtonsContainer) return;
+
+        // Generar los nuevos botones basados en el nuevo estado
+        const newButtons = this.generateStatusButtons(card.dataset.taskId, newStatus);
+        
+        // Reemplazar el contenido HTML
+        statusButtonsContainer.innerHTML = newButtons;
+    }
+
+    generateStatusButtons(taskId, status) {
+        // Generar los botones HTML basados en el estado actual
+        switch(status) {
+            case 'TODO':
+                return `
+                    <button class="btn btn-sm btn-primary" 
+                            onclick="updateTaskStatus(${taskId}, 'IN_PROGRESS')"
+                            title="Iniciar tarea">
+                        <i class="fas fa-play"></i>
+                    </button>
+                `;
+            case 'IN_PROGRESS':
+                return `
+                    <button class="btn btn-sm btn-warning" 
+                            onclick="updateTaskStatus(${taskId}, 'PAUSED')"
+                            title="Pausar tarea">
+                        <i class="fas fa-pause"></i>
+                    </button>
+                    <button class="btn btn-sm btn-success" 
+                            onclick="updateTaskStatus(${taskId}, 'DONE')"
+                            title="Completar tarea">
+                        <i class="fas fa-check"></i>
+                    </button>
+                `;
+            case 'PAUSED':
+                return `
+                    <button class="btn btn-sm btn-primary" 
+                            onclick="updateTaskStatus(${taskId}, 'IN_PROGRESS')"
+                            title="Reanudar tarea">
+                        <i class="fas fa-play"></i>
+                    </button>
+                `;
+            case 'DONE':
+                return `
+                    <button class="btn btn-sm btn-info" 
+                            onclick="updateTaskStatus(${taskId}, 'IN_PROGRESS')"
+                            title="Volver a En Progreso">
+                        <i class="fas fa-undo"></i>
+                    </button>
+                `;
+            default:
+                return '';
+        }
     }
 
     updateColumnCounts() {

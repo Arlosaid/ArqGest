@@ -8,6 +8,47 @@ import os
 logger = logging.getLogger(__name__)
 
 
+class ProjectManager(models.Manager):
+    """Manager optimizado para Project con queries eficientes"""
+    
+    def with_payments(self):
+        """
+        OPTIMIZACIÓN: Prefetch de pagos para evitar N+1 queries
+        Usar en listados donde se necesite total_paid
+        """
+        return self.prefetch_related('payments')
+    
+    def with_complete_data(self):
+        """
+        OPTIMIZACIÓN: Query completa para listados con toda la información
+        """
+        return self.select_related(
+            'client', 
+            'owner', 
+            'organization'
+        ).prefetch_related(
+            'payments',
+            'phases',
+        )
+    
+    def active_for_organization(self, organization_id):
+        """Proyectos activos de una organización (query optimizada)"""
+        return self.filter(
+            organization_id=organization_id,
+            status='ACTIVE'
+        ).select_related('client', 'owner')
+    
+    def with_financial_data(self):
+        """
+        OPTIMIZACIÓN: Para módulo financiero - incluye pagos
+        """
+        from django.db.models import Sum, Count
+        return self.select_related('client', 'owner').annotate(
+            payments_count=Count('payments'),
+            total_paid_calculated=Sum('payments__amount')
+        )
+
+
 class Project(models.Model):
     """Representa un proyecto de arquitectura."""
 
@@ -16,6 +57,8 @@ class Project(models.Model):
         ARCHIVED = 'ARCHIVED', _('Archivado')
         COMPLETED = 'COMPLETED', _('Completado')
 
+    # OPTIMIZACIÓN: Manager personalizado
+    objects = ProjectManager()
 
     organization = models.ForeignKey(
         Organization,
@@ -74,6 +117,14 @@ class Project(models.Model):
         verbose_name = _("Proyecto")
         verbose_name_plural = _("Proyectos")
         ordering = ['-created_at']
+        indexes = [
+            # OPTIMIZACIÓN: Índice compuesto para listado por organización y estado
+            models.Index(fields=['organization', 'status', '-created_at'], name='project_org_status_idx'),
+            # OPTIMIZACIÓN: Índice para búsquedas por organización y nombre
+            models.Index(fields=['organization', 'name'], name='project_org_name_idx'),
+            # OPTIMIZACIÓN: Índice para filtros financieros
+            models.Index(fields=['organization', 'budget_configured', '-created_at'], name='project_budget_idx'),
+        ]
 
     def __str__(self):
         return self.name
@@ -88,14 +139,35 @@ class Project(models.Model):
 
     @property
     def progress_percentage(self):
-        """Calcula el progreso real del proyecto basado en las tareas completadas."""
-        # Verificar si este proyecto tiene tareas
-        total_tasks = Task.objects.filter(phase__project=self).count()
-        if total_tasks == 0:
-            return 0
+        """
+        Calcula el progreso real del proyecto basado en las tareas completadas.
         
-        done_tasks = Task.objects.filter(phase__project=self, status='DONE').count()
-        progress = int((done_tasks / total_tasks) * 100)
+        OPTIMIZACIÓN: Usa caché para evitar recalcular en cada acceso.
+        En listados, usa get_or_set_dashboard_projects_progress() desde cache_utils.
+        """
+        from django.core.cache import cache
+        
+        # OPTIMIZACIÓN: Intentar obtener desde cache primero
+        cache_key = f"project_progress:{self.id}"
+        progress = cache.get(cache_key)
+        
+        if progress is not None:
+            return progress
+        
+        # Si no está en caché, calcular
+        from django.db.models import Count, Q
+        stats = Task.objects.filter(phase__project=self).aggregate(
+            total=Count('id'),
+            done=Count('id', filter=Q(status='DONE'))
+        )
+        
+        if stats['total'] == 0:
+            progress = 0
+        else:
+            progress = int((stats['done'] / stats['total']) * 100)
+        
+        # Guardar en caché por 10 minutos
+        cache.set(cache_key, progress, 600)
         
         return progress
     
@@ -141,9 +213,20 @@ class Project(models.Model):
     # Propiedades financieras
     @property
     def total_paid(self):
-        """Calcula el total pagado del proyecto con caché Redis."""
+        """
+        Calcula el total pagado del proyecto con caché Redis.
+        
+        OPTIMIZACIÓN: Para evitar N+1 queries en listados, usa el método estático
+        get_projects_with_payments() que hace prefetch de pagos.
+        """
         from decimal import Decimal
         from django.core.cache import cache
+        
+        # OPTIMIZACIÓN: Si ya tenemos los pagos prefetchados, usar esos
+        if hasattr(self, '_prefetched_objects_cache') and 'payments' in self._prefetched_objects_cache:
+            # Calcular desde los pagos prefetchados (sin query adicional)
+            total = sum(payment.amount for payment in self.payments.all())
+            return Decimal(str(total))
         
         # Intentar obtener desde caché primero
         cache_key = f"project_total_paid:{self.id}"
@@ -233,6 +316,12 @@ class Phase(models.Model):
         verbose_name = _("Fase")
         verbose_name_plural = _("Fases")
         ordering = ['project', 'order']
+        indexes = [
+            # OPTIMIZACIÓN: Índice para ordenamiento por proyecto
+            models.Index(fields=['project', 'order'], name='phase_project_order_idx'),
+            # OPTIMIZACIÓN: Índice para filtros por estado
+            models.Index(fields=['project', 'status'], name='phase_project_status_idx'),
+        ]
 
     def __str__(self):
         return f"{self.project.name} - {self.name}"
@@ -312,6 +401,16 @@ class Task(models.Model):
         verbose_name = _("Tarea")
         verbose_name_plural = _("Tareas")
         ordering = ['due_date', 'priority']
+        indexes = [
+            # OPTIMIZACIÓN: Índice compuesto para listado de tareas por fase
+            models.Index(fields=['phase', 'status', 'due_date'], name='task_phase_status_idx'),
+            # OPTIMIZACIÓN: Índice para tareas asignadas a usuario
+            models.Index(fields=['assigned_to', 'status', 'due_date'], name='task_assigned_status_idx'),
+            # OPTIMIZACIÓN: Índice para cálculo de progreso
+            models.Index(fields=['phase', 'status'], name='task_progress_idx'),
+            # OPTIMIZACIÓN: Índice para tareas vencidas
+            models.Index(fields=['due_date', 'status'], name='task_due_status_idx'),
+        ]
 
     def __str__(self):
         return self.title
@@ -496,8 +595,12 @@ class ProjectPayment(models.Model):
         verbose_name_plural = _("Pagos de Proyecto")
         ordering = ['-date', '-created_at']
         indexes = [
-            models.Index(fields=['project', '-date']),
-            models.Index(fields=['-created_at']),
+            # OPTIMIZACIÓN: Índice para listado de pagos por proyecto
+            models.Index(fields=['project', '-date'], name='payment_project_date_idx'),
+            # OPTIMIZACIÓN: Índice para pagos recientes
+            models.Index(fields=['-created_at'], name='payment_created_idx'),
+            # OPTIMIZACIÓN: Índice para cálculo de totales
+            models.Index(fields=['project', 'amount'], name='payment_project_amount_idx'),
         ]
 
     def __str__(self):
