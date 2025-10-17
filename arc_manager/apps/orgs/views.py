@@ -1,15 +1,21 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.views.generic import ListView, CreateView, UpdateView, DetailView, DeleteView
+from django.views.generic import ListView, CreateView, UpdateView, DetailView, DeleteView, View
 from django.db.utils import IntegrityError
 from django.db.models import Q
+from django.http import JsonResponse
+from django.core.exceptions import PermissionDenied
 from core.mixins import PageSizeMixin
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from .models import Organization, Client
 from .mixins import ClientOwnerMixin
 from .forms import OrganizationForm, ClientForm
+import logging
+import json
+
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # Vistas de Clientes
@@ -124,6 +130,69 @@ class ClientDeleteView(LoginRequiredMixin, ClientOwnerMixin, DeleteView):
     def form_valid(self, form):
         messages.success(self.request, "Cliente eliminado con éxito.")
         return super().form_valid(form)
+
+
+class ClientToggleStatusView(LoginRequiredMixin, View):
+    """Vista AJAX para cambiar el estado activo/inactivo de un cliente"""
+    
+    def dispatch(self, request, *args, **kwargs):
+        client_to_toggle = get_object_or_404(Client, pk=kwargs['pk'])
+        current_user = request.user
+        
+        # Solo org_admin puede cambiar estado de clientes de su organización
+        if not (current_user.is_org_admin and current_user.organization and 
+                client_to_toggle.organization == current_user.organization):
+            raise PermissionDenied("No tienes permisos para modificar este cliente")
+        
+        return super().dispatch(request, *args, **kwargs)
+    
+    def post(self, request, pk):
+        """Cambiar estado del cliente"""
+        client_to_toggle = get_object_or_404(Client, pk=pk)
+        
+        try:
+            data = json.loads(request.body)
+            new_status = data.get('is_active', False)
+            
+            # Cambiar estado
+            client_to_toggle.is_active = new_status
+            client_to_toggle.save()
+            
+            # Log del cambio
+            action = "activado" if new_status else "desactivado"
+            logger.info(
+                f"Cliente {action}: {client_to_toggle.name} "
+                f"(ID: {client_to_toggle.id}, por {request.user.email})"
+            )
+            
+            # Obtener estadísticas actualizadas para clientes
+            org = request.user.organization
+            total_clients = org.clients.count()
+            active_clients = org.clients.filter(is_active=True).count()
+            inactive_clients = total_clients - active_clients
+            
+            return JsonResponse({
+                'success': True,
+                'message': f"Cliente {action} correctamente",
+                'new_status': new_status,
+                'stats': {
+                    'total_clients': total_clients,
+                    'active_clients': active_clients,
+                    'inactive_clients': inactive_clients
+                }
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'success': False,
+                'error': 'Datos inválidos'
+            }, status=400)
+        except Exception as e:
+            logger.error(f"Error al cambiar estado de cliente: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'error': 'Error al cambiar el estado del cliente'
+            }, status=500)
 
 
 # =============================================================================

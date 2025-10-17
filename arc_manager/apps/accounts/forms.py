@@ -11,7 +11,7 @@ class CustomAuthenticationForm(AuthenticationForm):
     error_messages = {
         'invalid_login': 'Por favor, introduce un correo electrónico y contraseña válidos. '
                          'Ten en cuenta que ambos campos pueden ser sensibles a mayúsculas y minúsculas.',
-        'inactive': 'Esta cuenta está inactiva.',
+        'inactive': 'Tu cuenta está inactiva. Por favor, contacta con el administrador de tu organización para reactivarla.',
     }
     
     username = forms.EmailField(
@@ -40,6 +40,21 @@ class CustomAuthenticationForm(AuthenticationForm):
         password = self.cleaned_data.get('password')
         
         logger.debug(f"Validando formulario de autenticación para: {username}")
+        
+        # Primero verificar si el usuario existe y está inactivo
+        if username and password:
+            try:
+                User = get_user_model()
+                user = User.objects.filter(email=username).first()
+                
+                if user and not user.is_active:
+                    logger.warning(f"Intento de login con cuenta inactiva: {username}")
+                    raise ValidationError(
+                        'Tu cuenta está inactiva. Por favor, contacta con el administrador de tu organización para reactivarla.',
+                        code='inactive'
+                    )
+            except User.DoesNotExist:
+                pass
         
         try:
             result = super().clean()

@@ -5,6 +5,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/client_management.css' %}">
+<link rel="stylesheet" href="{% static 'css/status-toggle.css' %}">
 {% endblock %}
             
 {% block content %}
@@ -108,10 +109,23 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if client.is_active %}
-                                    <span class="status-badge active">Activo</span>
+                                {% if user.is_org_admin %}
+                                    <!-- Toggle interactivo para cambiar estado -->
+                                    <div class="status-toggle-container"
+                                         data-toggle-status="client"
+                                         data-entity-id="{{ client.pk }}"
+                                         data-entity-name="{{ client.name }}"
+                                         data-current-status="{{ client.is_active|yesno:'true,false' }}">
+                                        <div class="toggle-switch {% if client.is_active %}active{% else %}inactive{% endif %}"></div>
+                                        <span class="toggle-status-text {% if client.is_active %}status-active{% else %}status-inactive{% endif %}">
+                                            {% if client.is_active %}Activo{% else %}Inactivo{% endif %}
+                                        </span>
+                                    </div>
                                 {% else %}
-                                    <span class="status-badge inactive">Inactivo</span>
+                                    <!-- Solo badge visual (sin toggle) -->
+                                    <span class="status-badge {% if client.is_active %}active{% else %}inactive{% endif %}">
+                                        {% if client.is_active %}Activo{% else %}Inactivo{% endif %}
+                                    </span>
                                 {% endif %}
                             </td>
                             <td>
@@ -183,4 +197,11 @@
     </div>
 </div>
 
+{% csrf_token %}
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Script de gestión de estado de clientes -->
+<script src="{% static 'js/status-toggle.js' %}"></script>
 {% endblock %}

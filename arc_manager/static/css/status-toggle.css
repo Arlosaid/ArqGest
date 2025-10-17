@@ -1,0 +1,388 @@
+/**
+ * Estilos para Sistema de Toggle de Estado
+ * Diseño profesional y minimalista
+ */
+
+/* ========================================
+   TOGGLE SWITCH - Estilo iOS Mejorado
+   ======================================== */
+
+.status-toggle-container {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    padding: 10px 16px;
+    background: white;
+    border-radius: 28px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+    transition: box-shadow 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.status-toggle-container:hover {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.status-toggle-container.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.toggle-switch {
+    position: relative;
+    width: 56px;
+    height: 30px;
+    background-color: #e5e7eb;
+    border-radius: 15px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 2px solid #d1d5db;
+    flex-shrink: 0;
+}
+
+.toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 22px;
+    height: 22px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Estado ACTIVO */
+.toggle-switch.active {
+    background-color: #10b981;
+    border-color: #059669;
+}
+
+.toggle-switch.active::after {
+    transform: translateX(26px);
+}
+
+/* Estado INACTIVO/ARCHIVADO */
+.toggle-switch.inactive,
+.toggle-switch.archived {
+    background-color: #9ca3af;
+    border-color: #6b7280;
+}
+
+.toggle-switch.archived::after,
+.toggle-switch.inactive::after {
+    box-shadow: 0 3px 8px rgba(156, 163, 175, 0.4);
+}
+
+/* Hover effects */
+.status-toggle-container:hover .toggle-switch:not(.disabled) {
+    opacity: 0.95;
+}
+
+.status-toggle-container:hover .toggle-switch.active {
+    background-color: #059669;
+    border-color: #047857;
+}
+
+.status-toggle-container:hover .toggle-switch.inactive,
+.status-toggle-container:hover .toggle-switch.archived {
+    background-color: #6b7280;
+    border-color: #4b5563;
+}
+
+/* Animación al cambiar */
+.toggle-animation .toggle-switch {
+    animation: togglePulse 0.3s ease;
+}
+
+@keyframes togglePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* ========================================
+   TEXTO DE ESTADO
+   ======================================== */
+
+.toggle-status-text {
+    font-size: 0.9rem;
+    font-weight: 700;
+    transition: color 0.3s ease;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+}
+
+.toggle-status-text.status-active {
+    color: #10b981;
+}
+
+.toggle-status-text.status-inactive {
+    color: #6b7280;
+}
+
+.toggle-status-text.status-archived {
+    color: #6b7280;
+}
+
+/* ========================================
+   MODAL DE CONFIRMACIÓN
+   ======================================== */
+
+.status-toggle-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.status-toggle-modal.show {
+    opacity: 1;
+}
+
+.status-toggle-modal.closing {
+    opacity: 0;
+}
+
+.status-toggle-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+}
+
+.status-toggle-modal-content {
+    position: relative;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    max-width: 400px;
+    width: 90%;
+    transform: scale(0.95);
+    transition: transform 0.2s ease;
+}
+
+.status-toggle-modal.show .status-toggle-modal-content {
+    transform: scale(1);
+}
+
+.status-toggle-modal-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.status-toggle-modal-header h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+.status-toggle-modal-body {
+    padding: 20px 24px;
+}
+
+.status-toggle-modal-body p {
+    margin: 0;
+    font-size: 0.9375rem;
+    color: #4b5563;
+    line-height: 1.6;
+}
+
+.status-toggle-modal-body small {
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.status-toggle-modal-footer {
+    padding: 16px 24px 20px;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    border-top: 1px solid #e5e7eb;
+}
+
+.status-toggle-modal-footer button {
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.status-toggle-modal-footer .btn-cancel {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.status-toggle-modal-footer .btn-cancel:hover {
+    background-color: #e5e7eb;
+}
+
+.status-toggle-modal-footer .btn-confirm {
+    background-color: #2563eb;
+    color: white;
+}
+
+.status-toggle-modal-footer .btn-confirm:hover {
+    background-color: #1d4ed8;
+}
+
+/* ========================================
+   NOTIFICACIONES
+   ======================================== */
+
+.status-toggle-notification {
+    position: fixed;
+    top: 80px;
+    right: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    z-index: 9999;
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+}
+
+.status-toggle-notification.show {
+    transform: translateX(0);
+}
+
+.status-toggle-notification.success {
+    border-left: 4px solid #10b981;
+}
+
+.status-toggle-notification.error {
+    border-left: 4px solid #ef4444;
+}
+
+.status-toggle-notification .notification-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 0.875rem;
+}
+
+.status-toggle-notification.success .notification-icon {
+    background-color: #d1fae5;
+    color: #10b981;
+}
+
+.status-toggle-notification.error .notification-icon {
+    background-color: #fee2e2;
+    color: #ef4444;
+}
+
+.status-toggle-notification .notification-message {
+    font-size: 0.875rem;
+    color: #374151;
+    font-weight: 500;
+}
+
+/* ========================================
+   ANIMACIÓN DE CONTADORES
+   ======================================== */
+
+.counter-update {
+    animation: counterPulse 0.5s ease;
+}
+
+@keyframes counterPulse {
+    0%, 100% { 
+        transform: scale(1);
+        color: inherit;
+    }
+    50% { 
+        transform: scale(1.15);
+        color: #2563eb;
+        font-weight: 600;
+    }
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 768px) {
+    .status-toggle-modal-content {
+        width: 95%;
+        max-width: none;
+    }
+
+    .status-toggle-notification {
+        right: 16px;
+        left: 16px;
+        top: 16px;
+    }
+}
+
+/* ========================================
+   BADGE DE ESTADO (alternativa visual)
+   ======================================== */
+
+.status-badge-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.status-badge-toggle.active {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge-toggle.inactive {
+    background-color: #f3f4f6;
+    color: #6b7280;
+}
+
+.status-badge-toggle:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.status-badge-toggle .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.status-badge-toggle.active .status-dot {
+    background-color: #10b981;
+}
+
+.status-badge-toggle.inactive .status-dot {
+    background-color: #9ca3af;
+}
+
