@@ -44,8 +44,10 @@ def dashboard(request):
     dashboard_stats = cache.get(cache_key)
     
     if dashboard_stats is None:
-        # Contar proyectos y clientes de la organización
-        total_projects = Project.objects.filter(organization=organization).count()
+        # Contar proyectos y clientes de la organización (excluir archivados)
+        total_projects = Project.objects.filter(
+            organization=organization
+        ).exclude(status='ARCHIVED').count()
         total_clients = Client.objects.filter(organization=organization).count()
         
         dashboard_stats = {
@@ -58,18 +60,26 @@ def dashboard(request):
         total_projects = dashboard_stats['total_projects']
         total_clients = dashboard_stats['total_clients']
     
-    # 1. Widget "Mis Tareas" - optimizado con select_related
+    # 1. Widget "Mis Tareas" - optimizado con select_related (excluir archivados)
     my_tasks = Task.objects.filter(
         assigned_to=current_user
-    ).exclude(status='DONE').select_related(
+    ).exclude(
+        status='DONE'
+    ).exclude(
+        phase__project__status='ARCHIVED'
+    ).select_related(
         'phase__project', 
         'assigned_to'
     ).order_by('due_date')[:3]
     
-    # Contar mis tareas pendientes (reutilizando filtro base)
+    # Contar mis tareas pendientes (reutilizando filtro base, excluir archivados)
     total_my_tasks = Task.objects.filter(
         assigned_to=current_user
-    ).exclude(status='DONE').count()
+    ).exclude(
+        status='DONE'
+    ).exclude(
+        phase__project__status='ARCHIVED'
+    ).count()
 
     # 2. Widget "Proyectos Activos" - optimizado con cache de progreso
     active_projects = Project.objects.filter(
@@ -86,9 +96,11 @@ def dashboard(request):
         for project in active_projects:
             project._cached_progress = projects_progress.get(project.id, 0)
 
-    # 3. Widget "Archivos Recientes" - optimizado
+    # 3. Widget "Archivos Recientes" - optimizado (excluir archivados)
     recent_files = ProjectFile.objects.filter(
         phase__project__organization=organization
+    ).exclude(
+        phase__project__status='ARCHIVED'
     ).select_related(
         'phase__project',
         'uploaded_by'
@@ -98,9 +110,11 @@ def dashboard(request):
     from apps.orgs.storage_service import StorageService
     storage_summary = StorageService.get_storage_summary(organization)
     
-    # Total de tareas de la organización (optimizado)
+    # Total de tareas de la organización (optimizado, excluir archivados)
     total_tasks = Task.objects.filter(
         phase__project__organization=organization
+    ).exclude(
+        phase__project__status='ARCHIVED'
     ).count()
     
     # No necesitamos recent_clients ya que no se usa en el template

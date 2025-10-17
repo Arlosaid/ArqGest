@@ -218,6 +218,9 @@ def get_or_set_user_accessible_projects(user_id, organization_id, is_admin=False
             'active_ids': active_ids,
             'completed_ids': completed_ids,
             'archived_ids': archived_ids,
+            'active_count': len(active_ids),
+            'completed_count': len(completed_ids),
+            'archived_count': len(archived_ids),
             'total_count': len(active_ids) + len(completed_ids) + len(archived_ids)
         }
         

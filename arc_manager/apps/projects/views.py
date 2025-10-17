@@ -44,6 +44,7 @@ from core.mixins import PageSizeMixin, ProjectPageSizeMixin
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.cache import cache
 from apps.orgs.mixins import OrganizationAdminMixin
+from django.core.exceptions import PermissionDenied
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -57,10 +58,45 @@ class ProjectListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
 
     def get_queryset(self):
         if hasattr(self.request.user, 'organization') and self.request.user.organization:
+            from django.db.models import Case, When, Value, IntegerField
+            
             # OPTIMIZACIÓN: Usar manager optimizado para listados completos
-            return Project.objects.with_complete_data().filter(
+            queryset = Project.objects.with_complete_data().filter(
                 organization=self.request.user.organization
-            ).order_by('-created_at')
+            )
+            
+            # Filtro de status (activo/archivado)
+            status_filter = self.request.GET.get('status', '').strip()
+            if status_filter == 'active':
+                queryset = queryset.filter(status=Project.Status.ACTIVE)
+                # Ordenar activos por fecha de entrega (end_date) y luego por creación
+                return queryset.order_by('end_date', '-created_at')
+            elif status_filter == 'archived':
+                queryset = queryset.filter(status=Project.Status.ARCHIVED)
+                # Ordenar archivados por fecha de creación
+                return queryset.order_by('-created_at')
+            
+            # Si es 'all' o vacío: mostrar activos primero, luego completados, archivados al final
+            # Filtro de búsqueda
+            search = self.request.GET.get('search', '').strip()
+            if search:
+                queryset = queryset.filter(
+                    Q(name__icontains=search) |
+                    Q(client__name__icontains=search)
+                )
+            
+            # Ordenamiento: Activos primero (ordenados por end_date), luego completados, archivados al final
+            queryset = queryset.annotate(
+                status_order=Case(
+                    When(status='ACTIVE', then=Value(1)),
+                    When(status='COMPLETED', then=Value(2)),
+                    When(status='ARCHIVED', then=Value(3)),
+                    default=Value(4),
+                    output_field=IntegerField()
+                )
+            ).order_by('status_order', 'end_date', '-created_at')
+            
+            return queryset
         logger.warning(f"User {self.request.user.email} accessed project list without organization")
         return Project.objects.none()
 
@@ -101,6 +137,22 @@ class ProjectListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
                 # Asignar progreso desde cache a cada proyecto
                 for project in context['projects']:
                     project._cached_progress = projects_progress.get(project.id, 0)
+            
+            # Parámetros de filtros actuales para preservar en paginación
+            current_filters = {
+                'status': self.request.GET.get('status', ''),
+                'search': self.request.GET.get('search', ''),
+            }
+            
+            # Construir extra_params para el partial de paginación (preserva filtros)
+            params = self.request.GET.copy()
+            params.pop('page', None)
+            extra_params = params.urlencode()
+            if extra_params:
+                extra_params = f"{extra_params}&"
+            
+            context['current_filters'] = current_filters
+            context['extra_params'] = extra_params
         
         return context
 
@@ -809,6 +861,8 @@ class TaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
         start_time = time.time()
         queryset = Task.objects.filter(
             phase__project__organization=self.request.user.organization
+        ).exclude(
+            phase__project__status='ARCHIVED'
         ).select_related('phase__project', 'assigned_to').order_by('due_date', 'priority')
         
         query_time = time.time() - start_time
@@ -838,7 +892,9 @@ class TaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        all_tasks = Task.objects.filter(phase__project__organization=self.request.user.organization)
+        all_tasks = Task.objects.filter(
+            phase__project__organization=self.request.user.organization
+        ).exclude(phase__project__status='ARCHIVED')
         context['total_tasks'] = all_tasks.count()
         context['tasks_todo'] = all_tasks.filter(status='TODO').count()
         context['tasks_in_progress'] = all_tasks.filter(status='IN_PROGRESS').count()
@@ -858,6 +914,8 @@ class MyTaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
         queryset = Task.objects.filter(
             phase__project__organization=self.request.user.organization,
             assigned_to=self.request.user
+        ).exclude(
+            phase__project__status='ARCHIVED'
         ).select_related('phase__project', 'assigned_to').order_by('due_date', 'priority')
         
         # Aplicar filtros si están presentes
@@ -898,11 +956,11 @@ class MyTaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Obtener todas las tareas del usuario sin filtros
+        # Obtener todas las tareas del usuario sin filtros (excluir archivados)
         all_tasks = Task.objects.filter(
             phase__project__organization=self.request.user.organization,
             assigned_to=self.request.user
-        )
+        ).exclude(phase__project__status='ARCHIVED')
         
         # Obtener el queryset filtrado completo (todas las páginas)
         filtered_queryset = self.get_queryset()
@@ -1532,16 +1590,13 @@ class ProjectKanbanSelectorView(LoginRequiredMixin, View):
         )
         
         # OPTIMIZACIÓN: Construir QuerySets con datos completos para evitar N+1
+        # No mostrar proyectos archivados
         active_projects = Project.objects.with_complete_data().filter(
             id__in=accessible_data['active_ids']
         ).order_by('-created_at')
         
         completed_projects = Project.objects.with_complete_data().filter(
             id__in=accessible_data['completed_ids']
-        ).order_by('-created_at')
-        
-        archived_projects = Project.objects.with_complete_data().filter(
-            id__in=accessible_data['archived_ids']
         ).order_by('-created_at')
 
         # Paginación por sección (8 por página por solicitud)
@@ -1561,17 +1616,17 @@ class ProjectKanbanSelectorView(LoginRequiredMixin, View):
 
         active_page_obj = build_page(active_projects, 'active_page')
         completed_page_obj = build_page(completed_projects, 'completed_page')
-        archived_page_obj = build_page(archived_projects, 'archived_page')
+        
+        # Total sin contar archivados
+        total_projects = accessible_data['active_count'] + accessible_data['completed_count']
         
         context = {
             'active_projects': active_projects,
             'completed_projects': completed_projects,
-            'archived_projects': archived_projects,
-            'total_projects': accessible_data['total_count'],
+            'total_projects': total_projects,
             # Page objects
             'active_page_obj': active_page_obj,
             'completed_page_obj': completed_page_obj,
-            'archived_page_obj': archived_page_obj,
             'page_size': page_size,
             # Todos los proyectos mostrados son accesibles
             'all_projects_accessible': True,
@@ -1583,8 +1638,8 @@ class ProjectKanbanSelectorView(LoginRequiredMixin, View):
 # FINANCE MODULE VIEWS
 # ================================
 
-class FinanceDashboardView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
-    """Dashboard principal del módulo financiero con paginación y filtros."""
+class FinanceDashboardView(LoginRequiredMixin, OrganizationAdminMixin, ProjectPageSizeMixin, ListView):
+    """Dashboard principal del módulo financiero con paginación y filtros (solo admin)."""
     model = Project
     template_name = 'projects/finance/dashboard.html'
     context_object_name = 'projects'
@@ -1595,7 +1650,7 @@ class FinanceDashboardView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
         # OPTIMIZACIÓN: Usar manager optimizado con financial_data
         queryset = Project.objects.with_financial_data().filter(
             organization=self.request.user.organization
-        )
+        ).exclude(status=Project.Status.ARCHIVED)  # Excluir proyectos archivados
         
         # Filtros
         search = self.request.GET.get('search', '').strip()
@@ -1613,8 +1668,6 @@ class FinanceDashboardView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
             queryset = queryset.filter(budget_configured=True)
         elif budget_status == 'not_configured':
             queryset = queryset.filter(budget_configured=False)
-        
-        # Se elimina filtro por estado de proyecto en dashboard financiero
         
         # Ordenar por fecha de creación (más recientes primero)
         return queryset.order_by('-created_at')
@@ -1661,8 +1714,8 @@ class FinanceDashboardView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
         return context
 
 
-class ProjectFinanceDetailView(LoginRequiredMixin, DetailView):
-    """Vista detallada de finanzas de un proyecto específico."""
+class ProjectFinanceDetailView(LoginRequiredMixin, OrganizationAdminMixin, DetailView):
+    """Vista detallada de finanzas de un proyecto específico (solo admin)."""
     model = Project
     template_name = 'projects/finance/project_detail.html'
     context_object_name = 'project'
@@ -1699,8 +1752,8 @@ class ProjectFinanceDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
-class ProjectBudgetConfigView(LoginRequiredMixin, UpdateView):
-    """Vista para configurar el presupuesto de un proyecto."""
+class ProjectBudgetConfigView(LoginRequiredMixin, OrganizationAdminMixin, UpdateView):
+    """Vista para configurar el presupuesto de un proyecto (solo admin)."""
     model = Project
     fields = ['total_budget']
     template_name = 'projects/finance/budget_config.html'
@@ -1755,8 +1808,8 @@ class ProjectBudgetConfigView(LoginRequiredMixin, UpdateView):
         )
 
 
-class PaymentCreateView(LoginRequiredMixin, CreateView):
-    """Vista para registrar un nuevo pago."""
+class PaymentCreateView(LoginRequiredMixin, OrganizationAdminMixin, CreateView):
+    """Vista para registrar un nuevo pago (solo admin)."""
     model = ProjectPayment
     fields = ['amount', 'date', 'description']
     template_name = 'projects/finance/payment_form.html'
@@ -1836,8 +1889,8 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
         )
 
 
-class PaymentUpdateView(LoginRequiredMixin, UpdateView):
-    """Vista para editar un pago existente."""
+class PaymentUpdateView(LoginRequiredMixin, OrganizationAdminMixin, UpdateView):
+    """Vista para editar un pago existente (solo admin)."""
     model = ProjectPayment
     fields = ['amount', 'date', 'description']
     template_name = 'projects/finance/payment_form.html'
@@ -1934,8 +1987,8 @@ class PaymentUpdateView(LoginRequiredMixin, UpdateView):
         )
 
 
-class PaymentDeleteView(LoginRequiredMixin, DeleteView):
-    """Eliminar un pago y su comprobante asociado del storage."""
+class PaymentDeleteView(LoginRequiredMixin, OrganizationAdminMixin, DeleteView):
+    """Eliminar un pago y su comprobante asociado del storage (solo admin)."""
     model = ProjectPayment
     template_name = 'projects/finance/payment_confirm_delete.html'
     context_object_name = 'payment'
@@ -1964,3 +2017,77 @@ class PaymentDeleteView(LoginRequiredMixin, DeleteView):
     def get(self, request, *args, **kwargs):
         # No mostramos plantilla de confirmación; flujo simple y directo
         return redirect(self.get_success_url())
+
+
+class ProjectToggleStatusView(LoginRequiredMixin, View):
+    """Vista AJAX para cambiar el estado ACTIVE/ARCHIVED de un proyecto (solo admin)"""
+    
+    def dispatch(self, request, *args, **kwargs):
+        project_to_toggle = get_object_or_404(Project, pk=kwargs['pk'])
+        current_user = request.user
+        
+        # Solo org_admin puede cambiar estado de proyectos de su organización
+        if not (current_user.is_org_admin and current_user.organization and 
+                project_to_toggle.organization == current_user.organization):
+            raise PermissionDenied("No tienes permisos para modificar este proyecto")
+        
+        return super().dispatch(request, *args, **kwargs)
+    
+    def post(self, request, pk):
+        """Cambiar estado del proyecto entre ACTIVE y ARCHIVED"""
+        project_to_toggle = get_object_or_404(Project, pk=pk)
+        
+        try:
+            data = json.loads(request.body)
+            # En vez de is_active, recibimos el nuevo estado deseado
+            # Si is_active=true => ACTIVE, si false => ARCHIVED
+            is_active = data.get('is_active', False)
+            new_status = Project.Status.ACTIVE if is_active else Project.Status.ARCHIVED
+            
+            # Cambiar estado
+            old_status = project_to_toggle.status
+            project_to_toggle.status = new_status
+            project_to_toggle.save()
+            
+            # Invalidar cache después de cambiar estado
+            from .cache_utils import invalidate_project_cache, invalidate_kanban_projects_cache
+            invalidate_project_cache(project_to_toggle.organization.id, project_to_toggle.id)
+            invalidate_kanban_projects_cache(project_to_toggle.organization.id)
+            
+            # Log del cambio
+            action = "activado" if is_active else "archivado"
+            logger.info(
+                f"Proyecto {action}: {project_to_toggle.name} "
+                f"(ID: {project_to_toggle.id}, de {old_status} a {new_status}, por {request.user.email})"
+            )
+            
+            # Obtener estadísticas actualizadas para proyectos
+            org = request.user.organization
+            total_projects = Project.objects.filter(organization=org).count()
+            active_projects = Project.objects.filter(organization=org, status=Project.Status.ACTIVE).count()
+            archived_projects = Project.objects.filter(organization=org, status=Project.Status.ARCHIVED).count()
+            completed_projects = Project.objects.filter(organization=org, status=Project.Status.COMPLETED).count()
+            
+            return JsonResponse({
+                'success': True,
+                'message': f"Proyecto {action} correctamente",
+                'new_status': is_active,
+                'stats': {
+                    'total_projects': total_projects,
+                    'active_projects': active_projects,
+                    'archived_projects': archived_projects,
+                    'completed_projects': completed_projects
+                }
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'success': False,
+                'error': 'Datos inválidos'
+            }, status=400)
+        except Exception as e:
+            logger.error(f"Error al cambiar estado de proyecto: {str(e)}", exc_info=True)
+            return JsonResponse({
+                'success': False,
+                'error': 'Error al cambiar el estado del proyecto'
+            }, status=500)

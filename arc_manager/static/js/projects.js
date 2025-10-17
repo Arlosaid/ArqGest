@@ -1,6 +1,6 @@
 /**
- * Projects Module - JavaScript v2.5
- * Funcionalidades profesionales para el módulo de proyectos
+ * Projects Module - JavaScript v5.0
+ * Funcionalidades profesionales para el módulo de proyectos con filtros de backend
  */
 
 class ProjectsManager {
@@ -9,33 +9,18 @@ class ProjectsManager {
     }
 
     init() {
-        this.setupEventListeners();
+        this.currentStatusFilter = 'all'; // Filtro actual
+        this.searchTimeout = null;
         this.setupSearchAndFilters();
+        this.setupStatusFilters();
         this.setupTooltips();
+        this.setupActionButtons();
         this.ensureSingleActiveTab();
         this.normalizeInitialActiveTab();
         this.activateTabFromUrl();
     }
 
-    setupEventListeners() {
-        // Search functionality for new design
-        const searchInput = document.querySelector('.table-search-input');
-        const clearBtn = document.querySelector('.clear-search-btn');
-
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
-            searchInput.addEventListener('keyup', (e) => this.handleSearch(e.target.value));
-        }
-
-        if (clearBtn) {
-            clearBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                searchInput.value = '';
-                this.handleSearch('');
-                clearBtn.style.display = 'none';
-            });
-        }
-
+    setupActionButtons() {
         // Action buttons
         const actionButtons = document.querySelectorAll('.action-btn');
         actionButtons.forEach(button => {
@@ -44,14 +29,24 @@ class ProjectsManager {
     }
 
     setupSearchAndFilters() {
-        // Real-time search with debouncing
-        let searchTimeout;
         const searchInput = document.querySelector('.table-search-input');
         const clearBtn = document.querySelector('.clear-search-btn');
         
         if (searchInput) {
+            // Cargar valor de búsqueda desde URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const searchFromUrl = urlParams.get('search') || '';
+            if (searchFromUrl) {
+                searchInput.value = searchFromUrl;
+                if (clearBtn) clearBtn.style.display = 'block';
+            }
+            
+            // Solo un event listener para búsqueda
             searchInput.addEventListener('input', (e) => {
-                clearTimeout(searchTimeout);
+                if (this.searchTimeout) {
+                    clearTimeout(this.searchTimeout);
+                }
+                
                 const searchTerm = e.target.value.trim();
                 
                 // Show/hide clear button
@@ -59,17 +54,105 @@ class ProjectsManager {
                     clearBtn.style.display = searchTerm.length > 0 ? 'block' : 'none';
                 }
                 
-                // Immediate search for short terms
-                if (searchTerm.length <= 2) {
-                    this.performSearch(searchTerm);
-                } else {
-                    // Debounce for longer terms
-                    searchTimeout = setTimeout(() => {
-                        this.performSearch(searchTerm);
-                    }, 200);
-                }
+                // Búsqueda con debounce
+                this.searchTimeout = setTimeout(() => {
+                    this.applyFiltersWithUrl(searchTerm, this.currentStatusFilter);
+                }, 400);
             });
         }
+
+        if (clearBtn) {
+            clearBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (searchInput) {
+                    searchInput.value = '';
+                    this.applyFiltersWithUrl('', this.currentStatusFilter);
+                }
+                clearBtn.style.display = 'none';
+            });
+        }
+    }
+
+    setupStatusFilters() {
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        console.log('🔍 Configurando filtros de estado. Botones encontrados:', filterButtons.length);
+        
+        if (filterButtons.length === 0) {
+            console.warn('⚠️ No se encontraron botones de filtro');
+            return;
+        }
+        
+        // Cargar filtro de status desde URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const statusFromUrl = urlParams.get('status') || 'all';
+        this.currentStatusFilter = statusFromUrl;
+        
+        // Marcar el botón activo según la URL
+        filterButtons.forEach(btn => {
+            if (btn.dataset.filter === statusFromUrl) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        
+        filterButtons.forEach((button, index) => {
+            console.log(`✅ Registrando listener para botón ${index + 1}:`, button.dataset.filter);
+            
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('🖱️ CLICK en filtro:', button.dataset.filter);
+                
+                // Remover clase active de todos los botones
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                
+                // Agregar clase active al botón clickeado
+                button.classList.add('active');
+                
+                // Obtener el filtro seleccionado
+                const filter = button.dataset.filter;
+                this.currentStatusFilter = filter;
+                
+                console.log('📊 Filtro actualizado a:', this.currentStatusFilter);
+                
+                // Obtener término de búsqueda actual
+                const searchInput = document.querySelector('.table-search-input');
+                const searchTerm = searchInput ? searchInput.value.trim() : '';
+                
+                // Aplicar filtros con URL
+                this.applyFiltersWithUrl(searchTerm, filter);
+            });
+        });
+        
+        console.log('✅ Filtros configurados correctamente');
+    }
+
+    applyFiltersWithUrl(searchTerm = '', statusFilter = 'all') {
+        // Construir nueva URL con filtros
+        const url = new URL(window.location);
+        
+        // Actualizar parámetros
+        if (searchTerm) {
+            url.searchParams.set('search', searchTerm);
+        } else {
+            url.searchParams.delete('search');
+        }
+        
+        if (statusFilter && statusFilter !== 'all') {
+            url.searchParams.set('status', statusFilter);
+        } else {
+            url.searchParams.delete('status');
+        }
+        
+        // Resetear página a 1 cuando se cambia el filtro
+        url.searchParams.delete('page');
+        
+        console.log('🔄 Redirigiendo con filtros:', url.toString());
+        
+        // Redirigir a la nueva URL
+        window.location.href = url.toString();
     }
 
     setupTooltips() {
@@ -79,92 +162,6 @@ class ProjectsManager {
             element.addEventListener('mouseenter', (e) => this.showTooltip(e));
             element.addEventListener('mouseleave', () => this.hideTooltip());
         });
-    }
-
-    handleSearch(searchTerm) {
-        const cards = document.querySelectorAll('.project-card');
-        let visibleCount = 0;
-
-        cards.forEach(card => {
-            const title = card.querySelector('.project-title').textContent.toLowerCase();
-            const clientName = card.dataset.clientName || '';
-            const projectName = card.dataset.projectName || '';
-            const searchLower = searchTerm.toLowerCase();
-
-            const matches = searchLower === '' || 
-                          title.includes(searchLower) || 
-                          clientName.includes(searchLower) ||
-                          projectName.includes(searchLower);
-
-            if (matches) {
-                card.style.display = 'block';
-                card.classList.remove('filtering-out');
-                visibleCount++;
-            } else {
-                card.classList.add('filtering-out');
-                setTimeout(() => {
-                    card.style.display = 'none';
-                    card.classList.remove('filtering-out');
-                }, 300);
-            }
-        });
-
-        this.updateResultsCounter(visibleCount, cards.length);
-    }
-
-    performSearch(searchTerm) {
-        // Search by project name and client
-        const cards = document.querySelectorAll('.project-card');
-        const results = [];
-
-        cards.forEach(card => {
-            const title = card.querySelector('.project-title').textContent;
-            const clientName = card.dataset.clientName || '';
-            const projectName = card.dataset.projectName || '';
-            const searchLower = searchTerm.toLowerCase();
-            
-            const matches = searchLower === '' || 
-                          title.toLowerCase().includes(searchLower) || 
-                          clientName.includes(searchLower) ||
-                          projectName.includes(searchLower);
-            
-            if (matches) {
-                results.push(card);
-            }
-        });
-
-        this.displaySearchResults(results);
-    }
-
-    displaySearchResults(results) {
-        const cards = document.querySelectorAll('.project-card');
-        
-        cards.forEach(card => {
-            if (results.includes(card)) {
-                card.style.display = 'block';
-                card.classList.remove('filtering-out');
-            } else {
-                card.classList.add('filtering-out');
-                setTimeout(() => {
-                    card.style.display = 'none';
-                    card.classList.remove('filtering-out');
-                }, 300);
-            }
-        });
-
-        this.updateResultsCounter(results.length, cards.length);
-    }
-
-    updateResultsCounter(visible, total) {
-        const counter = document.querySelector('.result-count');
-        if (counter) {
-            if (visible === total) {
-                counter.style.display = 'none';
-            } else {
-                counter.textContent = `${visible} de ${total} proyectos`;
-                counter.style.display = 'block';
-            }
-        }
     }
 
     handleActionClick(event) {
@@ -307,51 +304,56 @@ class ProjectsManager {
     }
 }
 
-// Estilos adicionales para componentes dinámicos
-const additionalStyles = `
-    .custom-tooltip {
-        position: absolute;
-        background: var(--project-text);
-        color: white;
-        padding: 0.5rem 0.75rem;
-        border-radius: var(--project-radius);
-        font-size: 0.75rem;
-        white-space: nowrap;
-        z-index: 1000;
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity 0.2s;
+// Inicialización cuando el DOM esté listo
+(function() {
+    // Estilos adicionales para componentes dinámicos
+    if (!document.getElementById('projects-custom-styles')) {
+        const styleSheet = document.createElement('style');
+        styleSheet.id = 'projects-custom-styles';
+        styleSheet.textContent = `
+            .custom-tooltip {
+                position: absolute;
+                background: var(--project-text);
+                color: white;
+                padding: 0.5rem 0.75rem;
+                border-radius: var(--project-radius);
+                font-size: 0.75rem;
+                white-space: nowrap;
+                z-index: 1000;
+                pointer-events: none;
+                opacity: 0;
+                transition: opacity 0.2s;
+            }
+        `;
+        document.head.appendChild(styleSheet);
     }
-`;
 
-// Inyectar estilos
-const styleSheet = document.createElement('style');
-styleSheet.textContent = additionalStyles;
-document.head.appendChild(styleSheet);
-
-// Función para actualizar círculos de progreso
-function updateProgressCircles() {
-    const progressCircles = document.querySelectorAll('.progress-circle');
-    
-    progressCircles.forEach(circle => {
-        const progress = parseInt(circle.dataset.progress) || 0;
-        const degrees = (progress / 100) * 360;
+    // Función para actualizar círculos de progreso
+    function updateProgressCircles() {
+        const progressCircles = document.querySelectorAll('.progress-circle');
         
-        circle.style.background = `conic-gradient(#007bff ${degrees}deg, #e9ecef ${degrees}deg)`;
-    });
-}
-
-// Ejecutar cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', function() {
-    updateProgressCircles();
-    try {
-        if (typeof ProjectsManager === 'function') {
-            new ProjectsManager();
-        }
-    } catch (e) {
-        console.warn('No se pudo inicializar ProjectsManager:', e);
+        progressCircles.forEach(circle => {
+            const progress = parseInt(circle.dataset.progress) || 0;
+            const degrees = (progress / 100) * 360;
+            
+            circle.style.background = `conic-gradient(#007bff ${degrees}deg, #e9ecef ${degrees}deg)`;
+        });
     }
-});
 
-// Exportar para uso global
-window.ProjectsManager = ProjectsManager;
+    // Ejecutar cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Inicializando ProjectsManager...');
+        updateProgressCircles();
+        try {
+            if (typeof ProjectsManager === 'function') {
+                window.projectsManagerInstance = new ProjectsManager();
+                console.log('✅ ProjectsManager inicializado correctamente');
+            }
+        } catch (e) {
+            console.error('❌ Error al inicializar ProjectsManager:', e);
+        }
+    });
+
+    // Exportar para uso global
+    window.ProjectsManager = ProjectsManager;
+})();

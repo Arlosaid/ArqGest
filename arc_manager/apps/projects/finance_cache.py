@@ -29,18 +29,20 @@ def get_organization_finance_stats(organization_id, force_refresh=False):
     
     from apps.projects.models import Project
     
-    # Consulta optimizada con agregaciones en BD
+    # Consulta optimizada con agregaciones en BD - excluir archivados
     active_projects = Project.objects.filter(
         organization_id=organization_id,
         status='ACTIVE'
     ).select_related('client', 'owner').prefetch_related('payments')
     
-    # Estadísticas generales
-    total_projects = Project.objects.filter(organization_id=organization_id).count()
+    # Estadísticas generales - excluir archivados
+    total_projects = Project.objects.filter(
+        organization_id=organization_id
+    ).exclude(status='ARCHIVED').count()
     configured_projects = Project.objects.filter(
         organization_id=organization_id,
         budget_configured=True
-    ).count()
+    ).exclude(status='ARCHIVED').count()
     
     # Estadísticas financieras con agregaciones optimizadas
     finance_aggregates = active_projects.aggregate(
@@ -48,11 +50,12 @@ def get_organization_finance_stats(organization_id, force_refresh=False):
         active_configured_count=Count('id', filter=Q(budget_configured=True))
     )
     
-    # Calcular total_paid con una sola consulta agregada
+    # Calcular total_paid con una sola consulta agregada - excluir archivados
     from apps.projects.models import ProjectPayment
     total_paid_result = ProjectPayment.objects.filter(
-        project__organization_id=organization_id,
-        project__status='ACTIVE'
+        project__organization_id=organization_id
+    ).exclude(
+        project__status='ARCHIVED'
     ).aggregate(total_paid=Sum('amount'))
     
     total_budget = finance_aggregates['total_budget'] or Decimal('0.00')
@@ -131,9 +134,11 @@ def get_cached_projects_with_finance(organization_id, limit=8, offset=0):
     
     from apps.projects.models import Project
     
-    # Consulta optimizada con prefetch
+    # Consulta optimizada con prefetch - excluir archivados
     projects = Project.objects.filter(
         organization_id=organization_id
+    ).exclude(
+        status='ARCHIVED'
     ).select_related('client', 'owner').prefetch_related('payments')[
         offset:offset + limit
     ]

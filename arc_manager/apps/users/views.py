@@ -262,6 +262,87 @@ class UserDetailView(LoginRequiredMixin, View):
 
 
 
+class UserToggleStatusView(LoginRequiredMixin, View):
+    """Vista AJAX para cambiar el estado activo/inactivo de un usuario"""
+    
+    def dispatch(self, request, *args, **kwargs):
+        user_to_toggle = get_object_or_404(User, pk=kwargs['pk'])
+        current_user = request.user
+        
+        # Excluir superusers del toggle
+        if user_to_toggle.is_superuser:
+            raise PermissionDenied("Los superusuarios solo se gestionan desde el admin")
+        
+        # Solo org_admin puede cambiar estado de usuarios de su organización
+        if not (current_user.is_org_admin and current_user.organization and 
+                user_to_toggle.organization == current_user.organization):
+            raise PermissionDenied("No tienes permisos para modificar este usuario")
+        
+        # No se puede desactivar a si mismo
+        if user_to_toggle == current_user:
+            raise PermissionDenied("No puedes cambiar tu propio estado")
+        
+        return super().dispatch(request, *args, **kwargs)
+    
+    def post(self, request, pk):
+        """Cambiar estado del usuario"""
+        user_to_toggle = get_object_or_404(User, pk=pk)
+        
+        try:
+            import json
+            data = json.loads(request.body)
+            new_status = data.get('is_active', False)
+            
+            # Cambiar estado
+            old_status = user_to_toggle.is_active
+            user_to_toggle.is_active = new_status
+            user_to_toggle.save()
+            
+            # Invalidar caché de la organización
+            if user_to_toggle.organization:
+                user_to_toggle.organization.invalidate_user_cache()
+            
+            # Log del cambio
+            action = "activado" if new_status else "desactivado"
+            logger.info(
+                f"Usuario {action}: {user_to_toggle.email} "
+                f"(por {request.user.email})"
+            )
+            
+            # Obtener estadísticas actualizadas
+            org = request.user.organization
+            stats = {
+                'total_users': org.get_user_count(),
+                'active_users': org.get_active_user_count(),
+                'inactive_users': org.get_inactive_user_count(),
+            }
+            if stats['total_users'] > 0:
+                stats['percentage_active'] = round(
+                    (stats['active_users'] / stats['total_users']) * 100
+                )
+            else:
+                stats['percentage_active'] = 0
+            
+            return JsonResponse({
+                'success': True,
+                'message': f"Usuario {action} correctamente",
+                'new_status': new_status,
+                'stats': stats
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'success': False,
+                'error': 'Datos inválidos'
+            }, status=400)
+        except Exception as e:
+            logger.error(f"Error al cambiar estado de usuario: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'error': 'Error al cambiar el estado del usuario'
+            }, status=500)
+
+
 class UserDeleteAjaxView(LoginRequiredMixin, View):
     """Vista AJAX para obtener información del usuario a eliminar"""
     

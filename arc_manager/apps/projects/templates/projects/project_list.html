@@ -7,6 +7,7 @@
 
 {% block extra_css %}
 <link href="{% static 'css/project_list.css' %}?v=4.2" rel="stylesheet">
+<link href="{% static 'css/status-toggle.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -37,7 +38,7 @@
                 <i class="fas fa-folder"></i>
             </div>
             <div class="stat-number-mini">{% if is_paginated %}{{ page_obj.paginator.count }}{% else %}{{ projects|length }}{% endif %}</div>
-            <div class="stat-label-mini">Total Proyectos</div>
+            <div class="stat-label-mini">{% if current_filters.status or current_filters.search %}Filtrados{% else %}Total Proyectos{% endif %}</div>
         </div>
         <div class="stat-card-mini">
             <div class="stat-icon-mini active">
@@ -66,12 +67,25 @@
                 <i class="fas fa-times"></i>
             </a>
         </div>
-        <div class="result-count" style="display: none;"></div>
+        <div class="status-filter-buttons">
+            <button type="button" class="filter-btn" data-filter="all">
+                <i class="fas fa-list"></i> Todos
+            </button>
+            <button type="button" class="filter-btn" data-filter="active">
+                <i class="fas fa-check-circle"></i> Activos
+            </button>
+            <button type="button" class="filter-btn" data-filter="archived">
+                <i class="fas fa-archive"></i> Archivados
+            </button>
+        </div>
     </div>
 
     <div class="projects-grid">
         {% for project in projects %}
-        <div class="project-card" data-project-name="{{ project.name|lower }}" data-client-name="{% if project.client %}{{ project.client.name|lower }}{% endif %}">
+        <div class="project-card" 
+             data-project-name="{{ project.name|lower }}" 
+             data-client-name="{% if project.client %}{{ project.client.name|lower }}{% endif %}"
+             data-status="{% if project.status == 'ACTIVE' %}active{% else %}archived{% endif %}">
 
             <div class="project-card-header">
                 <div class="project-image">
@@ -80,9 +94,19 @@
                     </div>
                     <img src="{{ project|dashboard_image }}" alt="{{ project.name }}" loading="lazy" class="project-img" onload="this.style.opacity=1; this.previousElementSibling.style.display='none';" onerror="this.style.display='none';">
                 </div>
-                <div class="project-status status-{{ project.status|lower }}">
-                    {{ project.get_status_display }}
+                
+                {% if user.is_org_admin %}
+                <div class="status-toggle-container" 
+                     data-toggle-status="project"
+                     data-entity-id="{{ project.id }}"
+                     data-current-status="{% if project.status == 'ACTIVE' %}true{% else %}false{% endif %}"
+                     data-entity-name="{{ project.name }}">
+                    <div class="toggle-switch {% if project.status == 'ACTIVE' %}active{% else %}archived{% endif %}"></div>
+                    <span class="toggle-status-text {% if project.status == 'ACTIVE' %}status-active{% else %}status-archived{% endif %}">
+                        {% if project.status == 'ACTIVE' %}Activo{% else %}Archivado{% endif %}
+                    </span>
                 </div>
+                {% endif %}
             </div>
 
             <div class="project-card-body">
@@ -163,11 +187,12 @@
     </div>
 
     {% if is_paginated %}
-        {% include 'partials/pagination.html' with page_obj=page_obj page_param='page' item_label='proyectos' %}
+        {% include 'partials/pagination.html' with page_obj=page_obj page_param='page' item_label='proyectos' extra_params=extra_params %}
     {% endif %}
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/projects.js' %}?v=3.3" defer></script>
+<script src="{% static 'js/projects.js' %}?v=5.0" defer></script>
+<script src="{% static 'js/status-toggle.js' %}?v=2.1" defer></script>
 {% endblock %}

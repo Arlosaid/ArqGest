@@ -6,6 +6,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/user_management.css' %}">
 <link rel="stylesheet" href="{% static 'css/delete_modal.css' %}">
+<link rel="stylesheet" href="{% static 'css/status-toggle.css' %}">
 {% endblock %}
 
 {% block extra_js %}
@@ -253,10 +254,23 @@ function confirmAndDelete(userId) {
                                 {% endif %}
                             </td>
                             <td style="text-align: center;">
-                                {% if user_item.is_active %}
-                                    <span class="status-badge active">Activo</span>
+                                {% if user.is_org_admin and user_item != user and not user_item.is_superuser %}
+                                    <!-- Toggle interactivo para cambiar estado -->
+                                    <div class="status-toggle-container"
+                                         data-toggle-status="user"
+                                         data-entity-id="{{ user_item.pk }}"
+                                         data-entity-name="{{ user_item.get_full_name|default:user_item.email }}"
+                                         data-current-status="{{ user_item.is_active|yesno:'true,false' }}">
+                                        <div class="toggle-switch {% if user_item.is_active %}active{% else %}inactive{% endif %}"></div>
+                                        <span class="toggle-status-text {% if user_item.is_active %}status-active{% else %}status-inactive{% endif %}">
+                                            {% if user_item.is_active %}Activo{% else %}Inactivo{% endif %}
+                                        </span>
+                                    </div>
                                 {% else %}
-                                    <span class="status-badge inactive">Inactivo</span>
+                                    <!-- Solo badge visual (sin toggle) -->
+                                    <span class="status-badge {% if user_item.is_active %}active{% else %}inactive{% endif %}">
+                                        {% if user_item.is_active %}Activo{% else %}Inactivo{% endif %}
+                                    </span>
                                 {% endif %}
                             </td>
                             <td style="text-align: center;">
@@ -364,6 +378,8 @@ function confirmAndDelete(userId) {
 
 {% csrf_token %}
 
+<!-- Scripts de gestión de usuarios -->
+<script src="{% static 'js/status-toggle.js' %}"></script>
 <!-- El JavaScript para el modal se encuentra en user_management.js -->
 {% endblock %}
 

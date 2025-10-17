@@ -151,52 +151,7 @@
     {% endif %}
     {% endif %}
 
-    {% if archived_projects %}
-    <div class="kanban-section-header">
-        <h2 class="kanban-section-title">
-            <i class="fas fa-archive" style="color: var(--arc-color-warning);"></i>
-            Proyectos Archivados
-            <span class="kanban-section-count">{{ archived_projects.count }}</span>
-        </h2>
-    </div>
-    
-    <div class="kanban-selector-grid">
-        {% for project in archived_page_obj.object_list %}
-        <div class="kanban-project-card archived">
-            <span class="kanban-project-status archived">Archivado</span>
-            
-            <h3 class="kanban-project-title" title="{{ project.name }}">{{ project.name|truncatechars:20 }}</h3>
-            
-            <div class="kanban-project-info">
-                <div class="kanban-info-item">
-                    <span class="kanban-info-label">Cliente</span>
-                    <span class="kanban-info-value" title="{% if project.client %}{{ project.client.name }}{% else %}No asignado{% endif %}">
-                        {% if project.client %}{{ project.client.name|truncatechars:20 }}{% else %}No asignado{% endif %}
-                    </span>
-                </div>
-                <div class="kanban-info-item">
-                    <span class="kanban-info-label">Fecha Archivado</span>
-                    <span class="kanban-info-value">{{ project.updated_at|date:"d/m/Y" }}</span>
-                </div>
-            </div>
-            
-            <div class="kanban-card-footer">
-                <div class="kanban-actions">
-                    <a href="{% url 'projects:project-kanban' project.pk %}" class="btn-kanban-primary">
-                        <i class="fas fa-columns"></i>
-                        Ver Kanban
-                    </a>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% if archived_page_obj.paginator.num_pages > 1 %}
-        {% include 'partials/pagination.html' with page_obj=archived_page_obj page_param='archived_page' extra_params='page_size='|add:page_size|add:'&' item_label='proyectos' %}
-    {% endif %}
-    {% endif %}
-
-    {% if not active_projects and not completed_projects and not archived_projects %}
+    {% if not active_projects and not completed_projects %}
     <div class="kanban-selector-grid">
         <div class="kanban-empty-state">
             <i class="fas fa-columns"></i>

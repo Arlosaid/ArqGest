@@ -26,6 +26,7 @@ from .views import (
     phase_files_paginated,
     project_tasks_paginated,
     ProjectPhasesEditView,
+    ProjectToggleStatusView,
     # Finance module views
     FinanceDashboardView,
     ProjectFinanceDetailView,
@@ -44,6 +45,7 @@ urlpatterns = [
     path('<int:pk>/', ProjectDetailView.as_view(), name='project-detail'),
     path('<int:pk>/edit/', ProjectUpdateView.as_view(), name='project-update'),
     path('<int:pk>/delete/', ProjectDeleteView.as_view(), name='project-delete'),
+    path('<int:pk>/toggle-status/', ProjectToggleStatusView.as_view(), name='project-toggle-status'),
     
     # Kanban y gestión de tareas (vista principal)
     path('<int:pk>/tasks/', project_kanban, name='project-kanban'),
