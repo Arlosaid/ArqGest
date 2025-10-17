@@ -1,20 +1,19 @@
-<!-- templates/includes/sidebar.html -->
-<div class="sidebar" id="sidebar">
-    
-    <!-- Sidebar Content -->
-    <div class="sidebar-content">
-        <!-- Logo/Brand Section -->
-        <div class="sidebar-brand">
-            <div class="brand-logo">
-                <i class="fas fa-layer-group"></i>
-            </div>
-            <h5 class="brand-text">Arc Manager</h5>
-        </div>
 
-        <!-- Main Navigation -->
+{% load static %}
+<div class="sidebar" id="sidebar">
+
+    <div class="sidebar-content">
+        
+        <a href="{% url 'main:dashboard' %}" class="sidebar-brand" style="text-decoration: none;">
+            <div class="brand-logo">
+                <img src="{% static 'images/logo.png' %}?v={{ STATIC_VERSION }}" alt="ArqGest Logo" draggable="false">
+            </div>
+            <h5 class="brand-text">ArqGest</h5>
+        </a>
+
         <nav class="sidebar-nav">
             <ul class="nav-list">
-                <!-- Dashboard -->
+                
                 <li class="nav-item">
                     <a href="{% url 'main:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" data-sidebar-nav="true">
                         <span class="nav-icon"><i class="fas fa-home"></i></span>
@@ -24,7 +23,7 @@
 
                 {% with sub=request.subscription_info %}
                 {% if not sub or not sub.is_expired %}
-                    <!-- Proyectos -->
+                    
                     <li class="nav-item">
                         <a href="{% url 'projects:project-list' %}" class="nav-link {% if 'projects:' in request.resolver_match.namespace and 'phasetemplate' not in request.resolver_match.url_name %}active{% endif %}" data-sidebar-nav="true">
                             <span class="nav-icon"><i class="fas fa-folder-open"></i></span>
@@ -32,7 +31,6 @@
                         </a>
                     </li>
 
-                    <!-- Mis Tareas -->
                     <li class="nav-item">
                         <a href="{% url 'projects:my-task-list' %}" class="nav-link {% if request.resolver_match.url_name == 'my-task-list' %}active{% endif %}" data-sidebar-nav="true">
                             <span class="nav-icon"><i class="fas fa-clipboard-check"></i></span>
@@ -40,7 +38,6 @@
                         </a>
                     </li>
 
-                    <!-- Kanban de Proyectos -->
                     <li class="nav-item">
                         <a href="{% url 'projects:kanban-selector' %}" class="nav-link" data-sidebar-nav="true">
                             <span class="nav-icon"><i class="fas fa-columns"></i></span>
@@ -48,7 +45,6 @@
                         </a>
                     </li>
 
-                    <!-- Finanzas -->
                     <li class="nav-item">
                         <a href="{% url 'projects:finance-dashboard' %}" class="nav-link {% if 'finance' in request.resolver_match.url_name %}active{% endif %}" data-sidebar-nav="true">
                             <span class="nav-icon"><i class="fas fa-chart-line"></i></span>
@@ -58,10 +54,8 @@
                 {% endif %}
                 {% endwith %}
 
-                <!-- Separador visual -->
                 <li class="nav-divider" aria-hidden="true"></li>
 
-                <!-- Administración (solo para admins) -->
                 {% if user.is_org_admin %}
                     <li class="nav-item-header" role="presentation">Administración</li>
 
@@ -95,7 +89,6 @@
                     {% endwith %}
                 {% endif %}
 
-                <!-- Suscripción (solo para admins) -->
                 {% if user.is_org_admin %}
                     <li class="nav-item">
                         <a href="{% url 'plans:subscription_dashboard' %}" class="nav-link {% if 'plans:' in request.resolver_match.namespace %}active{% endif %}" data-sidebar-nav="true">
@@ -107,7 +100,6 @@
             </ul>
         </nav>
     </div>
-    
-    <!-- Sidebar Overlay for mobile -->
+
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 </div>

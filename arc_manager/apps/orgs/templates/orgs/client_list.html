@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Gestión de Clientes{% endblock %}
+{% block title %}Gestión de Clientes - ArqGest{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/client_management.css' %}">
@@ -9,7 +9,7 @@
             
 {% block content %}
 <div class="page-container client-management-page">
-    <!-- HEADER SECTION (estilo tareas unificado) -->
+    
     <div class="header-section">
         <div class="header-content">
             <div class="header-title">
@@ -27,12 +27,10 @@
         </div>
     </div>
 
-    <!-- Tabla mejorada -->
     <div class="table-container">
         <div class="table-header">
             <h3 class="unified-title-tertiary">Lista de Clientes</h3>
-            
-            <!-- Búsqueda -->
+
             <div class="table-search-container">
                 <form method="get" class="table-search-box">
                     <input type="text" 
@@ -68,7 +66,7 @@
         </div>
         
         {% if clients %}
-            <!-- Vista de escritorio - Tabla -->
+            
             <div class="table-wrapper">
                 <table class="modern-table">
                     <thead>
@@ -89,7 +87,7 @@
                                         {{ client.name|first|upper }}
                                     </div>
                                     <div class="client-details">
-                                        <div class="client-name">{{ client.name }}</div>
+                                        <div class="client-name" title="{{ client.name }}">{{ client.name }}</div>
                                     </div>
                                 </div>
                             </td>
@@ -143,13 +141,12 @@
                 </table>
             </div>
 
-
             {% if is_paginated %}
                 {% include 'partials/pagination.html' with page_obj=page_obj page_param='page' extra_params=extra_params item_label='clientes' %}
             {% endif %}
             
         {% else %}
-            <!-- Estado vacío mejorado -->
+            
             <div class="empty-state-enhanced">
                 {% if search %}
                     <div class="empty-icon">
@@ -185,6 +182,5 @@
         {% endif %}
     </div>
 </div>
-
 
 {% endblock %}

@@ -1,4 +1,4 @@
-# 🏢 Arc Manager
+# 🏢 ArqGest
 
 Sistema de gestión organizacional con Django + PostgreSQL en Docker.
 

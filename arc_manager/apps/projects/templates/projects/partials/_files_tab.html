@@ -1,7 +1,6 @@
-<!-- templates/projects/partials/_files_tab.html -->
+
 {% load i18n %}
 
-<!-- Meta tags para configuración de uploads -->
 <meta name="max-file-size" content="600">
 <meta name="allowed-extensions" content="PDF,JPG,JPEG,PNG,GIF,DWG,DXF,RVT,SKP,ZIP,RAR,TIFF,DOC,DOCX,XLS,XLSX,PPT,PPTX,TXT,MD">
 
@@ -50,8 +49,7 @@
                                     <span class="upload-text ms-1">{% trans "Subir" %}</span>
                                 </button>
                             </div>
-                            
-                            <!-- Indicador de progreso - inicialmente oculto -->
+
                             <div class="upload-progress-container" id="upload-progress-{{ phase.id }}" style="display: none;">
                                 <div class="upload-status mb-2">
                                     <div class="d-flex justify-content-between align-items-center">
@@ -78,13 +76,11 @@
                             </div>
                         </form>
 
-                        <!-- Contenedor invisible para respuestas de upload -->
                         <div id="upload-response-{{ phase.id }}" style="display: none;"></div>
 
-                        <!-- Lista de documentos - contenido se carga dinámicamente -->
                         <div id="files-list-{{ phase.id }}">
                             {% include 'projects/partials/files_list_content.html' %}
-                        </div> <!-- Cerrar files-list -->
+                        </div> 
                     </div>
                 </div>
             </div>

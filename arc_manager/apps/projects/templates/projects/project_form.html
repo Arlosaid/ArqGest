@@ -4,9 +4,9 @@
 
 {% block title %}
     {% if form.instance.pk %}
-        {% trans "Editar Proyecto" %}
+        {% trans "Editar Proyecto" %} - ArqGest
     {% else %}
-        {% trans "Crear Proyecto" %}
+        {% trans "Crear Proyecto" %} - ArqGest
     {% endif %}
 {% endblock title %}
 
@@ -62,7 +62,6 @@
             
             {{ form.non_field_errors }}
 
-            <!-- Información básica del proyecto -->
             <div class="form-section card-like">
                 <h3 class="section-title">{% trans "Información Básica" %}</h3>
                 <div class="basic-grid">
@@ -109,7 +108,6 @@
                 </div>
             </div>
 
-            <!-- Configuración de fases (solo en creación) -->
             {% if not form.instance.pk %}
             <div class="form-section card-like">
                 <h3 class="section-title">{% trans "Configuración de Fases" %}</h3>
@@ -231,7 +229,6 @@
             </div>
             {% endif %}
 
-            <!-- Acciones del formulario -->
             <div class="form-actions sticky-actions">
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-save"></i> 

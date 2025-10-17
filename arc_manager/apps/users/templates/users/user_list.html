@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Gestión de Usuarios{% endblock %}
+{% block title %}Gestión de Usuarios - ArqGest{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/user_management.css' %}">
@@ -133,7 +133,6 @@ function confirmAndDelete(userId) {
         </div>
     </div>
 
-    <!-- Estadísticas -->
     <div class="stats-grid-advanced">
         <div class="stat-card-advanced">
             <div class="stat-header-advanced">
@@ -175,12 +174,10 @@ function confirmAndDelete(userId) {
         </div>
     </div>
 
-    <!-- Tabla mejorada -->
     <div class="table-container">
         <div class="table-header">
             <h3>Lista de Usuarios</h3>
-            
-            <!-- Búsqueda -->
+
             <div class="table-search-container">
                 <form method="get" class="table-search-box">
                     <input type="text" 
@@ -216,7 +213,7 @@ function confirmAndDelete(userId) {
         </div>
         
         {% if users %}
-            <!-- Vista de escritorio - Tabla -->
+            
             <div class="table-wrapper">
                 <table class="modern-table">
                     <thead>
@@ -273,8 +270,7 @@ function confirmAndDelete(userId) {
                                        class="action-btn view">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    
-                                    <!-- Botón de eliminar -->
+
                                     {% if user.is_org_admin and user.organization and user_item.organization == user.organization and user_item != user %}
                                         <button type="button"
                                                 class="action-btn delete"
@@ -299,11 +295,10 @@ function confirmAndDelete(userId) {
                 </table>
             </div>
 
-
             {% include 'partials/pagination.html' with page_obj=page_obj page_param='page' extra_params=extra_params item_label='usuarios' %}
             
         {% else %}
-            <!-- Estado vacío mejorado -->
+            
             <div class="empty-state-enhanced">
                 {% if search %}
                     <div class="empty-icon">
@@ -329,8 +324,7 @@ function confirmAndDelete(userId) {
                     </div>
                     <h3>¡Bienvenido!</h3>
                     <p>Comienza creando tu primer usuario para gestionar el acceso a tu organización.</p>
-                    
-                    <!-- Pasos de onboarding mejorados -->
+
                     <div class="onboarding-steps">
                         <div class="onboarding-step">
                             <div class="onboarding-step-icon">
@@ -372,6 +366,4 @@ function confirmAndDelete(userId) {
 
 <!-- El JavaScript para el modal se encuentra en user_management.js -->
 {% endblock %}
-
-
 

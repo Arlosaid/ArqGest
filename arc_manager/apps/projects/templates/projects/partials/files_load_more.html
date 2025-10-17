@@ -1,9 +1,7 @@
 {% load i18n %}
 
-<!-- Solo los nuevos elementos de archivos -->
 {% include 'projects/partials/files_items.html' with files=files has_existing_files=True %}
 
-<!-- Nuevo botón "Ver más" si hay más páginas -->
 {% if has_more %}
 <div class="text-center mt-3" id="load-more-container-{{ phase.id }}">
     <button class="btn btn-outline-primary" 

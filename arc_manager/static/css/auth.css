@@ -34,7 +34,7 @@
 .auth-body {
   margin: 0;
   padding: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
@@ -110,12 +110,18 @@
 }
 
 .auth-logo {
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  height: 80px;
   margin: 0 auto 1rem;
   display: block;
-  border-radius: 12px;
-  box-shadow: var(--auth-shadow-lg);
+  object-fit: contain; /* Para mantener proporciones del logo */
+  background: transparent; /* Sin fondo para PNG con transparencia */
+  user-select: none; /* No seleccionable */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  pointer-events: none; /* No interactivo */
+  /* Sin border-radius ni box-shadow para logos PNG con transparencia */
 }
 
 .auth-app-name {
@@ -626,7 +632,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2rem 1rem;
+    padding: 2rem 1.5rem;
   }
   
   .auth-form-inner {
@@ -639,6 +645,7 @@
     border: 1px solid rgba(255, 255, 255, 0.4);
     max-width: 420px;
     width: 100%;
+    margin: 0 auto; /* Centrado horizontal */
     position: relative;
     backdrop-filter: blur(20px);
   }
@@ -660,19 +667,41 @@
 }
 
 @media (max-width: 768px) {
+  .auth-form-container {
+    padding: 1.5rem 1rem;
+  }
+  
   .auth-form-inner {
-    padding: 1.5rem;
-    margin: 1rem;
-    max-width: 350px;
+    padding: 2rem 1.5rem;
+    margin: 0 auto; /* Centrado horizontal */
+    max-width: 380px;
+    width: calc(100% - 2rem);
   }
   
   .login-title {
     font-size: 26px;
     margin-bottom: 1.5rem;
   }
+  
+  .auth-logo {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .auth-app-name {
+    font-size: 26px;
+  }
+  
+  .auth-tagline {
+    font-size: 13px;
+  }
 }
 
 @media (max-width: 576px) {
+  .auth-form-container {
+    padding: 1rem 0.75rem;
+  }
+  
   .login-options {
     flex-direction: column;
     align-items: flex-start;
@@ -684,15 +713,29 @@
   }
   
   .auth-form-inner {
-    padding: 1.5rem;
-    margin: 0.5rem;
-    max-width: 320px;
+    padding: 2rem 1.25rem;
+    margin: 0 auto; /* Centrado horizontal */
+    max-width: 100%;
+    width: calc(100% - 1rem);
     border-radius: 12px;
   }
   
   .login-title {
     font-size: 24px;
     margin-bottom: 1.25rem;
+  }
+  
+  .auth-logo {
+    width: 65px;
+    height: 65px;
+  }
+  
+  .auth-app-name {
+    font-size: 24px;
+  }
+  
+  .auth-tagline {
+    font-size: 12px;
   }
   
   .login-form input[type="text"],
@@ -719,26 +762,46 @@
 
 /* Mejoras adicionales para el diseño responsive */
 @media (max-width: 992px) {
-  /* Añadir una sombra sutil al título para mejor legibilidad */
-  .login-title {
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    color: var(--auth-color-gray-dark);
-    font-size: 22px;
+  /* Centrado perfecto del login */
+  .login-form-wrapper {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
   }
   
+  /* Mejorar legibilidad del título dentro de la tarjeta blanca */
+  .login-title {
+    text-shadow: none; /* Sin sombra, está sobre fondo blanco */
+    color: var(--auth-color-gray-dark);
+    font-size: 22px;
+    text-align: center;
+  }
+  
+  /* Mantener colores de escritorio para el nombre de la app */
   .auth-app-name {
-    color: #ffffff;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    color: var(--auth-color-primary) !important; /* Azul como en desktop */
+    text-shadow: none;
+    font-weight: 700;
   }
   
   .auth-tagline {
-    color: rgba(255, 255, 255, 0.9);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    color: var(--auth-color-gray) !important; /* Gris como en desktop */
+    text-shadow: none;
+    font-weight: 400;
+  }
+  
+  .auth-branding {
+    text-align: center;
+    width: 100%;
   }
   
   /* Mejorar la visibilidad de los botones con colores del proyecto */
   .sign-in-btn {
     box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+    width: 100%;
+    text-align: center;
   }
   
   .sign-in-btn:hover {
@@ -749,5 +812,44 @@
   .login-form input:focus {
     border-color: var(--auth-color-primary);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  }
+  
+  /* Asegurar que todos los elementos estén centrados */
+  .login-form {
+    width: 100%;
+  }
+  
+  .login-options {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .forgot-link {
+    text-align: center;
+    width: 100%;
+  }
+  
+  /* Alinear labels a la izquierda en el formulario */
+  .login-form .form-group label {
+    text-align: left;
+    width: 100%;
+  }
+  
+  /* Asegurar que el checkbox y recordarme estén alineados */
+  .remember-me-wrapper {
+    width: 100%;
+  }
+  
+  .form-check {
+    justify-content: flex-start;
+  }
+  
+  /* Alertas centradas */
+  .alert {
+    text-align: center;
+    width: 100%;
   }
 }

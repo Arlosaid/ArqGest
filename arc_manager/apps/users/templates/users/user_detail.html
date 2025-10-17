@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{{ user_to_view.first_name }} {{ user_to_view.last_name }} - Detalle{% endblock %}
+{% block title %}{{ user_to_view.first_name }} {{ user_to_view.last_name }} - Detalle - ArqGest{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/user_management.css' %}">
@@ -13,7 +13,7 @@
 
 {% block content %}
 <div class="page-container user-management-page">
-    <!-- HEADER HERO ESTÉTICO -->
+    
     <div class="user-detail-hero">
         <div class="hero-content">
             <div class="hero-left">
@@ -56,9 +56,8 @@
         </div>
     </div>
 
-    <!-- CONTENT CENTRADO -->
     <div class="main-content-centered">
-        <!-- Información Personal -->
+        
         <div class="card mb-3">
             <div class="card-header">
                 <div class="d-flex align-items-center gap-2">
@@ -102,5 +101,4 @@
     </div>
 </div>
 {% endblock %} 
-
 

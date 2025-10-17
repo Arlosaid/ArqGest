@@ -81,7 +81,8 @@
 .modern-table .user-details {
     text-align: left;
     flex: 1;
-    min-width: 220px; /* Asegura espacio mínimo para mostrar el nombre */
+    min-width: 0; /* Permite truncado */
+    max-width: 520px; /* Evita que empuje acciones */
 }
 
 /* ===== BOTONES Y ACCIONES ===== */
@@ -284,13 +285,21 @@
     color: #111827;
     font-size: 0.95rem;
     text-align: left;
-    white-space: normal; /* Permitir multi-línea */
-    overflow: visible;   /* Evitar corte accidental */
+    white-space: nowrap; /* Limitar a una línea */
+    overflow: hidden;    /* Ocultar desbordamiento */
+    text-overflow: ellipsis; /* Mostrar elipsis */
     width: 100%;
     margin: 0;
     line-height: 1.45;
     letter-spacing: 0.005em;
     display: block;
+}
+
+/* Truncado para nombres de plantillas */
+.template-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .user-username {

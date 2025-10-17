@@ -3,7 +3,7 @@
 {% load humanize %}
 {% load project_extras %}
 
-{% block title %}Dashboard - Arc Manager{% endblock %}
+{% block title %}Dashboard - ArqGest{% endblock %}
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,7 +13,6 @@
 {% block content %}
 <div class="page-container">
     <div class="dashboard-premium">
-        <!-- Header -->
         <header class="dashboard-header-premium">
             <div class="welcome-section">
                 <div class="welcome-content">
@@ -41,9 +40,7 @@
             </div>
         </header>
 
-        <!-- Proyectos y Tareas -->
         <div class="dashboard-main-grid">
-            <!-- Columna de Proyectos Activos -->
             <section class="projects-section-compact">
                 <div class="section-header-mini">
                     <h3><i class="fas fa-building"></i> Proyectos Activos</h3>
@@ -64,7 +61,9 @@
                         </div>
                         <div class="project-info-mini">
                             <h4>{{ project.name }}</h4>
-                            <p>{{ project.client.name|default:"Sin cliente" }}</p>
+                            <p title="{% if project.client %}{{ project.client.name }}{% else %}Sin cliente{% endif %}">
+                                {% if project.client %}{{ project.client.name|truncatechars:25 }}{% else %}Sin cliente{% endif %}
+                            </p>
                             <div class="project-progress-mini">
                                 <div class="progress-bar-mini">
                                     <div class="progress-fill-mini" style="width: {{ project|cached_progress }}%;"></div>
@@ -97,9 +96,8 @@
                 </div>
             </section>
 
-            <!-- Columna de Tareas y Documentos -->
             <div class="dashboard-side-grid">
-                <!-- Mis Tareas -->
+                
                 <section class="summary-section-mini">
                     <div class="section-header-mini">
                     <h3><i class="fas fa-tasks"></i> Mis Tareas Pendientes</h3>
@@ -129,7 +127,6 @@
                     </div>
                 </section>
 
-                <!-- Documentos Recientes -->
                 <section class="summary-section-mini">
                     <div class="section-header-mini">
                         <h3><i class="fas fa-file-alt"></i> Documentos Recientes</h3>
@@ -166,7 +163,6 @@
                     </div>
                 </section>
 
-                <!-- Almacenamiento -->
                 <section class="summary-section-mini">
                     <div class="section-header-mini">
                         <h3><i class="fas fa-hdd"></i> Almacenamiento</h3>
@@ -226,5 +222,4 @@
 {% block extra_js %}
 <script src="{% static 'js/dashboard.js' %}?v=17"></script>
 {% endblock %}
- 
 

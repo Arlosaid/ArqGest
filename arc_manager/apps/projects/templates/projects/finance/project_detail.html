@@ -3,7 +3,7 @@
 {% load project_extras %}
 {% load l10n %}
 
-{% block title %}{{ project.name }} - Finanzas - Arc Manager{% endblock %}
+{% block title %}{{ project.name }} - Finanzas - ArqGest{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/finance.css' %}">
@@ -11,15 +11,14 @@
 
 {% block content %}
 <div class="page-container">
-    
-    <!-- Header del Proyecto Homologado -->
+
     <div class="finance-header-simple">
         <div class="finance-header-content">
             <div class="finance-title-section">
                 <h1><i class="fas fa-building"></i> {{ project.name }}</h1>
                 <p>
                     {% if project.client %}
-                        Cliente: <strong>{{ project.client.name }}</strong>
+                        Cliente: <strong title="{{ project.client.name }}">{{ project.client.name|truncatechars:25 }}</strong>
                     {% else %}
                         Sin cliente asignado
                     {% endif %}
@@ -40,7 +39,7 @@
     </div>
 
     {% if project.budget_configured %}
-        <!-- Métricas del Proyecto -->
+        
         <div class="finance-metrics-grid">
             <div class="metric-card">
                 <div class="metric-icon budget">
@@ -73,7 +72,6 @@
             </div>
         </div>
 
-        <!-- Progreso Compacto -->
         <div class="finance-progress-compact">
             <div class="progress-content">
                 <div class="progress-info">
@@ -102,7 +100,6 @@
             </div>
         </div>
 
-        <!-- Historial de Pagos -->
         {% if recent_payments %}
             <div class="finance-table-container">
                 <div class="table-header-section">
@@ -195,7 +192,7 @@
         {% endif %}
 
     {% else %}
-        <!-- Estado: Presupuesto no configurado -->
+        
         <div class="empty-state">
             <div class="empty-icon">
                 <i class="fas fa-cog"></i>
@@ -208,7 +205,6 @@
         </div>
     {% endif %}
 
-    <!-- Información del Proyecto -->
     <div class="finance-summary">
         <div class="summary-section">
             <h4>Información del Proyecto</h4>
@@ -219,7 +215,9 @@
                     </div>
                     <div class="info-content">
                         <h5>Cliente</h5>
-                        <p>{{ project.client.name|default:"Sin asignar" }}</p>
+                        <p title="{% if project.client %}{{ project.client.name }}{% else %}Sin asignar{% endif %}">
+                            {% if project.client %}{{ project.client.name|truncatechars:25 }}{% else %}Sin asignar{% endif %}
+                        </p>
                     </div>
                 </div>
                 

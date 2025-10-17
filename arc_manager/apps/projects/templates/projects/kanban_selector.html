@@ -2,7 +2,7 @@
 {% load static %}
 {% load project_extras %}
 
-{% block title %}Seleccionar Proyecto para Kanban - Arc Manager{% endblock %}
+{% block title %}Seleccionar Proyecto para Kanban - ArqGest{% endblock %}
 
 {% block extra_css %}
 <link href="{% static 'css/projects.css' %}?v=2.6" rel="stylesheet">
@@ -21,8 +21,7 @@
                 <h1>Seleccionar Proyecto para Kanban</h1>
             </div>
         </div>
-        
-        <!-- Panel Informativo Compacto -->
+
         <div class="kanban-info-panel">
             <h3>
                 <div class="kanban-info-icon">
@@ -34,7 +33,6 @@
         </div>
     </div>
 
-    <!-- Proyectos Activos -->
     {% if active_projects %}
     <div class="kanban-section-header">
         <h2 class="kanban-section-title">
@@ -49,12 +47,14 @@
         <div class="kanban-project-card active">
             <span class="kanban-project-status active">{{ project.get_phase_display }}</span>
             
-            <h3 class="kanban-project-title">{{ project.name }}</h3>
+            <h3 class="kanban-project-title" title="{{ project.name }}">{{ project.name|truncatechars:20 }}</h3>
             
             <div class="kanban-project-info">
                 <div class="kanban-info-item">
                     <span class="kanban-info-label">Cliente</span>
-                    <span class="kanban-info-value">{{ project.client.name|default:"No asignado" }}</span>
+                    <span class="kanban-info-value" title="{% if project.client %}{{ project.client.name }}{% else %}No asignado{% endif %}">
+                        {% if project.client %}{{ project.client.name|truncatechars:20 }}{% else %}No asignado{% endif %}
+                    </span>
                 </div>
                 <div class="kanban-info-item">
                     <span class="kanban-info-label">Fecha Inicio</span>
@@ -92,7 +92,6 @@
     {% endif %}
     {% endif %}
 
-    <!-- Proyectos Completados -->
     {% if completed_projects %}
     <div class="kanban-section-header">
         <h2 class="kanban-section-title">
@@ -107,12 +106,14 @@
         <div class="kanban-project-card completed">
             <span class="kanban-project-status completed">Completado</span>
             
-            <h3 class="kanban-project-title">{{ project.name }}</h3>
+            <h3 class="kanban-project-title" title="{{ project.name }}">{{ project.name|truncatechars:20 }}</h3>
             
             <div class="kanban-project-info">
                 <div class="kanban-info-item">
                     <span class="kanban-info-label">Cliente</span>
-                    <span class="kanban-info-value">{{ project.client.name|default:"No asignado" }}</span>
+                    <span class="kanban-info-value" title="{% if project.client %}{{ project.client.name }}{% else %}No asignado{% endif %}">
+                        {% if project.client %}{{ project.client.name|truncatechars:20 }}{% else %}No asignado{% endif %}
+                    </span>
                 </div>
                 <div class="kanban-info-item">
                     <span class="kanban-info-label">Fecha Finalización</span>
@@ -150,7 +151,6 @@
     {% endif %}
     {% endif %}
 
-    <!-- Proyectos Archivados -->
     {% if archived_projects %}
     <div class="kanban-section-header">
         <h2 class="kanban-section-title">
@@ -165,12 +165,14 @@
         <div class="kanban-project-card archived">
             <span class="kanban-project-status archived">Archivado</span>
             
-            <h3 class="kanban-project-title">{{ project.name }}</h3>
+            <h3 class="kanban-project-title" title="{{ project.name }}">{{ project.name|truncatechars:20 }}</h3>
             
             <div class="kanban-project-info">
                 <div class="kanban-info-item">
                     <span class="kanban-info-label">Cliente</span>
-                    <span class="kanban-info-value">{{ project.client.name|default:"No asignado" }}</span>
+                    <span class="kanban-info-value" title="{% if project.client %}{{ project.client.name }}{% else %}No asignado{% endif %}">
+                        {% if project.client %}{{ project.client.name|truncatechars:20 }}{% else %}No asignado{% endif %}
+                    </span>
                 </div>
                 <div class="kanban-info-item">
                     <span class="kanban-info-label">Fecha Archivado</span>
@@ -194,7 +196,6 @@
     {% endif %}
     {% endif %}
 
-    <!-- Estado Vacío -->
     {% if not active_projects and not completed_projects and not archived_projects %}
     <div class="kanban-selector-grid">
         <div class="kanban-empty-state">

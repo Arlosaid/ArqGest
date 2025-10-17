@@ -3,9 +3,9 @@
 
 {% block title %}
     {% if object %}
-        Editar Cliente: {{ object.name }}
+        Editar Cliente: {{ object.name }} - ArqGest
     {% else %}
-        Crear Nuevo Cliente
+        Crear Nuevo Cliente - ArqGest
     {% endif %}
 {% endblock %}
 
@@ -15,7 +15,7 @@
 
 {% block content %}
 <div class="page-container">
-    <!-- HEADER SECTION -->
+    
     <div class="header-section">
         <div class="header-content">
             <div class="header-title">
@@ -43,9 +43,8 @@
         </div>
     </div>
 
-    <!-- MAIN CONTENT GRID -->
     <div class="main-content-grid">
-        <!-- FORMULARIO COMPACTO - LADO IZQUIERDO -->
+        
         <div class="left-content">
             <div class="card">
                 <div class="card-header">
@@ -61,8 +60,7 @@
                 <div class="card-body">
                     <form method="post" id="clientForm">
                         {% csrf_token %}
-                        
-                        <!-- SECCIÓN: INFORMACIÓN BÁSICA -->
+
                         <div class="form-section">
                             <div class="form-section-title">
                                 <div class="form-section-icon">
@@ -93,8 +91,7 @@
                                 {% endif %}
                             </div>
                         </div>
-                        
-                        <!-- SECCIÓN: CONTACTO -->
+
                         <div class="form-section">
                             <div class="form-section-title">
                                 <div class="form-section-icon">
@@ -168,8 +165,7 @@
                                 {% endif %}
                             </div>
                         </div>
-                        
-                        <!-- SECCIÓN: ESTADO -->
+
                         <div class="form-section">
                             <div class="form-section-title">
                                 <div class="form-section-icon">
@@ -200,16 +196,14 @@
                                 {% endif %}
                             </div>
                         </div>
-                        
-                        <!-- Errores generales -->
+
                         {% if form.non_field_errors %}
                             <div class="error-message" style="margin-bottom: 2rem;">
                                 <i class="fas fa-exclamation-triangle"></i>
                                 {% for error in form.non_field_errors %}{{ error }}{% endfor %}
                             </div>
                         {% endif %}
-                        
-                        <!-- ACCIONES DEL FORMULARIO -->
+
                         <div class="form-actions">
                             <div>
                                 <small class="text-muted">
@@ -236,8 +230,7 @@
                 </div>
             </div>
         </div>
-        
-        <!-- GUÍA DEL PROCESO - LADO DERECHO -->
+
         <div class="right-sidebar">
             <div class="process-guide">
                 <div class="process-header">

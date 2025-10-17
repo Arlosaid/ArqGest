@@ -1,5 +1,8 @@
 /* static/css/sidebar.css */
 
+/* Importar fuente elegante Poppins */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
 /* Variables CSS para el tema azul profesional */
 :root {
   /* Layout */
@@ -88,18 +91,25 @@
   border-bottom: 1px solid var(--side-border-color);
   cursor: pointer;
   transition: var(--side-transition);
+  text-decoration: none; /* Para el enlace */
+}
+
+.sidebar-brand:hover {
+  background: rgba(59, 130, 246, 0.05); /* Efecto hover sutil */
 }
 
 .brand-logo {
-  width: 36px;
-  height: 36px;
-  background: var(--side-accent-primary);
+  width: 48px; /* Aumentado de 36px a 48px */
+  height: 48px; /* Aumentado de 36px a 48px */
+  background: transparent; /* Sin fondo para logos PNG con transparencia */
   border-radius: var(--side-border-radius);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-right: 12px;
   transition: var(--side-transition);
+  overflow: hidden; /* Para que la imagen no se salga del contenedor */
+  flex-shrink: 0; /* Evitar que se encoja */
 }
 
 .brand-logo i {
@@ -107,10 +117,24 @@
   color: #fff;
 }
 
+.brand-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: transparent; /* Sin fondo para la imagen */
+  padding: 4px; /* Pequeño padding para que la imagen no toque los bordes */
+  user-select: none; /* No seleccionable */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  pointer-events: none; /* El clic pasa al enlace padre */
+}
+
 .brand-text {
   color: var(--side-text-primary);
+  font-family: 'Poppins', sans-serif;
   font-weight: 600;
-  font-size: 18px;
+  font-size: 22px; /* Aumentado de 18px a 22px */
   margin: 0;
   letter-spacing: -0.025em;
 }
@@ -285,6 +309,7 @@
 
 /* Navigation text */
 .nav-text {
+  font-family: 'Poppins', sans-serif;
   font-weight: 500;
   font-size: 14px;
   flex: 1;

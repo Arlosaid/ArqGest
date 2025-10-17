@@ -2,7 +2,7 @@
 {% load i18n %}
 {% load static %}
 
-{% block title %}{% trans "Plantillas de Fases" %}{% endblock %}
+{% block title %}{% trans "Plantillas de Fases" %} - ArqGest{% endblock %}
 
 {% block extra_css %}
 <link href="{% static 'css/user_management.css' %}" rel="stylesheet">
@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {% block content %}
 <div class="page-container template-management-page">
-    <!-- HEADER SECTION (estilo tareas unificado) -->
+    
     <div class="header-section">
         <div class="header-content">
             <div class="header-title">
@@ -93,12 +93,10 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 
-    <!-- Tabla mejorada -->
     <div class="table-container">
         <div class="table-header">
             <h3 class="unified-title-tertiary">Lista de Plantillas</h3>
-            
-            <!-- Búsqueda -->
+
             <div class="table-search-container">
                 <form method="get" class="table-search-box">
                     <input type="text" 
@@ -126,7 +124,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         
         {% if templates %}
-            <!-- Vista de escritorio - Tabla -->
+            
             <div class="table-wrapper">
                 <table class="modern-table">
                     <thead>
@@ -195,15 +193,14 @@ document.addEventListener('DOMContentLoaded', function() {
             {% endif %}
             
         {% else %}
-            <!-- Estado vacío mejorado -->
+            
             <div class="empty-state-enhanced">
                 <div class="empty-icon">
                     <i class="fas fa-layer-group"></i>
                 </div>
                 <h3 class="unified-title-tertiary">¡Comienza con las plantillas!</h3>
                 <p class="unified-text-secondary">Las plantillas de fases te permiten crear proyectos de forma más rápida y consistente.</p>
-                
-                <!-- Pasos de onboarding -->
+
                 <div class="onboarding-steps">
                     <div class="onboarding-step">
                         <div class="onboarding-step-icon">

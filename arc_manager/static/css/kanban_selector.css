@@ -55,10 +55,11 @@
     /* Limitar altura del título para consistencia */
     min-height: 2.5rem;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .kanban-project-status {
@@ -100,12 +101,18 @@
     padding: 0 1.5rem;
     /* Altura fija para la información del proyecto */
     min-height: 3.5rem;
+    align-items: start;
 }
 
 .kanban-info-item {
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
+}
+
+.kanban-info-item:last-child {
+    text-align: right;
+    align-items: flex-end;
 }
 
 .kanban-info-label {
@@ -127,6 +134,14 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.kanban-info-item:last-child .kanban-info-value {
+    min-width: 100px;
+    text-align: right;
+    white-space: nowrap;
+    overflow: visible;
 }
 
 .kanban-project-progress {

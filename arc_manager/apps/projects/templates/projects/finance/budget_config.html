@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Configurar Presupuesto - {{ project.name }} - Arc Manager{% endblock %}
+{% block title %}Configurar Presupuesto - {{ project.name }} - ArqGest{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/finance.css' %}">
@@ -9,8 +9,7 @@
 
 {% block content %}
 <div class="page-container">
-    
-    <!-- Header Simple Homologado -->
+
     <div class="finance-header-simple">
         <div class="finance-header-content">
             <div class="finance-title-section">
@@ -25,7 +24,6 @@
         </div>
     </div>
 
-    <!-- Información del Proyecto -->
     <div class="project-info-card">
         <div class="project-info-header">
             <div class="project-avatar">
@@ -35,7 +33,7 @@
                 <h3>{{ project.name }}</h3>
                 <p>
                     {% if project.client %}
-                        <i class="fas fa-user"></i> {{ project.client.name }}
+                        <i class="fas fa-user"></i> <span title="{{ project.client.name }}">{{ project.client.name|truncatechars:25 }}</span>
                     {% else %}
                         <i class="fas fa-folder"></i> Sin cliente
                     {% endif %}
@@ -44,7 +42,6 @@
         </div>
     </div>
 
-    <!-- Formulario Simple -->
     <div class="budget-form-simple">
         <h3>Configurar Presupuesto</h3>
         {% if project.budget_configured %}

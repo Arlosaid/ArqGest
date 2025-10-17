@@ -32,7 +32,7 @@
 .dashboard-premium {
     max-width: 1600px;
     margin: 0 auto;
-    padding: 2.5rem;
+    padding: 0.625rem;
 }
 
 /* ===== HEADER DEL DASHBOARD ===== */
@@ -583,7 +583,7 @@
 @media (max-width: 768px) {
     .dashboard-premium {
         padding: 1.25rem;
-        margin-top: 64px;
+        margin-top: 10px;
     }
     
     .dashboard-header-premium {
@@ -787,4 +787,74 @@
     pointer-events: none;
     opacity: 0.55;
     cursor: not-allowed;
+}
+
+/* ===== TARJETAS DE PROYECTO - ALINEACIÓN DE BOTONES ===== */
+.dashboard-premium .project-card-mini {
+    background: var(--bg) !important;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-subtle);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 400px; /* Fixed height for consistent alignment */
+    position: relative; /* Enable absolute positioning for button */
+}
+
+.dashboard-premium .project-info-mini {
+    padding: 1rem;
+    padding-bottom: 80px; /* Space for fixed button */
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-premium .project-info-mini h4 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+    height: calc(1.3em * 2); /* Fixed height for exactly 2 lines */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+}
+
+.dashboard-premium .project-actions-mini {
+    position: absolute; /* Position button absolutely */
+    bottom: 0; /* Stick to bottom */
+    left: 0;
+    right: 0;
+    padding: 1rem;
+    background: var(--bg);
+    border-top: 1px solid var(--border-subtle);
+    width: 100%;
+}
+
+.dashboard-premium .btn-project-primary {
+    background: var(--primary);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.875rem;
+    display: block;
+    text-align: center;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.dashboard-premium .btn-project-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    color: white;
+    text-decoration: none;
 }

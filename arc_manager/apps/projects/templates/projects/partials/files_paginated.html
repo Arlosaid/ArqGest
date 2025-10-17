@@ -1,12 +1,10 @@
 {% load i18n %}
 {% load humanize %}
 
-<!-- Lista de archivos paginada -->
 <div class="files-grid" id="files-grid-{{ phase.id }}">
     {% include 'projects/partials/files_items.html' with files=files has_existing_files=True %}
 </div>
 
-<!-- Botón "Ver más" si hay más páginas -->
 {% if has_more %}
 <div class="text-center mt-3" id="load-more-container-{{ phase.id }}">
     <button class="btn btn-outline-primary" 

@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Finanzas - Arc Manager{% endblock %}
+{% block title %}Finanzas - ArqGest{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/finance.css' %}">
@@ -24,9 +24,8 @@
         </div>
     </div>
 
-    <!-- Métricas Financieras con Bootstrap Grid -->
     <div class="row g-3 g-md-4 mb-5">
-        <!-- Total Budget -->
+        
         <div class="col-12 col-sm-6 col-lg-3">
             <div class="card h-100 border-0 shadow-sm finance-metric-card">
                 <div class="card-body text-center p-4">
@@ -38,8 +37,7 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Total Paid -->
+
         <div class="col-12 col-sm-6 col-lg-3">
             <div class="card h-100 border-0 shadow-sm finance-metric-card">
                 <div class="card-body text-center p-4">
@@ -51,8 +49,7 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Pending Amount -->
+
         <div class="col-12 col-sm-6 col-lg-3">
             <div class="card h-100 border-0 shadow-sm finance-metric-card">
                 <div class="card-body text-center p-4">
@@ -64,8 +61,7 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Overall Progress -->
+
         <div class="col-12 col-sm-6 col-lg-3">
             <div class="card h-100 border-0 shadow-sm finance-metric-card">
                 <div class="card-body text-center p-4">
@@ -85,7 +81,7 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-4">
                     <form method="get" class="row g-3" autocomplete="off">
-                        <!-- Búsqueda -->
+                        
                         <div class="col-12 col-md-8">
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0">
@@ -103,8 +99,7 @@
                                 {% endif %}
                             </div>
                         </div>
-                        
-                        <!-- Filtro de Estado -->
+
                         <div class="col-12 col-md-4">
                             <select name="budget_status" class="form-select">
                                 <option value="">Todos los proyectos</option>
@@ -122,7 +117,6 @@
         </div>
     </div>
 
-    <!-- Lista de Proyectos con Bootstrap -->
     {% if projects %}
         <div class="row">
             <div class="col-12">
@@ -135,7 +129,7 @@
                         </div>
                     </div>
                     <div class="card-body p-0">
-                        <!-- Desktop Table View -->
+                        
                         <div class="d-none d-lg-block">
                             <div class="table-responsive">
                                 <table class="table table-hover mb-0">
@@ -153,7 +147,7 @@
                                     <tbody>
                                         {% for project in projects %}
                                         <tr class="align-middle">
-                                            <!-- Proyecto -->
+                                            
                                             <td class="py-3 px-4">
                                                 <div class="d-flex align-items-center">
                                                     <div class="project-avatar bg-primary bg-gradient rounded-circle d-flex align-items-center justify-content-center me-3">
@@ -165,19 +159,17 @@
                                                     </div>
                                                 </div>
                                             </td>
-                                            
-                                            <!-- Cliente -->
+
                                             <td class="py-3">
                                                 {% if project.client %}
                                                     <span class="badge bg-light text-dark">
-                                                        <i class="fas fa-user me-1"></i>{{ project.client.name }}
+                                                        <i class="fas fa-user me-1"></i>{{ project.client.name|truncatechars:25 }}
                                                     </span>
                                                 {% else %}
                                                     <span class="text-muted">Sin cliente</span>
                                                 {% endif %}
                                             </td>
-                                            
-                                            <!-- Presupuesto -->
+
                                             <td class="py-3">
                                                 {% if project.budget_configured %}
                                                     <span class="fw-semibold">${{ project.total_budget|floatformat:0 }}</span>
@@ -185,8 +177,7 @@
                                                     <span class="text-muted">No configurado</span>
                                                 {% endif %}
                                             </td>
-                                            
-                                            <!-- Pagado -->
+
                                             <td class="py-3">
                                                 {% if project.budget_configured %}
                                                     <span class="text-success fw-semibold">${{ project.total_paid|floatformat:0 }}</span>
@@ -194,8 +185,7 @@
                                                     <span class="text-muted">-</span>
                                                 {% endif %}
                                             </td>
-                                            
-                                            <!-- Progreso -->
+
                                             <td class="py-3">
                                                 {% if project.budget_configured %}
                                                     <div class="d-flex align-items-center">
@@ -212,8 +202,7 @@
                                                     <span class="text-muted">-</span>
                                                 {% endif %}
                                             </td>
-                                            
-                                            <!-- Estado -->
+
                                             <td class="py-3">
                                                 {% if project.budget_configured %}
                                                     <span class="badge bg-success">
@@ -225,8 +214,7 @@
                                                     </span>
                                                 {% endif %}
                                             </td>
-                                            
-                                            <!-- Acciones -->
+
                                             <td class="py-3 text-end">
                                                 <div class="btn-group" role="group">
                                                     {% if project.budget_configured %}
@@ -255,13 +243,12 @@
                                 </table>
                             </div>
                         </div>
-                        
-                        <!-- Mobile Card View -->
+
                         <div class="d-lg-none">
                             {% for project in projects %}
                             <div class="border-bottom p-4">
                                 <div class="row g-3">
-                                    <!-- Proyecto Info -->
+                                    
                                     <div class="col-12">
                                         <div class="d-flex align-items-center mb-3">
                                             <div class="project-avatar bg-primary bg-gradient rounded-circle d-flex align-items-center justify-content-center me-3">
@@ -280,18 +267,16 @@
                                             </div>
                                         </div>
                                     </div>
-                                    
-                                    <!-- Cliente -->
+
                                     <div class="col-6">
                                         <small class="text-muted d-block">Cliente</small>
                                         {% if project.client %}
-                                            <span class="fw-semibold">{{ project.client.name }}</span>
+                                            <span class="fw-semibold" title="{{ project.client.name }}">{{ project.client.name|truncatechars:25 }}</span>
                                         {% else %}
                                             <span class="text-muted">Sin cliente</span>
                                         {% endif %}
                                     </div>
-                                    
-                                    <!-- Presupuesto -->
+
                                     <div class="col-6">
                                         <small class="text-muted d-block">Presupuesto</small>
                                         {% if project.budget_configured %}
@@ -300,8 +285,7 @@
                                             <span class="text-muted">No configurado</span>
                                         {% endif %}
                                     </div>
-                                    
-                                    <!-- Progreso -->
+
                                     {% if project.budget_configured %}
                                     <div class="col-12">
                                         <div class="row g-2">
@@ -321,8 +305,7 @@
                                         </div>
                                     </div>
                                     {% endif %}
-                                    
-                                    <!-- Acciones -->
+
                                     <div class="col-12">
                                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                                             {% if project.budget_configured %}
@@ -350,8 +333,7 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Paginación con Bootstrap -->
+
         {% if is_paginated %}
         <div class="row mt-4">
             <div class="col-12">
@@ -400,7 +382,7 @@
         </div>
         {% endif %}
     {% else %}
-        <!-- Estado Vacío con Bootstrap -->
+        
         <div class="row">
             <div class="col-12">
                 <div class="card border-0 shadow-sm">

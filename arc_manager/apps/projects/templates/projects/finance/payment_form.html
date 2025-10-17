@@ -3,7 +3,7 @@
 {% load project_extras %}
 {% load l10n %}
 
-{% block title %}Registrar Pago - {{ project.name }} - Arc Manager{% endblock %}
+{% block title %}Registrar Pago - {{ project.name }} - ArqGest{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/finance.css' %}">
@@ -13,8 +13,7 @@
 
 {% block content %}
 <div class="page-container">
-    
-    <!-- Header Simple Homologado -->
+
     <div class="finance-header-simple">
         <div class="finance-header-content">
             <div class="finance-title-section">
@@ -34,7 +33,6 @@
         </div>
     </div>
 
-    <!-- Información del Proyecto -->
     <div class="project-info-card">
         <div class="project-info-header">
             <div class="project-avatar">
@@ -58,8 +56,7 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Progreso Visual -->
+
         <div class="progress-section">
             <div class="progress-bar">
                 <div class="progress-fill" 
@@ -71,7 +68,6 @@
         </div>
     </div>
 
-    <!-- Formulario Simple -->
     <div id="paymentFormContainer" class="payment-form-simple" data-remaining="{{ project.remaining_amount|unlocalize }}" data-amount-input-id="{{ form.amount.id_for_label }}" data-date-input-id="{{ form.date.id_for_label }}">
         {% if is_edit %}
             <h3>Editar Pago</h3>
