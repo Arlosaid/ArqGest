@@ -3,7 +3,7 @@
 {% load static %}
 {% load project_extras %}
 
-{% block title %}{{ project.name }} - {% trans "Detalles del Proyecto" %}{% endblock %}
+{% block title %}{{ project.name }} - {% trans "Detalles del Proyecto" %} - ArqGest{% endblock %}
 
 {% block extra_css %}
 <link href="{% static 'css/projects.css' %}?v=1.6" rel="stylesheet">
@@ -15,7 +15,7 @@
 
 {% block content %}
 <div class="page-container">
-    <!-- Header consistente con la app -->
+    
     <div class="header-section">
         <div class="header-content">
             <div class="header-title">
@@ -24,7 +24,9 @@
                 </div>
                 <div>
                     <h1 class="unified-title-primary">{{ project.name }}</h1>
-                    <div class="unified-subtitle-small">{{ project.client.name|default:"Sin cliente asignado" }}</div>
+                    <div class="unified-subtitle-small" title="{% if project.client %}{{ project.client.name }}{% else %}Sin cliente asignado{% endif %}">
+                        {% if project.client %}{{ project.client.name|truncatechars:25 }}{% else %}Sin cliente asignado{% endif %}
+                    </div>
                 </div>
             </div>
             <div class="d-flex gap-2">
@@ -50,7 +52,6 @@
         </div>
     </div>
 
-    <!-- Tabs principales sin sidebar derecho -->
     <div class="left-content">
         <ul class="nav nav-tabs" id="projectTab" role="tablist">
             <li class="nav-item" role="presentation">
@@ -76,7 +77,7 @@
         </ul>
 
         <div class="tab-content" id="projectTabContent">
-            <!-- Detalles -->
+            
             <div class="tab-pane fade show active" id="details" role="tabpanel" aria-labelledby="details-tab" data-tab="details">
                 <div class="card mt-3">
                     <div class="card-body">
@@ -91,7 +92,9 @@
                         <div class="row g-3 mt-3">
                             <div class="col-sm-6">
                                 <div class="text-muted small">{% trans "Cliente" %}</div>
-                                <div class="fw-semibold">{{ project.client.name|default:"No asignado" }}</div>
+                                <div class="fw-semibold" title="{% if project.client %}{{ project.client.name }}{% else %}No asignado{% endif %}">
+                                    {% if project.client %}{{ project.client.name|truncatechars:25 }}{% else %}No asignado{% endif %}
+                                </div>
                             </div>
                             <div class="col-sm-6">
                                 <div class="text-muted small">{% trans "Propietario" %}</div>
@@ -127,16 +130,14 @@
                 </div>
             </div>
 
-            <!-- Fases -->
             <div class="tab-pane fade" id="phases" role="tabpanel" aria-labelledby="phases-tab" data-tab="phases">
                 {% include "projects/partials/_phases_tab.html" %}
             </div>
 
-            <!-- Centro de Tareas -->
             <div class="tab-pane fade" id="kanban" role="tabpanel" aria-labelledby="kanban-tab" data-tab="kanban">
                 <div class="card mt-3">
                     <div class="card-body">
-                        <!-- Barra simple: filtro por fase + acción crear -->
+                        
                         <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
                           <div class="d-flex align-items-center gap-2">
                             <label for="phaseFilter" class="small text-muted mb-0">{% trans "Fase" %}</label>
@@ -153,7 +154,6 @@
                           </div>
                         </div>
 
-                        <!-- Grid compacto de tareas -->
                         <div class="tasks-center-compact" id="tasksContainer" 
                              data-project-id="{{ project.pk }}"
                              data-paginated-url="{% url 'projects:project-tasks-paginated' project.pk %}">
@@ -163,7 +163,6 @@
                 </div>
             </div>
 
-            <!-- Archivos -->
             <div class="tab-pane fade" id="files" role="tabpanel" aria-labelledby="files-tab" data-tab="files">
                 {% include "projects/partials/_files_tab.html" %}
             </div>
@@ -178,7 +177,6 @@
 <script src="{% static 'js/kanban.js' %}?v=1.7"></script>
 <script src="{% static 'js/files_filtering.js' %}?v=1.1"></script>
 
-<!-- Configurar URLs para los modales de tareas -->
 <script>
 document.body.dataset.taskDetailUrlTemplate = `{% url 'projects:task-detail' 0 %}`;
 document.body.dataset.updateTaskStatusUrlTemplate = `{% url 'projects:update-task-status' 0 %}`;

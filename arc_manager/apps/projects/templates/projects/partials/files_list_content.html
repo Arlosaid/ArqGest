@@ -3,7 +3,7 @@
 
 {% with phase_files=phase.files.all %}
 {% if phase_files %}
-<!-- Controles de documentos mejorados -->
+
 <div class="mb-3">
     <div class="row g-2">
         <div class="col-12 col-md-auto">
@@ -42,12 +42,11 @@
     </div>
 </div>
 
-<!-- Contenedor de archivos optimizado con scroll infinito -->
 <div id="files-container-{{ phase.id }}" 
      hx-get="{% url 'projects:phase-files-paginated' project_id=phase.project.id phase_id=phase.id %}?offset=0&limit=20"
      hx-trigger="load, fileUploaded from:body"
      hx-swap="innerHTML">
-    <!-- Los archivos se cargan aquí dinámicamente -->
+    
     <div class="text-center py-4">
         <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">{% trans "Cargando archivos..." %}</span>

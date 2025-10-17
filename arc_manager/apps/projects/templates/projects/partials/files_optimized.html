@@ -1,12 +1,11 @@
 {% load i18n %}
 {% load humanize %}
 
-<!-- Template optimizado para carga inicial con scroll infinito -->
 <div class="files-grid" id="files-grid-{{ phase.id }}">
     {% for file in files %}
     <div class="file-item" id="file-{{ file.id }}">
         <div class="file-card">
-            <!-- Icono del archivo -->
+            
             <a href="{{ file.file_url }}" target="_blank" class="text-decoration-none">
                 {% if file.extension == 'JPG' or file.extension == 'JPEG' or file.extension == 'PNG' or file.extension == 'GIF' or file.extension == 'TIFF' %}
                     <div class="file-icon file-image"><i class="fas fa-image"></i></div>
@@ -28,8 +27,7 @@
                     <div class="file-icon file-default"><i class="fas fa-file"></i></div>
                 {% endif %}
             </a>
-            
-            <!-- Información del archivo -->
+
             <div class="file-info">
                 <div class="file-name" title="{{ file.filename }}">
                     <span class="file-name-full d-none d-md-block">{{ file.filename|truncatechars:20 }}</span>
@@ -42,8 +40,7 @@
             </div>
             <div class="file-date">{{ file.uploaded_at|date:"d/m/Y" }}</div>
             <div class="file-uploader">{{ file.uploaded_by_name|truncatechars:12 }}</div>
-            
-            <!-- Acciones -->
+
             <div class="file-actions">
                 <a href="{{ file.file_url }}" class="btn btn-sm btn-primary" download>
                     <i class="fas fa-download"></i>
@@ -66,7 +63,6 @@
     {% endfor %}
 </div>
 
-<!-- Scroll infinito automático -->
 {% if has_more %}
 <div class="infinite-scroll-trigger" 
      data-next-offset="{{ next_offset }}"
@@ -132,7 +128,6 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 {% endif %}
 
-<!-- Debug info (solo en desarrollo) -->
 {% if from_cache %}
 <div class="alert alert-info mt-2">
 </div>

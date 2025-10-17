@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Editando: {{ user_to_edit.first_name }} {{ user_to_edit.last_name }}{% endblock %}
+{% block title %}Editando: {{ user_to_edit.first_name }} {{ user_to_edit.last_name }} - ArqGest{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/user_management.css' %}">
@@ -11,11 +11,9 @@
 <script src="{% static 'js/user_management.js' %}"></script>
 {% endblock %}
 
-
-
 {% block content %}
 <div class="page-container user-management-page">
-    <!-- HEADER SECTION -->
+    
     <div class="header-section">
         <div class="header-content">
             <div class="header-title">
@@ -33,9 +31,8 @@
         </div>
     </div>
 
-    <!-- MAIN CONTENT GRID -->
     <div class="main-content-grid">
-        <!-- FORMULARIO MEJORADO - LADO IZQUIERDO -->
+        
         <div class="left-content">
             <div class="card">
                 <div class="card-header">
@@ -43,7 +40,7 @@
                 </div>
                 
                 <div class="card-body">
-                    <!-- Mensaje de éxito -->
+                    
                     <div class="success-message" id="successMessage">
                         <i class="fas fa-check-circle"></i>
                         <span>✓ Cambios guardados correctamente</span>
@@ -51,8 +48,7 @@
 
                     <form method="post" id="userForm">
                         {% csrf_token %}
-                        
-                        <!-- SECCIÓN: INFORMACIÓN PERSONAL -->
+
                         <div class="form-section">
                             <div class="form-section-title">
                                 <div class="form-section-icon">
@@ -106,8 +102,7 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            
-                            <!-- Campo de Email - Solo lectura -->
+
                             <div class="modern-form-group">
                                 <label class="modern-label">
                                     Correo Electrónico
@@ -123,8 +118,7 @@
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- SECCIÓN: PERMISOS - Solo para admin y superuser -->
+
                         {% if user.is_superuser or user.is_org_admin %}
                         <div class="form-section">
                             <div class="form-section-title">
@@ -189,16 +183,14 @@
                             </div>
                         </div>
                         {% endif %}
-                        
-                        <!-- Errores generales -->
+
                         {% if form.non_field_errors %}
                             <div class="error-message" style="margin-bottom: 2rem;">
                                 <i class="fas fa-exclamation-triangle"></i>
                                 {% for error in form.non_field_errors %}{{ error }}{% endfor %}
                             </div>
                         {% endif %}
-                        
-                        <!-- ACCIONES DEL FORMULARIO -->
+
                         <div class="form-actions">
                             <div>
                                 <small class="text-muted">
@@ -220,10 +212,9 @@
                 </div>
             </div>
         </div>
-        
-        <!-- INFORMACIÓN ADICIONAL - LADO DERECHO -->
+
         <div class="right-sidebar">
-            <!-- Información del usuario -->
+            
             <div class="process-guide">
                 <div class="process-header">
                     <i class="fas fa-user"></i>
@@ -282,5 +273,4 @@
     </div>
     </div>
 {% endblock %} 
-
 

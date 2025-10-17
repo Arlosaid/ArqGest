@@ -342,34 +342,30 @@
             </div>
         </div>
     {% endif %}
-    
-    <!-- Métricas Principales -->
+
     <div class="metrics-grid">
-        <!-- Ingresos Totales -->
+        
         <div class="metric-card revenue">
             <div class="metric-icon">💰</div>
             <div class="metric-value positive">${{ dashboard_stats.financial.total_revenue|default:"0" }}</div>
             <div class="metric-label">Ingresos Totales</div>
             <div class="metric-detail">Desde el inicio del sistema</div>
         </div>
-        
-        <!-- Ingresos del Mes Actual -->
+
         <div class="metric-card revenue">
             <div class="metric-icon">📅</div>
             <div class="metric-value positive">${{ dashboard_stats.financial.monthly_revenue|default:"0" }}</div>
             <div class="metric-label">Este Mes</div>
             <div class="metric-detail">{{ dashboard_stats.financial.current_month_name|default:"Mes Actual" }}</div>
         </div>
-        
-        <!-- Suscripciones Activas -->
+
         <div class="metric-card subscriptions">
             <div class="metric-icon">💳</div>
             <div class="metric-value">{{ dashboard_stats.subscriptions.active }}</div>
             <div class="metric-label">Suscripciones Activas</div>
             <div class="metric-detail">{{ dashboard_stats.subscriptions.basic }} básicas, {{ dashboard_stats.subscriptions.trial }} trial</div>
         </div>
-        
-        <!-- Solicitudes de Upgrade -->
+
         <div class="metric-card upgrades">
             <div class="metric-icon">⬆️</div>
             <div class="metric-value {% if dashboard_stats.notifications.pending_upgrades > 0 %}warning{% else %}positive{% endif %}">
@@ -378,8 +374,7 @@
             <div class="metric-label">Upgrades Pendientes</div>
             <div class="metric-detail">Requieren revisión</div>
         </div>
-        
-        <!-- Solicitudes de Renovación -->
+
         <div class="metric-card renewals">
             <div class="metric-icon">🔄</div>
             <div class="metric-value {% if dashboard_stats.notifications.pending_renewals > 0 %}warning{% else %}positive{% endif %}">
@@ -389,8 +384,7 @@
             <div class="metric-detail">Requieren revisión</div>
         </div>
     </div>
-    
-    <!-- Ingresos por Mes -->
+
     {% if dashboard_stats.financial.monthly_breakdown %}
     <div class="section">
         <h3>📊 Ingresos por Mes (Últimos 6 meses)</h3>
@@ -404,8 +398,7 @@
         </div>
     </div>
     {% endif %}
-    
-    <!-- Solicitudes de Upgrade Detalladas -->
+
     {% if dashboard_stats.upgrade_requests %}
     <div class="section">
         <h3>⬆️ Solicitudes de Upgrade</h3>
@@ -429,8 +422,7 @@
         </div>
     </div>
     {% endif %}
-    
-    <!-- Solicitudes de Renovación Detalladas -->
+
     {% if dashboard_stats.renewal_requests %}
     <div class="section">
         <h3>🔄 Solicitudes de Renovación</h3>
@@ -454,8 +446,7 @@
         </div>
     </div>
     {% endif %}
-    
-    <!-- Alertas Financieras -->
+
     {% if dashboard_stats.notifications.expiring_soon > 0 or dashboard_stats.notifications.in_grace_period > 0 %}
     <div class="section">
         <h3>🚨 Alertas Financieras</h3>

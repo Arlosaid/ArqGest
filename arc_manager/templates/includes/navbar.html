@@ -1,5 +1,5 @@
 <nav class="main-navbar" id="mainNavbar">
-    <!-- Botón hamburguesa para mobile -->
+    
     <div class="navbar-left">
         <button class="mobile-menu-toggle d-lg-none" id="mobileMenuToggle" type="button" aria-label="Abrir menú">
             <span class="hamburger-line"></span>
@@ -7,14 +7,13 @@
             <span class="hamburger-line"></span>
         </button>
     </div>
-    
-    <!-- Sección derecha solo con usuario -->
+
     <div class="navbar-right">        
-        <!-- Menú de usuario minimalista -->
+        
         <div class="navbar-user dropdown">
             <button class="user-menu-toggle-minimal" aria-expanded="false" id="userDropdownToggle" type="button">
                 <div class="user-avatar-minimal">
-                    <!-- Mostrar solo iniciales, sin imágenes -->
+                    
                     <div class="avatar-placeholder-minimal">
                         {{ user.name|default:"A"|slice:":1"|upper }}
                     </div>
@@ -24,15 +23,14 @@
             </button>
             
             <div class="dropdown-menu dropdown-menu-end user-dropdown">
-                <!-- Avatar y información básica -->
+                
                 <div class="dropdown-user-info">
                     <div class="dropdown-user-details">
                         <div class="dropdown-org-name">{{ user.organization.name|default:"Tu empresa" }}</div>
                         <div class="dropdown-user-role">{% if user.is_org_admin %}Administrador{% else %}Miembro{% endif %}</div>
                     </div>
                 </div>
-                
-                <!-- Opciones del menú con iconos y textos en español -->
+
                 <a class="dropdown-item" href="{% url 'users:detail' user.pk %}">
                     <i class="fas fa-user"></i>
                     Mi Perfil

@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static plan_extras %}
 
-{% block title %}Mi Suscripción - Arc Manager{% endblock %}
+{% block title %}Mi Suscripción - ArqGest{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/plans.css' %}?v=10.4">
@@ -26,12 +26,10 @@
         </div>
     </div>
 
-    <!-- Main Content Grid -->
     <div class="main-content-grid">
-        <!-- Left Content -->
+        
         <div class="left-content">
-            
-            <!-- Solicitud de Actualización Pendiente -->
+
             {% if pending_upgrade_request and pending_upgrade_request.status == 'pending' %}
                 <div class="request-status-card pending">
                     <div class="status-icon">
@@ -69,7 +67,6 @@
                 </div>
             {% endif %}
 
-            <!-- Solicitud de Renovación Pendiente -->
             {% if pending_renewal_request and pending_renewal_request.status == 'pending' %}
                 <div class="request-status-card pending renewal">
                     <div class="status-icon">
@@ -81,26 +78,24 @@
                             Hemos recibido tu solicitud para renovar el plan 
                             <strong>{{ pending_renewal_request.subscription.plan.display_name }}</strong>.
                         </p>
-                        
-                        <!-- Información de vigencias -->
+
                         <div class="status-details" style="background:#f8f9fa; padding:16px; border-radius:8px; margin:16px 0;">
                             <h4 style="margin:0 0 12px 0; color:#0d6efd;"><i class="fas fa-calendar-alt"></i> Información de vigencias</h4>
                             
                             {% if subscription.is_expired %}
-                                <!-- Suscripción ya expirada -->
+                                
                                 <div class="detail" style="padding:8px; background:#fff3cd; border-left:3px solid #ffc107; margin-bottom:8px;">
                                     <span class="label" style="color:#856404;"><strong>⚠️ Suscripción actual:</strong></span>
                                     <span class="value" style="color:#856404;"><strong>Expiró el {{ subscription.end_date|date:"d/m/Y" }}</strong></span>
                                 </div>
                             {% else %}
-                                <!-- Suscripción aún activa -->
+                                
                                 <div class="detail" style="padding:8px; background:#d1ecf1; border-left:3px solid #0d6efd;">
                                     <span class="label"><strong>📅 Tu plan actual vence:</strong></span>
                                     <span class="value"><strong>{{ subscription.end_date|date:"d/m/Y" }}</strong> ({{ subscription.days_remaining }} día{{ subscription.days_remaining|pluralize:"s" }} restante{{ subscription.days_remaining|pluralize:"s" }})</span>
                                 </div>
                             {% endif %}
-                            
-                            <!-- Nueva vigencia calculada -->
+
                             {% with now=subscription.end_date|default:pending_renewal_request.created_at %}
                                 {% with new_start=subscription.end_date new_days=pending_renewal_request.renewal_days %}
                                 <div class="detail" style="padding:8px; background:#d4edda; border-left:3px solid #28a745; margin-top:8px;">
@@ -133,8 +128,7 @@
                                 {% endwith %}
                             {% endwith %}
                         </div>
-                        
-                        <!-- Detalles de la solicitud -->
+
                         <div class="status-details">
                             <div class="detail">
                                 <span class="label">Plan:</span>
@@ -157,8 +151,7 @@
                                 <span class="badge pending"><i class="fas fa-clock"></i> Pendiente de aprobación</span>
                             </div>
                         </div>
-                        
-                        <!-- Siguientes pasos -->
+
                         <div class="next-steps">
                             <h4><i class="fas fa-list-check"></i> Siguientes pasos</h4>
                             <p>
@@ -178,7 +171,6 @@
                 </div>
             {% endif %}
 
-            <!-- Banner simple de prueba gratuita -->
             {% if subscription.plan.is_trial and not pending_upgrade_request and not pending_renewal_request and is_org_admin %}
                 <div class="upgrade-motivator-card attention">
                     <div class="motivator-icon"><i class="fas fa-bolt"></i></div>
@@ -249,7 +241,7 @@
                     {% endif %}
                 {% endif %}
                 {% if subscription.is_expired and not pending_renewal_request and is_org_admin %}
-                    <!-- Recuadro de Renovación para Suscripciones Expiradas -->
+                    
                     <div class="upgrade-motivator-card expired">
                         <div class="motivator-icon"><i class="fas fa-exclamation-triangle"></i></div>
                         <div class="motivator-content">
@@ -301,7 +293,7 @@
                         </div>
                     </div>
                 {% elif not pending_renewal_request %}
-                    <!-- Plan Activo Normal -->
+                    
                     <div class="upgrade-motivator-card success">
                         <div class="motivator-icon"><i class="fas fa-check-circle"></i></div>
                         <div class="motivator-content">
@@ -328,7 +320,6 @@
 
             {# Se elimina la tarjeta de Detalles del Plan Actual para evitar redundancia con el banner superior #}
 
-            <!-- Uso Actual -->
             <div class="usage-card">
                 <div class="card-header">
                     <h3><i class="fas fa-chart-bar"></i> Uso Actual</h3>
@@ -397,9 +388,6 @@
                 </div>
             </div>
 
-            
-
-            <!-- Características del Plan (compacto) -->
             <div class="features-card">
                 <div class="card-header">
                     <h3><i class="fas fa-star"></i> Características Incluidas</h3>
@@ -418,7 +406,6 @@
 
         </div>
 
-        <!-- Right Sidebar -->
         <div class="right-sidebar">
             
             {% if not pending_request and available_plans and is_org_admin and not subscription.is_expired %}
@@ -439,9 +426,6 @@
             </div>
             {% endif %}
 
-            <!-- Se elimina bloque de "Planes Disponibles" para reducir redundancia -->
-            
-            <!-- Información de Soporte -->
             <div class="support-card">
                 <div class="card-header">
                     <h3><i class="fas fa-headset"></i> ¿Necesitas ayuda?</h3>
@@ -459,5 +443,4 @@
     </div>
 </div>
 {% endblock %}
-
 

@@ -269,9 +269,7 @@
         background: #2980b9;
         color: white;
     }
-    
 
-    
     .admin-actions {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -417,34 +415,30 @@
             </div>
         </div>
     {% endif %}
-    
-    <!-- Métricas Principales -->
+
     <div class="metrics-grid">
-        <!-- Métricas de Usuarios -->
+        
         <a href="{% url 'admin:accounts_user_changelist' %}" class="metric-card users">
             <div class="metric-icon">👥</div>
             <div class="metric-value">{{ dashboard_stats.users.total }}</div>
             <div class="metric-label">Total Usuarios</div>
             <div class="metric-detail">{{ dashboard_stats.users.active }} activos</div>
         </a>
-        
-        <!-- Métricas de Organizaciones -->
+
         <a href="{% url 'admin:orgs_organization_changelist' %}" class="metric-card orgs">
             <div class="metric-icon">🏢</div>
             <div class="metric-value">{{ dashboard_stats.organizations.total }}</div>
             <div class="metric-label">Organizaciones</div>
             <div class="metric-detail">{{ dashboard_stats.organizations.active }} activas</div>
         </a>
-        
-        <!-- Métricas Financieras -->
+
         <a href="{% url 'admin_financial_dashboard' %}" class="metric-card financial">
             <div class="metric-icon">💰</div>
             <div class="metric-value">${{ dashboard_stats.financial.total_revenue|default:"0" }}</div>
             <div class="metric-label">Ingresos Totales</div>
             <div class="metric-detail">${{ dashboard_stats.financial.monthly_revenue|default:"0" }} este mes</div>
         </a>
-        
-        <!-- Métricas de Suscripciones -->
+
         <a href="{% url 'admin:plans_subscription_changelist' %}" class="metric-card subscriptions">
             <div class="metric-icon">💳</div>
             <div class="metric-value">{{ dashboard_stats.subscriptions.active }}</div>
@@ -452,8 +446,7 @@
             <div class="metric-detail">{{ dashboard_stats.subscriptions.basic }} básicas, {{ dashboard_stats.subscriptions.trial }} trial</div>
         </a>
     </div>
-    
-    <!-- Accesos Directos Importantes -->
+
     <div class="section">
         <h3>🚀 Accesos Directos</h3>
         <div class="quick-access-grid">
@@ -500,8 +493,7 @@
             </a>
         </div>
     </div>
-    
-    <!-- Alertas y Notificaciones -->
+
     {% if dashboard_stats.notifications.pending_upgrades > 0 or dashboard_stats.notifications.pending_renewals > 0 or dashboard_stats.notifications.expiring_soon > 0 or dashboard_stats.notifications.in_grace_period > 0 %}
     <div class="alerts-section">
         <h3>🚨 Alertas y Notificaciones</h3>
@@ -552,13 +544,11 @@
         </div>
     </div>
     {% endif %}
-    
 
 </div>
 
 <hr style="margin: 30px 0; opacity: 0.3;">
 {% endif %}
 
-<!-- Usar el contenido por defecto de Django Admin -->
 {{ block.super }}
 {% endblock %}

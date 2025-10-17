@@ -1,7 +1,7 @@
 {% extends "admin/base_site.html" %}
 {% load i18n %}
 
-{% block title %}Dashboard del Sistema{% endblock %}
+{% block title %}Dashboard del Sistema - ArqGest{% endblock %}
 
 {% block extrahead %}
 <style>
@@ -89,7 +89,7 @@
     {% endif %}
     
     <div class="dashboard-stats">
-        <!-- Estadísticas de Usuarios -->
+        
         <div class="stat-card">
             <h3>👥 Usuarios</h3>
             <div class="stat-item">
@@ -113,8 +113,7 @@
                 <span class="stat-value {% if dashboard_stats.users.inactive > 0 %}warning{% endif %}">{{ dashboard_stats.users.inactive }}</span>
             </div>
         </div>
-        
-        <!-- Estadísticas de Organizaciones -->
+
         <div class="stat-card">
             <h3>🏢 Organizaciones</h3>
             <div class="stat-item">
@@ -130,8 +129,7 @@
                 <span class="stat-value {% if dashboard_stats.organizations.inactive > 0 %}warning{% endif %}">{{ dashboard_stats.organizations.inactive }}</span>
             </div>
         </div>
-        
-        <!-- Estadísticas de Suscripciones -->
+
         <div class="stat-card">
             <h3>💳 Suscripciones</h3>
             <div class="stat-item">
@@ -151,8 +149,7 @@
                 <span class="stat-value danger">{{ dashboard_stats.subscriptions.expired }}</span>
             </div>
         </div>
-        
-        <!-- Estadísticas de Proyectos -->
+
         <div class="stat-card">
             <h3>📋 Proyectos</h3>
             <div class="stat-item">
@@ -164,8 +161,7 @@
                 <span class="stat-value positive">{{ dashboard_stats.projects.recent }}</span>
             </div>
         </div>
-        
-        <!-- Estadísticas de Tareas -->
+
         <div class="stat-card">
             <h3>✅ Tareas</h3>
             <div class="stat-item">
@@ -194,8 +190,7 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Estadísticas de Archivos -->
+
         <div class="stat-card">
             <h3>📁 Archivos</h3>
             <div class="stat-item">
@@ -208,8 +203,7 @@
             </div>
         </div>
     </div>
-    
-    <!-- Enlaces Rápidos -->
+
     <div class="module">
         <h2>🚀 Accesos Rápidos</h2>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
@@ -233,8 +227,7 @@
             </a>
         </div>
     </div>
-    
-    <!-- Guía de Soporte -->
+
     <div class="module">
         <h2>💡 Guía de Soporte para Personal No Técnico</h2>
         <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 10px;">

@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static plan_extras %}
 
-{% block title %}Mejorar Plan - Arc Manager{% endblock %}
+{% block title %}Mejorar Plan - ArqGest{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/upgrade_plan.css' %}?v=6.4">
@@ -49,13 +49,13 @@
             </div>
         </div>
     {% else %}
-        <!-- SELECCIÓN DE PLANES -->
+        
         <form method="post" class="upgrade-form" action="{% url 'plans:request_upgrade' %}" data-disable-loading="true">
             {% csrf_token %}
             
             <div class="main-content-grid">
                 <div class="left-content">
-                    <!-- Comparación de Planes -->
+                    
                     <div class="plans-comparison">
                         <div class="comparison-header">
                             <h2>Compara tu plan actual con las mejoras disponibles</h2>
@@ -63,7 +63,7 @@
                         </div>
 
                         <div class="plans-grid">
-                            <!-- PLAN ACTUAL -->
+                            
                             <div class="plan-card current-plan">
                                 <div class="plan-header">
                                     <div class="plan-badge current">Plan Actual</div>
@@ -93,7 +93,6 @@
                                 </div>
                             </div>
 
-                            <!-- SIGUIENTE PLAN (seleccionado automáticamente) -->
                             {% if available_plans %}
                             {% with target_plan=available_plans.0 %}
                             <div class="plan-card upgrade-plan recommended" id="targetPlanCard">
@@ -156,5 +155,4 @@
 <script src="{% static 'js/upgrade_plan.js' %}?v=2.1"></script>
 <script src="{% static 'js/upgrade_plan_confirm.js' %}?v=1.0"></script>
 {% endblock %}
-
 

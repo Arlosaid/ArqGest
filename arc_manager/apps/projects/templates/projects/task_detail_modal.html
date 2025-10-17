@@ -2,7 +2,7 @@
 {% load static %}
 
 <div class="task-detail-simple" style="--project-color: {{ project_color }};">
-    <!-- Header simple con título y badges -->
+    
     <div class="task-header-simple">
         <h5 class="task-title-simple">{{ task.title }}</h5>
         <div class="task-badges-simple">
@@ -11,7 +11,6 @@
         </div>
     </div>
 
-    <!-- Descripción principal -->
     <div class="task-body-simple">
         {% if task.description %}
         <div class="task-description-simple">
@@ -25,7 +24,6 @@
         </div>
         {% endif %}
 
-        <!-- Información básica en línea -->
         <div class="task-info-simple">
             <div class="info-item">
                 <i class="fas fa-user"></i>
@@ -50,7 +48,6 @@
         </div>
     </div>
 
-    <!-- Footer con acciones -->
     <div class="task-footer-simple">
         <button type="button" class="btn btn-outline-primary btn-sm" onclick="openTaskModal('edit', {{ task.pk }})">
             <i class="fas fa-edit me-1"></i>{% trans "Editar" %}

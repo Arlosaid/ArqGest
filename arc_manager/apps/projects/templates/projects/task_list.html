@@ -2,7 +2,7 @@
 {% load i18n %}
 {% load static %}
 
-{% block title %}{% trans "Mis Tareas" %}{% endblock %}
+{% block title %}{% trans "Mis Tareas" %} - ArqGest{% endblock %}
 
 {% block extra_css %}
 <link href="{% static 'css/tasks.css' %}?v=1.2" rel="stylesheet">
@@ -20,8 +20,7 @@
                     {% trans "Mis Tareas" %}
                 </h1>
                 <p class="tasks-subtitle">{% trans "Gestiona y organiza todas tus tareas de proyectos" %}</p>
-                
-                <!-- Estadísticas de tareas -->
+
                 <div class="tasks-stats">
                     <div class="task-stat">
                         <span class="task-stat-number">{{ total_tasks|default:"0" }}</span>

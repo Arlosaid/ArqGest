@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Mi Organización{% endblock %}
+{% block title %}Mi Organización - ArqGest{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/organization_management.css' %}">
@@ -41,10 +41,9 @@
             </div>
         </div>
     </div>
-    
-    <!-- Estadísticas Principales -->
+
     <div class="stats-grid-advanced">
-        <!-- Plan Actual -->
+        
         <div class="stat-card-advanced">
             <div class="stat-header-advanced">
                 <div class="stat-icon-advanced plan">
@@ -71,8 +70,7 @@
                 </div>
             </div>
         </div>
-    
-        <!-- Usuarios -->
+
         <div class="stat-card-advanced">
             <div class="stat-header-advanced">
                 <div class="stat-icon-advanced users">
@@ -85,8 +83,7 @@
                 </div>
             </div>
         </div>
-    
-        <!-- Estado de Suscripción -->
+
         <div class="stat-card-advanced">
             <div class="stat-header-advanced">
                 <div class="stat-icon-advanced subscription">
@@ -104,8 +101,7 @@
             </div>
         </div>
     </div>
-    
-    <!-- Acciones Rápidas -->
+
     {% if user.is_org_admin %}
         <div class="quick-actions-section">
             <div class="section-header">
@@ -145,8 +141,7 @@
             </div>
         </div>
     {% endif %}
-    
-    <!-- Mensaje de Soporte -->
+
     <div class="support-card">
         <div class="support-icon">
             <i class="fas fa-headset"></i>
@@ -162,5 +157,4 @@
 {% block extra_js %}
 <script src="{% static 'js/organization_management.js' %}"></script>
 {% endblock %} 
-
 

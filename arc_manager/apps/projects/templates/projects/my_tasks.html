@@ -2,7 +2,7 @@
 {% load i18n %}
 {% load static %}
 
-{% block title %}{% trans "Mis Tareas" %}{% endblock %}
+{% block title %}{% trans "Mis Tareas" %} - ArqGest{% endblock %}
 
 {% block extra_css %}
 <link href="{% static 'css/tasks.css' %}?v=1.2" rel="stylesheet">
@@ -13,14 +13,13 @@
 
 {% block content %}
 <div class="page-container">
-    <!-- Header simplificado -->
+    
     <div class="my-tasks-header">
         <div class="header-content">
             <h1><i class="fas fa-user-check"></i> {% trans "Mis Tareas" %}</h1>
             <p class="header-subtitle">{% trans "Gestiona y revisa tus tareas asignadas" %}</p>
         </div>
-        
-        <!-- Estadísticas compactas -->
+
         <div class="stats-compact">
             <div class="stat-item stat-total">
                 <div class="stat-number">{{ total_tasks|default:"0" }}</div>
@@ -43,7 +42,6 @@
                 <div class="stat-label">{% trans "Completadas" %}</div>
             </div>
         </div>
-        
 
     </div>
     
@@ -79,8 +77,7 @@
                         <option value="LOW">🟢 {% trans "Baja" %}</option>
                     </select>
                 </div>
-                
-                <!-- Botón para limpiar filtros -->
+
                 <div class="filter-pill">
                     <button type="button" id="clearFiltersBtn" class="clear-filters-btn">
                         <i class="fas fa-eraser"></i>
@@ -91,12 +88,11 @@
         </div>
     </div>
 
-    <!-- Grid de tareas compactas -->
     {% if tasks %}
         <div id="tasksList" class="tasks-grid-compact">
             {% for task in tasks %}
                 <div class="task-card-compact" data-task-id="{{ task.pk }}" data-status="{{ task.status }}" data-priority="{{ task.priority }}" data-project="{{ task.phase.project.name|lower }}" data-project-id="{{ task.phase.project.id }}" data-phase="{{ task.phase.name|lower }}">
-                    <!-- Header con badges -->
+                    
                     <div class="task-card-top">
                         <div class="task-badges-compact">
                             <span class="badge-status badge-{{ task.status|lower }}">{{ task.get_status_display }}</span>
@@ -108,8 +104,7 @@
                             </div>
                         {% endif %}
                     </div>
-                    
-                    <!-- Contenido principal -->
+
                     <div class="task-card-content">
                         <h4 class="task-title-compact">{{ task.title }}</h4>
                         
@@ -140,11 +135,9 @@
                             {% endif %}
                         </div>
                     </div>
-                    
-                    <!-- Acciones principales (sin botones grandes) -->
+
                     <div class="task-card-actions">
-                        
-                        <!-- Botones de estado -->
+
                         <div class="status-actions">
                             <button type="button" class="action-btn action-detail" 
                                     onclick="openTaskModal('detail', {{ task.pk }})"

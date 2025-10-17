@@ -533,6 +533,7 @@
     text-align: left;
     flex: 1;
     min-width: 0; /* Permite que el texto se trunque */
+    max-width: 520px; /* Evita que empuje otras columnas */
 }
 
 /* ===== BOTONES Y ACCIONES ===== */
@@ -729,10 +730,23 @@
     overflow: hidden;
     text-overflow: ellipsis;
     width: 100%;
+    max-width: inherit; /* Usa el límite del contenedor */
     margin: 0;
     line-height: 1.3;
     letter-spacing: 0.01em;
     display: block;
+}
+
+/* Asegurar que el bloque completo no crezca indefinidamente */
+.modern-table td:first-child .client-info { 
+    max-width: 100%;
+}
+
+/* En pantallas grandes, limitar aún más para no chocar con acciones */
+@media (min-width: 1024px) {
+    .modern-table td:first-child .client-details {
+        max-width: 480px;
+    }
 }
 
 .client-email {

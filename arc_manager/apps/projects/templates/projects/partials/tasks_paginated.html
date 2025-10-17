@@ -1,4 +1,4 @@
-<!-- Grid compacto de tareas -->
+
 <div class="tasks-compact-grid" id="compactTasksGrid">
     {% for task in tasks_page_obj.object_list %}
     <div class="task-compact-card" data-phase-id="{{ task.phase_id }}" data-task-id="{{ task.id }}">
@@ -24,8 +24,7 @@
             <span class="task-compact-status {% if task.status == 'DONE' %}done{% elif task.status == 'IN_PROGRESS' %}in-progress{% elif task.status == 'PAUSED' %}paused{% else %}todo{% endif %}">
                 {{ task.get_status_display }}
             </span>
-            
-            <!-- Botones de acción simples y limpios -->
+
             <div class="task-simple-actions">
                 <button type="button" class="btn-action btn-view" 
                         onclick="openTaskModal('detail', {{ task.pk }})"
@@ -59,7 +58,6 @@
     {% endfor %}
 </div>
 
-<!-- Paginación -->
 {% if tasks_page_obj.has_other_pages %}
 <div class="pagination-container mt-3">
     <nav aria-label="Paginación de tareas">

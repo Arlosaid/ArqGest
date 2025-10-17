@@ -710,14 +710,14 @@ if DEBUG and not IS_DOCKER:
     LOGGING['loggers']['core']['handlers'].append('debug_file')
 
 # Configuración del sitio
-SITE_NAME = os.environ.get('SITE_NAME', 'ARC Manager')
+SITE_NAME = os.environ.get('SITE_NAME', 'ArqGest')
 SITE_DOMAIN = os.environ.get('SITE_DOMAIN', 'localhost:8000')
 
 
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
     EMAIL_HOST = 'localhost'
-    DEFAULT_FROM_EMAIL = 'ARC MANAGER <noreply@archmanager.local>'
+    DEFAULT_FROM_EMAIL = 'ArqGest <noreply@arqgest.local>'
 else:
     # ========================================
     # CONFIGURACIÓN RESEND (REEMPLAZA AWS SES)

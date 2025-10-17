@@ -4,36 +4,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>{% block title %}Arc Manager{% endblock %}</title>
+    <title>{% block title %}ArqGest{% endblock %}</title>
     
-    <!-- Optimización específica para Safari móvil -->
+    <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}?v={{ STATIC_VERSION }}">
+    <link rel="shortcut icon" type="image/png" href="{% static 'images/favicon.png' %}?v={{ STATIC_VERSION }}">
+    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="format-detection" content="telephone=no">
+    <link rel="apple-touch-icon" href="{% static 'images/favicon.png' %}?v={{ STATIC_VERSION }}">
     
-    <!-- Optimizaciones específicas para Android -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#3B82F6">
     <meta name="android-app-installable" content="no">
     <meta name="mobile-web-status-bar-style" content="default">
     
-    
-    <!-- Preconnect para CDNs externos -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
-    <!-- CSS crítico optimizado para móviles iOS -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     {% comment %}{% critical_css_block %}{% endcomment %}
     
-    <!-- Bootstrap CSS con preload -->
     <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"></noscript>
     
-    <!-- Font Awesome Icons con preload -->
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     
-    <!-- Estilos básicos con versión simple -->
     <link href="{% static 'css/base.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
     <link href="{% static 'css/navbar.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
     <link href="{% static 'css/sidebar.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
@@ -42,26 +42,18 @@
     <link href="{% static 'css/file-updates.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
     <link href="{% static 'css/char-counter.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
     
-    <!-- Optimizaciones específicas para Safari móvil iOS -->
     {% comment %}{% mobile_css 'css/mobile_ios_fixes.css' 'screen and (max-width: 991.98px)' %}{% endcomment %}
     
-    <!-- Optimizaciones específicas para Android Chrome/WebView -->
     {% comment %}{% mobile_css 'css/mobile_android_fixes.css' 'screen and (max-width: 991.98px)' %}{% endcomment %}
-    
-    <!-- Estilos adicionales específicos por página -->
     {% block extra_css %}{% endblock %}
 </head>
 <body data-task-detail-url-template="{% url 'projects:task-detail' 0 %}"
       data-task-edit-url-template="{% url 'projects:task-edit' 0 %}">
-    <!-- Incluir Sidebar -->
     {% include 'includes/sidebar.html' %}
     
-    <!-- Contenido principal -->
     <div class="main-content">
-        <!-- Incluir Navbar -->
         {% include 'includes/navbar.html' %}
         
-        <!-- Área de contenido -->
         <main class="content-area">
             {% if request.subscription_info %}
                 {% with info=request.subscription_info %}
@@ -133,7 +125,6 @@
                 {% endif %}
                 {% endwith %}
             {% endif %}
-            <!-- Mensajes del sistema (ocultos - se manejan con JavaScript) -->
             {% if messages %}
                 <div class="messages-container" style="display: none;">
                     {% for message in messages %}
@@ -146,54 +137,36 @@
             {% endif %}
             
             {% block content %}
-            <!-- El contenido específico de cada página irá aquí -->
             {% endblock %}
         </main>
     </div>
     
-    <!-- jQuery (necesario para compatibilidad con algunos scripts) -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     
-    <!-- Bootstrap JS Bundle con Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- HTMX para interacciones hx-* (upload/delete parciales, etc.) -->
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     <script src="{% static 'js/htmx_csrf.js' %}?v={{ STATIC_VERSION }}"></script>
     
-    <!-- Manejador global de errores HTMX -->
     <script src="{% static 'js/htmx_error_handler.js' %}?v={{ STATIC_VERSION }}"></script>
     
-    <!-- Sistema de Progreso de Upload optimizado -->
     <script src="{% static 'js/upload_progress.js' %}?v={{ STATIC_VERSION }}"></script>
     
-    <!-- Mobile Upload Optimizer -->
     <script src="{% static 'js/mobile_upload_optimizer.js' %}?v={{ STATIC_VERSION }}"></script>
     
-    <!-- Large File Upload System (Cloudflare R2 Direct Upload) -->
     <script src="{% static 'js/large-file-upload.js' %}?v={{ STATIC_VERSION }}"></script>
     
-    <!-- File List Updater (maneja actualización inmediata de listas) -->
     <script src="{% static 'js/file-list-updater.js' %}?v={{ STATIC_VERSION }}"></script>
     
-    <!-- Scripts base estables -->
     <script src="{% static 'js/base.js' %}?v={{ STATIC_VERSION }}"></script>
     <script src="{% static 'js/navbar.js' %}?v={{ STATIC_VERSION }}"></script>
     <script src="{% static 'js/sidebar.js' %}?v={{ STATIC_VERSION }}"></script>
     <script src="{% static 'js/notifications.js' %}?v={{ STATIC_VERSION }}"></script>
     <script src="{% static 'js/char-counter.js' %}?v={{ STATIC_VERSION }}"></script>
     
-    
-    
-    <!-- Notificaciones Automáticas de Suscripción -->
     <script src="{% static 'js/subscription-notifications.js' %}?v={{ STATIC_VERSION }}"></script>
-    
-    <!-- Modal de Edición de Tareas -->
-    
-    <!-- Scripts adicionales específicos por página -->
     {% block extra_js %}{% endblock %}
 
-    <!-- Modal global reutilizable -->
     <div class="modal fade task-modal" id="appModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
       <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
@@ -208,7 +181,6 @@
       </div>
     </div>
 
-    <!-- Modal Universal para Tareas (Detalles y Edición) -->
     <div class="modal fade" id="taskUniversalModal" tabindex="-1" aria-labelledby="taskUniversalModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
@@ -216,7 +188,6 @@
                     <h5 class="modal-title" id="taskUniversalModalLabel">Tarea</h5>
                 </div>
                 <div class="modal-body" id="taskUniversalContent">
-                    <!-- El contenido se carga dinámicamente -->
                 </div>
             </div>
         </div>
@@ -224,7 +195,6 @@
 
     <script src="{% static 'js/modal_helpers.js' %}?v={{ STATIC_VERSION }}"></script>
     
-    <!-- JavaScript optimizado para el menú mobile responsive - Producción móvil -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const mobileMenuToggle = document.getElementById('mobileMenuToggle');
@@ -359,9 +329,6 @@
         }, { passive: true });
     });
     
-    // ============================================
-    // GESTIÓN INTELIGENTE DE BANNERS DE SUSCRIPCIÓN
-    // ============================================
     (function() {
         // Ejecutar inmediatamente para evitar parpadeos
         const subscriptionAlerts = document.querySelectorAll('.subscription-alert');

@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Crear Usuario{% endblock %}
+{% block title %}Crear Usuario - ArqGest{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/user_management.css' %}">
@@ -13,7 +13,7 @@
 
 {% block content %}
 <div class="page-container user-management-page">
-    <!-- HEADER SECTION -->
+    
     <div class="header-section">
         <div class="header-content">
             <div class="header-title">
@@ -31,7 +31,6 @@
         </div>
     </div>
 
-    <!-- ESTADO DE ORGANIZACIÓN SIMPLIFICADO -->
     {% if user.is_org_admin and user.organization %}
         {% with limit_info=user.organization.can_add_user_detailed %}
             <div class="org-status-compact">
@@ -69,9 +68,8 @@
         {% endwith %}
     {% endif %}
 
-    <!-- MAIN CONTENT GRID -->
     <div class="main-content-grid">
-        <!-- FORMULARIO MEJORADO - LADO IZQUIERDO -->
+        
         <div class="left-content">
             <div class="card">
                 <div class="card-header">
@@ -81,8 +79,7 @@
                 <div class="card-body">
                     <form method="post" id="userForm">
                         {% csrf_token %}
-                        
-                        <!-- SECCIÓN: INFORMACIÓN PERSONAL -->
+
                         <div class="form-section">
                             <div class="form-section-title">
                                 <div class="form-section-icon">
@@ -137,8 +134,7 @@
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- SECCIÓN: ACCESO -->
+
                         <div class="form-section">
                             <div class="form-section-title">
                                 <div class="form-section-icon">
@@ -169,8 +165,7 @@
                                 {% endif %}
                             </div>
                         </div>
-                        
-                        <!-- SECCIÓN: PERMISOS -->
+
                         <div class="form-section">
                             <div class="form-section-title">
                                 <div class="form-section-icon">
@@ -178,8 +173,7 @@
                                 </div>
                                 Permisos y Organización
                             </div>
-                            
-                            <!-- Organización (solo para super admins) -->
+
                             {% if not user.is_org_admin or not user.organization %}
                             <div class="modern-form-group">
                                 <label for="{{ form.organization.id_for_label }}" class="modern-label">
@@ -208,7 +202,7 @@
                                 {% endif %}
                             </div>
                             {% else %}
-                            <!-- Organización fija para org_admin -->
+                            
                             <div class="modern-form-group">
                                 <label class="modern-label">
                                     Organización<span class="required">*</span>
@@ -224,7 +218,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <!-- Campo oculto con el valor -->
+                                
                                 <input type="hidden" name="organization_id" value="{{ user.organization.id }}">
                                 <div class="field-hint">
                                     <i class="fas fa-info-circle"></i>
@@ -283,16 +277,14 @@
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Errores generales -->
+
                         {% if form.non_field_errors %}
                             <div class="error-message" style="margin-bottom: 2rem;">
                                 <i class="fas fa-exclamation-triangle"></i>
                                 {% for error in form.non_field_errors %}{{ error }}{% endfor %}
                             </div>
                         {% endif %}
-                        
-                        <!-- ACCIONES DEL FORMULARIO -->
+
                         <div class="form-actions">
                             <div>
                                 <small class="text-muted">
@@ -311,8 +303,7 @@
                 </div>
             </div>
         </div>
-        
-        <!-- GUÍA DEL PROCESO - LADO DERECHO -->
+
         <div class="right-sidebar">
             <div class="process-guide">
                 <div class="process-header">
@@ -368,5 +359,4 @@
 
 <!-- El contexto Django y JavaScript se manejan en user_management.js -->
 {% endblock %}
-
 
