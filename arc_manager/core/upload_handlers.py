@@ -99,8 +99,8 @@ class OptimizedTemporaryFileUploadHandler(TemporaryFileUploadHandler):
                 
                 # Log de éxito con detalles
                 logger.info(
-                    f"✅ Upload completado: {self.file.name} "
-                    f"({file_size} bytes = {file_size/(1024*1024):.2f} MB)"
+                    f"Upload completed: {self.file.name} "
+                    f"({file_size/(1024*1024):.2f} MB)"
                 )
                 
                 # Verificar que el archivo temporal existe y tiene contenido

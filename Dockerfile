@@ -44,16 +44,8 @@ WORKDIR /app/arc_manager
 
 # Crear script de inicio
 RUN echo '#!/bin/bash\n\
-echo "🔄 Ejecutando migraciones..."\n\
-python manage.py migrate --noinput || echo "⚠️ Error en migraciones - continuando por ahora"\n\
-echo "✅ Migraciones listas"\n\
-echo "📦 Desplegando archivos estáticos con cache busting..."\n\
-python manage.py deploy_static || echo "⚠️ Error en deploy_static - continuando"\n\
-echo "✅ Archivos estáticos con cache busting listos"\n\
-# echo "🔍 Ejecutando diagnóstico de conexión SMTP..."\n\
-# python manage.py check_smtp_connection\n\
-# echo "✅ Diagnóstico finalizado"\n\
-echo "🚀 Iniciando servidor con timeouts extendidos para uploads masivos..."\n\
+python manage.py migrate --noinput\n\
+python manage.py collectstatic --noinput\n\
 exec gunicorn --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 1800 --worker-class sync --max-requests 1000 --max-requests-jitter 50 core.wsgi:application' > /app/start.sh && chmod +x /app/start.sh
 
 # Puerto (Railway asignará automáticamente)
