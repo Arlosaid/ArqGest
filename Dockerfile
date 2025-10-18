@@ -42,10 +42,27 @@ RUN mkdir -p /app/arc_manager/staticfiles \
 # Directorio Django
 WORKDIR /app/arc_manager
 
-# Crear script de inicio
+# Crear script de inicio con reintentos
 RUN echo '#!/bin/bash\n\
+set -e\n\
+\n\
+echo "Waiting for database..."\n\
+for i in {1..30}; do\n\
+  if python manage.py migrate --check > /dev/null 2>&1; then\n\
+    echo "Database is ready"\n\
+    break\n\
+  fi\n\
+  echo "Database not ready, waiting... ($i/30)"\n\
+  sleep 2\n\
+done\n\
+\n\
+echo "Running migrations..."\n\
 python manage.py migrate --noinput\n\
+\n\
+echo "Collecting static files..."\n\
 python manage.py collectstatic --noinput\n\
+\n\
+echo "Starting server..."\n\
 exec gunicorn --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 1800 --worker-class sync --max-requests 1000 --max-requests-jitter 50 core.wsgi:application' > /app/start.sh && chmod +x /app/start.sh
 
 # Puerto (Railway asignará automáticamente)
