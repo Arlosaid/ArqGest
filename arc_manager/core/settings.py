@@ -48,6 +48,16 @@ if os.environ.get('RAILWAY_ENVIRONMENT'):
     if railway_subdomain not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(railway_subdomain)
         ALLOWED_HOSTS.append('*.railway.app')
+    
+    # Agregar dominios personalizados comunes
+    custom_domains = [
+        'app.arqgest.com',
+        'arqgest.com',
+        'www.arqgest.com'
+    ]
+    for domain in custom_domains:
+        if domain not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(domain)
 
 TESTING = bool(os.environ.get('TESTING')) or ('test' in sys.argv)
 
