@@ -27,12 +27,7 @@ def get_optimized_r2_client():
         # Sistema de retry ultra-robusto
         retries={
             'max_attempts': 5,
-            'mode': 'adaptive',  # Retry inteligente basado en el tipo de error
-            'total_max_attempts': 10,  # Máximo absoluto de intentos
-            'backoff': {
-                'base': 2,  # Backoff exponencial base
-                'max_value': 120  # Máximo 2 minutos entre retries
-            }
+            'mode': 'adaptive',  # Retry inteligente con backoff exponencial automático
         },
         
         # Configuración multipart ultra-optimizada para arquitectos

@@ -54,13 +54,13 @@ class UploadOptimizationMiddleware(MiddlewareMixin):
         request.META['HTTP_X_UPLOAD_SIZE'] = str(content_length)
     
     def process_response(self, request, response):
-        """Log solo errores en uploads grandes"""
+        """Log solo errores críticos en uploads grandes"""
         
         if hasattr(request, 'is_large_upload') and request.is_large_upload:
-            # Solo loguear si hubo error
-            if response.status_code >= 400:
+            # Solo loguear errores críticos del servidor
+            if response.status_code >= 500:
                 duration = time.time() - request.upload_start_time
-                logger.warning(
+                logger.error(
                     f"Large upload failed: {request.upload_size_mb:.1f}MB "
                     f"after {duration:.1f}s - Status: {response.status_code}"
                 )
@@ -83,8 +83,9 @@ class R2ConnectionPoolMiddleware(MiddlewareMixin):
         try:
             from core.r2_config import get_optimized_r2_client
             self.r2_client = get_optimized_r2_client()
-        except Exception as e:
-            logger.warning(f"R2 connection pool not available: {e}")
+        except Exception:
+            # R2 no configurado - silently skip
+            pass
     
     def process_request(self, request):
         """Proporcionar cliente R2 optimizado al request"""
