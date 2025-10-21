@@ -1,5 +1,6 @@
-# Ejecutar recordatorios de renovación todos los días a las 9:00 AM
-0 9 * * * /app/scripts/send_renewal_reminders.sh
+# Ejecutar recordatorios de renovación todos los días a las 9:00 AM (UTC)
+# Para México (UTC-6): 9 AM = 15:00 UTC, 8 AM = 14:00 UTC
+0 14 * * * cd /app/arc_manager && python manage.py send_renewal_reminders 2>&1
 
 # Limpiar logs antiguos cada domingo a las 2:00 AM
-0 2 * * 0 find /app/logs -name "*.log" -mtime +30 -delete
+0 2 * * 0 find /app/logs -name "*.log" -mtime +30 -delete 2>&1

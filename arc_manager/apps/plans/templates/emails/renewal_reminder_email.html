@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¡URGENTE! Suscripción vence hoy - {{ site_name }}</title>
+    <style>
+        @media only screen and (max-width: 600px) {
+            .email-container { width: 100% !important; max-width: 100% !important; }
+            .email-content { padding: 15px !important; }
+            .email-header { padding: 20px !important; }
+            .email-footer { padding: 15px !important; }
+            .logo { width: 40px !important; height: 40px !important; }
+            .header-title { font-size: 20px !important; }
+            .content-text { font-size: 14px !important; }
+            .button-container { width: 100% !important; }
+            .button-link { display: block !important; width: 100% !important; text-align: center !important; }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: Arial, sans-serif;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f5f5f5;">
+        <tr>
+            <td style="padding: 20px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="email-container" style="margin: 0 auto; max-width: 600px; background-color: #ffffff;">
+                    
+                    <!-- Header con Logo -->
+                    <tr>
+                        <td class="email-header" style="background-color: #c0392b; padding: 30px; text-align: center;">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                <tr>
+                                    <td style="text-align: center; padding-bottom: 15px;">
+                                        {% load static %}
+                                        <img src="{{ protocol }}://{{ domain }}{% static 'images/logo.png' %}" alt="{{ site_name }}" width="50" height="50" class="logo" style="display: block; margin: 0 auto;">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="text-align: center;">
+                                        <h1 class="header-title" style="margin: 0; font-size: 24px; font-weight: normal; color: #ffffff;">¡URGENTE! Vence Hoy</h1>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Contenido Principal -->
+                    <tr>
+                        <td class="email-content" style="padding: 30px; color: #333333; line-height: 1.6;">
+                            <p class="content-text" style="margin: 0 0 20px 0; font-size: 16px;">Hola <strong>{{ organization_name }}</strong>,</p>
+                            
+                            <p class="content-text" style="margin: 0 0 20px 0; font-size: 15px;">Tu suscripción al plan <strong>{{ plan_name }}</strong> vence <strong>HOY</strong>.</p>
+                            
+                            <p class="content-text" style="margin: 0 0 25px 0; font-size: 15px;">Renueva inmediatamente para evitar el bloqueo de acceso a tus proyectos.</p>
+
+                            <!-- Botón CTA -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" class="button-container" style="margin: 0 0 25px 0;">
+                                <tr>
+                                    <td style="background-color: #c0392b; text-align: center;">
+                                        <a href="{{ renewal_url }}" class="button-link" style="display: inline-block; padding: 14px 35px; font-size: 16px; color: #ffffff; text-decoration: none; font-weight: bold;">¡Renovar AHORA!</a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p class="content-text" style="margin: 20px 0 0 0; padding: 15px; background-color: #f8d7da; border: 1px solid #f5c6cb; text-align: center; font-size: 15px; color: #721c24; font-weight: bold;">Acceso se bloqueará al finalizar el día</p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td class="email-footer" style="background-color: #f5f5f5; padding: 20px; text-align: center; border-top: 1px solid #dddddd;">
+                            <p class="content-text" style="margin: 0 0 5px 0; font-size: 13px; color: #666666;">Este mensaje fue generado automáticamente.</p>
+                            <p class="content-text" style="margin: 0 0 15px 0; font-size: 13px; color: #666666;">Por favor no respondas a este email.</p>
+                            <p style="margin: 0; font-size: 14px; font-weight: bold; color: #333333;">{{ site_name }}</p>
+                            <p style="margin: 5px 0 0 0; font-size: 12px; color: #999999;">Sistema de Gestión de Proyectos</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+

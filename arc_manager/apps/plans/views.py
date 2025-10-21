@@ -7,9 +7,12 @@ from django.contrib import messages
 from django.urls import reverse_lazy
 from django.db import transaction
 from django.core.exceptions import PermissionDenied
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.conf import settings
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.core.management import call_command
 from datetime import timedelta
 import logging
 
@@ -360,3 +363,61 @@ class SubscriptionInfoAPIView(LoginRequiredMixin, OrgAdminRequiredMixin, View):
         except Exception as e:
             logger.error(f"Error en SubscriptionInfoAPIView: {e}", exc_info=True)
             return JsonResponse({'error': 'Error interno del servidor'}, status=500)
+
+
+# Vista para cron externo (Opción 2: cron-job.org)
+@csrf_exempt
+@require_POST
+def cron_renewal_reminders(request):
+    """
+    Endpoint para ejecutar recordatorios de renovación via cron externo.
+    
+    Uso:
+    - Configurar en cron-job.org para llamar diariamente
+    - Header requerido: X-Cron-Secret con valor de CRON_SECRET_KEY
+    - Método: POST
+    
+    Protecciones:
+    - Autenticación por token secreto
+    - Rate limiting (1 ejecución por hora)
+    - Idempotencia (no envía duplicados el mismo día)
+    """
+    from django.core.cache import cache
+    from io import StringIO
+    
+    # Seguridad: validar token secreto
+    secret = request.headers.get('X-Cron-Secret')
+    expected_secret = getattr(settings, 'CRON_SECRET_KEY', None)
+    
+    if not expected_secret:
+        logger.error("CRON_SECRET_KEY no configurado en settings")
+        return HttpResponse('Service not configured', status=503)
+    
+    if secret != expected_secret:
+        ip_address = request.META.get('REMOTE_ADDR', 'unknown')
+        logger.warning(f"Intento no autorizado de ejecutar cron desde IP: {ip_address}")
+        return HttpResponse('Unauthorized', status=401)
+    
+    # Rate limiting simple: máximo 1 ejecución por hora
+    rate_limit_key = 'cron_renewal_rate_limit'
+    if cache.get(rate_limit_key):
+        logger.warning("Rate limit alcanzado para cron endpoint")
+        return HttpResponse('Rate limit exceeded. Try again later.', status=429)
+    
+    try:
+        logger.info("Ejecutando recordatorios de renovación via cron endpoint")
+        
+        # Capturar output del comando
+        output = StringIO()
+        call_command('send_renewal_reminders', stdout=output)
+        result = output.getvalue()
+        
+        # Establecer rate limit por 1 hora
+        cache.set(rate_limit_key, True, timeout=3600)
+        
+        logger.info(f"Recordatorios ejecutados exitosamente: {result.strip()}")
+        return HttpResponse(f'OK - {result}', status=200)
+        
+    except Exception as e:
+        logger.error(f"Error ejecutando recordatorios via cron: {e}", exc_info=True)
+        return HttpResponse(f'Error: {str(e)}', status=500)
