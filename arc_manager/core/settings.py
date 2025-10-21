@@ -845,3 +845,9 @@ if not DEBUG:
     SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
+
+# ========================================
+# CRON JOBS - SEGURIDAD
+# ========================================
+# Clave secreta para autenticar requests de cron externos
+CRON_SECRET_KEY = os.environ.get('CRON_SECRET_KEY', '')
