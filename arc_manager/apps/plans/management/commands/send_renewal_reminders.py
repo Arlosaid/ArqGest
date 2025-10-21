@@ -64,7 +64,7 @@ class Command(BaseCommand):
             site_name = getattr(settings, 'SITE_NAME', 'ArqGest')
             site_url = getattr(settings, 'SITE_URL', 'https://arcmanager.up.railway.app')
 
-            for sub in subs_due_today:
+            for sub in subs_expiring_soon:
                 org = sub.organization
                 
                 # TEMPORAL: Protección anti-spam desactivada para pruebas
