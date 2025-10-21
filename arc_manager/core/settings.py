@@ -737,44 +737,29 @@ if DEBUG:
     DEFAULT_FROM_EMAIL = 'ArqGest <noreply@arqgest.local>'
 else:
     # ========================================
-    # CONFIGURACIÓN RESEND (REEMPLAZA AWS SES)
+    # CONFIGURACIÓN RESEND PARA PRODUCCIÓN
     # ========================================
     
     # Verificar si tenemos API key de Resend
     RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
     
     if RESEND_API_KEY:
-        # Railway bloquea SMTP, usamos API de Resend
-        # Mantenemos el backend console para compatibilidad con Django
-        EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+        # Usar backend personalizado de Resend
+        EMAIL_BACKEND = 'core.backends.resend_backend.ResendBackend'
         
         # Email de remitente - debe estar verificado en Resend
-        DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'adroal08@gmail.com')
+        DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'ArqGest <noreply@arqgest.com>')
         SERVER_EMAIL = DEFAULT_FROM_EMAIL
         
-        logging.info("Email: Resend API configured")
+        logging.info("Email: Resend backend configured")
     
-    if not RESEND_API_KEY:
-        # Fallback a AWS SES (si no hay Resend configurado)
-        EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-        
-        EMAIL_HOST = os.environ.get('AWS_SES_HOST', 'email-smtp.us-west-1.amazonaws.com')
-        EMAIL_PORT = int(os.environ.get('AWS_SES_PORT', '587'))
-        EMAIL_USE_TLS = True
-        EMAIL_USE_SSL = False
-        
-        EMAIL_HOST_USER = os.environ.get('AWS_SES_USER')
-        EMAIL_HOST_PASSWORD = os.environ.get('AWS_SES_PASS')
-        
-        DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@tudominio.com')
+    else:
+        # Fallback: Si no hay Resend, usar console (no envía emails reales)
+        EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+        DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'ArqGest <noreply@arqgest.com>')
         SERVER_EMAIL = DEFAULT_FROM_EMAIL
         
-        # Timeouts cortos para Railway
-        EMAIL_TIMEOUT = 10
-        EMAIL_CONNECTION_TIMEOUT = 8
-        EMAIL_READ_TIMEOUT = 8
-        
-        logging.info("Email: AWS SES configured (fallback)")
+        logging.warning("Email: No RESEND_API_KEY configured - using console backend (emails will only print to logs)")
 
 
 # Configuración para el sistema de pagos

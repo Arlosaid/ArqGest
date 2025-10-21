@@ -477,6 +477,52 @@ class PlanErrorCodes:
     PLAN_CONFIG_CUSTOM_PLAN_ERROR = "PL305"
 
 
+class EmailErrorCodes:
+    """Códigos de error para el módulo de emails (E001-E999)"""
+    # Envío de emails (E001-E099)
+    EMAIL_SEND_SUCCESS = "E001"
+    EMAIL_SEND_FAILED = "E002"
+    EMAIL_SEND_INVALID_RECIPIENT = "E003"
+    EMAIL_SEND_INVALID_SENDER = "E004"
+    EMAIL_SEND_MISSING_SUBJECT = "E005"
+    EMAIL_SEND_MISSING_CONTENT = "E006"
+    EMAIL_SEND_API_ERROR = "E007"
+    EMAIL_SEND_RATE_LIMIT = "E008"
+    EMAIL_SEND_QUOTA_EXCEEDED = "E009"
+    EMAIL_SEND_INVALID_TEMPLATE = "E010"
+    EMAIL_SEND_ATTACHMENT_ERROR = "E011"
+    EMAIL_SEND_SIZE_TOO_LARGE = "E012"
+    EMAIL_SEND_REJECTED_BY_PROVIDER = "E013"
+    EMAIL_SEND_BOUNCE = "E014"
+    EMAIL_SEND_SPAM_REJECTED = "E015"
+    
+    # Configuración de email (E101-E199)
+    EMAIL_CONFIG_API_KEY_MISSING = "E101"
+    EMAIL_CONFIG_API_KEY_INVALID = "E102"
+    EMAIL_CONFIG_DOMAIN_NOT_VERIFIED = "E103"
+    EMAIL_CONFIG_BACKEND_ERROR = "E104"
+    EMAIL_CONFIG_SENDER_NOT_VERIFIED = "E105"
+    EMAIL_CONFIG_DNS_NOT_CONFIGURED = "E106"
+    EMAIL_CONFIG_CONNECTION_ERROR = "E107"
+    EMAIL_CONFIG_TIMEOUT = "E108"
+    
+    # Templates de email (E201-E299)
+    EMAIL_TEMPLATE_NOT_FOUND = "E201"
+    EMAIL_TEMPLATE_RENDERING_ERROR = "E202"
+    EMAIL_TEMPLATE_INVALID_VARIABLES = "E203"
+    EMAIL_TEMPLATE_SYNTAX_ERROR = "E204"
+    
+    # Notificaciones específicas (E301-E399)
+    EMAIL_NOTIFICATION_PASSWORD_RESET = "E301"
+    EMAIL_NOTIFICATION_CREDENTIALS_SENT = "E302"
+    EMAIL_NOTIFICATION_WELCOME = "E303"
+    EMAIL_NOTIFICATION_SUBSCRIPTION_REMINDER = "E304"
+    EMAIL_NOTIFICATION_SUBSCRIPTION_EXPIRED = "E305"
+    EMAIL_NOTIFICATION_INVOICE = "E306"
+    EMAIL_NOTIFICATION_TEAM_INVITE = "E307"
+    EMAIL_NOTIFICATION_PROJECT_UPDATE = "E308"
+
+
 class SystemErrorCodes:
     """Códigos de error del sistema (S001-S999)"""
     # Errores de base de datos (S001-S099)
@@ -717,6 +763,11 @@ ERROR_CODE_MAP = {
     **{getattr(PlanErrorCodes, attr): 'PLAN' 
        for attr in dir(PlanErrorCodes) 
        if not attr.startswith('_') and isinstance(getattr(PlanErrorCodes, attr), str)},
+    
+    # Emails - todos los códigos que empiezan con E
+    **{getattr(EmailErrorCodes, attr): 'EMAIL' 
+       for attr in dir(EmailErrorCodes) 
+       if not attr.startswith('_') and isinstance(getattr(EmailErrorCodes, attr), str)},
     
     # System - todos los códigos que empiezan con S
     **{getattr(SystemErrorCodes, attr): 'SYSTEM' 

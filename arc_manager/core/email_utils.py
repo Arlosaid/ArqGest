@@ -1,13 +1,15 @@
 """
 Utilidades para envío de emails usando Resend API
 Railway bloquea SMTP, por eso usamos la API directamente
+Implementa logging estructurado con trazabilidad completa
 """
 import os
 import logging
 import resend
 from django.conf import settings
+from core.error_codes import EmailErrorCodes, log_operation
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('core.email')
 
 
 def validate_resend_config():
@@ -45,7 +47,7 @@ def validate_resend_config():
 
 def send_resend_email(to_email, subject, html_content, text_content=None):
     """
-    Envía un email usando la API de Resend (simple y directo)
+    Envía un email usando la API de Resend con logging estructurado completo
     
     Args:
         to_email (str): Email del destinatario
@@ -60,7 +62,14 @@ def send_resend_email(to_email, subject, html_content, text_content=None):
         # Validar configuración primero
         is_valid, error_message = validate_resend_config()
         if not is_valid:
-            logger.error(f"Invalid configuration: {error_message}")
+            log_operation(
+                'EMAIL_CONFIG_VALIDATION',
+                to_email,
+                logger,
+                level='ERROR',
+                error_code=EmailErrorCodes.EMAIL_CONFIG_BACKEND_ERROR,
+                validation_error=error_message
+            )
             return None
         
         # Configurar API key
@@ -68,7 +77,7 @@ def send_resend_email(to_email, subject, html_content, text_content=None):
         resend.api_key = api_key
         
         # Preparar datos del email
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'adroal08@gmail.com')
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'ArqGest <noreply@arqgest.com>')
         
         email_data = {
             "from": from_email,
@@ -86,26 +95,88 @@ def send_resend_email(to_email, subject, html_content, text_content=None):
         if reply_to:
             email_data["reply_to"] = [reply_to]
         
+        # Log inicio de envío
+        log_operation(
+            'EMAIL_SEND_START',
+            to_email,
+            logger,
+            level='INFO',
+            sender=from_email,
+            subject=subject[:50],
+            has_html=True,
+            has_text=text_content is not None,
+            provider='Resend'
+        )
+        
         # Enviar usando Resend API
         response = resend.Emails.send(email_data)
         
         # Resend retorna un dict con 'id' cuando es exitoso
         if response and isinstance(response, dict) and 'id' in response:
-            logger.info("Email sent successfully")
+            log_operation(
+                'EMAIL_SEND_SUCCESS',
+                to_email,
+                logger,
+                level='INFO',
+                error_code=EmailErrorCodes.EMAIL_SEND_SUCCESS,
+                email_id=response['id'],
+                sender=from_email,
+                subject=subject[:50],
+                provider='Resend'
+            )
             return response
         elif response:
-            logger.info("Email sent")
+            log_operation(
+                'EMAIL_SEND_WARNING',
+                to_email,
+                logger,
+                level='WARNING',
+                error_code=EmailErrorCodes.EMAIL_SEND_API_ERROR,
+                sender=from_email,
+                subject=subject[:50],
+                response=str(response)[:100],
+                reason='Respuesta sin ID de Resend'
+            )
             return response
         else:
-            logger.error("Error: invalid response")
+            log_operation(
+                'EMAIL_SEND_ERROR',
+                to_email,
+                logger,
+                level='ERROR',
+                error_code=EmailErrorCodes.EMAIL_SEND_FAILED,
+                sender=from_email,
+                subject=subject[:50],
+                reason='Respuesta vacía de Resend API'
+            )
             return None
         
     except Exception as e:
-        logger.error(f"Error sending email: {e}")
+        error_type = type(e).__name__
+        error_message = str(e)
         
-        # Solo mostrar código de error si es ResendError
-        if hasattr(e, 'code'):
-            logger.error(f"Código: {e.code}")
+        # Determinar código de error específico
+        if 'rate' in error_message.lower() or 'limit' in error_message.lower():
+            error_code = EmailErrorCodes.EMAIL_SEND_RATE_LIMIT
+        elif 'quota' in error_message.lower():
+            error_code = EmailErrorCodes.EMAIL_SEND_QUOTA_EXCEEDED
+        elif 'invalid' in error_message.lower() and 'key' in error_message.lower():
+            error_code = EmailErrorCodes.EMAIL_CONFIG_API_KEY_INVALID
+        else:
+            error_code = EmailErrorCodes.EMAIL_SEND_FAILED
+        
+        log_operation(
+            'EMAIL_SEND_ERROR',
+            to_email,
+            logger,
+            level='ERROR',
+            error_code=error_code,
+            subject=subject[:50],
+            error_type=error_type,
+            error_message=error_message[:200],
+            provider='Resend',
+            has_code=hasattr(e, 'code')
+        )
         
         return None
 
