@@ -5,6 +5,7 @@ from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites.shortcuts import get_current_site
 from django.contrib import messages
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils.html import format_html
@@ -106,9 +107,10 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         'deactivate_users', 
         'make_org_admin', 
         'remove_org_admin', 
-        'force_password_reset', 
+        'send_password_reset_email', 
         'send_credentials_simple',
-        'generate_and_show_passwords'
+        'generate_and_show_passwords',
+        'clear_password_reset_throttle'
     ]
     
     fieldsets = (
@@ -169,48 +171,106 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
     
     def activate_users(self, request, queryset):
         updated = queryset.update(is_active=True)
-        self.message_user(request, f"✅ Se activaron {updated} usuarios correctamente.", messages.SUCCESS)
-    activate_users.short_description = "✅ Activar usuarios"
+        self.message_user(request, f"Se activaron {updated} usuarios correctamente.", messages.SUCCESS)
+    activate_users.short_description = "Activar usuarios"
     
     def deactivate_users(self, request, queryset):
         updated = queryset.update(is_active=False)
-        self.message_user(request, f"❌ Se desactivaron {updated} usuarios correctamente.", messages.SUCCESS)
-    deactivate_users.short_description = "❌ Desactivar usuarios"
+        self.message_user(request, f"Se desactivaron {updated} usuarios correctamente.", messages.SUCCESS)
+    deactivate_users.short_description = "Desactivar usuarios"
     
     def make_org_admin(self, request, queryset):
         updated = queryset.update(is_org_admin=True)
-        self.message_user(request, f"👨‍💼 Se convirtieron {updated} usuarios en administradores de organización.", messages.SUCCESS)
-    make_org_admin.short_description = "👨‍💼 Hacer admin de org"
+        self.message_user(request, f"Se convirtieron {updated} usuarios en administradores de organización.", messages.SUCCESS)
+    make_org_admin.short_description = "Hacer admin de org"
     
     def remove_org_admin(self, request, queryset):
         updated = queryset.update(is_org_admin=False)
-        self.message_user(request, f"👤 Se removieron permisos de admin de org a {updated} usuarios.", messages.SUCCESS)
-    remove_org_admin.short_description = "👤 Quitar admin de org"
+        self.message_user(request, f"Se removieron permisos de admin de org a {updated} usuarios.", messages.SUCCESS)
+    remove_org_admin.short_description = "Quitar admin de org"
     
-    def force_password_reset(self, request, queryset):
-        current_site = get_current_site(request)
-        site_name = current_site.name
-        domain = current_site.domain
-
-        for user in queryset:
-            token = default_token_generator.make_token(user)
-            uid = urlsafe_base64_encode(force_bytes(user.pk))
-            reset_path = reverse('accounts:password_reset_confirm', kwargs={'uidb64': uid, 'token': token})
-            reset_url = f"{request.scheme}://{domain}{reset_path}"
-            
-            message = format_html(
-                "Enlace de reseteo para <b>{}</b>: <a href='{}' target='_blank'>{}</a>",
-                user.full_name,
-                reset_url,
-                reset_url
+    def send_password_reset_email(self, request, queryset):
+        """
+        Envía email de reset de contraseña a usuarios seleccionados
+        """
+        from django.contrib.auth.forms import PasswordResetForm
+        from core.email_utils import get_site_protocol_and_domain
+        
+        # Límite de seguridad
+        users_count = queryset.count()
+        if users_count > 10:
+            self.message_user(
+                request,
+                f"Por seguridad, máximo 10 usuarios por vez. Seleccionaste {users_count}.",
+                level=messages.WARNING
             )
-            messages.add_message(request, messages.INFO, message)
-            
-    force_password_reset.short_description = "🔑 Forzar cambio de contraseña"
+            return
+        
+        success_count = 0
+        error_count = 0
+        processed_emails = []
+        
+        protocol, domain = get_site_protocol_and_domain()
+        
+        for user in queryset:
+            try:
+                # Validar email
+                if not user.email or '@' not in user.email:
+                    error_count += 1
+                    continue
+                
+                # Limpiar throttle para este usuario si existe
+                cache_key = f"password_reset_{user.email}"
+                cache.delete(cache_key)
+                
+                # Usar el formulario de Django para enviar el reset
+                form = PasswordResetForm({'email': user.email})
+                if form.is_valid():
+                    form.save(
+                        request=request,
+                        use_https=protocol == 'https',
+                        domain_override=domain,
+                        email_template_name='auth/password_reset_email.html',
+                        subject_template_name='auth/password_reset_subject.txt',
+                        html_email_template_name='auth/password_reset_email.html',
+                        extra_email_context={
+                            'protocol': protocol,
+                            'domain': domain,
+                            'site_name': 'ArqGest'
+                        }
+                    )
+                    success_count += 1
+                    processed_emails.append(user.email)
+                    logger.info(f"[ADMIN] Reset email enviado a {user.email}")
+                else:
+                    error_count += 1
+                    logger.error(f"[ADMIN] Error en formulario para {user.email}")
+                    
+            except Exception as e:
+                error_count += 1
+                logger.error(f"[ADMIN] Error enviando reset a {user.email}: {str(e)}")
+        
+        # Mostrar resultados
+        if success_count > 0:
+            email_list = ', '.join(processed_emails)
+            self.message_user(
+                request,
+                f"Emails de reset enviados a {success_count} usuarios: {email_list}",
+                level=messages.SUCCESS
+            )
+        
+        if error_count > 0:
+            self.message_user(
+                request,
+                f"{error_count} errores al enviar emails de reset",
+                level=messages.ERROR
+            )
+    
+    send_password_reset_email.short_description = "Enviar email de reset de contraseña"
 
     def send_credentials_simple(self, request, queryset):
         """
-        📧 Envío simple y directo de credenciales usando funciones existentes
+        Envío simple y directo de credenciales usando funciones existentes
         """
         import logging
         
@@ -221,7 +281,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         if users_count > 5:
             self.message_user(
                 request,
-                f"⚠️ Por seguridad, máximo 5 usuarios por vez. Seleccionaste {users_count}.",
+                f"Por seguridad, máximo 5 usuarios por vez. Seleccionaste {users_count}.",
                 level=messages.WARNING
             )
             return
@@ -247,7 +307,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
                 user.password_change_required = True
                 user.save(update_fields=['password', 'password_change_required'])
                 
-                # Usar la función existente que ya maneja Resend/SES
+                # Usar la función existente que ya maneja Resend
                 try:
                     send_new_user_email(user, new_password)
                     success_count += 1
@@ -268,7 +328,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
             email_list = ', '.join(processed_emails)
             self.message_user(
                 request,
-                f"✅ Credenciales enviadas a {success_count} usuarios: {email_list}",
+                f"Credenciales enviadas a {success_count} usuarios: {email_list}",
                 level=messages.SUCCESS
             )
         
@@ -279,13 +339,13 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
             
             self.message_user(
                 request,
-                f"❌ {error_count} errores: {error_summary}",
+                f"{error_count} errores: {error_summary}",
                 level=messages.ERROR
             )
         
         logger.info(f"[ADMIN] Summary: {success_count} success, {error_count} errors")
     
-    send_credentials_simple.short_description = "📧 Enviar credenciales (Simple)"
+    send_credentials_simple.short_description = "Enviar credenciales por email"
 
     def generate_and_show_passwords(self, request, queryset):
         """
@@ -296,7 +356,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         if queryset.count() > 10:
             self.message_user(
                 request,
-                "⚠️ Por seguridad, máximo 10 usuarios a la vez para mostrar contraseñas",
+                "Por seguridad, máximo 10 usuarios a la vez para mostrar contraseñas",
                 level=messages.WARNING
             )
             return
@@ -336,8 +396,8 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
             for item in passwords_generated:
                 password_list.append(
                     f"<strong>{item['name']}</strong> ({item['email']})<br>"
-                    f"📧 Email: {item['email']}<br>"
-                    f"🔑 Contraseña: <code style='background:#f0f0f0;padding:2px 4px;'>{item['password']}</code><br><br>"
+                    f"Email: {item['email']}<br>"
+                    f"Contraseña: <code style='background:#f0f0f0;padding:2px 4px;'>{item['password']}</code><br><br>"
                 )
             
             password_html = "".join(password_list)
@@ -346,9 +406,9 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
             self.message_user(
                 request,
                 mark_safe(
-                    f"🔑 <strong>CONTRASEÑAS GENERADAS</strong> (cópialas ahora, no se mostrarán de nuevo):<br><br>"
+                    f"<strong>CONTRASEÑAS GENERADAS</strong> (cópialas ahora, no se mostrarán de nuevo):<br><br>"
                     f"{password_html}"
-                    f"⚠️ <strong>Importante:</strong> Los usuarios deberán cambiar estas contraseñas en su primer login."
+                    f"<strong>Importante:</strong> Los usuarios deberán cambiar estas contraseñas en su primer login."
                 ),
                 level=messages.SUCCESS
             )
@@ -357,24 +417,57 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         else:
             self.message_user(
                 request,
-                "❌ No se pudieron generar contraseñas para ningún usuario",
+                "No se pudieron generar contraseñas para ningún usuario",
                 level=messages.ERROR
             )
     
-    generate_and_show_passwords.short_description = "🔑 Generar y mostrar contraseñas (Respaldo)"
+    generate_and_show_passwords.short_description = "Generar y mostrar contraseñas (Respaldo)"
+
+    def clear_password_reset_throttle(self, request, queryset):
+        """
+        Limpia el throttle de password reset para usuarios seleccionados
+        Útil cuando un email no llegó y el usuario necesita solicitar otro inmediatamente
+        """
+        users_count = queryset.count()
+        cleared_count = 0
+        
+        for user in queryset:
+            if user.email:
+                cache_key = f"password_reset_{user.email}"
+                # Verificar si existe el throttle
+                if cache.get(cache_key):
+                    cache.delete(cache_key)
+                    cleared_count += 1
+                    logger.info(f"[ADMIN] Throttle de reset limpiado para {user.email}")
+        
+        if cleared_count > 0:
+            self.message_user(
+                request,
+                f"Throttle de password reset limpiado para {cleared_count} usuarios. "
+                f"Ahora pueden solicitar un nuevo reset inmediatamente.",
+                level=messages.SUCCESS
+            )
+        else:
+            self.message_user(
+                request,
+                f"Ninguno de los {users_count} usuarios seleccionados tenía throttle activo.",
+                level=messages.INFO
+            )
+    
+    clear_password_reset_throttle.short_description = "Limpiar bloqueo de reset de contraseña (15 min)"
 
     def email_status_display(self, obj):
         """
-        📧 Muestra el estado del email en el listado del admin
+        Muestra el estado del email en el listado del admin
         """
         if not obj.email:
-            return format_html('<span style="color: #dc3545;">❌ Sin email</span>')
+            return format_html('<span style="color: #dc3545;">Sin email</span>')
         
         # Validación básica
         if '@' not in obj.email or '.' not in obj.email.split('@')[-1]:
-            return format_html('<span style="color: #fd7e14;">⚠️ Email inválido</span>')
+            return format_html('<span style="color: #fd7e14;">Email inválido</span>')
         
         # Email válido
-        return format_html('<span style="color: #198754;">✅ {}</span>', obj.email)
+        return format_html('<span style="color: #198754;">{}</span>', obj.email)
 
     email_status_display.short_description = 'Estado Email'

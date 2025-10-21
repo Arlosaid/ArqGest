@@ -41,9 +41,8 @@ def generate_random_password(length=12):
 
 def send_user_credentials_email(user_email, password, username, subject=None, user_obj=None):
     """
-    Función principal para enviar credenciales de usuario (TEMPORALMENTE DESHABILITADO)
+    Función principal para enviar credenciales de usuario usando Resend
     """
-    # TODO: Reactivar cuando tengas dominio propio
     # Validaciones básicas
     if not user_email or '@' not in user_email:
         logger.error(f"Invalid email: {user_email}")
@@ -53,25 +52,18 @@ def send_user_credentials_email(user_email, password, username, subject=None, us
         logger.error(f"Missing data for {user_email}")
         return False
     
-    # TEMPORALMENTE DESHABILITADO - No enviar emails hasta tener dominio
-    logger.info("Email disabled - use 'Generate and show passwords' in admin")
-    
-    # Simular éxito para no romper el flujo
-    return True
-    
-    # Código original comentado:
-    # from core.email_utils import send_credentials_email
-    # try:
-    #     result = send_credentials_email(user_email, username, password)
-    #     if result:
-    #         logger.info(f"✅ [EMAIL] Credenciales enviadas exitosamente a {user_email}")
-    #         return True
-    #     else:
-    #         logger.error(f"❌ [EMAIL] Error enviando credenciales a {user_email}")
-    #         return False
-    # except Exception as e:
-    #     logger.error(f"❌ [EMAIL] Error enviando credenciales a {user_email}: {e}")
-    #     return False
+    from core.email_utils import send_credentials_email
+    try:
+        result = send_credentials_email(user_email, username, password)
+        if result:
+            logger.info(f"Credenciales enviadas exitosamente a {user_email}")
+            return True
+        else:
+            logger.error(f"Error enviando credenciales a {user_email}")
+            return False
+    except Exception as e:
+        logger.error(f"Error enviando credenciales a {user_email}: {e}")
+        return False
 
 
 def send_welcome_email(user_email, username, subject=None):
