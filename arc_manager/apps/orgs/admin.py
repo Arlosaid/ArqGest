@@ -65,7 +65,7 @@ class OrganizationAdmin(ImportExportModelAdmin):
     list_display = ['name', 'is_active', 'get_founder_badge', 'user_count', 'get_storage_info', 'get_subscription_status', 'get_subscription_link', 'created_at']
     list_filter = ['is_active', 'is_founder_member', 'created_at', 'subscription__plan__display_name', 'subscription__subscription_status']
     search_fields = ['name', 'description']
-    readonly_fields = ['created_at', 'updated_at', 'user_count', 'get_subscription_status', 'get_subscription_link']
+    readonly_fields = ['created_at', 'updated_at', 'user_count', 'get_subscription_status', 'get_subscription_link', 'get_users_display']
     
     actions = ['activate_organizations', 'deactivate_organizations', 'mark_as_founder', 'unmark_as_founder', 'reduce_extra_storage', 'add_extra_storage']
     
@@ -85,6 +85,11 @@ class OrganizationAdmin(ImportExportModelAdmin):
         ('Suscripción', {
             'fields': ('get_subscription_status', 'get_subscription_link'),
             'description': '📝 Para gestionar planes y suscripciones, usa el módulo "Suscripciones" del admin.',
+            'classes': ('collapse',)
+        }),
+        ('Usuarios de la Organización', {
+            'fields': ('get_users_display',),
+            'description': '👥 <strong>Usuarios:</strong> Lista de todos los usuarios con sus roles y emails. Los administradores aparecen destacados.',
             'classes': ('collapse',)
         }),
         ('Estadísticas', {
@@ -305,6 +310,52 @@ class OrganizationAdmin(ImportExportModelAdmin):
         )
     
     add_extra_storage.short_description = "📈 Agregar 10 GB extra"
+    
+    def get_users_display(self, obj):
+        """Muestra los usuarios de la organización con sus roles y emails"""
+        from django.utils.html import format_html
+        from django.urls import reverse
+        
+        users = obj.users.all().order_by('-is_org_admin', 'email')
+        
+        if not users.exists():
+            return format_html('<span style="color: #7F8C8D;">Sin usuarios</span>')
+        
+        user_list = []
+        for user in users:
+            # Determinar el rol
+            if user.is_superuser:
+                role_badge = '<span style="background: #E74C3C; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: bold;">SUPER</span>'
+            elif user.is_org_admin:
+                role_badge = '<span style="background: #F39C12; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: bold;">ADMIN</span>'
+            else:
+                role_badge = '<span style="background: #95A5A6; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px;">USER</span>'
+            
+            # Estado del usuario
+            status_color = '#27AE60' if user.is_active else '#E74C3C'
+            status_text = 'Activo' if user.is_active else 'Inactivo'
+            
+            # Crear enlace al usuario
+            user_url = reverse('admin:accounts_user_change', args=[user.id])
+            
+            user_info = f'''
+                <div style="margin: 5px 0; padding: 8px; border: 1px solid #BDC3C7; border-radius: 4px; background: #F8F9FA;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        {role_badge}
+                        <a href="{user_url}" style="color: #2C3E50; text-decoration: none; font-weight: 500;">{user.email}</a>
+                        <span style="color: {status_color}; font-size: 11px;">{status_text}</span>
+                    </div>
+                    <div style="margin-top: 3px; color: #7F8C8D; font-size: 12px;">
+                        {user.first_name} {user.last_name}
+                    </div>
+                </div>
+            '''
+            user_list.append(user_info)
+        
+        return format_html(''.join(user_list))
+    
+    get_users_display.short_description = 'Usuarios'
+    get_users_display.allow_tags = True
 
 @admin.register(Client)
 class ClientAdmin(ImportExportModelAdmin):
