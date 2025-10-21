@@ -30,6 +30,8 @@ class SubscriptionAccessMiddleware(MiddlewareMixin):
             '/static/',
             '/media/',
             '/favicon.ico',
+            '/plans/cron/renewal-reminders/',  # Endpoint para cron externo
+            '/health/',  # Health check endpoint
         ]
         
         # Rutas que requieren acceso completo
