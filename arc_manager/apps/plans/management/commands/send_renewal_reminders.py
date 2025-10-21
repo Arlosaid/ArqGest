@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = 'Envía recordatorios de renovación (T-0) a organizaciones con suscripción que vence hoy'
+    help = 'Envía UN recordatorio de renovación a organizaciones cuya suscripción vence en las próximas 24-48 horas'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -34,34 +34,28 @@ class Command(BaseCommand):
         
         try:
             now = timezone.now()
-            today_key = now.strftime('%Y-%m-%d')
-            cache_key = f'renewal_reminders_sent_{today_key}'
             
-            # Protección contra ejecuciones duplicadas el mismo día
-            if not force and cache.get(cache_key):
-                logger.info(f"Recordatorios ya enviados hoy ({today_key}). Usa --force para forzar.")
-                self.stdout.write(self.style.WARNING(f'Ya se enviaron recordatorios hoy ({today_key})'))
-                return
+            # Buscar suscripciones que vencen en las próximas 24-48 horas
+            # Ventana amplia para cubrir todas las zonas horarias y asegurar que nadie se quede sin aviso
+            start_window = now + timedelta(hours=24)  # Desde mañana a esta hora
+            end_window = now + timedelta(hours=48)    # Hasta pasado mañana a esta hora
             
-            # Solo vencen hoy (T-0)
-            start_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            end_today = start_today + timedelta(days=1)
-            subs_due_today = Subscription.objects.filter(
-                end_date__gte=start_today,
-                end_date__lt=end_today,
+            subs_expiring_soon = Subscription.objects.filter(
+                end_date__gte=start_window,  # Vence después de las próximas 24 horas
+                end_date__lte=end_window,    # Vence antes de las próximas 48 horas
                 subscription_status__in=['trial_active', 'basic_active']
             ).select_related('organization', 'plan')
 
-            total_subs = subs_due_today.count()
+            total_subs = subs_expiring_soon.count()
             
             if total_subs == 0:
-                logger.info("No hay suscripciones que venzan hoy")
-                self.stdout.write(self.style.SUCCESS('No hay suscripciones que venzan hoy'))
+                logger.info("No hay suscripciones que venzan en las próximas 24-48 horas")
+                self.stdout.write(self.style.SUCCESS('No hay suscripciones que venzan en las próximas 24-48 horas'))
                 return
             
-            logger.info(f"Encontradas {total_subs} suscripciones que vencen hoy")
+            logger.info(f"Encontradas {total_subs} suscripciones que vencen en las próximas 24-48 horas")
             if dry_run:
-                self.stdout.write(self.style.WARNING(f'[DRY RUN] Se enviarían {total_subs} emails'))
+                self.stdout.write(self.style.WARNING(f'[DRY RUN] Se enviarían emails a {total_subs} organizaciones'))
             
             sent_count = 0
             failed_count = 0
@@ -72,6 +66,19 @@ class Command(BaseCommand):
 
             for sub in subs_due_today:
                 org = sub.organization
+                
+                # TEMPORAL: Protección anti-spam desactivada para pruebas
+                # Para reactivar, descomenta las siguientes líneas:
+                # expiry_date = sub.end_date.strftime('%Y-%m-%d')
+                # org_cache_key = f'renewal_reminder_{org.id}_{expiry_date}'
+                # if not force and cache.get(org_cache_key):
+                #     logger.info(f"Ya se envió recordatorio para vencimiento {expiry_date} a: {org.name}")
+                #     skipped_count += 1
+                #     continue
+                
+                expiry_date = sub.end_date.strftime('%Y-%m-%d')
+                org_cache_key = f'renewal_reminder_{org.id}_{expiry_date}'
+                
                 user_email = getattr(org, 'owner_email', None) or getattr(org, 'contact_email', None)
                 
                 if not user_email:
@@ -79,13 +86,20 @@ class Command(BaseCommand):
                     skipped_count += 1
                     continue
                 
+                # Calcular días restantes para mensaje personalizado
+                days_left = (sub.end_date - now).days
+                
                 try:
                     if dry_run:
-                        logger.info(f"[DRY RUN] Email a: {user_email} - Org: {org.name}")
+                        logger.info(f"[DRY RUN] Email a: {user_email} - Org: {org.name} - Vence en {days_left} día(s)")
                         sent_count += 1
                         continue
                     
-                    subject = f'¡URGENTE! Tu suscripción vence hoy - {site_name}'
+                    # Mensaje dinámico según el tiempo restante
+                    if days_left <= 1:
+                        subject = f'¡Tu suscripción vence mañana! - {site_name}'
+                    else:
+                        subject = f'Tu suscripción vence en {days_left} días - {site_name}'
                     
                     # Renderizar template
                     context = {
@@ -100,6 +114,10 @@ class Command(BaseCommand):
                     html = render_to_string('emails/renewal_reminder_email.html', context)
                     send_resend_email(user_email, subject, html)
                     
+                    # TEMPORAL: Protección anti-spam desactivada para pruebas
+                    # Para reactivar, descomenta la siguiente línea:
+                    # cache.set(org_cache_key, True, timeout=604800)  # 7 días
+                    
                     logger.info(f"Email enviado exitosamente a: {user_email} - Org: {org.name}")
                     sent_count += 1
                     
@@ -110,10 +128,6 @@ class Command(BaseCommand):
                         exc_info=True
                     )
                     failed_count += 1
-
-            # Marcar como ejecutado hoy (válido por 24 horas)
-            if not dry_run:
-                cache.set(cache_key, True, timeout=86400)
             
             # Resumen
             summary = (

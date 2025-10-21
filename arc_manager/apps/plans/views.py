@@ -398,11 +398,12 @@ def cron_renewal_reminders(request):
         logger.warning(f"Intento no autorizado de ejecutar cron desde IP: {ip_address}")
         return HttpResponse('Unauthorized', status=401)
     
-    # Rate limiting simple: máximo 1 ejecución por hora
-    rate_limit_key = 'cron_renewal_rate_limit'
-    if cache.get(rate_limit_key):
-        logger.warning("Rate limit alcanzado para cron endpoint")
-        return HttpResponse('Rate limit exceeded. Try again later.', status=429)
+    # TEMPORAL: Rate limiting desactivado para pruebas
+    # Para reactivar, descomenta las siguientes 5 líneas:
+    # rate_limit_key = 'cron_renewal_rate_limit'
+    # if cache.get(rate_limit_key):
+    #     logger.warning("Rate limit alcanzado para cron endpoint")
+    #     return HttpResponse('Rate limit exceeded. Try again later.', status=429)
     
     try:
         logger.info("Ejecutando recordatorios de renovación via cron endpoint")
@@ -412,8 +413,9 @@ def cron_renewal_reminders(request):
         call_command('send_renewal_reminders', stdout=output)
         result = output.getvalue()
         
-        # Establecer rate limit por 1 hora
-        cache.set(rate_limit_key, True, timeout=3600)
+        # TEMPORAL: Rate limiting desactivado para pruebas
+        # Para reactivar, descomenta la siguiente línea:
+        # cache.set(rate_limit_key, True, timeout=3600)
         
         logger.info(f"Recordatorios ejecutados exitosamente: {result.strip()}")
         return HttpResponse(f'OK - {result}', status=200)
