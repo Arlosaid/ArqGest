@@ -99,17 +99,21 @@ def send_resend_email(to_email, subject, html_content, text_content=None):
         # Preparar datos del email
         from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'ArqGest <noreply@arqgest.com>')
         
+        # Si no hay texto plano, generar uno básico desde el HTML
+        if not text_content:
+            # Extraer texto básico del HTML para clientes que no soportan HTML
+            import re
+            text_content = re.sub('<[^<]+?>', '', html_content)  # Remover tags HTML
+            text_content = re.sub(r'\s+', ' ', text_content).strip()  # Normalizar espacios
+        
         email_data = {
             "from": from_email,
             "to": [to_email],
             "subject": subject,
-            "html": html_content
+            "html": html_content,
+            "text": text_content  # SIEMPRE incluir texto plano
         }
         
-        # Agregar texto plano si se proporciona
-        if text_content:
-            email_data["text"] = text_content
-            
         # Agregar reply-to si está configurado
         reply_to = getattr(settings, 'REPLY_TO_EMAIL', None)
         if reply_to:
@@ -210,39 +214,20 @@ def send_credentials_email(user_email, username, password):
     subject = "Tus credenciales de acceso - ARC Manager"
     protocol, domain = get_site_protocol_and_domain()
     
-    # Usar el template HTML mejorado
-    html_content = render_to_string('users/emails/new_user_credentials.html', {
+    context = {
         'user': {'email': user_email, 'first_name': '', 'last_name': ''},
         'password': password,
         'site_name': getattr(settings, 'SITE_NAME', 'ARC Manager'),
         'login_url': f"{protocol}://{domain}/accounts/login/",
         'protocol': protocol,
         'domain': domain
-    })
+    }
     
-    text_content = f"""
-===============================================
-ARC Manager - CREDENCIALES DE ACCESO
-===============================================
-
-¡Bienvenido a ARC Manager!
-
-Hemos creado tu cuenta en ARC Manager. Aquí tienes tus credenciales de acceso:
-
-Usuario: {username}
-Contraseña: {password}
-
-Por favor, inicia sesión y cambia tu contraseña por una de tu preferencia.
-
-===============================================
-INFORMACIÓN IMPORTANTE
-===============================================
-
-Por tu seguridad, te recomendamos cambiar esta contraseña por una de tu elección cuando ingreses al sistema por primera vez.
-
-Saludos,
-Equipo ARC Manager
-    """
+    # Renderizar template HTML
+    html_content = render_to_string('users/emails/new_user_credentials.html', context)
+    
+    # Renderizar template de texto plano
+    text_content = render_to_string('users/emails/new_user_credentials.txt', context)
     
     return send_resend_email(user_email, subject, html_content, text_content)
 
@@ -294,34 +279,19 @@ def send_welcome_reminder_email(user):
     subject = f"¡Te esperamos! - {getattr(settings, 'SITE_NAME', 'ARC Manager')}"
     protocol, domain = get_site_protocol_and_domain()
     
-    # Renderizar template HTML
-    html_content = render_to_string('users/emails/welcome_reminder.html', {
+    context = {
         'user': user,
         'site_name': getattr(settings, 'SITE_NAME', 'ARC Manager'),
         'login_url': f"{protocol}://{domain}/accounts/login/",
         'protocol': protocol,
         'domain': domain
-    })
+    }
     
-    # Template de texto plano (crear uno simple)
-    text_content = f"""
-===============================================
-{getattr(settings, 'SITE_NAME', 'ARC Manager')} - TE ESPERAMOS
-===============================================
-
-Hola {user.full_name or user.email},
-
-Este es un recordatorio de que tienes una cuenta en {getattr(settings, 'SITE_NAME', 'ARC Manager')} y puedes acceder a la plataforma en cualquier momento.
-
-Puedes acceder a la plataforma utilizando tu correo electrónico y la contraseña que se te proporcionó o la última que hayas establecido.
-
-¿Olvidaste tu contraseña?
-Si has olvidado tu contraseña, puedes restablecerla desde la página de inicio de sesión utilizando la opción "¿Olvidaste tu contraseña?".
-
-¡Esperamos verte pronto en {getattr(settings, 'SITE_NAME', 'ARC Manager')}!
-
-El equipo de {getattr(settings, 'SITE_NAME', 'ARC Manager')}
-    """
+    # Renderizar template HTML
+    html_content = render_to_string('users/emails/welcome_reminder.html', context)
+    
+    # Renderizar template de texto plano
+    text_content = render_to_string('users/emails/welcome_reminder.txt', context)
     
     return send_resend_email(user.email, subject, html_content, text_content)
 
