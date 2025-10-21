@@ -16,12 +16,16 @@ logger = logging.getLogger(__name__)
 class FileSecurityManager:
     """Gestión de seguridad para archivos"""
     
-    # Límites de rate limiting optimizados para arquitectos
-    UPLOAD_RATE_LIMIT = {
-        'requests_per_minute': 15,  # Más uploads por minuto para proyectos grandes
-        'requests_per_hour': 200,   # Más uploads por hora para equipos
-        'total_size_per_hour_mb': 5000  # 5GB por hora para archivos pesados de arquitectura
-    }
+    @classmethod
+    def get_rate_limits(cls):
+        """Obtener límites de rate limiting desde la configuración del sistema"""
+        from apps.main.models import SystemSettings
+        sys_settings = SystemSettings.load()
+        return {
+            'requests_per_minute': sys_settings.upload_requests_per_minute,
+            'requests_per_hour': sys_settings.upload_requests_per_hour,
+            'total_size_per_hour_mb': sys_settings.upload_size_per_hour_mb
+        }
     
     @classmethod
     def check_upload_rate_limit(cls, user, file_size_bytes=0):
@@ -31,6 +35,9 @@ class FileSecurityManager:
         user_id = user.id
         now = timezone.now()
         
+        # Obtener límites dinámicos desde la configuración
+        rate_limits = cls.get_rate_limits()
+        
         # Claves de caché para rate limiting
         minute_key = f"upload_rate_minute_{user_id}_{now.minute}"
         hour_key = f"upload_rate_hour_{user_id}_{now.hour}"
@@ -38,19 +45,19 @@ class FileSecurityManager:
         
         # Verificar requests por minuto
         minute_count = cache.get(minute_key, 0)
-        if minute_count >= cls.UPLOAD_RATE_LIMIT['requests_per_minute']:
+        if minute_count >= rate_limits['requests_per_minute']:
             return False, "Demasiados uploads por minuto. Espera un momento."
         
         # Verificar requests por hora
         hour_count = cache.get(hour_key, 0)
-        if hour_count >= cls.UPLOAD_RATE_LIMIT['requests_per_hour']:
+        if hour_count >= rate_limits['requests_per_hour']:
             return False, "Límite de uploads por hora alcanzado."
         
         # Verificar tamaño total por hora
         hour_size_mb = cache.get(size_hour_key, 0)
         file_size_mb = file_size_bytes / (1024 * 1024)
-        if (hour_size_mb + file_size_mb) > cls.UPLOAD_RATE_LIMIT['total_size_per_hour_mb']:
-            return False, f"Límite de tamaño por hora alcanzado ({cls.UPLOAD_RATE_LIMIT['total_size_per_hour_mb']}MB = {cls.UPLOAD_RATE_LIMIT['total_size_per_hour_mb']/1000:.1f}GB)."
+        if (hour_size_mb + file_size_mb) > rate_limits['total_size_per_hour_mb']:
+            return False, f"Límite de tamaño por hora alcanzado ({rate_limits['total_size_per_hour_mb']}MB = {rate_limits['total_size_per_hour_mb']/1000:.1f}GB)."
         
         # Incrementar contadores
         cache.set(minute_key, minute_count + 1, 60)  # 1 minuto

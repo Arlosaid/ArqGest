@@ -7,6 +7,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
+from .models import SystemSettings
 
 User = get_user_model()
 
@@ -228,3 +229,135 @@ def financial_dashboard_view(request):
 
 # Aplicar la mejora al cargar el módulo
 add_dashboard_to_admin_index()
+
+
+@admin.register(SystemSettings)
+class SystemSettingsAdmin(admin.ModelAdmin):
+    """
+    Admin para las configuraciones globales del sistema.
+    Solo permite editar (no crear ni eliminar) la instancia única.
+    TODOS los cambios se aplican automáticamente al guardar.
+    """
+    
+    def has_add_permission(self, request):
+        """No permitir crear nuevas configuraciones (solo una instancia)"""
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        """No permitir eliminar la configuración"""
+        return False
+    
+    def changelist_view(self, request, extra_context=None):
+        """Redirigir directamente al formulario de edición"""
+        settings = SystemSettings.load()
+        return self.change_view(request, str(settings.pk), '', extra_context)
+    
+    fieldsets = (
+        ('👥 Límites de Usuarios', {
+            'fields': (
+                'default_max_users',
+                'max_users_trial',
+                'max_users_basic',
+            ),
+            'description': 'Configure los límites de usuarios para cada tipo de plan.'
+        }),
+        ('💾 Límites de Almacenamiento', {
+            'fields': (
+                'default_storage_gb',
+                'storage_trial_gb',
+                'storage_basic_gb',
+            ),
+            'description': 'Configure los límites de almacenamiento en gigabytes para cada plan.'
+        }),
+        ('📁 Límites de Archivos', {
+            'fields': (
+                'max_file_size_mb',
+                'max_upload_size_per_request_mb',
+            ),
+            'description': 'Configure los límites de tamaño de archivos y uploads.'
+        }),
+        ('📊 Límites de Proyectos', {
+            'fields': (
+                'max_projects_per_org',
+                'max_phases_per_project',
+            ),
+            'description': 'Configure límites para proyectos y fases.'
+        }),
+        ('⚡ Configuración de Caché', {
+            'fields': (
+                'cache_timeout_seconds',
+                'storage_cache_timeout',
+            ),
+            'description': 'Configure los tiempos de caché del sistema.',
+            'classes': ('collapse',)
+        }),
+        ('🔒 Sesiones y Seguridad', {
+            'fields': (
+                'session_timeout_minutes',
+            ),
+            'description': 'Configure parámetros de sesión.',
+            'classes': ('collapse',)
+        }),
+        ('🚦 Rate Limiting - Control de Carga', {
+            'fields': (
+                'upload_requests_per_minute',
+                'upload_requests_per_hour',
+                'upload_size_per_hour_mb',
+            ),
+            'description': 'Configure límites de velocidad para evitar sobrecarga del servidor.',
+            'classes': ('collapse',)
+        }),
+        ('💳 Planes y Facturación', {
+            'fields': (
+                'trial_duration_days',
+                'billing_cycle_days',
+                'grace_period_days',
+            ),
+            'description': 'Configure parámetros por defecto de planes y facturación.'
+        }),
+        ('🔔 Notificaciones y Alertas', {
+            'fields': (
+                'enable_email_notifications',
+                'low_storage_warning_percentage',
+            ),
+            'description': 'Configure alertas y notificaciones del sistema.',
+            'classes': ('collapse',)
+        }),
+        ('🔧 Modo Mantenimiento', {
+            'fields': (
+                'maintenance_mode',
+                'maintenance_message',
+            ),
+            'description': 'Active el modo mantenimiento cuando necesite realizar actualizaciones. Solo staff y superusuarios podrán acceder.',
+            'classes': ('collapse',)
+        }),
+        ('📧 Información de Contacto', {
+            'fields': (
+                'company_name',
+                'support_email',
+            ),
+            'description': 'Configure información de contacto y soporte.',
+            'classes': ('collapse',)
+        }),
+        ('Información del Sistema', {
+            'fields': (
+                'updated_at',
+                'updated_by',
+            ),
+            'classes': ('collapse',),
+        }),
+    )
+    
+    readonly_fields = ('updated_at',)
+    
+    def save_model(self, request, obj, form, change):
+        """Guardar quién actualizó la configuración"""
+        obj.updated_by = f"{request.user.email} (ID: {request.user.pk})"
+        super().save_model(request, obj, form, change)
+        
+        # Mensaje de éxito simple - los signals se encargan de sincronizar automáticamente
+        self.message_user(
+            request,
+            "✅ Configuración actualizada exitosamente. Los cambios se aplicaron automáticamente.",
+            level='success'
+        )

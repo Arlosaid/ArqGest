@@ -62,12 +62,12 @@ class OrganizationAdminForm(ModelForm):
 class OrganizationAdmin(ImportExportModelAdmin):
     resource_class = OrganizationResource
     form = OrganizationAdminForm
-    list_display = ['name', 'is_active', 'user_count', 'get_storage_info', 'get_subscription_status', 'get_subscription_link', 'created_at']
-    list_filter = ['is_active', 'created_at', 'subscription__plan__display_name', 'subscription__subscription_status']
+    list_display = ['name', 'is_active', 'get_founder_badge', 'user_count', 'get_storage_info', 'get_subscription_status', 'get_subscription_link', 'created_at']
+    list_filter = ['is_active', 'is_founder_member', 'created_at', 'subscription__plan__display_name', 'subscription__subscription_status']
     search_fields = ['name', 'description']
     readonly_fields = ['created_at', 'updated_at', 'user_count', 'get_subscription_status', 'get_subscription_link']
     
-    actions = ['activate_organizations', 'deactivate_organizations', 'reduce_extra_storage', 'add_extra_storage']
+    actions = ['activate_organizations', 'deactivate_organizations', 'mark_as_founder', 'unmark_as_founder', 'reduce_extra_storage', 'add_extra_storage']
     
     fieldsets = (
         ('Información básica', {
@@ -76,6 +76,11 @@ class OrganizationAdmin(ImportExportModelAdmin):
         ('Almacenamiento', {
             'fields': ('extra_storage_gb',),
             'description': '💾 <strong>GB Extras:</strong> Puedes aumentar o disminuir libremente según el pago del cliente. El sistema validará que el almacenamiento total (plan + extras) no quede negativo.',
+        }),
+        ('Membresía Fundadora', {
+            'fields': ('is_founder_member',),
+            'description': '🌟 <strong>Miembros Fundadores:</strong> Precio especial de $249/mes en lugar de $299/mes. El descuento se aplicará automáticamente.',
+            'classes': ('collapse',)
         }),
         ('Suscripción', {
             'fields': ('get_subscription_status', 'get_subscription_link'),
@@ -98,6 +103,16 @@ class OrganizationAdmin(ImportExportModelAdmin):
         queryset = queryset.prefetch_related('subscription__plan')
         queryset = queryset.annotate(user_count_admin=models.Count('users'))
         return queryset
+
+    def get_founder_badge(self, obj):
+        """Muestra una insignia si es miembro fundador."""
+        if obj.is_founder_member:
+            return format_html(
+                '<span style="background-color: #F39C12; color: white; padding: 3px 8px; border-radius: 3px; font-weight: bold; font-size: 11px;">⭐ FUNDADOR $249</span>'
+            )
+        return '-'
+    get_founder_badge.short_description = 'Membresía'
+    get_founder_badge.admin_order_field = 'is_founder_member'
 
     def user_count(self, obj):
         """Muestra el total de usuarios desde la anotación."""
@@ -192,6 +207,30 @@ class OrganizationAdmin(ImportExportModelAdmin):
         updated = queryset.update(is_active=False)
         self.message_user(request, f"❌ Se desactivaron {updated} organizaciones correctamente.", messages.SUCCESS)
     deactivate_organizations.short_description = "❌ Desactivar organizaciones"
+    
+    def mark_as_founder(self, request, queryset):
+        """Marcar organizaciones como miembros fundadores"""
+        from django.utils import timezone
+        from decimal import Decimal
+        updated = 0
+        # Descuento fijo: de $299 a $249 = 16.72% de descuento
+        FOUNDER_DISCOUNT = Decimal('16.72')
+        
+        for org in queryset:
+            if not org.is_founder_member:
+                org.is_founder_member = True
+                org.founder_joined_date = timezone.now()
+                org.founder_discount_percentage = FOUNDER_DISCOUNT
+                org.save()
+                updated += 1
+        self.message_user(request, f"⭐ Se marcaron {updated} organizaciones como miembros fundadores. Precio especial: $249/mes.", messages.SUCCESS)
+    mark_as_founder.short_description = "⭐ Marcar como miembro fundador ($249/mes)"
+    
+    def unmark_as_founder(self, request, queryset):
+        """Quitar el estatus de miembro fundador"""
+        updated = queryset.filter(is_founder_member=True).update(is_founder_member=False)
+        self.message_user(request, f"Se quitó el estatus de fundador a {updated} organizaciones.", messages.SUCCESS)
+    unmark_as_founder.short_description = "Quitar estatus de fundador"
     
     def reduce_extra_storage(self, request, queryset):
         """Reducir almacenamiento extra de organizaciones seleccionadas"""

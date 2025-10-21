@@ -26,6 +26,26 @@ class Organization(models.Model):
     created_at = models.DateTimeField("Fecha de creación", auto_now_add=True)
     updated_at = models.DateTimeField("Última actualización", auto_now=True)
     
+    # Campos para gestión de miembros fundadores
+    is_founder_member = models.BooleanField(
+        "Miembro fundador", 
+        default=False,
+        help_text="Indica si la organización tiene membresía fundadora"
+    )
+    founder_joined_date = models.DateTimeField(
+        "Fecha de ingreso como fundador", 
+        blank=True, 
+        null=True,
+        help_text="Fecha en la que se unió como miembro fundador"
+    )
+    founder_discount_percentage = models.DecimalField(
+        "Descuento fundador (%)",
+        max_digits=5,
+        decimal_places=2,
+        default=0,
+        help_text="Porcentaje de descuento en renovaciones para miembros fundadores (ej: 20.00 para 20%)"
+    )
+    
     class Meta:
         verbose_name = "Organización"
         verbose_name_plural = "Organizaciones"
@@ -33,6 +53,15 @@ class Organization(models.Model):
     
     def __str__(self):
         return self.name
+    
+    def get_founder_price(self, original_price=None):
+        """
+        Retorna el precio para miembros fundadores.
+        Miembros fundadores pagan $249/mes en lugar de $299/mes (plan básico).
+        """
+        if self.is_founder_member:
+            return 249  # Precio fijo para fundadores
+        return original_price if original_price is not None else 299
     
     @cached_property
     def subscription_cached(self):

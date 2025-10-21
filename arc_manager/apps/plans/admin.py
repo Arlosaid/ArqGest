@@ -91,8 +91,8 @@ class PaymentInline(admin.TabularInline):
 @admin.register(Subscription)
 class SubscriptionAdmin(ImportExportModelAdmin):
     resource_class = SubscriptionResource
-    list_display = ('organization', 'plan', 'subscription_status', 'end_date_formatted', 'days_remaining_display', 'is_active')
-    list_filter = ('subscription_status', 'plan__name')
+    list_display = ('organization', 'get_founder_indicator', 'plan', 'subscription_status', 'end_date_formatted', 'days_remaining_display', 'is_active')
+    list_filter = ('subscription_status', 'plan__name', 'organization__is_founder_member')
     search_fields = ('organization__name', 'plan__display_name')
     list_select_related = ('organization', 'plan')
     
@@ -161,6 +161,12 @@ class SubscriptionAdmin(ImportExportModelAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related('plan', 'organization')
+
+    @admin.display(description="Fundador", ordering='organization__is_founder_member')
+    def get_founder_indicator(self, obj):
+        if obj.organization.is_founder_member:
+            return format_html('<span style="color: #F39C12; font-weight: bold;">⭐ $249</span>')
+        return '-'
 
     @admin.display(description="Estado", ordering='subscription_status')
     def is_active(self, obj):
