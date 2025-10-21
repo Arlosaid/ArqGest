@@ -1,13 +1,15 @@
 """
 Backend de email personalizado para Django que usa Resend API
 Compatible con el sistema de emails de Django (send_mail, etc.)
+Implementa logging estructurado con trazabilidad completa
 """
 import logging
 import resend
 from django.conf import settings
 from django.core.mail.backends.base import BaseEmailBackend
+from core.error_codes import EmailErrorCodes, log_operation
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('core.email')
 
 
 class ResendBackend(BaseEmailBackend):
@@ -21,11 +23,27 @@ class ResendBackend(BaseEmailBackend):
         self.api_key = getattr(settings, 'RESEND_API_KEY', None)
         
         if not self.api_key:
-            logger.error("RESEND_API_KEY no esta configurado")
+            log_operation(
+                'EMAIL_BACKEND_INIT',
+                'system',
+                logger,
+                level='ERROR',
+                error_code=EmailErrorCodes.EMAIL_CONFIG_API_KEY_MISSING,
+                reason='RESEND_API_KEY no configurado en variables de entorno'
+            )
             raise ValueError("RESEND_API_KEY no esta configurado")
         
         # Configurar Resend con el API key
         resend.api_key = self.api_key
+        
+        log_operation(
+            'EMAIL_BACKEND_INIT',
+            'system',
+            logger,
+            level='INFO',
+            backend='ResendBackend',
+            api_key_prefix=self.api_key[:10] if self.api_key else 'None'
+        )
     
     def send_messages(self, email_messages):
         """
@@ -57,7 +75,7 @@ class ResendBackend(BaseEmailBackend):
     
     def _send_message(self, message):
         """
-        Envia un mensaje individual usando Resend API
+        Envia un mensaje individual usando Resend API con logging estructurado completo
         
         Args:
             message: Objeto EmailMessage de Django
@@ -65,10 +83,14 @@ class ResendBackend(BaseEmailBackend):
         Returns:
             bool: True si se envio exitosamente
         """
+        # Extraer destinatarios para logging
+        recipients = message.to[0] if message.to else 'unknown'
+        sender = message.from_email or settings.DEFAULT_FROM_EMAIL
+        
         try:
             # Preparar datos del email para Resend
             email_data = {
-                "from": message.from_email or settings.DEFAULT_FROM_EMAIL,
+                "from": sender,
                 "to": message.to,
                 "subject": message.subject,
             }
@@ -98,19 +120,82 @@ class ResendBackend(BaseEmailBackend):
             if message.reply_to:
                 email_data["reply_to"] = message.reply_to
             
+            # Log inicio de envío
+            log_operation(
+                'EMAIL_SEND_START',
+                recipients,
+                logger,
+                level='INFO',
+                sender=sender,
+                subject=message.subject[:50],
+                recipients_count=len(message.to),
+                has_html='html' in email_data,
+                has_attachments=len(message.attachments) if hasattr(message, 'attachments') else 0
+            )
+            
             # Enviar usando Resend
             response = resend.Emails.send(email_data)
             
             # Verificar respuesta
             if response and isinstance(response, dict) and 'id' in response:
-                logger.info(f"Email enviado exitosamente via Resend. ID: {response['id']}")
+                # Log exitoso con trazabilidad completa
+                log_operation(
+                    'EMAIL_SEND_SUCCESS',
+                    recipients,
+                    logger,
+                    level='INFO',
+                    error_code=EmailErrorCodes.EMAIL_SEND_SUCCESS,
+                    email_id=response['id'],
+                    sender=sender,
+                    subject=message.subject[:50],
+                    provider='Resend',
+                    recipients_count=len(message.to)
+                )
                 return True
             else:
-                logger.warning(f"Respuesta inesperada de Resend: {response}")
+                # Respuesta inesperada
+                log_operation(
+                    'EMAIL_SEND_WARNING',
+                    recipients,
+                    logger,
+                    level='WARNING',
+                    error_code=EmailErrorCodes.EMAIL_SEND_API_ERROR,
+                    sender=sender,
+                    subject=message.subject[:50],
+                    response=str(response)[:100],
+                    reason='Respuesta inesperada de Resend API'
+                )
                 return False
                 
         except Exception as e:
-            logger.error(f"Error enviando email via Resend: {e}")
+            # Log de error con contexto completo
+            error_type = type(e).__name__
+            error_message = str(e)
+            
+            # Determinar código de error específico
+            if 'rate' in error_message.lower() or 'limit' in error_message.lower():
+                error_code = EmailErrorCodes.EMAIL_SEND_RATE_LIMIT
+            elif 'quota' in error_message.lower():
+                error_code = EmailErrorCodes.EMAIL_SEND_QUOTA_EXCEEDED
+            elif 'invalid' in error_message.lower() and 'key' in error_message.lower():
+                error_code = EmailErrorCodes.EMAIL_CONFIG_API_KEY_INVALID
+            else:
+                error_code = EmailErrorCodes.EMAIL_SEND_FAILED
+            
+            log_operation(
+                'EMAIL_SEND_ERROR',
+                recipients,
+                logger,
+                level='ERROR',
+                error_code=error_code,
+                sender=sender,
+                subject=message.subject[:50],
+                error_type=error_type,
+                error_message=error_message[:200],
+                provider='Resend',
+                fail_silently=self.fail_silently
+            )
+            
             if not self.fail_silently:
                 raise
             return False
