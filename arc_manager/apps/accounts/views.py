@@ -190,15 +190,26 @@ class CustomLogoutView(View):
 
 class SecurePasswordResetView(PasswordResetView):
     template_name = 'auth/password_reset.html'
-    email_template_name = 'auth/password_reset_email.html'
+    email_template_name = 'auth/password_reset_email.txt'
     subject_template_name = 'auth/password_reset_subject.txt'
-    html_email_template_name = 'auth/password_reset_email.html'  # Template HTML explícito
+    html_email_template_name = 'auth/password_reset_email.html'
     success_url = '/accounts/password_reset/done/'
     
-    def form_valid(self, form):
-        """Sobrescribir para agregar contexto personalizado al email y validaciones de seguridad"""
+    def get_email_context_data(self, **kwargs):
+        """Sobrescribir para agregar contexto personalizado"""
+        context = super().get_email_context_data(**kwargs)
         from core.email_utils import get_site_protocol_and_domain
         
+        protocol, domain = get_site_protocol_and_domain()
+        context.update({
+            'protocol': protocol,
+            'domain': domain,
+            'site_name': getattr(settings, 'SITE_NAME', 'ArqGest')
+        })
+        return context
+    
+    def form_valid(self, form):
+        """Sobrescribir para agregar validaciones de seguridad"""
         email = form.cleaned_data['email']
         cache_key = f"password_reset_{email}"
         client_ip = self.get_client_ip()
@@ -224,29 +235,8 @@ class SecurePasswordResetView(PasswordResetView):
         # Guardar en cache por 15 minutos
         cache.set(cache_key, True, timeout=900)
         
-        # Agregar contexto extra para el email ANTES de enviar
-        protocol, domain = get_site_protocol_and_domain()
-        
-        # Configurar el extra_email_context que Django usará para renderizar el template
-        opts = {
-            'use_https': protocol == 'https',
-            'domain_override': domain,
-            'extra_email_context': {
-                'protocol': protocol,
-                'domain': domain,
-                'site_name': getattr(settings, 'SITE_NAME', 'ArqGest')
-            }
-        }
-        
-        # Llamar al save del form con opciones personalizadas
-        form.save(**opts)
-        
-        # Retornar la respuesta sin llamar a super() para evitar envío duplicado
-        messages.success(self.request, 
-                        "Te hemos enviado instrucciones por correo electrónico para restablecer tu contraseña. "
-                        "Si no lo recibes en unos minutos, revisa tu carpeta de spam.",
-                        extra_tags='password_reset')
-        return HttpResponseRedirect(self.get_success_url())
+        # Usar el método estándar de Django
+        return super().form_valid(form)
     
     def get_client_ip(self):
         """Obtener la IP real del cliente considerando proxies"""
