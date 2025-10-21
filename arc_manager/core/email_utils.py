@@ -12,6 +12,26 @@ from core.error_codes import EmailErrorCodes, log_operation
 logger = logging.getLogger('core.email')
 
 
+def get_site_protocol_and_domain():
+    """
+    Obtiene el protocolo y dominio del sitio para usar en emails
+    
+    Returns:
+        tuple: (protocol, domain)
+    """
+    site_url = getattr(settings, 'SITE_URL', 'http://localhost:8000')
+    if site_url.startswith('https://'):
+        protocol = 'https'
+        domain = site_url.replace('https://', '').rstrip('/')
+    elif site_url.startswith('http://'):
+        protocol = 'http'
+        domain = site_url.replace('http://', '').rstrip('/')
+    else:
+        protocol = 'https'
+        domain = site_url.rstrip('/')
+    return protocol, domain
+
+
 def validate_resend_config():
     """
     Valida la configuración de Resend antes de enviar emails
@@ -186,16 +206,18 @@ def send_credentials_email(user_email, username, password):
     Envía email con credenciales de usuario usando el template mejorado
     """
     from django.template.loader import render_to_string
-    from django.conf import settings
     
     subject = "Tus credenciales de acceso - ARC Manager"
+    protocol, domain = get_site_protocol_and_domain()
     
     # Usar el template HTML mejorado
     html_content = render_to_string('users/emails/new_user_credentials.html', {
         'user': {'email': user_email, 'first_name': '', 'last_name': ''},
         'password': password,
         'site_name': getattr(settings, 'SITE_NAME', 'ARC Manager'),
-        'login_url': f"{getattr(settings, 'SITE_URL', 'http://localhost:8000')}/accounts/login/"
+        'login_url': f"{protocol}://{domain}/accounts/login/",
+        'protocol': protocol,
+        'domain': domain
     })
     
     text_content = f"""
@@ -223,6 +245,85 @@ Equipo ARC Manager
     """
     
     return send_resend_email(user_email, subject, html_content, text_content)
+
+
+def send_password_changed_email(user):
+    """
+    Envía email de notificación de cambio de contraseña
+    
+    Args:
+        user: Objeto de usuario
+    
+    Returns:
+        dict: Respuesta de Resend API o None si hay error
+    """
+    from django.template.loader import render_to_string
+    
+    subject = f"Contraseña Cambiada - {getattr(settings, 'SITE_NAME', 'ARC Manager')}"
+    protocol, domain = get_site_protocol_and_domain()
+    
+    # Renderizar template HTML
+    html_content = render_to_string('users/emails/password_changed_notification.html', {
+        'user': user,
+        'site_name': getattr(settings, 'SITE_NAME', 'ARC Manager'),
+        'protocol': protocol,
+        'domain': domain
+    })
+    
+    # Renderizar template de texto plano
+    text_content = render_to_string('users/emails/password_changed_notification.txt', {
+        'user': user,
+        'site_name': getattr(settings, 'SITE_NAME', 'ARC Manager')
+    })
+    
+    return send_resend_email(user.email, subject, html_content, text_content)
+
+
+def send_welcome_reminder_email(user):
+    """
+    Envía email de recordatorio de bienvenida
+    
+    Args:
+        user: Objeto de usuario
+    
+    Returns:
+        dict: Respuesta de Resend API o None si hay error
+    """
+    from django.template.loader import render_to_string
+    
+    subject = f"¡Te esperamos! - {getattr(settings, 'SITE_NAME', 'ARC Manager')}"
+    protocol, domain = get_site_protocol_and_domain()
+    
+    # Renderizar template HTML
+    html_content = render_to_string('users/emails/welcome_reminder.html', {
+        'user': user,
+        'site_name': getattr(settings, 'SITE_NAME', 'ARC Manager'),
+        'login_url': f"{protocol}://{domain}/accounts/login/",
+        'protocol': protocol,
+        'domain': domain
+    })
+    
+    # Template de texto plano (crear uno simple)
+    text_content = f"""
+===============================================
+{getattr(settings, 'SITE_NAME', 'ARC Manager')} - TE ESPERAMOS
+===============================================
+
+Hola {user.full_name or user.email},
+
+Este es un recordatorio de que tienes una cuenta en {getattr(settings, 'SITE_NAME', 'ARC Manager')} y puedes acceder a la plataforma en cualquier momento.
+
+Puedes acceder a la plataforma utilizando tu correo electrónico y la contraseña que se te proporcionó o la última que hayas establecido.
+
+¿Olvidaste tu contraseña?
+Si has olvidado tu contraseña, puedes restablecerla desde la página de inicio de sesión utilizando la opción "¿Olvidaste tu contraseña?".
+
+¡Esperamos verte pronto en {getattr(settings, 'SITE_NAME', 'ARC Manager')}!
+
+El equipo de {getattr(settings, 'SITE_NAME', 'ARC Manager')}
+    """
+    
+    return send_resend_email(user.email, subject, html_content, text_content)
 
 
 def test_resend_connection():
