@@ -59,11 +59,34 @@ class ProjectListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
     def get_queryset(self):
         if hasattr(self.request.user, 'organization') and self.request.user.organization:
             from django.db.models import Case, When, Value, IntegerField
+            from .cache_utils import get_or_set_user_accessible_projects
             
-            # OPTIMIZACIÓN: Usar manager optimizado para listados completos
-            queryset = Project.objects.with_complete_data().filter(
-                organization=self.request.user.organization
-            )
+            # CONSISTENCIA: Usuarios comunes solo ven proyectos donde están asignados o son owners
+            # Admins ven todos los proyectos
+            if self.request.user.is_org_admin:
+                # Admins ven todos los proyectos de la organización
+                queryset = Project.objects.with_complete_data().filter(
+                    organization=self.request.user.organization
+                )
+            else:
+                # Usuarios comunes: solo proyectos accesibles (mismo criterio que Kanban)
+                accessible_data = get_or_set_user_accessible_projects(
+                    self.request.user.id,
+                    self.request.user.organization.id,
+                    is_admin=False
+                )
+                
+                # Combinar IDs accesibles
+                all_accessible_ids = (
+                    accessible_data['active_ids'] | 
+                    accessible_data['completed_ids'] | 
+                    accessible_data['archived_ids']
+                )
+                
+                queryset = Project.objects.with_complete_data().filter(
+                    id__in=all_accessible_ids,
+                    organization=self.request.user.organization
+                )
             
             # Filtro de status (activo/archivado)
             status_filter = self.request.GET.get('status', '').strip()
@@ -104,30 +127,54 @@ class ProjectListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
         context = super().get_context_data(**kwargs)
         if hasattr(self.request.user, 'organization') and self.request.user.organization:
             org_id = self.request.user.organization.id
-            cache_key = f"project_list_stats:{org_id}"
-            project_stats = cache.get(cache_key)
+            is_admin = self.request.user.is_org_admin
             
-            if project_stats is None:
-                projects_all = Project.objects.filter(organization=self.request.user.organization)
-                # Contadores por estado básicos
-                project_stats = {
-                    'total_projects': projects_all.count(),
-                    'active_projects_count': 0,
-                    'completed_projects_count': 0,
-                    'archived_projects_count': 0
-                }
-                try:
-                    project_stats['active_projects_count'] = projects_all.filter(status='ACTIVE').count()
-                    project_stats['completed_projects_count'] = projects_all.filter(status='COMPLETED').count()
-                    project_stats['archived_projects_count'] = projects_all.filter(status='ARCHIVED').count()
-                except Exception:
-                    # Si el modelo no tiene estos estados, usar valores por defecto
-                    pass
+            # Indicar si el usuario tiene vista limitada
+            context['is_limited_view'] = not is_admin
+            context['is_admin'] = is_admin
+            
+            if is_admin:
+                # Admins ven estadísticas de todos los proyectos
+                cache_key = f"project_list_stats:{org_id}"
+                project_stats = cache.get(cache_key)
                 
-                # Cache por 5 minutos
-                cache.set(cache_key, project_stats, 300)
-            
-            context.update(project_stats)
+                if project_stats is None:
+                    projects_all = Project.objects.filter(organization=self.request.user.organization)
+                    # Contadores por estado básicos
+                    project_stats = {
+                        'total_projects': projects_all.count(),
+                        'active_projects_count': 0,
+                        'completed_projects_count': 0,
+                        'archived_projects_count': 0
+                    }
+                    try:
+                        project_stats['active_projects_count'] = projects_all.filter(status='ACTIVE').count()
+                        project_stats['completed_projects_count'] = projects_all.filter(status='COMPLETED').count()
+                        project_stats['archived_projects_count'] = projects_all.filter(status='ARCHIVED').count()
+                    except Exception:
+                        # Si el modelo no tiene estos estados, usar valores por defecto
+                        pass
+                    
+                    # Cache por 5 minutos
+                    cache.set(cache_key, project_stats, 300)
+                
+                context.update(project_stats)
+            else:
+                # Usuarios comunes ven solo estadísticas de sus proyectos accesibles
+                from .cache_utils import get_or_set_user_accessible_projects
+                accessible_data = get_or_set_user_accessible_projects(
+                    self.request.user.id,
+                    org_id,
+                    is_admin=False
+                )
+                
+                project_stats = {
+                    'total_projects': accessible_data['total_count'],
+                    'active_projects_count': accessible_data['active_count'],
+                    'completed_projects_count': accessible_data['completed_count'],
+                    'archived_projects_count': accessible_data['archived_count']
+                }
+                context.update(project_stats)
             
             # Optimizar progreso para los proyectos de la página actual
             if 'projects' in context and context['projects']:
@@ -163,16 +210,46 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
 
     def get_queryset(self):
         if hasattr(self.request.user, 'organization') and self.request.user.organization:
-            # OPTIMIZACIÓN: Prefetch de payments para evitar N+1 en datos financieros
-            return super().get_queryset().filter(
-                organization=self.request.user.organization
-            ).select_related('client', 'owner').prefetch_related('payments')
+            from .cache_utils import get_or_set_user_accessible_projects
+            
+            # CONSISTENCIA: Verificar acceso del usuario al proyecto
+            if self.request.user.is_org_admin:
+                # Admins pueden ver todos los proyectos
+                return super().get_queryset().filter(
+                    organization=self.request.user.organization
+                ).select_related('client', 'owner').prefetch_related('payments')
+            else:
+                # Usuarios comunes: solo proyectos donde están asignados o son owners
+                accessible_data = get_or_set_user_accessible_projects(
+                    self.request.user.id,
+                    self.request.user.organization.id,
+                    is_admin=False
+                )
+                
+                # Combinar IDs accesibles
+                all_accessible_ids = (
+                    accessible_data['active_ids'] | 
+                    accessible_data['completed_ids'] | 
+                    accessible_data['archived_ids']
+                )
+                
+                return super().get_queryset().filter(
+                    id__in=all_accessible_ids,
+                    organization=self.request.user.organization
+                ).select_related('client', 'owner').prefetch_related('payments')
+        
         logger.warning(f"User {self.request.user.email} attempted to access project detail without organization")
         return super().get_queryset().none()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         project = self.get_object()
+        
+        # Indicar permisos del usuario
+        is_admin = self.request.user.is_org_admin
+        context['is_admin'] = is_admin
+        context['is_limited_view'] = not is_admin
+        context['can_view_finance'] = is_admin  # Solo admins ven finanzas
         
         # Obtener fases del proyecto con sus archivos y tareas (optimizado)
         phases = project.phases.prefetch_related(
@@ -477,7 +554,34 @@ class PhaseDetailView(LoginRequiredMixin, DetailView):
 @login_required
 def project_kanban(request, pk):
     """Vista del tablero Kanban para un proyecto."""
-    project = get_object_or_404(Project, pk=pk, organization=request.user.organization)
+    # CONSISTENCIA: Verificar acceso del usuario al proyecto
+    if request.user.is_org_admin:
+        # Admins pueden acceder a cualquier proyecto
+        project = get_object_or_404(Project, pk=pk, organization=request.user.organization)
+    else:
+        # Usuarios comunes: verificar que tengan acceso
+        from .cache_utils import get_or_set_user_accessible_projects
+        
+        accessible_data = get_or_set_user_accessible_projects(
+            request.user.id,
+            request.user.organization.id,
+            is_admin=False
+        )
+        
+        # Combinar IDs accesibles
+        all_accessible_ids = (
+            accessible_data['active_ids'] | 
+            accessible_data['completed_ids'] | 
+            accessible_data['archived_ids']
+        )
+        
+        # Verificar que el proyecto esté en la lista de accesibles
+        project = get_object_or_404(
+            Project, 
+            pk=pk, 
+            id__in=all_accessible_ids,
+            organization=request.user.organization
+        )
     
     # Modo de agrupación del tablero: solo 'status' (por decisión de UX)
     group_by = request.GET.get('group_by', 'status')

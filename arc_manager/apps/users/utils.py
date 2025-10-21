@@ -79,7 +79,7 @@ def send_welcome_email(user_email, username, subject=None):
     
     from core.email_utils import send_resend_email
     
-    subject = subject or f"¡Bienvenido a {getattr(settings, 'SITE_NAME', 'ARC Manager')}!"
+    subject = subject or f"¡Bienvenido a {getattr(settings, 'SITE_NAME', 'ArqGest')}!"
     
     html_content = f"""
     <html>
@@ -147,14 +147,3 @@ def send_new_user_email(user, password, request=None, background=True):
     )
 
 
-def send_welcome_reminder_email(user, request=None):
-    """
-    🎉 Envía recordatorio de bienvenida (SIMPLE)
-    """
-    # Usar el nombre completo o email como username para el email
-    username_for_email = user.full_name or user.email
-    
-    return send_welcome_email(
-        user_email=user.email,
-        username=username_for_email
-    )

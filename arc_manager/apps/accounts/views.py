@@ -234,7 +234,7 @@ class SecurePasswordResetView(PasswordResetView):
             'extra_email_context': {
                 'protocol': protocol,
                 'domain': domain,
-                'site_name': getattr(settings, 'SITE_NAME', 'ARC Manager')
+                'site_name': getattr(settings, 'SITE_NAME', 'ArqGest')
             }
         }
         

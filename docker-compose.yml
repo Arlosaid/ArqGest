@@ -23,14 +23,14 @@ services:
     build: .
     command: >
       sh -c "
-        echo '🔍 Waiting for database...' &&
+        echo 'Waiting for database...' &&
         until pg_isready -h db -p 5432 -U postgres; do
           echo 'PostgreSQL is unavailable - sleeping'
           sleep 2
         done &&
-        echo '📦 Running migrations...' &&
+        echo 'Running migrations...' &&
         python manage.py migrate --noinput &&
-        echo '🚀 Starting development server...' &&
+        echo 'Starting development server...' &&
         python manage.py runserver 0.0.0.0:8000
       "
     volumes:
@@ -45,7 +45,7 @@ services:
       - redis
     
     # ========================================
-    # 📊 CONFIGURACIÓN DE LOGGING OPTIMIZADA
+    # CONFIGURACIÓN DE LOGGING OPTIMIZADA
     # ========================================
     # Docker maneja los logs de forma eficiente - sin escribir a disco
     logging:
@@ -109,6 +109,36 @@ services:
     restart: unless-stopped
     
     # Configuración de logging optimizada para Redis
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+        compress: "true"
+
+  # Servicio para tareas programadas (cron)
+  cron:
+    build: .
+    command: >
+      sh -c "
+        echo 'Configurando cron jobs...' &&
+        cp /app/scripts/crontab /etc/crontabs/root &&
+        chmod +x /app/scripts/send_renewal_reminders.sh &&
+        echo 'Cron jobs configurados:' &&
+        cat /etc/crontabs/root &&
+        echo 'Iniciando cron daemon...' &&
+        crond -f
+      "
+    volumes:
+      - ./arc_manager:/app/arc_manager
+      - ./scripts:/app/scripts
+      - ./logs:/app/logs
+    depends_on:
+      - db
+      - web
+    restart: unless-stopped
+    
+    # Configuración de logging para cron
     logging:
       driver: "json-file"
       options:
