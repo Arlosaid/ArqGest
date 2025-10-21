@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>¡URGENTE! Suscripción vence hoy - {{ site_name }}</title>
+    <title>Recordatorio de Renovación - {{ site_name }}</title>
     <style>
         @media only screen and (max-width: 600px) {
             .email-container { width: 100% !important; max-width: 100% !important; }
@@ -26,7 +26,7 @@
                     
                     <!-- Header con Logo -->
                     <tr>
-                        <td class="email-header" style="background-color: #c0392b; padding: 30px; text-align: center;">
+                        <td class="email-header" style="background-color: #34495e; padding: 30px; text-align: center;">
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                                 <tr>
                                     <td style="text-align: center; padding-bottom: 15px;">
@@ -35,7 +35,7 @@
                                 </tr>
                                 <tr>
                                     <td style="text-align: center;">
-                                        <h1 class="header-title" style="margin: 0; font-size: 24px; font-weight: normal; color: #ffffff;">¡URGENTE! Vence Hoy</h1>
+                                        <h1 class="header-title" style="margin: 0; font-size: 24px; font-weight: normal; color: #ffffff;">Recordatorio de Renovación</h1>
                                     </td>
                                 </tr>
                             </table>
@@ -44,23 +44,35 @@
 
                     <!-- Contenido Principal -->
                     <tr>
-                        <td class="email-content" style="padding: 30px; color: #333333; line-height: 1.6;">
+                        <td class="email-content" style="padding: 30px; color: #333333; line-height: 1.6; text-align: center;">
                             <p class="content-text" style="margin: 0 0 20px 0; font-size: 16px;">Hola <strong>{{ organization_name }}</strong>,</p>
                             
-                            <p class="content-text" style="margin: 0 0 20px 0; font-size: 15px;">Tu suscripción al plan <strong>{{ plan_name }}</strong> vence <strong>HOY</strong>.</p>
-                            
-                            <p class="content-text" style="margin: 0 0 25px 0; font-size: 15px;">Renueva inmediatamente para evitar el bloqueo de acceso a tus proyectos.</p>
+                            {% if is_urgent %}
+                                <p class="content-text" style="margin: 0 0 20px 0; font-size: 15px;">Tu suscripción al plan <strong>{{ plan_name }}</strong> vence <strong>mañana</strong>.</p>
+                                <p class="content-text" style="margin: 0 0 25px 0; font-size: 15px;">Renueva inmediatamente para evitar el bloqueo de acceso a tus proyectos.</p>
+                            {% else %}
+                                <p class="content-text" style="margin: 0 0 20px 0; font-size: 15px;">Tu suscripción al plan <strong>{{ plan_name }}</strong> vence en <strong>{{ days_left }} días</strong>.</p>
+                                <p class="content-text" style="margin: 0 0 25px 0; font-size: 15px;">Renueva tu suscripción para mantener el acceso completo a tus proyectos.</p>
+                            {% endif %}
 
                             <!-- Botón CTA -->
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" class="button-container" style="margin: 0 0 25px 0;">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" class="button-container" style="margin: 0 auto 25px auto;">
                                 <tr>
-                                    <td style="background-color: #c0392b; text-align: center;">
-                                        <a href="{{ renewal_url }}" class="button-link" style="display: inline-block; padding: 14px 35px; font-size: 16px; color: #ffffff; text-decoration: none; font-weight: bold;">¡Renovar AHORA!</a>
+                                    <td style="background-color: #3498db; text-align: center; border-radius: 5px;">
+                                        {% if is_urgent %}
+                                            <a href="{{ renewal_url }}" class="button-link" style="display: inline-block; padding: 14px 35px; font-size: 16px; color: #ffffff; text-decoration: none; font-weight: bold;">¡Renovar AHORA!</a>
+                                        {% else %}
+                                            <a href="{{ renewal_url }}" class="button-link" style="display: inline-block; padding: 14px 35px; font-size: 16px; color: #ffffff; text-decoration: none; font-weight: bold;">Renovar Suscripción</a>
+                                        {% endif %}
                                     </td>
                                 </tr>
                             </table>
 
-                            <p class="content-text" style="margin: 20px 0 0 0; padding: 15px; background-color: #f8d7da; border: 1px solid #f5c6cb; text-align: center; font-size: 15px; color: #721c24; font-weight: bold;">Acceso se bloqueará al finalizar el día</p>
+                            {% if is_urgent %}
+                                <p class="content-text" style="margin: 20px 0 0 0; padding: 15px; background-color: #f8d7da; border: 1px solid #f5c6cb; text-align: center; font-size: 15px; color: #721c24; font-weight: bold;">Acceso se bloqueará al finalizar el día</p>
+                            {% else %}
+                                <p class="content-text" style="margin: 20px 0 0 0; padding: 15px; background-color: #e8f4fd; border: 1px solid #bee5eb; text-align: center; font-size: 15px; color: #0c5460; font-weight: bold;">Mantén tu acceso activo renovando tu suscripción</p>
+                            {% endif %}
                         </td>
                     </tr>
 
