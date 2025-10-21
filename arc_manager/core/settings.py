@@ -567,6 +567,8 @@ LOGIN_EXEMPT_URLS = [
     r'^static/.*$',
     r'^media/.*$',
     r'^__debug__/.*$',
+    r'^plans/cron/renewal-reminders/?$',  # Endpoint para cron externo
+    r'^health/?$',  # Health check endpoint
 ]
 
 # Django Debug Toolbar
