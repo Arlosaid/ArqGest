@@ -28,13 +28,34 @@ class Command(BaseCommand):
             action='store_true',
             help='Simular ejecución sin enviar emails reales',
         )
+        parser.add_argument(
+            '--clear-cache',
+            action='store_true',
+            help='Limpiar cache de recordatorios antes de ejecutar',
+        )
 
     def handle(self, *args, **options):
         force = options.get('force', False)
         dry_run = options.get('dry_run', False)
+        clear_cache = options.get('clear_cache', False)
         
         try:
             now = timezone.now()
+            
+            # TEMPORAL: Cache desactivado para pruebas
+            # Limpiar cache si se solicita
+            # if clear_cache:
+            #     logger.info("Limpiando cache de recordatorios...")
+            #     # Limpiar todas las claves de cache relacionadas con recordatorios
+            #     cache_keys_to_clear = []
+            #     for key in cache._cache.get_client().keys('*renewal_reminder_*'):
+            #         cache_keys_to_clear.append(key)
+            #     
+            #     if cache_keys_to_clear:
+            #         cache.delete_many(cache_keys_to_clear)
+            #         logger.info(f"Cache limpiado: {len(cache_keys_to_clear)} entradas eliminadas")
+            #     else:
+            #         logger.info("No se encontraron entradas de cache para limpiar")
             
             # Buscar suscripciones que vencen en las próximas 48 horas (incluye hoy y mañana)
             # Ventana amplia para cubrir todas las zonas horarias y asegurar que nadie se quede sin aviso
@@ -76,13 +97,14 @@ class Command(BaseCommand):
                 expiry_date = sub.end_date.strftime('%Y-%m-%d')
                 org_cache_key = f'renewal_reminder_{org.id}_{expiry_date}'
                 
-                cache_value = cache.get(org_cache_key)
-                logger.info(f"Verificando cache para {org.name}: clave={org_cache_key}, valor={cache_value}, force={force}")
+                # TEMPORAL: Cache desactivado para pruebas
+                # cache_value = cache.get(org_cache_key)
+                # logger.info(f"Verificando cache para {org.name}: clave={org_cache_key}, valor={cache_value}, force={force}")
                 
-                if not force and cache_value:
-                    logger.info(f"Ya se envió recordatorio para vencimiento {expiry_date} a: {org.name} (cache hit)")
-                    skipped_count += 1
-                    continue
+                # if not force and cache_value:
+                #     logger.info(f"Ya se envió recordatorio para vencimiento {expiry_date} a: {org.name} (cache hit)")
+                #     skipped_count += 1
+                #     continue
                 
                 # Obtener TODOS los administradores de la organización
                 try:
@@ -145,10 +167,11 @@ class Command(BaseCommand):
                         
                         # Verificar si el email se envió realmente
                         if result and result.get('id'):
+                            # TEMPORAL: Cache desactivado para pruebas
                             # Marcar como enviado para este vencimiento específico (válido por 7 días)
                             # Esto evita enviar múltiples emails para el mismo vencimiento
-                            cache.set(org_cache_key, True, timeout=604800)  # 7 días
-                            logger.info(f"Cache marcado como enviado para {org.name}: {org_cache_key}")
+                            # cache.set(org_cache_key, True, timeout=604800)  # 7 días
+                            # logger.info(f"Cache marcado como enviado para {org.name}: {org_cache_key}")
                             
                             logger.info(f"Email enviado exitosamente a: {user_email} - Org: {org.name} - ID: {result.get('id')}")
                             sent_count += 1
