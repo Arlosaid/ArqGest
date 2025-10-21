@@ -183,46 +183,43 @@ def send_resend_email(to_email, subject, html_content, text_content=None):
 
 def send_credentials_email(user_email, username, password):
     """
-    Envía email con credenciales de usuario (función específica para tu caso)
+    Envía email con credenciales de usuario usando el template mejorado
     """
+    from django.template.loader import render_to_string
+    from django.conf import settings
+    
     subject = "Tus credenciales de acceso - ARC Manager"
     
-    html_content = f"""
-    <html>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2 style="color: #2c3e50;">¡Bienvenido a ARC Manager!</h2>
-            
-            <p>Hemos creado tu cuenta en ARC Manager. Aquí tienes tus credenciales de acceso:</p>
-            
-            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                <p><strong>Usuario:</strong> {username}</p>
-                <p><strong>Contraseña:</strong> {password}</p>
-            </div>
-            
-            <p>Por favor, inicia sesión y cambia tu contraseña por una de tu preferencia.</p>
-            
-            <p style="margin-top: 30px;">
-                Saludos,<br>
-                <strong>Equipo ARC Manager</strong>
-            </p>
-        </div>
-    </body>
-    </html>
-    """
+    # Usar el template HTML mejorado
+    html_content = render_to_string('users/emails/new_user_credentials.html', {
+        'user': {'email': user_email, 'first_name': '', 'last_name': ''},
+        'password': password,
+        'site_name': getattr(settings, 'SITE_NAME', 'ARC Manager'),
+        'login_url': f"{getattr(settings, 'SITE_URL', 'http://localhost:8000')}/accounts/login/"
+    })
     
     text_content = f"""
-    ¡Bienvenido a ARC Manager!
-    
-    Hemos creado tu cuenta en ARC Manager. Aquí tienes tus credenciales de acceso:
-    
-    Usuario: {username}
-    Contraseña: {password}
-    
-    Por favor, inicia sesión y cambia tu contraseña por una de tu preferencia.
-    
-    Saludos,
-    Equipo ARC Manager
+===============================================
+ARC Manager - CREDENCIALES DE ACCESO
+===============================================
+
+¡Bienvenido a ARC Manager!
+
+Hemos creado tu cuenta en ARC Manager. Aquí tienes tus credenciales de acceso:
+
+Usuario: {username}
+Contraseña: {password}
+
+Por favor, inicia sesión y cambia tu contraseña por una de tu preferencia.
+
+===============================================
+INFORMACIÓN IMPORTANTE
+===============================================
+
+Por tu seguridad, te recomendamos cambiar esta contraseña por una de tu elección cuando ingreses al sistema por primera vez.
+
+Saludos,
+Equipo ARC Manager
     """
     
     return send_resend_email(user_email, subject, html_content, text_content)

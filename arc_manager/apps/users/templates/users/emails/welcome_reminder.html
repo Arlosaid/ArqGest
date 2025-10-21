@@ -2,15 +2,343 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Recordatorio de Bienvenida a {{ site_name }}</title>
+    <style>
+        /* Reset y base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #1e293b;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        
+        /* Header con logo */
+        .email-header {
+            background: linear-gradient(135deg, #4285f4 0%, #3367d6 100%);
+            padding: 2rem;
+            text-align: center;
+            position: relative;
+        }
+        
+        .email-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transform: translate(50%, -50%);
+        }
+        
+        .logo-container {
+            position: relative;
+            z-index: 2;
+        }
+        
+        .email-logo {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1rem;
+            display: block;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 12px;
+        }
+        
+        .email-title {
+            color: #ffffff;
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin: 0 0 0.5rem 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .email-subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+            margin: 0;
+            font-weight: 400;
+        }
+        
+        /* Contenido principal */
+        .email-content {
+            padding: 2rem;
+        }
+        
+        .greeting {
+            font-size: 1.125rem;
+            color: #1e293b;
+            margin-bottom: 1.5rem;
+            font-weight: 500;
+        }
+        
+        /* Caja de recordatorio */
+        .reminder-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .reminder-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #f59e0b, #d97706);
+        }
+        
+        .reminder-content {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        
+        .reminder-icon {
+            color: #92400e;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+        
+        .reminder-text {
+            color: #92400e;
+            font-weight: 500;
+            margin: 0;
+            font-size: 1rem;
+        }
+        
+        /* Botón de acción */
+        .action-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #4285f4 0%, #3367d6 100%);
+            color: #ffffff;
+            text-decoration: none;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-align: center;
+            margin: 1.5rem 0;
+            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .action-button:hover {
+            background: linear-gradient(135deg, #3367d6 0%, #2563eb 100%);
+            box-shadow: 0 6px 16px rgba(66, 133, 244, 0.4);
+            transform: translateY(-1px);
+        }
+        
+        .action-center {
+            text-align: center;
+        }
+        
+        /* Información adicional */
+        .info-section {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        
+        .info-section h3 {
+            color: #1e293b;
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin: 0 0 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .info-section p {
+            color: #475569;
+            font-size: 0.95rem;
+            margin: 0 0 0.75rem 0;
+            line-height: 1.5;
+        }
+        
+        .info-section p:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* Mensaje de cierre */
+        .closing-message {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 2px solid #22c55e;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .closing-message::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+        }
+        
+        .closing-text {
+            color: #166534;
+            font-weight: 600;
+            font-size: 1rem;
+            margin: 0;
+        }
+        
+        /* Footer */
+        .email-footer {
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            padding: 1.5rem 2rem;
+            text-align: center;
+        }
+        
+        .footer-text {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin: 0 0 0.5rem 0;
+            line-height: 1.5;
+        }
+        
+        .footer-brand {
+            color: #1e293b;
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin: 1rem 0 0 0;
+        }
+        
+        .footer-divider {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 1rem 0;
+            border: none;
+        }
+        
+        /* Responsive */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            .email-container {
+                border-radius: 12px;
+            }
+            
+            .email-header {
+                padding: 1.5rem;
+            }
+            
+            .email-title {
+                font-size: 1.5rem;
+            }
+            
+            .email-content {
+                padding: 1.5rem;
+            }
+            
+            .email-footer {
+                padding: 1.25rem 1.5rem;
+            }
+            
+            .action-button {
+                width: 100%;
+                padding: 1rem;
+            }
+        }
+    </style>
 </head>
 <body>
-    <p>Hola {{ user.full_name }},</p>
-    <p>Este es un recordatorio de que tienes una cuenta en {{ site_name }}.</p>
-    <p>Puedes acceder a la plataforma utilizando tu correo electrónico y la contraseña que se te proporcionó o la última que hayas establecido.</p>
-    <p><a href="{{ login_url }}">Iniciar sesión en {{ site_name }}</a></p>
-    <p>Si has olvidado tu contraseña, puedes restablecerla desde la página de inicio de sesión.</p>
-    <p>¡Esperamos verte pronto!</p>
-    <p>El equipo de {{ site_name }}</p>
+    <div class="email-container">
+        <div class="email-header">
+            <div class="logo-container">
+                <div class="email-logo">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h1 class="email-title">¡Te esperamos!</h1>
+                <p class="email-subtitle">Recordatorio de acceso a {{ site_name }}</p>
+            </div>
+        </div>
+
+        <div class="email-content">
+            <p class="greeting">Hola <strong>{{ user.full_name }}</strong>,</p>
+            
+            <div class="reminder-box">
+                <div class="reminder-content">
+                    <span class="reminder-icon">💡</span>
+                    <p class="reminder-text">Este es un recordatorio de que tienes una cuenta en <strong>{{ site_name }}</strong> y puedes acceder a la plataforma en cualquier momento.</p>
+                </div>
+            </div>
+
+            <p>Puedes acceder a la plataforma utilizando tu correo electrónico y la contraseña que se te proporcionó o la última que hayas establecido.</p>
+
+            <div class="action-center">
+                <a href="{{ login_url }}" class="action-button">
+                    <span>🚀</span>
+                    Iniciar Sesión en {{ site_name }}
+                </a>
+            </div>
+
+            <div class="info-section">
+                <h3>
+                    <span>🔐</span>
+                    ¿Olvidaste tu contraseña?
+                </h3>
+                <p>Si has olvidado tu contraseña, puedes restablecerla desde la página de inicio de sesión utilizando la opción "¿Olvidaste tu contraseña?".</p>
+                <p>El proceso es rápido y seguro, y podrás acceder nuevamente a tu cuenta en pocos minutos.</p>
+            </div>
+
+            <div class="closing-message">
+                <p class="closing-text">¡Esperamos verte pronto en {{ site_name }}!</p>
+            </div>
+        </div>
+
+        <div class="email-footer">
+            <p class="footer-text">El equipo de {{ site_name }}</p>
+            <hr class="footer-divider">
+            <p class="footer-brand">{{ site_name }} - Sistema de Gestión</p>
+        </div>
+    </div>
 </body>
 </html>
