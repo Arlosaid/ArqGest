@@ -38,7 +38,7 @@
                 <i class="fas fa-folder"></i>
             </div>
             <div class="stat-number-mini">{% if is_paginated %}{{ page_obj.paginator.count }}{% else %}{{ projects|length }}{% endif %}</div>
-            <div class="stat-label-mini">{% if current_filters.status or current_filters.search %}Filtrados{% else %}Total Proyectos{% endif %}</div>
+            <div class="stat-label-mini">{% if current_filters.status or current_filters.search %}Filtrados{% else %}{% if is_limited_view %}Mis Proyectos{% else %}Total Proyectos{% endif %}{% endif %}</div>
         </div>
         <div class="stat-card-mini">
             <div class="stat-icon-mini active">
@@ -55,6 +55,15 @@
             <div class="stat-label-mini">Completado</div>
         </div>
     </div>
+
+    {% if is_limited_view %}
+    <div class="alert alert-info mb-3" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border: 1px solid #64b5f6; border-radius: 8px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <i class="fas fa-info-circle" style="color: #1976d2; font-size: 20px;"></i>
+        <span style="color: #0d47a1; font-size: 14px; font-weight: 500;">
+            Estás viendo solo los proyectos donde estás asignado o eres propietario
+        </span>
+    </div>
+    {% endif %}
 
     <div class="table-search-container">
         <div class="table-search-box">

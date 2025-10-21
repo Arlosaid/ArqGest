@@ -1,0 +1,5 @@
+# Ejecutar recordatorios de renovación todos los días a las 9:00 AM
+0 9 * * * /app/scripts/send_renewal_reminders.sh
+
+# Limpiar logs antiguos cada domingo a las 2:00 AM
+0 2 * * 0 find /app/logs -name "*.log" -mtime +30 -delete

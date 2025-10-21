@@ -211,13 +211,14 @@ def send_credentials_email(user_email, username, password):
     """
     from django.template.loader import render_to_string
     
-    subject = "Tus credenciales de acceso - ARC Manager"
+    site_name = getattr(settings, 'SITE_NAME', 'ArqGest')
+    subject = f"¡Bienvenido a {site_name}!"
     protocol, domain = get_site_protocol_and_domain()
     
     context = {
         'user': {'email': user_email, 'first_name': '', 'last_name': ''},
         'password': password,
-        'site_name': getattr(settings, 'SITE_NAME', 'ARC Manager'),
+        'site_name': site_name,
         'login_url': f"{protocol}://{domain}/accounts/login/",
         'protocol': protocol,
         'domain': domain
@@ -232,68 +233,8 @@ def send_credentials_email(user_email, username, password):
     return send_resend_email(user_email, subject, html_content, text_content)
 
 
-def send_password_changed_email(user):
-    """
-    Envía email de notificación de cambio de contraseña
-    
-    Args:
-        user: Objeto de usuario
-    
-    Returns:
-        dict: Respuesta de Resend API o None si hay error
-    """
-    from django.template.loader import render_to_string
-    
-    subject = f"Contraseña Cambiada - {getattr(settings, 'SITE_NAME', 'ARC Manager')}"
-    protocol, domain = get_site_protocol_and_domain()
-    
-    # Renderizar template HTML
-    html_content = render_to_string('users/emails/password_changed_notification.html', {
-        'user': user,
-        'site_name': getattr(settings, 'SITE_NAME', 'ARC Manager'),
-        'protocol': protocol,
-        'domain': domain
-    })
-    
-    # Renderizar template de texto plano
-    text_content = render_to_string('users/emails/password_changed_notification.txt', {
-        'user': user,
-        'site_name': getattr(settings, 'SITE_NAME', 'ARC Manager')
-    })
-    
-    return send_resend_email(user.email, subject, html_content, text_content)
 
 
-def send_welcome_reminder_email(user):
-    """
-    Envía email de recordatorio de bienvenida
-    
-    Args:
-        user: Objeto de usuario
-    
-    Returns:
-        dict: Respuesta de Resend API o None si hay error
-    """
-    from django.template.loader import render_to_string
-    
-    subject = f"¡Te esperamos! - {getattr(settings, 'SITE_NAME', 'ARC Manager')}"
-    protocol, domain = get_site_protocol_and_domain()
-    
-    context = {
-        'user': user,
-        'site_name': getattr(settings, 'SITE_NAME', 'ARC Manager'),
-        'login_url': f"{protocol}://{domain}/accounts/login/",
-        'protocol': protocol,
-        'domain': domain
-    }
-    
-    # Renderizar template HTML
-    html_content = render_to_string('users/emails/welcome_reminder.html', context)
-    
-    # Renderizar template de texto plano
-    text_content = render_to_string('users/emails/welcome_reminder.txt', context)
-    
-    return send_resend_email(user.email, subject, html_content, text_content)
 
 
 def test_resend_connection():
