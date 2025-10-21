@@ -131,6 +131,8 @@ class Command(BaseCommand):
                             'organization_name': org.name,
                             'plan_name': sub.plan.display_name,
                             'renewal_url': f'{site_url}/plans/subscription/',
+                            'days_left': days_left,
+                            'is_urgent': days_left <= 1,
                         }
                         
                         logger.info(f"Renderizando template para {user_email} con contexto: {context}")
