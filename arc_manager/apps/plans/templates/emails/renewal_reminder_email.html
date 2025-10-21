@@ -49,7 +49,7 @@
                             
                             {% if is_urgent %}
                                 <p class="content-text" style="margin: 0 0 20px 0; font-size: 15px;">Tu suscripción al plan <strong>{{ plan_name }}</strong> vence <strong>mañana</strong>.</p>
-                                <p class="content-text" style="margin: 0 0 25px 0; font-size: 15px;">Renueva inmediatamente para evitar el bloqueo de acceso a tus proyectos.</p>
+                                <p class="content-text" style="margin: 0 0 25px 0; font-size: 15px;">Renueva ahora para mantener el acceso completo a todos tus proyectos y funcionalidades.</p>
                             {% else %}
                                 <p class="content-text" style="margin: 0 0 20px 0; font-size: 15px;">Tu suscripción al plan <strong>{{ plan_name }}</strong> vence en <strong>{{ days_left }} días</strong>.</p>
                                 <p class="content-text" style="margin: 0 0 25px 0; font-size: 15px;">Renueva tu suscripción para mantener el acceso completo a tus proyectos.</p>
@@ -69,9 +69,9 @@
                             </table>
 
                             {% if is_urgent %}
-                                <p class="content-text" style="margin: 20px 0 0 0; padding: 15px; background-color: #f8d7da; border: 1px solid #f5c6cb; text-align: center; font-size: 15px; color: #721c24; font-weight: bold;">Acceso se bloqueará al finalizar el día</p>
+                                <p class="content-text" style="margin: 20px 0 0 0; padding: 15px; background-color: #f8d7da; border: 1px solid #f5c6cb; text-align: center; font-size: 15px; color: #721c24; font-weight: bold;">Acceso limitado si no renuevas</p>
                             {% else %}
-                                <p class="content-text" style="margin: 20px 0 0 0; padding: 15px; background-color: #e8f4fd; border: 1px solid #bee5eb; text-align: center; font-size: 15px; color: #0c5460; font-weight: bold;">Mantén tu acceso activo renovando tu suscripción</p>
+                                <p class="content-text" style="margin: 20px 0 0 0; padding: 15px; background-color: #e8f4fd; border: 1px solid #bee5eb; text-align: center; font-size: 15px; color: #0c5460; font-weight: bold;">Mantén tu acceso completo renovando tu suscripción</p>
                             {% endif %}
                         </td>
                     </tr>

@@ -34,6 +34,9 @@ if not SECRET_KEY:
     else:
         raise RuntimeError('SECRET_KEY must be set via environment when DEBUG=False')
 
+# Clave secreta para autenticar cron jobs externos
+CRON_SECRET_KEY = os.environ.get('CRON_SECRET_KEY', '')
+
 # Configuración mejorada de ALLOWED_HOSTS
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
@@ -553,6 +556,10 @@ SESSION_COOKIE_SECURE = False  # Se activa a True en producción automáticament
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
+
+# Password Reset Timeout (1 hora = 3600 segundos)
+# Tiempo óptimo de seguridad para enlaces de restablecimiento
+PASSWORD_RESET_TIMEOUT = 3600
 
 # URLs exentas del middleware de login_required
 LOGIN_EXEMPT_URLS = [
