@@ -1,0 +1,28 @@
+FROM python:3.11-alpine
+
+# Instalar dependencias del sistema necesarias para cron y PostgreSQL
+RUN apk add --no-cache \
+    postgresql-client \
+    dcron \
+    bash \
+    && rm -rf /var/cache/apk/*
+
+WORKDIR /app
+
+# Copiar requirements e instalar dependencias Python
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copiar código de la aplicación
+COPY arc_manager /app/arc_manager
+COPY scripts /app/scripts
+
+# Hacer ejecutable y configurar crontab
+RUN chmod +x /app/scripts/crontab
+
+# Configurar el directorio de trabajo para Django
+WORKDIR /app/arc_manager
+
+# Comando para iniciar cron en modo foreground
+CMD ["sh", "-c", "cp /app/scripts/crontab /etc/crontabs/root && echo 'Cron configurado' && cat /etc/crontabs/root && crond -f -l 2"]
+

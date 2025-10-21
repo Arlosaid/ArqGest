@@ -31,4 +31,7 @@ urlpatterns = [
     
     # API para notificaciones
     path('api/subscription-info/', views.SubscriptionInfoAPIView.as_view(), name='subscription_info_api'),
+    
+    # Endpoint para cron externo (Opción 2)
+    path('cron/renewal-reminders/', views.cron_renewal_reminders, name='cron_renewal_reminders'),
 ]

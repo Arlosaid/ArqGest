@@ -123,7 +123,6 @@ services:
       sh -c "
         echo 'Configurando cron jobs...' &&
         cp /app/scripts/crontab /etc/crontabs/root &&
-        chmod +x /app/scripts/send_renewal_reminders.sh &&
         echo 'Cron jobs configurados:' &&
         cat /etc/crontabs/root &&
         echo 'Iniciando cron daemon...' &&
