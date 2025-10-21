@@ -8,5 +8,7 @@ class MainConfig(AppConfig):
 
     def ready(self):
         """Configuración cuando la app está lista."""
+        # Importar signals para auto-sincronización
+        import apps.main.signals
         # Importar el admin para aplicar personalizaciones
         from . import admin

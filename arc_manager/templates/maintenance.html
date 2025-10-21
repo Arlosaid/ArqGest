@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mantenimiento - {{ company_name }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .maintenance-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 60px 40px;
+            text-align: center;
+        }
+        
+        .icon {
+            font-size: 80px;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #2d3748;
+            font-size: 32px;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        
+        .message {
+            color: #4a5568;
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        
+        .support-info {
+            background: #f7fafc;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        
+        .support-info p {
+            color: #718096;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .support-info a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .support-info a:hover {
+            text-decoration: underline;
+        }
+        
+        .company-name {
+            color: #667eea;
+            font-weight: 700;
+        }
+        
+        @media (max-width: 600px) {
+            .maintenance-container {
+                padding: 40px 30px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .message {
+                font-size: 16px;
+            }
+            
+            .icon {
+                font-size: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="maintenance-container">
+        <div class="icon">🔧</div>
+        <h1>Sitio en Mantenimiento</h1>
+        <div class="message">
+            {{ maintenance_message|default:"Estamos realizando mejoras en el sistema. Volveremos pronto." }}
+        </div>
+        
+        <div class="support-info">
+            <p><strong class="company-name">{{ company_name|default:"ARC Manager" }}</strong></p>
+            {% if support_email %}
+            <p>Si necesitas ayuda urgente, contáctanos en:</p>
+            <p><a href="mailto:{{ support_email }}">{{ support_email }}</a></p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
+

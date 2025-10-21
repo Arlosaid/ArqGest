@@ -49,7 +49,17 @@ class FileValidator:
         'MSI', 'DLL', 'SCF', 'LNK', 'INF', 'REG', 'PS1', 'SH', 'PHP'
     }
     
-    def __init__(self, max_size_mb=1200, allowed_extensions=None):  # 1.2GB por defecto para arquitectos
+    def __init__(self, max_size_mb=None, allowed_extensions=None):
+        # Siempre usar configuración del sistema para estar actualizado
+        if max_size_mb is None:
+            try:
+                from apps.main.models import SystemSettings
+                sys_settings = SystemSettings.load()
+                max_size_mb = sys_settings.max_file_size_mb
+            except:
+                # Fallback si hay error
+                max_size_mb = 500
+        
         self.max_size_bytes = max_size_mb * 1024 * 1024
         self.allowed_extensions = allowed_extensions or set(os.environ.get(
             'ALLOWED_EXTENSIONS', 
@@ -230,7 +240,12 @@ def validate_project_file(uploaded_file):
 def validate_file_size(uploaded_file, max_size_mb=None):
     """Validar solo el tamaño del archivo"""
     if max_size_mb is None:
-        max_size_mb = float(os.environ.get('MAX_FILE_SIZE_MB', '1200'))  # 1.2GB por defecto
+        try:
+            from apps.main.models import SystemSettings
+            sys_settings = SystemSettings.load()
+            max_size_mb = sys_settings.max_file_size_mb
+        except:
+            max_size_mb = 500  # Fallback
     
     max_size_bytes = max_size_mb * 1024 * 1024
     if uploaded_file.size > max_size_bytes:
