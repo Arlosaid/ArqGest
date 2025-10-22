@@ -7,36 +7,12 @@ from django.http import JsonResponse
 from apps.plans.views import SubscriptionInfoAPIView
 from apps.main.admin import financial_dashboard_view
 from .test_views import test_resend_api
+from .health import health_check, readiness_check, liveness_check
 
 def root_redirect(request):
     if not request.user.is_authenticated:
         return redirect('accounts:login')
     return redirect('main:dashboard')
-
-def health_check(request):
-    """Endpoint optimizado para health check (Railway, monitoring services, etc.)"""
-    try:
-        # Verificar conexión a la base de datos
-        from django.db import connection
-        connection.ensure_connection()
-        
-        # Verificar que Django está funcionando
-        from django.conf import settings
-        
-        return JsonResponse({
-            'status': 'healthy',
-            'service': 'arc-manager',
-            'database': 'connected',
-            'django': 'ready',
-            'version': '1.0.0'
-        })
-    except Exception as e:
-        # Si hay error, devolver 503 (Service Unavailable)
-        return JsonResponse({
-            'status': 'unhealthy',
-            'service': 'arc-manager',
-            'error': str(e)[:100]
-        }, status=503)
 
 urlpatterns = [
     path('admin/financial-dashboard/', financial_dashboard_view, name='admin_financial_dashboard'),
@@ -51,6 +27,8 @@ urlpatterns = [
     path('', include('apps.files.urls')),
     path('api/subscription-info/', SubscriptionInfoAPIView.as_view(), name='subscription_info_api'),
     path('health/', health_check, name='health_check'),
+    path('health/ready/', readiness_check, name='readiness_check'),
+    path('health/live/', liveness_check, name='liveness_check'),
     path('', root_redirect),
 ]
 
