@@ -5,110 +5,80 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-arc_manager_dev}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
+      # Optimizaciones de PostgreSQL
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     restart: unless-stopped
     
-    # Configuración de logging optimizada para PostgreSQL
+    # Configuración de recursos
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    
+    # Health check para PostgreSQL
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "2"
         compress: "true"
-
-  web:
-    build: .
+    
+    # Optimización de PostgreSQL para desarrollo
     command: >
-      sh -c "
-        echo 'Waiting for database...' &&
-        until pg_isready -h db -p 5432 -U postgres; do
-          echo 'PostgreSQL is unavailable - sleeping'
-          sleep 2
-        done &&
-        echo 'Running migrations...' &&
-        python manage.py migrate --noinput &&
-        echo 'Starting development server...' &&
-        python manage.py runserver 0.0.0.0:8000
-      "
-    volumes:
-      - ./arc_manager:/app/arc_manager
-      - static_volume:/app/arc_manager/staticfiles
-      - media_volume:/app/arc_manager/media
-      - temp_uploads:/app/temp_uploads  # Volumen para uploads temporales
-    ports:
-      - "${WEB_PORT:-8000}:8000"
-    depends_on:
-      - db
-      - redis
-    
-    # ========================================
-    # CONFIGURACIÓN DE LOGGING OPTIMIZADA
-    # ========================================
-    # Docker maneja los logs de forma eficiente - sin escribir a disco
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"      # Máximo 10MB por archivo de log
-        max-file: "3"        # Mantener solo 3 archivos (30MB total)
-        compress: "true"     # Comprimir logs antiguos
-    
-    # OPTIMIZACIÓN: Límites de recursos para archivos grandes
-    deploy:
-      resources:
-        limits:
-          memory: 2G  # Memoria suficiente para archivos grandes
-        reservations:
-          memory: 512M
-    
-    environment:
-      # Indicador de que estamos en Docker (para optimizar logging)
-      - DOCKER_CONTAINER=true
-      
-      - DEBUG=${DEBUG:-True}
-      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
-      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres123@db:5432/arc_manager_dev}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0}
-      - ENABLE_STORAGES=${ENABLE_STORAGES:-false}
-      # OPTIMIZACIÓN ULTRA: Archivos masivos de arquitectura
-      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-1200}  # 1.2GB para modelos BIM
-      - ENABLE_SINGLE_FILE_UPLOAD=${ENABLE_SINGLE_FILE_UPLOAD:-true}
-      
-      # Configuración ultra-optimizada de uploads para rendimiento
-      - DATA_UPLOAD_MAX_MEMORY_SIZE=${DATA_UPLOAD_MAX_MEMORY_SIZE:-26214400}  # 25MB en memoria
-      - DATA_UPLOAD_MAX_NUMBER_SIZE=${DATA_UPLOAD_MAX_NUMBER_SIZE:-1342177280} # 1.25GB request HTTP
-      - FILE_UPLOAD_TEMP_DIR=${FILE_UPLOAD_TEMP_DIR:-/app/temp_uploads}
-      
-      # Extensiones para arquitectos (incluye 3DS, MAX, 7Z)
-      - ALLOWED_EXTENSIONS=${ALLOWED_EXTENSIONS:-PDF,JPG,JPEG,PNG,GIF,DWG,DXF,RVT,SKP,3DS,MAX,ZIP,RAR,7Z,TIFF,DOC,DOCX,XLS,XLSX,PPT,PPTX,TXT,MD}
-      
-      # Rate limiting optimizado para arquitectos
-      - FILE_UPLOAD_RATE_LIMIT_MINUTE=${FILE_UPLOAD_RATE_LIMIT_MINUTE:-15}
-      - FILE_UPLOAD_RATE_LIMIT_HOUR=${FILE_UPLOAD_RATE_LIMIT_HOUR:-200}
-      - FILE_UPLOAD_SIZE_LIMIT_HOUR_MB=${FILE_UPLOAD_SIZE_LIMIT_HOUR_MB:-5000}
-      
-      # Configuración R2 ultra-optimizada
-      - AWS_S3_MULTIPART_THRESHOLD=${AWS_S3_MULTIPART_THRESHOLD:-26214400}  # 25MB
-      - AWS_S3_MULTIPART_CHUNKSIZE=${AWS_S3_MULTIPART_CHUNKSIZE:-52428800}  # 50MB chunks
-      - AWS_S3_MAX_CONCURRENCY=${AWS_S3_MAX_CONCURRENCY:-15}  # 15 conexiones
-      - AWS_S3_CONNECT_TIMEOUT=${AWS_S3_CONNECT_TIMEOUT:-120}  # 2 minutos
-      - AWS_S3_READ_TIMEOUT=${AWS_S3_READ_TIMEOUT:-1800}  # 30 minutos
-      - AWS_S3_MAX_POOL_CONNECTIONS=${AWS_S3_MAX_POOL_CONNECTIONS:-50}
-      - AWS_S3_RETRY_ATTEMPTS=${AWS_S3_RETRY_ATTEMPTS:-5}
-      - PRESIGN_EXPIRES_SECONDS=${PRESIGN_EXPIRES_SECONDS:-7200}  # 2 horas
-      - MAX_CHECKSUM_MB=${MAX_CHECKSUM_MB:-50}
-    restart: unless-stopped
+      postgres
+      -c shared_buffers=128MB
+      -c effective_cache_size=512MB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=4MB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
 
-  # Opcional: Redis para cache
   redis:
     image: redis:7-alpine
     ports:
       - "${REDIS_PORT:-6379}:6379"
     restart: unless-stopped
     
-    # Configuración de logging optimizada para Redis
+    # Optimizaciones de Redis
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --appendonly no
+    
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    
     logging:
       driver: "json-file"
       options:
@@ -116,37 +86,189 @@ services:
         max-file: "2"
         compress: "true"
 
-  # Servicio para tareas programadas (cron)
-  cron:
-    build: .
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Cache para acelerar builds
+      cache_from:
+        - python:3.11-slim
+    
+    # Script de inicio optimizado para desarrollo
     command: >
       sh -c "
-        echo 'Configurando cron jobs...' &&
-        cp /app/scripts/crontab /etc/crontabs/root &&
-        echo 'Cron jobs configurados:' &&
-        cat /etc/crontabs/root &&
-        echo 'Iniciando cron daemon...' &&
-        crond -f
+        echo '🚀 Starting ArqGest development environment...' &&
+        echo '⏳ Waiting for database...' &&
+        until pg_isready -h db -p 5432 -U ${POSTGRES_USER:-postgres} > /dev/null 2>&1; do
+          echo '   PostgreSQL is unavailable - waiting...'
+          sleep 2
+        done &&
+        echo '✅ Database ready' &&
+        echo '📦 Running migrations...' &&
+        python manage.py migrate --noinput &&
+        echo '🗄️  Creating cache table...' &&
+        python manage.py createcachetable || echo '   Cache table already exists' &&
+        echo '📁 Collecting static files...' &&
+        python manage.py collectstatic --noinput --clear &&
+        echo '🌐 Starting development server on port 8000...' &&
+        python manage.py runserver 0.0.0.0:8000
       "
-    volumes:
-      - ./arc_manager:/app/arc_manager
-      - ./scripts:/app/scripts
-      - ./logs:/app/logs
-    depends_on:
-      - db
-      - web
-    restart: unless-stopped
     
-    # Configuración de logging para cron
+    volumes:
+      # Solo código necesario en desarrollo
+      - ./arc_manager:/app/arc_manager:cached
+      - static_volume:/app/arc_manager/staticfiles
+      - media_volume:/app/arc_manager/media
+      - temp_uploads:/app/temp_uploads
+      # Excluir archivos innecesarios para mejor performance
+      - /app/arc_manager/__pycache__
+      - /app/arc_manager/**/__pycache__
+      - /app/arc_manager/logs
+      - /app/arc_manager/staticfiles/admin
+    
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+    
+    environment:
+      # Core Django
+      - DOCKER_CONTAINER=true
+      - DEBUG=${DEBUG:-True}
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres123}@db:5432/${POSTGRES_DB:-arc_manager_dev}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0}
+      
+      # Redis cache
+      - REDIS_URL=redis://redis:6379/0
+      - CACHE_BACKEND=redis
+      
+      # Storage
+      - ENABLE_STORAGES=${ENABLE_STORAGES:-false}
+      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-1200}
+      - ENABLE_SINGLE_FILE_UPLOAD=${ENABLE_SINGLE_FILE_UPLOAD:-true}
+      
+      # Upload optimizations
+      - DATA_UPLOAD_MAX_MEMORY_SIZE=${DATA_UPLOAD_MAX_MEMORY_SIZE:-26214400}
+      - DATA_UPLOAD_MAX_NUMBER_SIZE=${DATA_UPLOAD_MAX_NUMBER_SIZE:-1342177280}
+      - FILE_UPLOAD_TEMP_DIR=/app/temp_uploads
+      
+      # File types
+      - ALLOWED_EXTENSIONS=${ALLOWED_EXTENSIONS:-PDF,JPG,JPEG,PNG,GIF,DWG,DXF,RVT,SKP,3DS,MAX,ZIP,RAR,7Z,TIFF,DOC,DOCX,XLS,XLSX,PPT,PPTX,TXT,MD}
+      
+      # Rate limiting
+      - FILE_UPLOAD_RATE_LIMIT_MINUTE=${FILE_UPLOAD_RATE_LIMIT_MINUTE:-15}
+      - FILE_UPLOAD_RATE_LIMIT_HOUR=${FILE_UPLOAD_RATE_LIMIT_HOUR:-200}
+      - FILE_UPLOAD_SIZE_LIMIT_HOUR_MB=${FILE_UPLOAD_SIZE_LIMIT_HOUR_MB:-5000}
+      
+      # S3/R2 configuration
+      - AWS_S3_MULTIPART_THRESHOLD=${AWS_S3_MULTIPART_THRESHOLD:-26214400}
+      - AWS_S3_MULTIPART_CHUNKSIZE=${AWS_S3_MULTIPART_CHUNKSIZE:-52428800}
+      - AWS_S3_MAX_CONCURRENCY=${AWS_S3_MAX_CONCURRENCY:-15}
+      - AWS_S3_CONNECT_TIMEOUT=${AWS_S3_CONNECT_TIMEOUT:-120}
+      - AWS_S3_READ_TIMEOUT=${AWS_S3_READ_TIMEOUT:-1800}
+      - AWS_S3_MAX_POOL_CONNECTIONS=${AWS_S3_MAX_POOL_CONNECTIONS:-50}
+      - AWS_S3_RETRY_ATTEMPTS=${AWS_S3_RETRY_ATTEMPTS:-5}
+      - PRESIGN_EXPIRES_SECONDS=${PRESIGN_EXPIRES_SECONDS:-7200}
+      - MAX_CHECKSUM_MB=${MAX_CHECKSUM_MB:-50}
+      
+      # Python optimizations
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    
+    restart: unless-stopped
+
+  cron:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        until pg_isready -h db -p 5432 -U ${POSTGRES_USER:-postgres} > /dev/null 2>&1; do
+          sleep 2
+        done &&
+        echo 'Configuring cron jobs...' &&
+        if [ -f /app/scripts/crontab ]; then
+          cp /app/scripts/crontab /etc/crontabs/root &&
+          echo 'Cron jobs configured:' &&
+          cat /etc/crontabs/root &&
+          echo 'Starting cron daemon...' &&
+          crond -f -l 2
+        else
+          echo 'No crontab file found, skipping cron setup' &&
+          tail -f /dev/null
+        fi
+      "
+    
+    volumes:
+      - ./arc_manager:/app/arc_manager:cached
+      - ./scripts:/app/scripts:ro
+      - ./logs:/app/logs
+    
+    depends_on:
+      db:
+        condition: service_healthy
+      web:
+        condition: service_started
+    
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+    
     logging:
       driver: "json-file"
       options:
         max-size: "5m"
         max-file: "2"
         compress: "true"
+    
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres123}@db:5432/${POSTGRES_DB:-arc_manager_dev}
+      - PYTHONUNBUFFERED=1
+    
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+    driver: local
   static_volume:
+    driver: local
   media_volume:
-  temp_uploads:  # Volumen para uploads temporales grandes
+    driver: local
+  temp_uploads:
+    driver: local
+
+# Network opcional para mejor aislamiento
+networks:
+  default:
+    driver: bridge
