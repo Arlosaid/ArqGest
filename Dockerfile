@@ -102,7 +102,21 @@ echo "  Workers: $workers"\n\
 echo "  Port: ${PORT:-8000}"\n\
 echo "  Timeout: 120s"\n\
 \n\
-exec gunicorn --config gunicorn.conf.py core.wsgi:application' > /app/start.sh && chmod +x /app/start.sh
+exec gunicorn --bind 0.0.0.0:${PORT:-8000} \\\n\
+    --workers $workers \\\n\
+    --threads 2 \\\n\
+    --worker-class gthread \\\n\
+    --worker-tmp-dir /dev/shm \\\n\
+    --timeout 120 \\\n\
+    --graceful-timeout 30 \\\n\
+    --keep-alive 5 \\\n\
+    --max-requests 1000 \\\n\
+    --max-requests-jitter 100 \\\n\
+    --access-logfile - \\\n\
+    --error-logfile - \\\n\
+    --log-level info \\\n\
+    --preload \\\n\
+    core.wsgi:application' > /app/start.sh && chmod +x /app/start.sh
 
 EXPOSE ${PORT:-8000}
 
