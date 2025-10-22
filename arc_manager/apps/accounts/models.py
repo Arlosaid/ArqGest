@@ -79,11 +79,12 @@ class User(AbstractUser):
     )
     organization = models.ForeignKey(
         'orgs.Organization', 
-        on_delete=models.SET_NULL, 
+        on_delete=models.CASCADE, 
         related_name='users',
         verbose_name="Organización",
         null=True, 
-        blank=True
+        blank=True,
+        help_text="Los usuarios se eliminarán automáticamente al eliminar la organización"
     )
     
     USERNAME_FIELD = 'email'
@@ -199,12 +200,10 @@ class User(AbstractUser):
     
     class Meta:
         constraints = [
-            models.CheckConstraint(
-                check=models.Q(is_superuser=True) | models.Q(organization__isnull=False) | models.Q(is_active=False),
-                name='users_must_have_org_or_be_superuser_or_inactive'
-            ),
             models.UniqueConstraint(
                 fields=['email'],
                 name='unique_email'
             )
         ]
+        verbose_name = "Usuario"
+        verbose_name_plural = "Usuarios"
