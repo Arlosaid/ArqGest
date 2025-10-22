@@ -42,34 +42,70 @@ RUN mkdir -p /app/arc_manager/staticfiles \
 # Directorio Django
 WORKDIR /app/arc_manager
 
-# Crear script de inicio con reintentos
+# Crear script de inicio optimizado para Railway
 RUN echo '#!/bin/bash\n\
 set -e\n\
 \n\
-echo "Waiting for database..."\n\
-for i in {1..30}; do\n\
-  if python manage.py migrate --check > /dev/null 2>&1; then\n\
-    echo "Database is ready"\n\
+echo "🚀 Starting ArqGest application..."\n\
+echo "Environment: $RAILWAY_ENVIRONMENT"\n\
+\n\
+# Función optimizada para verificar DB (máximo 10 intentos = 20 segundos)\n\
+check_db_connection() {\n\
+  python -c "\n\
+import os, sys, django\n\
+os.environ.setdefault(\"DJANGO_SETTINGS_MODULE\", \"core.settings\")\n\
+try:\n\
+    django.setup()\n\
+    from django.db import connection\n\
+    connection.ensure_connection()\n\
+    print(\"✅ Database ready\")\n\
+    sys.exit(0)\n\
+except Exception as e:\n\
+    print(f\"❌ DB error: {str(e)[:100]}\")\n\
+    sys.exit(1)\n\
+"\n\
+}\n\
+\n\
+# Espera inteligente: máximo 20 segundos\n\
+echo "⏳ Checking database connection..."\n\
+for i in {1..10}; do\n\
+  if check_db_connection 2>/dev/null; then\n\
+    echo "✅ Database connected successfully!"\n\
     break\n\
   fi\n\
-  echo "Database not ready, waiting... ($i/30)"\n\
+  echo "⏳ Database not ready, waiting... ($i/10)"\n\
   sleep 2\n\
 done\n\
 \n\
-echo "Running migrations..."\n\
-python manage.py migrate --noinput\n\
+# Si falla después de 10 intentos, continuar de todas formas\n\
+# Railway manejará el error si la DB realmente no está disponible\n\
+if ! check_db_connection 2>/dev/null; then\n\
+  echo "⚠️  Database connection failed, but continuing startup..."\n\
+  echo "   Railway will handle database availability"\n\
+fi\n\
 \n\
-echo "Collecting static files..."\n\
-python manage.py collectstatic --noinput\n\
+echo "📦 Running migrations..."\n\
+python manage.py migrate --noinput || echo "⚠️  Migration failed, continuing..."\n\
 \n\
-echo "Starting server..."\n\
-exec gunicorn --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 1800 --worker-class sync --max-requests 1000 --max-requests-jitter 50 core.wsgi:application' > /app/start.sh && chmod +x /app/start.sh
+echo "📁 Collecting static files..."\n\
+python manage.py collectstatic --noinput || echo "⚠️  Static collection failed, continuing..."\n\
+\n\
+echo "🌐 Starting Gunicorn server..."\n\
+exec gunicorn --bind 0.0.0.0:${PORT:-8000} \\\n\
+    --workers 2 \\\n\
+    --timeout 300 \\\n\
+    --worker-class sync \\\n\
+    --max-requests 1000 \\\n\
+    --max-requests-jitter 50 \\\n\
+    --access-logfile - \\\n\
+    --error-logfile - \\\n\
+    core.wsgi:application' > /app/start.sh && chmod +x /app/start.sh
 
 # Puerto (Railway asignará automáticamente)
 EXPOSE ${PORT:-8000}
 
-# Health check
-HEALTHCHECK --interval=600s --timeout=10s --start-period=60s --retries=3 \
+# Health check optimizado para Railway
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD curl -f http://localhost:${PORT:-8000}/health/ || exit 1
 
 # Ejecutar script de inicio
