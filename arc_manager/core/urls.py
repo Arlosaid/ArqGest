@@ -14,8 +14,29 @@ def root_redirect(request):
     return redirect('main:dashboard')
 
 def health_check(request):
-    """Endpoint for health check (Railway, monitoring services, etc.)"""
-    return JsonResponse({'status': 'healthy', 'service': 'arc-manager'})
+    """Endpoint optimizado para health check (Railway, monitoring services, etc.)"""
+    try:
+        # Verificar conexión a la base de datos
+        from django.db import connection
+        connection.ensure_connection()
+        
+        # Verificar que Django está funcionando
+        from django.conf import settings
+        
+        return JsonResponse({
+            'status': 'healthy',
+            'service': 'arc-manager',
+            'database': 'connected',
+            'django': 'ready',
+            'version': '1.0.0'
+        })
+    except Exception as e:
+        # Si hay error, devolver 503 (Service Unavailable)
+        return JsonResponse({
+            'status': 'unhealthy',
+            'service': 'arc-manager',
+            'error': str(e)[:100]
+        }, status=503)
 
 urlpatterns = [
     path('admin/financial-dashboard/', financial_dashboard_view, name='admin_financial_dashboard'),
