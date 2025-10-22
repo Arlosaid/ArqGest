@@ -11,6 +11,35 @@ from import_export.admin import ImportExportModelAdmin
 # --- Recursos para Import/Export ---
 
 class ProjectResource(resources.ModelResource):
+    """Resource para exportar proyectos con manejo seguro de relaciones."""
+    
+    def dehydrate_organization__name(self, project):
+        """Manejar proyectos sin organización (no debería pasar con CASCADE, pero por seguridad)."""
+        try:
+            if project.organization:
+                return project.organization.name
+            return 'Sin organización'
+        except Exception:
+            return 'Sin organización'
+    
+    def dehydrate_client__name(self, project):
+        """Manejar proyectos sin cliente."""
+        try:
+            if project.client:
+                return project.client.name
+            return 'Sin cliente'
+        except Exception:
+            return 'Sin cliente'
+    
+    def dehydrate_owner__email(self, project):
+        """Manejar proyectos sin propietario (no debería pasar con CASCADE, pero por seguridad)."""
+        try:
+            if project.owner:
+                return project.owner.email
+            return 'Sin propietario'
+        except Exception:
+            return 'Sin propietario'
+    
     class Meta:
         model = Project
         fields = ('id', 'name', 'organization__name', 'client__name', 'owner__email', 'created_at')
@@ -18,6 +47,10 @@ class ProjectResource(resources.ModelResource):
 
 
 class TaskResource(resources.ModelResource):
+    def dehydrate_assigned_to__email(self, task):
+        """Manejar casos donde assigned_to es None"""
+        return task.assigned_to.email if task.assigned_to else 'Sin asignar'
+    
     class Meta:
         model = Task
         fields = ('id', 'title', 'phase__name', 'phase__project__name', 'assigned_to__email', 
@@ -113,7 +146,7 @@ class ProjectAdmin(ImportExportModelAdmin):
     resource_class = ProjectResource
     list_display = ('name', 'get_organization_link', 'get_client_link', 'get_owner_info', 
                    'get_phase_progress', 'get_task_summary', 'created_at')
-    list_filter = ('organization__name', 'client__name', 'owner__email', 'created_at')
+    list_filter = ('organization__name', 'client__name', 'created_at')
     search_fields = ('name', 'client__name', 'owner__email', 'organization__name')
     ordering = ('-created_at',)
     readonly_fields = ('created_at', 'get_phase_progress', 'get_task_summary', 'get_recent_activity')
@@ -147,32 +180,45 @@ class ProjectAdmin(ImportExportModelAdmin):
     
     def get_organization_link(self, obj):
         """Enlace a la organización."""
-        org_url = reverse('admin:orgs_organization_change', args=[obj.organization.pk])
-        return format_html('<a href="{}">{}</a>', org_url, obj.organization.name)
+        try:
+            if obj.organization:
+                org_url = reverse('admin:orgs_organization_change', args=[obj.organization.pk])
+                return format_html('<a href="{}">{}</a>', org_url, obj.organization.name)
+            return format_html('<span style="color: #999;">Sin organización</span>')
+        except Exception:
+            return format_html('<span style="color: #999;">Error al cargar</span>')
     get_organization_link.short_description = 'Organización'
     get_organization_link.admin_order_field = 'organization__name'
     
     def get_client_link(self, obj):
         """Enlace al cliente."""
-        if obj.client:
-            client_url = reverse('admin:orgs_client_change', args=[obj.client.pk])
-            return format_html('<a href="{}">{}</a>', client_url, obj.client.name)
-        return format_html('<span style="color: #999;">Sin cliente</span>')
+        try:
+            if obj.client:
+                client_url = reverse('admin:orgs_client_change', args=[obj.client.pk])
+                return format_html('<a href="{}">{}</a>', client_url, obj.client.name)
+            return format_html('<span style="color: #999;">Sin cliente</span>')
+        except Exception:
+            return format_html('<span style="color: #999;">Error al cargar</span>')
     get_client_link.short_description = 'Cliente'
     get_client_link.admin_order_field = 'client__name'
     
     def get_owner_info(self, obj):
         """Información del propietario con enlace."""
-        user_url = reverse('admin:accounts_user_change', args=[obj.owner.pk])
-        return format_html(
-            '<a href="{}" style="text-decoration: none;">'
-            '<strong>{}</strong><br>'
-            '<small style="color: #666;">{}</small>'
-            '</a>',
-            user_url,
-            obj.owner.get_full_name() or obj.owner.email,
-            obj.owner.email
-        )
+        try:
+            if obj.owner:
+                user_url = reverse('admin:accounts_user_change', args=[obj.owner.pk])
+                return format_html(
+                    '<a href="{}" style="text-decoration: none;">'
+                    '<strong>{}</strong><br>'
+                    '<small style="color: #666;">{}</small>'
+                    '</a>',
+                    user_url,
+                    obj.owner.get_full_name() or obj.owner.email,
+                    obj.owner.email
+                )
+            return format_html('<span style="color: #999;">Sin propietario</span>')
+        except Exception:
+            return format_html('<span style="color: #999;">Error al cargar</span>')
     get_owner_info.short_description = 'Propietario'
     get_owner_info.admin_order_field = 'owner__first_name'
     

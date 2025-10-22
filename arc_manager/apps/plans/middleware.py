@@ -93,6 +93,11 @@ class SubscriptionAccessMiddleware(MiddlewareMixin):
                 return redirect('orgs:my_organization')
             return None
         
+        # Verificar si la organización está activa
+        if not request.user.organization.is_active:
+            messages.error(request, 'Tu organización ha sido desactivada. Por favor contacta con soporte.')
+            return redirect('accounts:logout')
+        
         # Obtener suscripción
         subscription = SubscriptionService.get_subscription_or_create(request.user.organization)
         if not subscription:

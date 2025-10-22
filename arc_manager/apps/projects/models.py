@@ -68,10 +68,10 @@ class Project(models.Model):
     )
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         related_name='owned_projects',
         verbose_name=_("Propietario"),
-        null=True
+        help_text=_("El proyecto se eliminará si se elimina el propietario")
     )
     client = models.ForeignKey(
         Client,
