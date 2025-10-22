@@ -32,6 +32,9 @@ crispy-bootstrap5==2024.2
 # OPTIMIZACIÓN: python-magic para validación MIME type robusta
 python-magic==0.4.27
 
+# Logging optimizado
+python-json-logger==2.0.7
+
 # Desarrollo (opcionales)
 django-debug-toolbar==4.2.0
 django-import-export==4.0.0
