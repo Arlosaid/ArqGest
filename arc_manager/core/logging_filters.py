@@ -1,9 +1,66 @@
 """
-Filtros personalizados para logging de Django
+Filtros de logging optimizados para performance y seguridad
 """
 import logging
 import re
+from threading import local
 from urllib.parse import urlparse, parse_qs
+
+# Thread-local storage para request context
+_thread_locals = local()
+
+
+class RequestIdFilter(logging.Filter):
+    """
+    Agrega request_id y user_id a todos los logs para trazabilidad
+    """
+    
+    def filter(self, record):
+        """Agrega request_id y user_id del thread local al record"""
+        record.request_id = getattr(_thread_locals, 'request_id', None)
+        record.user_id = getattr(_thread_locals, 'user_id', None)
+        record.organization_id = getattr(_thread_locals, 'organization_id', None)
+        return True
+
+
+def set_request_id(request_id):
+    """Establece el request_id en el thread local"""
+    _thread_locals.request_id = request_id
+
+
+def clear_request_id():
+    """Limpia el request_id del thread local"""
+    if hasattr(_thread_locals, 'request_id'):
+        delattr(_thread_locals, 'request_id')
+
+
+def get_request_id():
+    """Obtiene el request_id actual"""
+    return getattr(_thread_locals, 'request_id', None)
+
+
+def set_user_context(user_id=None, organization_id=None):
+    """Establece el contexto del usuario en el thread local"""
+    if user_id is not None:
+        _thread_locals.user_id = user_id
+    if organization_id is not None:
+        _thread_locals.organization_id = organization_id
+
+
+def clear_user_context():
+    """Limpia el contexto del usuario del thread local"""
+    if hasattr(_thread_locals, 'user_id'):
+        delattr(_thread_locals, 'user_id')
+    if hasattr(_thread_locals, 'organization_id'):
+        delattr(_thread_locals, 'organization_id')
+
+
+def get_user_context():
+    """Obtiene el contexto del usuario actual"""
+    return {
+        'user_id': getattr(_thread_locals, 'user_id', None),
+        'organization_id': getattr(_thread_locals, 'organization_id', None),
+    }
 
 class RequestLoggingFilter(logging.Filter):
     """

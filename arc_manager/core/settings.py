@@ -128,10 +128,8 @@ MIDDLEWARE = [
     'apps.orgs.middleware.OrganizationContextMiddleware',
     'apps.plans.middleware.SubscriptionAccessMiddleware',
     'apps.plans.middleware.SubscriptionInfoMiddleware',
-    # Logging middlewares - DEBEN ir antes del ErrorHandlingMiddleware
-    'core.logging_middleware.Enhanced500LoggingMiddleware',
-    'core.logging_middleware.DatabaseErrorLoggingMiddleware',
-    'core.logging_middleware.PerformanceLoggingMiddleware',
+    # Logging middleware optimizado - reemplaza todos los anteriores
+    'core.optimized_logging_middleware.OptimizedRequestLoggingMiddleware',
     'apps.accounts.middleware.ErrorHandlingMiddleware',
     'core.mixins.PerformanceMiddleware',
     
@@ -598,10 +596,18 @@ MESSAGE_TAGS = {
 }
 
 # ========================================
-# CONFIGURACIÓN DE LOGGING OPTIMIZADA PARA DOCKER
+# CONFIGURACIÓN DE LOGGING OPTIMIZADA
 # ========================================
-# En Docker, los logs deben ir a STDOUT/STDERR para mejor rendimiento
-# Docker maneja la rotación y límites automáticamente
+# Principios:
+# 1. JSON estructurado para producción (fácil búsqueda)
+# 2. Texto simple para desarrollo (fácil lectura)
+# 3. Sampling inteligente para performance
+# 4. Request ID tracking para trazabilidad
+
+# Configuración de sampling y thresholds
+LOG_SAMPLE_RATE = float(os.environ.get('LOG_SAMPLE_RATE', '0.01' if not DEBUG else '1.0'))  # 1% en prod, 100% en dev
+SLOW_REQUEST_THRESHOLD = int(os.environ.get('SLOW_REQUEST_THRESHOLD', '1000'))  # 1 segundo
+LOG_REQUESTS = os.environ.get('LOG_REQUESTS', 'true').lower() == 'true'
 
 # Determinar si estamos en un entorno containerizado
 IS_DOCKER = os.environ.get('DOCKER_CONTAINER', 'false').lower() == 'true'
@@ -610,69 +616,72 @@ LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
+        # Formato JSON para producción (CloudWatch, análisis)
+        'json': {
+            '()': 'pythonjsonlogger.jsonlogger.JsonFormatter',
+            'format': '%(asctime)s %(levelname)s %(name)s %(message)s %(request_id)s %(user_id)s %(organization_id)s',
+        },
+        # Formato simple para desarrollo
+        'simple': {
+            'format': '[{asctime}] {levelname} {name}: {message} | request_id={request_id}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        # Formato verbose para errores críticos
         'verbose': {
             'format': '{levelname} {asctime} {module} [{process:d}:{thread:d}] {message}',
             'style': '{',
-        },
-        'simple': {
-            'format': '[{asctime}] {levelname} {message}',
-            'style': '{',
-            'datefmt': '%Y-%m-%d %H:%M:%S',
         },
     },
     'filters': {
         'require_debug_true': {'()': 'django.utils.log.RequireDebugTrue'},
         'require_debug_false': {'()': 'django.utils.log.RequireDebugFalse'},
+        'request_id': {'()': 'core.logging_filters.RequestIdFilter'},
+        'filter_sensitive_data': {'()': 'core.logging_filters.SensitiveDataFilter'},
         'ignore_timezone_warnings': {
             '()': 'django.utils.log.CallbackFilter',
             'callback': lambda record: 'DateTimeField' not in record.getMessage() or 'received a naive datetime' not in record.getMessage()
         },
-        'ignore_payment_warnings': {
-            '()': 'django.utils.log.CallbackFilter',
-            'callback': lambda record: 'Payment.created_at' not in record.getMessage()
-        },
-        'clean_request_logs': {'()': 'core.logging_filters.RequestLoggingFilter'},
-        'filter_sensitive_data': {'()': 'core.logging_filters.SensitiveDataFilter'},
     },
     'handlers': {
         # Handler para desarrollo (consola simple)
-        'console': {
+        'console_dev': {
             'level': 'INFO',
-            'filters': ['require_debug_true', 'ignore_timezone_warnings', 'ignore_payment_warnings', 'clean_request_logs', 'filter_sensitive_data'],
+            'filters': ['require_debug_true', 'request_id', 'filter_sensitive_data', 'ignore_timezone_warnings'],
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
-        # Handler para producción/Docker (STDOUT con formato verbose)
+        # Handler para producción (JSON estructurado)
         'console_prod': {
             'level': 'INFO',
-            'filters': ['require_debug_false', 'ignore_timezone_warnings', 'ignore_payment_warnings', 'clean_request_logs', 'filter_sensitive_data'],
+            'filters': ['require_debug_false', 'request_id', 'filter_sensitive_data', 'ignore_timezone_warnings'],
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
+            'formatter': 'json',
         },
         # Handler de errores críticos a STDERR
         'stderr': {
             'level': 'ERROR',
-            'filters': ['filter_sensitive_data'],
+            'filters': ['request_id', 'filter_sensitive_data'],
             'class': 'logging.StreamHandler',
-            'stream': 'ext://sys.stderr',  # Errores van a STDERR
+            'stream': 'ext://sys.stderr',
             'formatter': 'verbose',
         },
         'mail_admins': {
             'level': 'ERROR',
-            'filters': ['require_debug_false'],
+            'filters': ['require_debug_false', 'request_id'],
             'class': 'django.utils.log.AdminEmailHandler',
             'formatter': 'verbose',
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'console_prod'],
+            'handlers': ['console_dev', 'console_prod'],
             'level': 'INFO',
             'propagate': False,
         },
         'django.request': {
             'handlers': ['stderr', 'mail_admins'],
-            'level': 'WARNING',  # Solo errores importantes
+            'level': 'ERROR',  # Solo errores HTTP
             'propagate': False,
         },
         'django.security': {
@@ -681,27 +690,27 @@ LOGGING = {
             'propagate': False,
         },
         'apps': {
-            'handlers': ['console', 'console_prod'],
+            'handlers': ['console_dev', 'console_prod'],
             'level': 'INFO',
             'propagate': False,
         },
         'apps.plans': {
-            'handlers': ['console', 'console_prod'],
+            'handlers': ['console_dev', 'console_prod'],
             'level': 'INFO' if not DEBUG else 'DEBUG',
             'propagate': False,
         },
         'apps.accounts': {
-            'handlers': ['console', 'console_prod', 'stderr'],
+            'handlers': ['console_dev', 'console_prod', 'stderr'],
             'level': 'INFO',
             'propagate': False,
         },
         'core': {
-            'handlers': ['console', 'console_prod'],
+            'handlers': ['console_dev', 'console_prod'],
             'level': 'INFO',
             'propagate': False,
         },
-        'core.error_handler': {
-            'handlers': ['console', 'console_prod', 'stderr'],
+        'core.optimized_logging': {
+            'handlers': ['console_dev', 'console_prod'],
             'level': 'INFO',
             'propagate': False,
         },
