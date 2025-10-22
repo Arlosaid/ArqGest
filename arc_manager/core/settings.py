@@ -128,8 +128,7 @@ MIDDLEWARE = [
     'apps.orgs.middleware.OrganizationContextMiddleware',
     'apps.plans.middleware.SubscriptionAccessMiddleware',
     'apps.plans.middleware.SubscriptionInfoMiddleware',
-    # Logging middlewares optimizados
-    'core.gunicorn_logging_middleware.GunicornRequestIdMiddleware',
+    # Logging middleware optimizado
     'core.optimized_logging_middleware.OptimizedRequestLoggingMiddleware',
     'apps.accounts.middleware.ErrorHandlingMiddleware',
     'core.mixins.PerformanceMiddleware',
