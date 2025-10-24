@@ -272,16 +272,8 @@ class SystemSettingsAdmin(admin.ModelAdmin):
         ('📁 Límites de Archivos', {
             'fields': (
                 'max_file_size_mb',
-                'max_upload_size_per_request_mb',
             ),
-            'description': 'Configure los límites de tamaño de archivos y uploads.'
-        }),
-        ('📊 Límites de Proyectos', {
-            'fields': (
-                'max_projects_per_org',
-                'max_phases_per_project',
-            ),
-            'description': 'Configure límites para proyectos y fases.'
+            'description': 'Configure el tamaño máximo permitido por archivo individual. La aplicación solo permite subir 1 archivo a la vez.'
         }),
         ('⚡ Configuración de Caché', {
             'fields': (
