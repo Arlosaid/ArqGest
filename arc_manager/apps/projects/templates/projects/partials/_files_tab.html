@@ -92,18 +92,19 @@
 console.log('🚀 Files tab script loaded!');
 // Configuración de validación de documentos
 const FILE_VALIDATION = {
-    // Leer límite dinámicamente desde el meta tag configurado por el backend
+    // Leer límites dinámicamente desde los meta tags configurados por el backend
     MAX_SIZE_MB: parseInt(document.querySelector('meta[name="max-file-size"]')?.content) || 500,
-    MAX_SIZE_MOBILE_MB: 50, // Tamaño máximo para móviles
+    MAX_SIZE_MOBILE_MB: parseInt(document.querySelector('meta[name="max-file-size-mobile"]')?.content) || 200,
     ALLOWED_EXTENSIONS: ['PDF', 'JPG', 'JPEG', 'PNG', 'GIF', 'TIFF', 'DWG', 'DXF', 'RVT', 'SKP', 'DOC', 'DOCX', 'XLS', 'XLSX', 'PPT', 'PPTX', 'ZIP', 'RAR', 'TXT', 'MD'],
     
     // Log del límite cargado
     init: function() {
         const metaTag = document.querySelector('meta[name="max-file-size"]');
-        if (metaTag) {
-            console.log(`✅ Límite de archivo desde SystemSettings: ${this.MAX_SIZE_MB}MB`);
+        const metaTagMobile = document.querySelector('meta[name="max-file-size-mobile"]');
+        if (metaTag && metaTagMobile) {
+            console.log(`✅ Límites desde SystemSettings: Desktop=${this.MAX_SIZE_MB}MB, Mobile=${this.MAX_SIZE_MOBILE_MB}MB`);
         } else {
-            console.warn('⚠️ Meta tag "max-file-size" no encontrado. Usando fallback de 500MB');
+            console.warn('⚠️ Meta tags no encontrados. Usando fallbacks');
         }
     },
     
