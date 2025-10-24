@@ -72,14 +72,8 @@ class UserCreationForm(forms.ModelForm):
                 # Log detallado para debugging
                 logger.info(f"[ADMIN] Intentando enviar credenciales a {user.email}")
                 
-                # Usar directamente la función de email sin request (admin context)
-                from core.email_utils import send_credentials_email
-                
-                # Usar el nombre completo o email como username para el email
-                username_for_email = user.full_name or user.email
-                
-                # Llamar directamente a la función de email
-                result = send_credentials_email(user.email, username_for_email, password)
+                # Usar la función que funciona correctamente (la misma que usa el action y el app form)
+                result = send_new_user_email(user, password)
                 
                 if result:
                     logger.info(f"[ADMIN] Credenciales enviadas exitosamente a {user.email}")
