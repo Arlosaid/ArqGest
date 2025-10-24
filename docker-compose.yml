@@ -94,23 +94,17 @@ services:
       cache_from:
         - python:3.11-slim
     
-    # Script de inicio optimizado para desarrollo
+    # Script de inicio profesional - silencioso pero muestra errores
     command: >
       sh -c "
-        echo '🚀 Starting ArqGest development environment...' &&
-        echo '⏳ Waiting for database...' &&
+        echo 'Starting ArqGest...' &&
         until pg_isready -h db -p 5432 -U ${POSTGRES_USER:-postgres} > /dev/null 2>&1; do
-          echo '   PostgreSQL is unavailable - waiting...'
           sleep 2
         done &&
-        echo '✅ Database ready' &&
-        echo '📦 Running migrations...' &&
-        python manage.py migrate --noinput &&
-        echo '🗄️  Creating cache table...' &&
-        python manage.py createcachetable || echo '   Cache table already exists' &&
-        echo '📁 Collecting static files...' &&
-        python manage.py collectstatic --noinput --clear &&
-        echo '🌐 Starting development server on port 8000...' &&
+        python manage.py migrate --noinput --verbosity=0 &&
+        python manage.py createcachetable > /dev/null 2>&1 || true &&
+        python manage.py collectstatic --noinput --clear --verbosity=0 &&
+        echo 'Server ready on http://localhost:8000' &&
         python manage.py runserver 0.0.0.0:8000
       "
     
@@ -200,6 +194,13 @@ services:
       # Python optimizations
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
+      
+      # Logging configuration - Solo errores críticos
+      - LOG_REQUESTS=true
+      - LOG_ONLY_ERRORS=true
+      - LOG_SLOW_REQUESTS=false
+      - SAMPLE_RATE=0
+      - SLOW_REQUEST_THRESHOLD=5000
     
     restart: unless-stopped
 
@@ -210,19 +211,13 @@ services:
     
     command: >
       sh -c "
-        echo 'Waiting for database...' &&
         until pg_isready -h db -p 5432 -U ${POSTGRES_USER:-postgres} > /dev/null 2>&1; do
           sleep 2
         done &&
-        echo 'Configuring cron jobs...' &&
         if [ -f /app/scripts/crontab ]; then
           cp /app/scripts/crontab /etc/crontabs/root &&
-          echo 'Cron jobs configured:' &&
-          cat /etc/crontabs/root &&
-          echo 'Starting cron daemon...' &&
           crond -f -l 2
         else
-          echo 'No crontab file found, skipping cron setup' &&
           tail -f /dev/null
         fi
       "
@@ -255,6 +250,12 @@ services:
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres123}@db:5432/${POSTGRES_DB:-arc_manager_dev}
       - PYTHONUNBUFFERED=1
+      # Variables de logging ultra-minimalista (forzadas a true)
+      - LOG_REQUESTS=true
+      - LOG_ONLY_ERRORS=true
+      - LOG_SLOW_REQUESTS=false
+      - SAMPLE_RATE=0
+      - SLOW_REQUEST_THRESHOLD=2000
     
     restart: unless-stopped
 

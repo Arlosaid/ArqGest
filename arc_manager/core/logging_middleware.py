@@ -1,5 +1,5 @@
 """
-Middleware de logging optimizado para mínimo impacto en performance
+Middleware de logging para mínimo impacto en performance
 """
 import logging
 import time
@@ -9,10 +9,10 @@ from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
 from core.logging_filters import set_request_id, clear_request_id, set_user_context, clear_user_context
 
-logger = logging.getLogger('core.optimized_logging')
+logger = logging.getLogger('core.logging')
 
 
-class OptimizedRequestLoggingMiddleware(MiddlewareMixin):
+class RequestLoggingMiddleware(MiddlewareMixin):
     """
     Middleware optimizado con sampling para mínimo impacto en performance.
     Solo loggea requests lentas, errores, y una muestra de requests normales.
@@ -20,10 +20,12 @@ class OptimizedRequestLoggingMiddleware(MiddlewareMixin):
     
     def __init__(self, get_response):
         self.get_response = get_response
-        # Configuración desde settings
-        self.sample_rate = getattr(settings, 'LOG_SAMPLE_RATE', 0.01)  # 1% por defecto
-        self.slow_threshold = getattr(settings, 'SLOW_REQUEST_THRESHOLD', 1000)  # 1 segundo
+        # Configuración desde settings - optimizada para mínimo overhead
         self.log_requests = getattr(settings, 'LOG_REQUESTS', True)
+        self.log_only_errors = getattr(settings, 'LOG_ONLY_ERRORS', False)
+        self.log_slow_requests = getattr(settings, 'LOG_SLOW_REQUESTS', True)
+        self.slow_threshold = getattr(settings, 'SLOW_REQUEST_THRESHOLD', 2000)  # 2 segundos
+        self.sample_rate = getattr(settings, 'SAMPLE_RATE', 0)  # 0 = sin sampling por defecto
     
     def __call__(self, request):
         # Generar o reutilizar request ID
@@ -48,7 +50,7 @@ class OptimizedRequestLoggingMiddleware(MiddlewareMixin):
             response = self.get_response(request)
             duration_ms = (time.perf_counter() - start_time) * 1000
             
-            # Solo loggear si es necesario
+            # Solo loggear si es necesario (para requests lentas/errores)
             self._log_request_if_needed(request, response, duration_ms)
             
             # Agregar request ID a headers de respuesta
@@ -76,70 +78,55 @@ class OptimizedRequestLoggingMiddleware(MiddlewareMixin):
         return str(uuid.uuid4())[:8]
     
     def _log_request_if_needed(self, request, response, duration_ms):
-        """Decide si debe loggear esta request basado en sampling y condiciones"""
+        """Decide si debe loggear esta request basado en configuración optimizada"""
         if not self.log_requests:
             return
         
-        # Siempre loggear errores
-        if response.status_code >= 400:
+        status_code = response.status_code
+        is_error = status_code >= 400
+        is_slow = duration_ms > self.slow_threshold
+        
+        # Modo profesional: solo errores y requests muy lentas
+        if is_error:
             self._log_request(request, response, duration_ms, 'error')
-            return
-        
-        # Siempre loggear requests lentas
-        if duration_ms > self.slow_threshold:
+        elif self.log_slow_requests and is_slow:
             self._log_request(request, response, duration_ms, 'slow')
-            return
-        
-        # Sampling para requests normales
-        if random.random() < self.sample_rate:
-            self._log_request(request, response, duration_ms, 'sampled')
     
     def _log_request(self, request, response, duration_ms, reason):
-        """Loggea una request con contexto completo"""
+        """Loggea una request con formato profesional y conciso"""
         user_id = None
-        org_id = None
-        
         if hasattr(request, 'user') and request.user.is_authenticated:
             user_id = request.user.id
-            # Intentar obtener org_id si existe
-            if hasattr(request.user, 'organization_id'):
-                org_id = request.user.organization_id
         
-        logger.info(
-            f'Request {reason}',
-            extra={
-                'request_id': request.request_id,
-                'method': request.method,
-                'path': request.path,
-                'status_code': response.status_code,
-                'duration_ms': round(duration_ms, 2),
-                'user_id': user_id,
-                'organization_id': org_id,
-                'client_ip': self._get_client_ip(request),
-                'user_agent': request.META.get('HTTP_USER_AGENT', '')[:200],
-                'reason': reason,
-            }
-        )
+        # Usar el logger de Django para consistencia
+        django_logger = logging.getLogger('django.server')
+        
+        # Formato profesional y conciso
+        if reason == 'error':
+            # Solo para errores HTTP (4xx, 5xx)
+            django_logger.warning(
+                f'HTTP {response.status_code} | {request.method} {request.path} | User: {user_id or "Anonymous"} | {round(duration_ms, 0)}ms',
+                extra={'request_id': request.request_id, 'user_id': user_id}
+            )
+        elif reason == 'slow':
+            # Solo para requests muy lentas
+            django_logger.warning(
+                f'SLOW REQUEST | {request.method} {request.path} | User: {user_id or "Anonymous"} | {round(duration_ms, 0)}ms',
+                extra={'request_id': request.request_id, 'user_id': user_id}
+            )
     
     def _log_error(self, request, exception, duration_ms):
-        """Loggea errores con contexto completo"""
+        """Loggea errores del middleware con formato profesional"""
         user_id = None
         if hasattr(request, 'user') and request.user.is_authenticated:
             user_id = request.user.id
         
-        logger.error(
-            f'Request error: {type(exception).__name__}',
-            extra={
-                'request_id': request.request_id,
-                'method': request.method,
-                'path': request.path,
-                'duration_ms': round(duration_ms, 2),
-                'user_id': user_id,
-                'client_ip': self._get_client_ip(request),
-                'exception_type': type(exception).__name__,
-                'exception_message': str(exception),
-            },
-            exc_info=True
+        django_logger = logging.getLogger('django.server')
+        
+        # Formato profesional y conciso para errores del middleware
+        django_logger.error(
+            f'MIDDLEWARE ERROR | {request.method} {request.path} | User: {user_id or "Anonymous"} | {round(duration_ms, 0)}ms | {type(exception).__name__}',
+            extra={'request_id': request.request_id, 'user_id': user_id}
         )
     
     def _get_client_ip(self, request):

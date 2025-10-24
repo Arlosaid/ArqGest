@@ -139,11 +139,17 @@ def send_new_user_email(user, password, request=None, background=True):
     # Usar el nombre completo o email como username para el email
     username_for_email = user.full_name or user.email
     
-    return send_user_credentials_email(
-        user_email=user.email,
-        password=password,
-        username=username_for_email,
-        user_obj=user
-    )
+    try:
+        result = send_user_credentials_email(
+            user_email=user.email,
+            password=password,
+            username=username_for_email,
+            user_obj=user
+        )
+        logger.info(f"[EMAIL] send_new_user_email result for {user.email}: {result}")
+        return result
+    except Exception as e:
+        logger.error(f"[EMAIL] Exception in send_new_user_email for {user.email}: {str(e)}")
+        return False
 
 
