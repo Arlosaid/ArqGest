@@ -373,16 +373,32 @@ else:
     WHITENOISE_MAX_AGE = 0
 
 # ===== CONFIGURACIÓN DE UPLOADS OPTIMIZADA =====
-# Límites para manejar uploads grandes sin saturar memoria del servidor
-# Configuración optimizada para archivos hasta 600MB
+# IMPORTANTE: Estos valores se obtienen desde SystemSettings (panel de admin)
+# Solo se usan valores por defecto si SystemSettings no está disponible (primera ejecución)
 
-# Tamaño máximo de archivos que se cargan en memoria (25MB)
-# Archivos más grandes se escriben a disco temporalmente
-DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get('DATA_UPLOAD_MAX_MEMORY_SIZE', '26214400'))  # 25MB en bytes
+def get_upload_settings():
+    """
+    Obtener configuración de uploads desde SystemSettings.
+    Fallback a variables de entorno solo si la DB no está disponible.
+    """
+    try:
+        from apps.main.models import SystemSettings
+        settings = SystemSettings.load()
+        return {
+            'memory_size': settings.get_data_upload_max_memory_bytes(),
+            'max_size': settings.get_data_upload_max_number_bytes(),
+        }
+    except:
+        # Fallback solo durante migraciones iniciales o si la DB no está disponible
+        return {
+            'memory_size': int(os.environ.get('DATA_UPLOAD_MAX_MEMORY_SIZE', '26214400')),  # 25MB
+            'max_size': int(os.environ.get('DATA_UPLOAD_MAX_NUMBER_SIZE', '1887436800')),  # 1.75GB (1500MB + 25% overhead)
+        }
 
-# CRÍTICO: Tamaño máximo total de la petición HTTP actualizado para arquitectos
-# Permite archivos hasta 1.2GB + overhead HTTP
-DATA_UPLOAD_MAX_NUMBER_SIZE = int(os.environ.get('DATA_UPLOAD_MAX_NUMBER_SIZE', '1342177280'))  # 1.25GB en bytes
+# Aplicar configuración (se recalcula en cada request si es necesario)
+_upload_config = get_upload_settings()
+DATA_UPLOAD_MAX_MEMORY_SIZE = _upload_config['memory_size']
+DATA_UPLOAD_MAX_NUMBER_SIZE = _upload_config['max_size']
 
 # Directorio temporal para archivos grandes durante upload
 FILE_UPLOAD_TEMP_DIR = os.environ.get('FILE_UPLOAD_TEMP_DIR', os.path.join(BASE_DIR, 'temp_uploads'))

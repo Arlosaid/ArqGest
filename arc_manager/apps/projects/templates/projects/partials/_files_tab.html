@@ -1,7 +1,7 @@
 
 {% load i18n %}
 
-<meta name="max-file-size" content="{{ max_file_size_mb|default:'500' }}">
+<meta name="max-file-size" content="{{ max_file_size_mb }}">
 <meta name="allowed-extensions" content="PDF,JPG,JPEG,PNG,GIF,DWG,DXF,RVT,SKP,ZIP,RAR,TIFF,DOC,DOCX,XLS,XLSX,PPT,PPTX,TXT,MD">
 
 <div class="card shadow mb-4">
@@ -96,6 +96,16 @@ const FILE_VALIDATION = {
     MAX_SIZE_MB: parseInt(document.querySelector('meta[name="max-file-size"]')?.content) || 500,
     MAX_SIZE_MOBILE_MB: 50, // Tamaño máximo para móviles
     ALLOWED_EXTENSIONS: ['PDF', 'JPG', 'JPEG', 'PNG', 'GIF', 'TIFF', 'DWG', 'DXF', 'RVT', 'SKP', 'DOC', 'DOCX', 'XLS', 'XLSX', 'PPT', 'PPTX', 'ZIP', 'RAR', 'TXT', 'MD'],
+    
+    // Log del límite cargado
+    init: function() {
+        const metaTag = document.querySelector('meta[name="max-file-size"]');
+        if (metaTag) {
+            console.log(`✅ Límite de archivo desde SystemSettings: ${this.MAX_SIZE_MB}MB`);
+        } else {
+            console.warn('⚠️ Meta tag "max-file-size" no encontrado. Usando fallback de 500MB');
+        }
+    },
     
     // Detectar si es dispositivo móvil
     isMobile: function() {
@@ -300,5 +310,8 @@ document.body.addEventListener('htmx:responseError', function(evt) {
         }
     }
 });
+
+// Inicializar validación y mostrar límite cargado
+FILE_VALIDATION.init();
 </script>
 

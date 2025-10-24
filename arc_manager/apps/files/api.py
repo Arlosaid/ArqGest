@@ -197,38 +197,24 @@ def upload_stats(request):
 @require_http_methods(["POST"])
 def optimize_upload_settings(request):
     """
-    API para optimizar configuración de upload basada en el contexto del usuario
+    API para optimizar configuración de upload basada en el contexto del usuario.
+    Lee la configuración desde SystemSettings (panel de admin).
     """
     try:
+        from apps.main.models import SystemSettings
+        
         data = json.loads(request.body)
         connection_type = data.get('connection_type', 'broadband')  # broadband, mobile, slow
         device_type = data.get('device_type', 'desktop')  # desktop, tablet, mobile
         
-        # Configuración optimizada basada en contexto
-        if connection_type == 'mobile' or device_type == 'mobile':
-            config = {
-                'chunk_size_mb': 10,  # Chunks más pequeños para móvil
-                'max_concurrent_uploads': 2,  # Menos concurrencia
-                'retry_attempts': 5,  # Más retries para conexiones inestables
-                'timeout_minutes': 45,  # Timeout más largo
-                'recommended_max_file_size_mb': 200
-            }
-        elif connection_type == 'slow':
-            config = {
-                'chunk_size_mb': 5,  # Chunks muy pequeños
-                'max_concurrent_uploads': 1,  # Sin concurrencia
-                'retry_attempts': 8,  # Muchos retries
-                'timeout_minutes': 60,  # Timeout muy largo
-                'recommended_max_file_size_mb': 100
-            }
-        else:  # broadband/desktop
-            config = {
-                'chunk_size_mb': 50,  # Chunks grandes para máxima velocidad
-                'max_concurrent_uploads': 15,  # Máxima concurrencia
-                'retry_attempts': 3,  # Pocos retries necesarios
-                'timeout_minutes': 30,  # Timeout estándar
-                'recommended_max_file_size_mb': 1200
-            }
+        # Obtener configuración desde SystemSettings
+        sys_settings = SystemSettings.load()
+        
+        # Usar el método helper para obtener configuración optimizada
+        config = sys_settings.get_upload_config(
+            device_type=device_type,
+            connection_type=connection_type
+        )
         
         return JsonResponse({
             'status': 'success',
@@ -237,7 +223,8 @@ def optimize_upload_settings(request):
                 'detected_context': {
                     'connection_type': connection_type,
                     'device_type': device_type
-                }
+                },
+                'source': 'SystemSettings (configurable desde admin panel)'
             }
         })
         
@@ -246,4 +233,40 @@ def optimize_upload_settings(request):
         return JsonResponse({
             'status': 'error',
             'message': 'Error interno del servidor'
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_file_limits(request):
+    """
+    API para obtener los límites actuales de archivos desde SystemSettings.
+    Útil para debugging y verificar la configuración en producción.
+    """
+    try:
+        from apps.main.models import SystemSettings
+        
+        sys_settings = SystemSettings.load()
+        
+        return JsonResponse({
+            'status': 'success',
+            'data': {
+                'max_file_size_mb': sys_settings.max_file_size_mb,
+                'max_file_size_bytes': sys_settings.get_max_file_size_bytes(),
+                'upload_requests_per_minute': sys_settings.upload_requests_per_minute,
+                'upload_requests_per_hour': sys_settings.upload_requests_per_hour,
+                'upload_size_per_hour_mb': sys_settings.upload_size_per_hour_mb,
+                'cache_info': {
+                    'cached': cache.get('system_settings') is not None,
+                    'cache_key': 'system_settings'
+                }
+            },
+            'message': f'Límite actual: {sys_settings.max_file_size_mb}MB por archivo'
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Error obteniendo límites de archivo: {e}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Error obteniendo límites: {str(e)}'
         }, status=500)

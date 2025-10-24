@@ -347,8 +347,11 @@ def upload_file(request, project_id, phase_id):
             
             # Opcional: calcular checksum sha256 (limitado por tamaño para evitar costo excesivo)
             try:
-                max_checksum_mb = int(os.environ.get('MAX_CHECKSUM_MB', '50'))
-                if (uploaded_file.size or 0) <= max_checksum_mb * 1024 * 1024:
+                from apps.main.models import SystemSettings
+                sys_settings = SystemSettings.load()
+                max_checksum_bytes = sys_settings.get_max_checksum_size_bytes()
+                
+                if (uploaded_file.size or 0) <= max_checksum_bytes:
                     # OPTIMIZACIÓN: Resetear puntero del archivo antes del checksum
                     uploaded_file.seek(0)
                     hasher = hashlib.sha256()

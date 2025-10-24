@@ -18,4 +18,5 @@ urlpatterns = [
     path('api/r2-health/', api.r2_health_check, name='r2_health_check'),
     path('api/upload-stats/', api.upload_stats, name='upload_stats'),
     path('api/optimize-settings/', api.optimize_upload_settings, name='optimize_upload_settings'),
+    path('api/file-limits/', api.get_file_limits, name='get_file_limits'),
 ]
