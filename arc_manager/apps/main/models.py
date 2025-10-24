@@ -142,10 +142,13 @@ class FileLimitsSettings(models.Model):
         help_text="Tamaño máximo permitido por archivo individual"
     )
     
+    # DEPRECADO: La aplicación solo permite 1 archivo a la vez
+    # Mantenido para compatibilidad con migraciones existentes
     max_upload_size_per_request_mb = models.PositiveIntegerField(
-        "Tamaño máximo por solicitud (MB)",
+        "Tamaño máximo por solicitud (MB) [DEPRECADO]",
         default=2000,
-        help_text="Tamaño máximo total por solicitud de carga (múltiples archivos)"
+        help_text="[DEPRECADO] Este campo ya no se utiliza. La app solo permite 1 archivo a la vez.",
+        editable=False  # Ocultar de formularios de admin
     )
     
     updated_at = models.DateTimeField("Última actualización", auto_now=True)
@@ -274,25 +277,6 @@ class SystemSettings(models.Model):
         "Tamaño máximo de archivo (MB)",
         default=500,
         help_text="Tamaño máximo permitido por archivo individual"
-    )
-    
-    max_upload_size_per_request_mb = models.PositiveIntegerField(
-        "Tamaño máximo por solicitud (MB)",
-        default=2000,
-        help_text="Tamaño máximo total por solicitud de carga (múltiples archivos)"
-    )
-    
-    # === LÍMITES DE PROYECTOS ===
-    max_projects_per_org = models.PositiveIntegerField(
-        "Máximo de proyectos por organización",
-        default=50,
-        help_text="Número máximo de proyectos que puede tener una organización"
-    )
-    
-    max_phases_per_project = models.PositiveIntegerField(
-        "Máximo de fases por proyecto",
-        default=20,
-        help_text="Número máximo de fases que puede tener un proyecto"
     )
     
     # === CONFIGURACIÓN DE CACHÉ ===
@@ -441,10 +425,6 @@ class SystemSettings(models.Model):
     def get_max_file_size_bytes(self):
         """Retorna el tamaño máximo de archivo en bytes"""
         return self.max_file_size_mb * 1024 * 1024
-    
-    def get_max_upload_size_bytes(self):
-        """Retorna el tamaño máximo por solicitud en bytes"""
-        return self.max_upload_size_per_request_mb * 1024 * 1024
     
     def get_upload_size_per_hour_bytes(self):
         """Retorna el límite de tamaño de uploads por hora en bytes"""

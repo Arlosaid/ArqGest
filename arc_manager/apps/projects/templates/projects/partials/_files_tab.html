@@ -1,7 +1,7 @@
 
 {% load i18n %}
 
-<meta name="max-file-size" content="600">
+<meta name="max-file-size" content="{{ max_file_size_mb|default:'500' }}">
 <meta name="allowed-extensions" content="PDF,JPG,JPEG,PNG,GIF,DWG,DXF,RVT,SKP,ZIP,RAR,TIFF,DOC,DOCX,XLS,XLSX,PPT,PPTX,TXT,MD">
 
 <div class="card shadow mb-4">
@@ -39,10 +39,6 @@
                                         <i class="fas fa-cloud-upload-alt me-2"></i>
                                         <span class="file-label-text">{% trans "Seleccionar archivo" %}</span>
                                     </label>
-                                    <div class="selected-files" id="selected-files-{{ phase.id }}" style="display: none;">
-                                        <span class="selected-count"></span>
-                                        <span class="selected-names"></span>
-                                    </div>
                                 </div>
                                 <button class="btn btn-primary upload-btn" type="submit" disabled onclick="console.log('Upload started - Optimized HTMX solution'); console.log('Target #files-list-{{ phase.id }} exists:', !!document.getElementById('files-list-{{ phase.id }}')); return true;">
                                     <i class="fas fa-upload upload-icon"></i>
@@ -96,7 +92,8 @@
 console.log('🚀 Files tab script loaded!');
 // Configuración de validación de documentos
 const FILE_VALIDATION = {
-    MAX_SIZE_MB: 600, // Tamaño máximo por defecto
+    // Leer límite dinámicamente desde el meta tag configurado por el backend
+    MAX_SIZE_MB: parseInt(document.querySelector('meta[name="max-file-size"]')?.content) || 500,
     MAX_SIZE_MOBILE_MB: 50, // Tamaño máximo para móviles
     ALLOWED_EXTENSIONS: ['PDF', 'JPG', 'JPEG', 'PNG', 'GIF', 'TIFF', 'DWG', 'DXF', 'RVT', 'SKP', 'DOC', 'DOCX', 'XLS', 'XLSX', 'PPT', 'PPTX', 'ZIP', 'RAR', 'TXT', 'MD'],
     
@@ -136,7 +133,7 @@ const FILE_VALIDATION = {
         
         // Solo permitir 1 archivo por vez
         if (files.length > 1) {
-            allErrors.push("Solo se permite subir 1 archivo por vez");
+            allErrors.push("Solo se permite subir 1 archivo a la vez");
             return {
                 valid: false,
                 errors: allErrors,
@@ -179,7 +176,7 @@ function showValidationErrors(errors, phaseId) {
     errorContainer.innerHTML = `
         <div class="alert-header">
             <i class="fas fa-exclamation-triangle"></i>
-            <span>Documentos no válidos encontrados</span>
+            <span>Archivo no válido</span>
         </div>
         <ul>
             ${errors.map(error => `<li>${error}</li>`).join('')}
@@ -208,86 +205,42 @@ function hideValidationErrors(phaseId) {
     }
 }
 
-// Función para mostrar estado de validación parcial
-function showPartialValidation(phaseId, validCount, totalCount) {
-    const selectedFilesDiv = document.getElementById('selected-files-' + phaseId);
-    if (selectedFilesDiv) {
-        selectedFilesDiv.classList.add('partial-validation');
-    }
-}
-
 // Manejar selección de documentos y mostrar información
 document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ DOMContentLoaded fired in files tab!');
     document.querySelectorAll('.file-input').forEach(function(input) {
         input.addEventListener('change', function() {
             const phaseId = this.id.split('-').pop();
-            const selectedFilesDiv = document.getElementById('selected-files-' + phaseId);
-            const selectedCount = selectedFilesDiv.querySelector('.selected-count');
-            const selectedNames = selectedFilesDiv.querySelector('.selected-names');
             const uploadBtn = this.closest('form').querySelector('.upload-btn');
             const fileLabel = this.closest('.file-input-container').querySelector('.file-label-text');
             
-            // Ocultar errores previos y limpiar estados
+            // Ocultar errores previos
             hideValidationErrors(phaseId);
             
-            // Limpiar estado de validación parcial
-            if (selectedFilesDiv) {
-                selectedFilesDiv.classList.remove('partial-validation');
-            }
-            
             if (this.files.length > 0) {
-                // Validar documentos antes de mostrar información
+                // Validar archivo (solo 1 permitido)
                 const validation = FILE_VALIDATION.validateFiles(this.files);
                 
                 if (!validation.valid) {
                     // Mostrar errores de validación
                     showValidationErrors(validation.errors, phaseId);
-                    
-                    // Si hay documentos válidos, mostrar solo esos
-                    if (validation.hasValidFiles) {
-                        const validCount = validation.validFiles.length;
-                        selectedFilesDiv.style.display = 'block';
-                        selectedCount.textContent = validCount === 1 ? '1 documento seleccionado' : validCount + ' documentos seleccionados';
-                        
-                        const fileNames = validation.validFiles.slice(0, 3).map(file => file.name);
-                        if (validation.validFiles.length > 3) {
-                            fileNames.push('y ' + (validation.validFiles.length - 3) + ' más...');
-                        }
-                        selectedNames.textContent = fileNames.join(', ');
-                        
-                        // Mostrar estado de validación parcial
-                        showPartialValidation(phaseId, validCount, this.files.length);
-                        
-                        uploadBtn.disabled = false;
-                        fileLabel.textContent = 'Cambiar documentos';
-                    } else {
-                        // No hay documentos válidos
-                        selectedFilesDiv.style.display = 'none';
-                        uploadBtn.disabled = true;
-                        fileLabel.textContent = 'Seleccionar documentos';
-                    }
+                    uploadBtn.disabled = true;
+                    fileLabel.textContent = 'Seleccionar archivo';
                 } else {
-                    // Todos los documentos son válidos
-                    selectedFilesDiv.style.display = 'block';
-                    selectedCount.textContent = this.files.length + (this.files.length === 1 ? ' documento seleccionado' : ' documentos seleccionados');
+                    // Archivo válido
+                    const fileName = this.files[0].name;
+                    const fileSize = (this.files[0].size / (1024 * 1024)).toFixed(2);
                     
-                    // Mostrar nombres de archivos (máximo 3, luego "y X más...")
-                    const fileNames = Array.from(this.files).slice(0, 3).map(file => file.name);
-                    if (this.files.length > 3) {
-                        fileNames.push('y ' + (this.files.length - 3) + ' más...');
-                    }
-                    selectedNames.textContent = fileNames.join(', ');
+                    // Actualizar texto del label
+                    fileLabel.textContent = `${fileName} (${fileSize} MB)`;
                     
                     // Habilitar botón de subir
                     uploadBtn.disabled = false;
-                    fileLabel.textContent = 'Cambiar archivos';
                 }
             } else {
-                // Ocultar información y deshabilitar botón
-                selectedFilesDiv.style.display = 'none';
+                // Sin archivo seleccionado
                 uploadBtn.disabled = true;
-                fileLabel.textContent = 'Seleccionar archivos';
+                fileLabel.textContent = 'Seleccionar archivo';
             }
         });
     });
