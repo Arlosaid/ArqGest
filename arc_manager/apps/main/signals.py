@@ -45,9 +45,6 @@ def sync_plans_on_settings_change(sender, instance, created, **kwargs):
             if basic_plan.max_storage_gb != instance.storage_basic_gb:
                 basic_plan.max_storage_gb = instance.storage_basic_gb
                 basic_updated = True
-            if basic_plan.billing_cycle_days != instance.billing_cycle_days:
-                basic_plan.billing_cycle_days = instance.billing_cycle_days
-                basic_updated = True
             if basic_plan.grace_period_days != instance.grace_period_days:
                 basic_plan.grace_period_days = instance.grace_period_days
                 basic_updated = True
