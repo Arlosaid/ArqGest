@@ -12,13 +12,10 @@ class MobileUploadOptimizer {
         this.currentUpload = null;
         this.maxConcurrentUploads = this.isMobile ? 1 : 2; // Secuencial en mobile
         
-        // Leer límites desde meta tags (vienen desde SystemSettings)
-        const metaMaxSize = document.querySelector('meta[name="max-file-size"]')?.content;
-        const metaMaxSizeMobile = document.querySelector('meta[name="max-file-size-mobile"]')?.content;
-        
+        // Leer límites desde la configuración global (más confiable que meta tags)
         const maxFileSizeMB = this.isMobile 
-            ? (metaMaxSizeMobile ? parseInt(metaMaxSizeMobile) : 200)  // Móvil usa su límite específico
-            : (metaMaxSize ? parseInt(metaMaxSize) : 500);              // Desktop usa límite general
+            ? (window.SYSTEM_CONFIG?.MAX_FILE_SIZE_MOBILE_MB || 200)  // Móvil usa su límite específico
+            : (window.SYSTEM_CONFIG?.MAX_FILE_SIZE_MB || 1500);        // Desktop usa límite general
         
         this.maxMobileFileSize = maxFileSizeMB * 1024 * 1024;
         
