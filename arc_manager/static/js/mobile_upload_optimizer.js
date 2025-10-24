@@ -11,7 +11,19 @@ class MobileUploadOptimizer {
         this.isUploading = false;
         this.currentUpload = null;
         this.maxConcurrentUploads = this.isMobile ? 1 : 2; // Secuencial en mobile
-        this.maxMobileFileSize = 50 * 1024 * 1024; // 50MB max en mobile
+        
+        // Leer límites desde meta tags (vienen desde SystemSettings)
+        const metaMaxSize = document.querySelector('meta[name="max-file-size"]')?.content;
+        const metaMaxSizeMobile = document.querySelector('meta[name="max-file-size-mobile"]')?.content;
+        
+        const maxFileSizeMB = this.isMobile 
+            ? (metaMaxSizeMobile ? parseInt(metaMaxSizeMobile) : 200)  // Móvil usa su límite específico
+            : (metaMaxSize ? parseInt(metaMaxSize) : 500);              // Desktop usa límite general
+        
+        this.maxMobileFileSize = maxFileSizeMB * 1024 * 1024;
+        
+        console.log(`📱 Mobile Upload Optimizer - Límite: ${maxFileSizeMB}MB (${this.isMobile ? 'Mobile' : 'Desktop'})`);
+        
         this.mobileChunkSize = this.isMobile ? 1024 * 1024 : 2 * 1024 * 1024; // 1MB chunks en mobile
         
         this.init();
