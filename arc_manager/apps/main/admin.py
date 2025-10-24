@@ -270,8 +270,9 @@ class SystemSettingsAdmin(admin.ModelAdmin):
         ('📁 Límites de Archivos', {
             'fields': (
                 'max_file_size_mb',
+                'upload_max_file_size_mobile_mb',
             ),
-            'description': 'Configure el tamaño máximo permitido por archivo individual. La aplicación solo permite subir 1 archivo a la vez.'
+            'description': 'Configure el tamaño máximo permitido por archivo. Desktop y móviles pueden tener límites diferentes.'
         }),
         ('⚡ Configuración de Caché', {
             'fields': (
@@ -405,8 +406,8 @@ class SystemSettingsAdmin(admin.ModelAdmin):
         summaries = []
         
         # Agrupar cambios por categoría
-        if 'max_file_size_mb' in changed_fields:
-            summaries.append(f"Archivos: {obj.max_file_size_mb}MB")
+        if 'max_file_size_mb' in changed_fields or 'upload_max_file_size_mobile_mb' in changed_fields:
+            summaries.append(f"Archivos: Desktop={obj.max_file_size_mb}MB, Mobile={obj.upload_max_file_size_mobile_mb}MB")
         
         if any(f in changed_fields for f in ['max_users_trial', 'max_users_basic']):
             summaries.append(f"Usuarios (T:{obj.max_users_trial}, B:{obj.max_users_basic})")

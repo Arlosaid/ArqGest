@@ -23,6 +23,17 @@
     <meta name="max-file-size" content="{{ max_file_size_mb }}">
     <meta name="max-file-size-mobile" content="{{ max_file_size_mobile_mb }}">
     
+    {# Script inline para inyectar configuración ANTES de cargar otros scripts #}
+    <script>
+        // Configuración global del sistema (inyectada desde el backend)
+        window.SYSTEM_CONFIG = {
+            MAX_FILE_SIZE_MB: parseInt('{{ max_file_size_mb }}') || 1500,
+            MAX_FILE_SIZE_MOBILE_MB: parseInt('{{ max_file_size_mobile_mb }}') || 200,
+            STATIC_VERSION: '{{ STATIC_VERSION }}'
+        };
+        console.log('📋 Configuración del sistema cargada:', window.SYSTEM_CONFIG);
+    </script>
+    
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
