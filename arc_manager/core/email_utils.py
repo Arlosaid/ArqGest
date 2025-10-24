@@ -19,7 +19,21 @@ def get_site_protocol_and_domain():
     Returns:
         tuple: (protocol, domain)
     """
-    site_url = getattr(settings, 'SITE_URL', 'http://localhost:8000')
+    # Intentar obtener SITE_URL de diferentes fuentes
+    site_url = getattr(settings, 'SITE_URL', None)
+    
+    # Si no hay SITE_URL configurado, intentar obtenerlo de otras fuentes
+    if not site_url:
+        # En producción, intentar obtener de Railway
+        if hasattr(settings, 'RAILWAY_STATIC_URL'):
+            site_url = settings.RAILWAY_STATIC_URL
+        # Fallback a localhost para desarrollo
+        else:
+            site_url = 'http://localhost:8000'
+    
+    # Log para debugging
+    logger.info(f"[EMAIL] Using SITE_URL: {site_url}")
+    
     if site_url.startswith('https://'):
         protocol = 'https'
         domain = site_url.replace('https://', '').rstrip('/')
@@ -27,8 +41,11 @@ def get_site_protocol_and_domain():
         protocol = 'http'
         domain = site_url.replace('http://', '').rstrip('/')
     else:
-        protocol = 'https'
+        # Si no tiene protocolo, asumir https en producción
+        protocol = 'https' if not settings.DEBUG else 'http'
         domain = site_url.rstrip('/')
+    
+    logger.info(f"[EMAIL] Resolved protocol: {protocol}, domain: {domain}")
     return protocol, domain
 
 
@@ -211,9 +228,13 @@ def send_credentials_email(user_email, username, password):
     """
     from django.template.loader import render_to_string
     
+    logger.info(f"[EMAIL] Starting send_credentials_email for {user_email}")
+    
     site_name = getattr(settings, 'SITE_NAME', 'ArqGest')
     subject = f"¡Bienvenido a {site_name}!"
     protocol, domain = get_site_protocol_and_domain()
+    
+    logger.info(f"[EMAIL] Site config - name: {site_name}, protocol: {protocol}, domain: {domain}")
     
     context = {
         'user': {'email': user_email, 'first_name': '', 'last_name': ''},
@@ -224,13 +245,28 @@ def send_credentials_email(user_email, username, password):
         'domain': domain
     }
     
-    # Renderizar template HTML
-    html_content = render_to_string('users/emails/new_user_credentials.html', context)
+    logger.info(f"[EMAIL] Context prepared: {context}")
     
-    # Renderizar template de texto plano
-    text_content = render_to_string('users/emails/new_user_credentials.txt', context)
-    
-    return send_resend_email(user_email, subject, html_content, text_content)
+    try:
+        # Renderizar template HTML
+        html_content = render_to_string('users/emails/new_user_credentials.html', context)
+        logger.info(f"[EMAIL] HTML template rendered successfully, length: {len(html_content)}")
+        
+        # Renderizar template de texto plano
+        text_content = render_to_string('users/emails/new_user_credentials.txt', context)
+        logger.info(f"[EMAIL] Text template rendered successfully, length: {len(text_content)}")
+        
+        # Enviar email
+        result = send_resend_email(user_email, subject, html_content, text_content)
+        logger.info(f"[EMAIL] send_resend_email result: {result}")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"[EMAIL] Error in send_credentials_email: {str(e)}")
+        import traceback
+        logger.error(f"[EMAIL] Traceback: {traceback.format_exc()}")
+        return None
 
 
 
