@@ -5,8 +5,18 @@
 
 class LargeFileUploader {
     constructor(options = {}) {
+        // Leer el límite desde el meta tag (viene desde SystemSettings)
+        const metaMaxSize = document.querySelector('meta[name="max-file-size"]')?.content;
+        const maxFileSize = metaMaxSize ? parseInt(metaMaxSize) : 500; // Fallback solo si no existe el meta
+        
+        if (!metaMaxSize) {
+            console.warn('⚠️ Meta tag "max-file-size" no encontrado. Usando fallback de 500MB');
+        } else {
+            console.log(`✅ Límite de archivo cargado desde meta tag: ${maxFileSize}MB`);
+        }
+        
         this.options = {
-            maxFileSize: parseInt(document.querySelector('meta[name="max-file-size"]')?.content) || 600, // MB
+            maxFileSize: maxFileSize,
             allowedExtensions: (document.querySelector('meta[name="allowed-extensions"]')?.content || '').split(','),
             chunkSize: 5 * 1024 * 1024, // 5MB chunks para uploads grandes
             maxRetries: 3,

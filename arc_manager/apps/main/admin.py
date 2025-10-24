@@ -255,7 +255,6 @@ class SystemSettingsAdmin(admin.ModelAdmin):
     fieldsets = (
         ('👥 Límites de Usuarios', {
             'fields': (
-                'default_max_users',
                 'max_users_trial',
                 'max_users_basic',
             ),
@@ -263,7 +262,6 @@ class SystemSettingsAdmin(admin.ModelAdmin):
         }),
         ('💾 Límites de Almacenamiento', {
             'fields': (
-                'default_storage_gb',
                 'storage_trial_gb',
                 'storage_basic_gb',
             ),
@@ -302,7 +300,6 @@ class SystemSettingsAdmin(admin.ModelAdmin):
         ('💳 Planes y Facturación', {
             'fields': (
                 'trial_duration_days',
-                'billing_cycle_days',
                 'grace_period_days',
             ),
             'description': 'Configure parámetros por defecto de planes y facturación.'
@@ -334,7 +331,6 @@ class SystemSettingsAdmin(admin.ModelAdmin):
         ('Información del Sistema', {
             'fields': (
                 'updated_at',
-                'updated_by',
             ),
             'classes': ('collapse',),
         }),
@@ -343,8 +339,7 @@ class SystemSettingsAdmin(admin.ModelAdmin):
     readonly_fields = ('updated_at',)
     
     def save_model(self, request, obj, form, change):
-        """Guardar quién actualizó la configuración"""
-        obj.updated_by = f"{request.user.email} (ID: {request.user.pk})"
+        """Los cambios se aplican automáticamente al guardar"""
         super().save_model(request, obj, form, change)
         
         # Mensaje de éxito simple - los signals se encargan de sincronizar automáticamente
