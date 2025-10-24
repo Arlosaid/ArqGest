@@ -494,41 +494,9 @@ if os.environ.get('ENABLE_STORAGES', 'false').lower() == 'true':
     AWS_S3_SIGNATURE_VERSION = 's3v4'
     AWS_DEFAULT_ACL = None
     
-    # Configuración específica para Cloudflare R2 optimizada para archivos grandes
+    # Configuración específica para Cloudflare R2
     AWS_S3_CUSTOM_DOMAIN = None  # Usar dominio directo de R2
     AWS_S3_FILE_OVERWRITE = False  # No sobrescribir archivos con mismo nombre
-    
-    # CONFIGURACIÓN ULTRA-OPTIMIZADA para archivos grandes en R2
-    AWS_S3_MAX_MEMORY_SIZE = 26214400  # 25MB - archivos más grandes usan multipart
-    
-    # Configuración de transferencia optimizada para arquitectos
-    AWS_S3_TRANSFER_CONFIG = {
-        'multipart_threshold': 26214400,  # 25MB - iniciar multipart upload
-        'max_concurrency': 15,  # 15 conexiones concurrentes (aumentado)
-        'multipart_chunksize': 52428800,  # 50MB por chunk (chunks más grandes = menos overhead)
-        'max_bandwidth': None,  # Sin límite de ancho de banda
-        'use_threads': True,  # Threading para máximo paralelismo
-        'max_io_queue': 1000,  # Cola I/O grande para archivos masivos
-    }
-    
-    # Timeouts y retries ultra-robustos
-    AWS_S3_REQUEST_CONFIG = {
-        'retries': {
-            'max_attempts': 5,  # 5 intentos (aumentado)
-            'mode': 'adaptive',  # Retry inteligente
-            'total_max_attempts': 10  # Máximo absoluto
-        },
-        'connect_timeout': 120,  # 2 minutos para conectar (redes lentas)
-        'read_timeout': 1800,    # 30 minutos para archivos masivos (2x aumentado)
-        'max_pool_connections': 50,  # Pool de conexiones grande
-    }
-    
-    # Configuración de streaming para archivos masivos
-    AWS_S3_STREAM_CONFIG = {
-        'enable_checksum': True,  # Verificación de integridad
-        'checksum_algorithm': 'SHA256',  # Algoritmo robusto
-        'enable_payload_signing': False,  # Desactivar para performance
-    }
     
     AWS_S3_OBJECT_PARAMETERS = {
         'CacheControl': 'max-age=86400',  # Cache por 1 día
