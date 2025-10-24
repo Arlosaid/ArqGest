@@ -232,6 +232,9 @@ class SystemSettings(models.Model):
     """
     Configuraciones globales del sistema que pueden ser modificadas desde el admin.
     Solo puede existir una instancia de este modelo (patrón Singleton).
+    
+    IMPORTANTE: Los cambios se sincronizan automáticamente con los Planes via signals.
+    El caché se limpia automáticamente al guardar para reflejar los cambios.
     """
     
     # === LÍMITES DE USUARIOS ===
@@ -430,12 +433,19 @@ class SystemSettings(models.Model):
         return f"Configuración del Sistema (actualizado: {self.updated_at.strftime('%d/%m/%Y %H:%M')})"
     
     def save(self, *args, **kwargs):
-        """Asegurar que solo exista una instancia de configuración"""
-        self.pk = 1
+        """
+        Guardar configuración del sistema.
+        Limpia caché para asegurar que los cambios se reflejen.
+        Los signals sincronizan automáticamente con los Planes.
+        """
+        self.pk = 1  # Asegurar singleton
         super().save(*args, **kwargs)
         
-        # Limpiar caché cuando se actualiza la configuración
+        # Limpiar caché de SystemSettings
         cache.delete('system_settings')
+        
+        # NOTA: No es necesario limpiar otros cachés aquí.
+        # Los signals y el admin se encargan de eso si es necesario.
     
     def delete(self, *args, **kwargs):
         """Prevenir eliminación de la configuración"""
@@ -444,15 +454,17 @@ class SystemSettings(models.Model):
     @classmethod
     def load(cls):
         """
-        Cargar la configuración del sistema (con caché).
+        Cargar la configuración del sistema (con caché de 1 hora).
         Crea una instancia por defecto si no existe.
+        
+        El caché se limpia automáticamente al guardar cambios.
         """
         settings = cache.get('system_settings')
         if settings is None:
             settings, created = cls.objects.get_or_create(pk=1)
             if created:
                 settings.save()  # Guardar valores por defecto
-            cache.set('system_settings', settings, 3600)  # Cachear por 1 hora
+            cache.set('system_settings', settings, 3600)  # 1 hora
         return settings
     
     @classmethod

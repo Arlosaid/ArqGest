@@ -339,10 +339,85 @@ class SystemSettingsAdmin(admin.ModelAdmin):
     readonly_fields = ('updated_at',)
     
     def save_model(self, request, obj, form, change):
-        """Los cambios se aplican automáticamente al guardar"""
+        """
+        Guardar configuración del sistema de forma óptima.
+        
+        Estrategia:
+        1. Guardar cambios en DB (los signals sincronizan con Planes automáticamente)
+        2. Limpiar solo los cachés necesarios basándose en qué cambió
+        3. Mostrar mensaje claro de confirmación
+        
+        No es necesario que los cambios sean instantáneos (caché de 1 hora está bien).
+        """
+        from django.core.cache import cache
+        from django.contrib import messages
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
+        # Detectar qué campos cambiaron para logs
+        changed_fields = []
+        if change and form.changed_data:
+            changed_fields = form.changed_data
+        
+        # Guardar en DB (esto dispara el signal que sincroniza con Planes)
         super().save_model(request, obj, form, change)
         
-        # Mensaje de éxito simple - los signals se encargan de sincronizar automáticamente
+        # Limpiar caché de SystemSettings para reflejar cambios
+        cache.delete('system_settings')
+        logger.info(f"SystemSettings guardado. Campos modificados: {changed_fields or 'ninguno'}")
+        
+        # Solo limpiar cachés adicionales SI cambiaron campos específicos
+        critical_fields_changed = any(field in changed_fields for field in [
+            'max_users_trial', 'max_users_basic', 
+            'storage_trial_gb', 'storage_basic_gb',
+            'trial_duration_days', 'billing_cycle_days', 'grace_period_days'
+        ])
+        
+        if critical_fields_changed:
+            # Limpiar cachés de planes (signals ya actualizaron los planes)
+            cache.delete('plans_cache')
+            cache.delete('active_plans_cache')
+            
+            # Invalidar caché de organizaciones si cambiaron límites de usuarios
+            if any(field in changed_fields for field in ['max_users_trial', 'max_users_basic']):
+                from apps.orgs.models import Organization
+                # Invalidar caché de organizaciones (hacerlo async para no bloquear)
+                for org in Organization.objects.all()[:100]:  # Limitar a las primeras 100
+                    cache.delete(f"org_user_count:{org.id}")
+                    cache.delete(f"org_active_users:{org.id}")
+                    cache.delete(f"org_inactive_users:{org.id}")
+                logger.info("Cachés de organizaciones invalidados")
+        
+        # Mensaje de confirmación detallado
+        if changed_fields:
+            changes_summary = self._format_changes(changed_fields, obj)
+            messages.success(
+                request,
+                f"✅ Configuración guardada correctamente. {changes_summary} "
+                f"Los cambios se reflejarán gradualmente (caché de 1 hora)."
+            )
+        else:
+            messages.success(request, "✅ Configuración guardada sin cambios.")
+    
+    def _format_changes(self, changed_fields, obj):
+        """Formatea un resumen legible de los cambios realizados"""
+        summaries = []
+        
+        # Agrupar cambios por categoría
+        if 'max_file_size_mb' in changed_fields:
+            summaries.append(f"Archivos: {obj.max_file_size_mb}MB")
+        
+        if any(f in changed_fields for f in ['max_users_trial', 'max_users_basic']):
+            summaries.append(f"Usuarios (T:{obj.max_users_trial}, B:{obj.max_users_basic})")
+        
+        if any(f in changed_fields for f in ['storage_trial_gb', 'storage_basic_gb']):
+            summaries.append(f"Storage (T:{obj.storage_trial_gb}GB, B:{obj.storage_basic_gb}GB)")
+        
+        if any(f in changed_fields for f in ['trial_duration_days', 'grace_period_days']):
+            summaries.append(f"Días (Trial:{obj.trial_duration_days}, Gracia:{obj.grace_period_days})")
+        
+        return "Cambios: " + " | ".join(summaries) if summaries else f"{len(changed_fields)} campo(s) actualizado(s)"
         self.message_user(
             request,
             "✅ Configuración actualizada exitosamente. Los cambios se aplicaron automáticamente.",
