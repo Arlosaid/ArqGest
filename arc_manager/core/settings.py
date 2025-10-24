@@ -6,11 +6,14 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Cargar variables de entorno desde .env
+# Cargar variables de entorno desde .env (solo en desarrollo local)
+# En Docker, las variables se pasan directamente desde docker-compose.yml
 from dotenv import load_dotenv
+import os
 
-# Cargar el archivo .env desde el directorio raíz del proyecto
-load_dotenv(BASE_DIR.parent / '.env')
+# Solo cargar .env si no estamos en un contenedor Docker
+if not os.environ.get('DOCKER_CONTAINER', 'false').lower() == 'true':
+    load_dotenv(BASE_DIR.parent / '.env')
 
 
 # Quick-start development settings - unsuitable for production
@@ -36,6 +39,16 @@ if not SECRET_KEY:
 
 # Clave secreta para autenticar cron jobs externos
 CRON_SECRET_KEY = os.environ.get('CRON_SECRET_KEY', '')
+
+# ========================================
+# CONFIGURACIÓN DE LOGGING ULTRA-MINIMALISTA
+# ========================================
+# Configuración optimizada para logging selectivo con mínimo overhead
+LOG_REQUESTS = os.environ.get('LOG_REQUESTS', 'true').lower() == 'true'  # Habilitado por defecto
+LOG_ONLY_ERRORS = os.environ.get('LOG_ONLY_ERRORS', 'false').lower() == 'true'
+LOG_SLOW_REQUESTS = os.environ.get('LOG_SLOW_REQUESTS', 'true').lower() == 'true'
+SAMPLE_RATE = float(os.environ.get('SAMPLE_RATE', '0'))  # 0 = sin sampling
+SLOW_REQUEST_THRESHOLD = int(os.environ.get('SLOW_REQUEST_THRESHOLD', '2000'))  # 2 segundos
 
 # Configuración mejorada de ALLOWED_HOSTS
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
@@ -128,8 +141,8 @@ MIDDLEWARE = [
     'apps.orgs.middleware.OrganizationContextMiddleware',
     'apps.plans.middleware.SubscriptionAccessMiddleware',
     'apps.plans.middleware.SubscriptionInfoMiddleware',
-    # Logging middleware optimizado
-    'core.optimized_logging_middleware.OptimizedRequestLoggingMiddleware',
+    # Logging middleware - solo una instancia
+    'core.logging_middleware.RequestLoggingMiddleware',
     'apps.accounts.middleware.ErrorHandlingMiddleware',
     'core.mixins.PerformanceMiddleware',
     
@@ -604,10 +617,7 @@ MESSAGE_TAGS = {
 # 3. Sampling inteligente para performance
 # 4. Request ID tracking para trazabilidad
 
-# Configuración de sampling y thresholds
-LOG_SAMPLE_RATE = float(os.environ.get('LOG_SAMPLE_RATE', '0.01' if not DEBUG else '1.0'))  # 1% en prod, 100% en dev
-SLOW_REQUEST_THRESHOLD = int(os.environ.get('SLOW_REQUEST_THRESHOLD', '1000'))  # 1 segundo
-LOG_REQUESTS = os.environ.get('LOG_REQUESTS', 'true').lower() == 'true'
+# Configuración de sampling y thresholds (ya definida arriba)
 
 # Determinar si estamos en un entorno containerizado
 IS_DOCKER = os.environ.get('DOCKER_CONTAINER', 'false').lower() == 'true'
@@ -623,7 +633,7 @@ LOGGING = {
         },
         # Formato simple para desarrollo
         'simple': {
-            'format': '[{asctime}] {levelname} {name}: {message} | request_id={request_id}',
+            'format': '[{asctime}] {levelname} {name}: {message} | request_id={request_id} | user_id={user_id}',
             'style': '{',
             'datefmt': '%Y-%m-%d %H:%M:%S',
         },
@@ -689,6 +699,17 @@ LOGGING = {
             'level': 'WARNING',
             'propagate': False,
         },
+        # Django server: logs profesionales del middleware
+        'django.server': {
+            'handlers': ['console_dev', 'console_prod'],
+            'level': 'WARNING',  # Solo warnings y errores para mantener logs limpios
+            'propagate': False,
+        },
+        'django.utils.autoreload': {
+            'handlers': [],
+            'level': 'WARNING',  # Solo warnings y errores
+            'propagate': False,
+        },
         'apps': {
             'handlers': ['console_dev', 'console_prod'],
             'level': 'INFO',
@@ -709,7 +730,7 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
-        'core.optimized_logging': {
+        'core.logging': {
             'handlers': ['console_dev', 'console_prod'],
             'level': 'INFO',
             'propagate': False,
@@ -869,3 +890,8 @@ if not DEBUG:
 # ========================================
 # Clave secreta para autenticar requests de cron externos
 CRON_SECRET_KEY = os.environ.get('CRON_SECRET_KEY', '')
+
+# ========================================
+# CONFIGURACIÓN DEL MIDDLEWARE DE LOGGING
+# ========================================
+# Configuración para RequestLoggingMiddleware (ya definida arriba)

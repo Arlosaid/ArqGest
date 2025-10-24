@@ -69,12 +69,19 @@ class UserCreationForm(forms.ModelForm):
             user.save()
             # Enviar credenciales automáticamente usando la función existente
             try:
-                send_new_user_email(user, password)
+                # Log detallado para debugging
+                logger.info(f"[ADMIN] Intentando enviar credenciales a {user.email}")
+                email_sent = send_new_user_email(user, password)
+                if email_sent:
+                    logger.info(f"[ADMIN] Credenciales enviadas exitosamente a {user.email}")
+                else:
+                    logger.warning(f"[ADMIN] Falló el envío de credenciales a {user.email}")
             except Exception as e:
                 # Log el error pero no fallar la creación del usuario
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Error enviando credenciales a {user.email}: {str(e)}")
+                logger.error(f"[ADMIN] Error enviando credenciales a {user.email}: {str(e)}")
+                # Log adicional para debugging
+                import traceback
+                logger.error(f"[ADMIN] Traceback completo: {traceback.format_exc()}")
         return user
 
 
