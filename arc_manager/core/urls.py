@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from apps.plans.views import SubscriptionInfoAPIView
 from apps.main.admin import financial_dashboard_view
 from .test_views import test_resend_api
-from .health import health_check, readiness_check, liveness_check
+from .health import health_check, readiness_check, liveness_check, database_diagnostic
 
 def root_redirect(request):
     if not request.user.is_authenticated:
@@ -29,6 +29,7 @@ urlpatterns = [
     path('health/', health_check, name='health_check'),
     path('health/ready/', readiness_check, name='readiness_check'),
     path('health/live/', liveness_check, name='liveness_check'),
+    path('health/db-diagnostic/', database_diagnostic, name='db_diagnostic'),
     path('', root_redirect),
 ]
 
