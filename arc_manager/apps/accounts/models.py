@@ -2,51 +2,105 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from uuid import uuid4
 import logging
+from core.structured_logging import log_error, log_warning, log_info, log_business_event
 
 logger = logging.getLogger('apps.accounts')
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
-            logger.warning(f"Intento de crear usuario sin email. Extra fields: {extra_fields}")
+            log_warning(
+                event="user_creation_missing_email",
+                message="Intento de crear usuario sin email",
+                logger_name='apps.accounts'
+            )
             raise ValueError('El correo electrónico es obligatorio')
         
         email = self.normalize_email(email)
-        org_name = extra_fields.get('organization', {}).name if extra_fields.get('organization') else 'Sin organización'
+        org = extra_fields.get('organization')
+        org_name = org.name if org else 'Sin organización'
+        org_id = org.id if org else None
         
-        logger.info(f"Creando nuevo usuario: {email} en organización: {org_name}")
+        # Solo loggear en desarrollo (DEBUG), evitar ruido en producción
+        from django.conf import settings
+        if settings.DEBUG:
+            log_info(
+                event="user_creation_started",
+                message="Creando nuevo usuario",
+                user_email=email,
+                organization_name=org_name,
+                logger_name='apps.accounts'
+            )
         
         try:
             user = self.model(email=email, **extra_fields)
             user.set_password(password)
             user.save(using=self._db)
             
-            logger.info(f"Usuario creado exitosamente: {email} (ID: {user.pk})")
+            # Business event importante: siempre loggear creación exitosa
+            log_business_event(
+                event="user_created",
+                action="created",
+                entity_type="user",
+                entity_id=user.pk,
+                user_email=email,
+                organization_id=org_id,
+                logger_name='apps.accounts'
+            )
             return user
         except Exception as e:
-            logger.error(f"Error al crear usuario {email}: {str(e)}")
+            log_error(
+                event="user_creation_failed",
+                error_code="USR001",
+                error_message=str(e),
+                user_email=email,
+                logger_name='apps.accounts'
+            )
             raise
 
     def create_superuser(self, email, password=None, **extra_fields):
-        logger.info(f"Creando superusuario: {email}")
-        
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
         
         if extra_fields.get('is_staff') is not True:
-            logger.error(f"Error al crear superusuario {email}: is_staff debe ser True")
+            log_error(
+                event="superuser_creation_failed",
+                error_code="USR002",
+                error_message="is_staff debe ser True",
+                user_email=email,
+                logger_name='apps.accounts'
+            )
             raise ValueError('Superuser debe tener is_staff=True.')
         if extra_fields.get('is_superuser') is not True:
-            logger.error(f"Error al crear superusuario {email}: is_superuser debe ser True")
+            log_error(
+                event="superuser_creation_failed",
+                error_code="USR003",
+                error_message="is_superuser debe ser True",
+                user_email=email,
+                logger_name='apps.accounts'
+            )
             raise ValueError('Superuser debe tener is_superuser=True.')
         
         try:
             user = self.create_user(email, password, **extra_fields)
-            logger.info(f"Superusuario creado exitosamente: {email} (ID: {user.pk})")
+            log_business_event(
+                event="superuser_created",
+                action="created",
+                entity_type="superuser",
+                entity_id=user.pk,
+                user_email=email,
+                logger_name='apps.accounts'
+            )
             return user
         except Exception as e:
-            logger.error(f"Error al crear superusuario {email}: {str(e)}")
+            log_error(
+                event="superuser_creation_failed",
+                error_code="USR004",
+                error_message=str(e),
+                user_email=email,
+                logger_name='apps.accounts'
+            )
             raise
 
 class User(AbstractUser):
@@ -108,7 +162,12 @@ class User(AbstractUser):
                     'password_change_required': old_user.password_change_required
                 }
             except User.DoesNotExist:
-                logger.warning(f"Usuario con ID {self.pk} no encontrado para comparación")
+                log_warning(
+                    event="user_not_found_for_comparison",
+                    message="Usuario no encontrado al intentar comparar cambios",
+                    user_id=self.pk,
+                    logger_name='apps.accounts'
+                )
         
         if not self.username:
             # Generar un username simple para compatibilidad con Django
@@ -120,35 +179,53 @@ class User(AbstractUser):
         try:
             super().save(*args, **kwargs)
             
-            # Logging de cambios específicos
+            # Solo loggear cambios importantes (no cada guardado)
             if is_new:
-                org_name = self.organization.name if self.organization else 'Sin organización'
-                role = 'Superusuario' if self.is_superuser else ('Admin de Org' if self.is_org_admin else 'Usuario')
-                logger.info(f"Nuevo usuario guardado: {self.email} ({role}) - Organización: {org_name}")
+                # Business event: nuevo usuario
+                from django.conf import settings
+                if not settings.DEBUG:  # Solo en producción para auditoría
+                    log_business_event(
+                        event="user_saved",
+                        action="created",
+                        entity_type="user",
+                        entity_id=self.pk,
+                        user_email=self.email,
+                        is_superuser=self.is_superuser,
+                        is_org_admin=self.is_org_admin,
+                        organization_id=self.organization_id,
+                        logger_name='apps.accounts'
+                    )
             else:
-                # Log de cambios importantes
-                changes = []
-                if old_values.get('email') != self.email:
-                    changes.append(f"email: {old_values.get('email')} → {self.email}")
+                # Log de cambios importantes solamente
+                critical_changes = []
                 if old_values.get('is_active') != self.is_active:
-                    status = 'activado' if self.is_active else 'desactivado'
-                    changes.append(f"usuario {status}")
+                    critical_changes.append(('status_change', 'activated' if self.is_active else 'deactivated'))
                 if old_values.get('is_org_admin') != self.is_org_admin:
-                    role_change = 'promovido a admin' if self.is_org_admin else 'removido como admin'
-                    changes.append(f"rol: {role_change}")
+                    critical_changes.append(('role_change', 'promoted_to_admin' if self.is_org_admin else 'demoted_from_admin'))
                 if old_values.get('organization') != (self.organization.name if self.organization else None):
-                    old_org = old_values.get('organization') or 'Sin organización'
-                    new_org = self.organization.name if self.organization else 'Sin organización'
-                    changes.append(f"organización: {old_org} → {new_org}")
-                if old_values.get('password_change_required') != self.password_change_required:
-                    pwd_status = 'requerido' if self.password_change_required else 'no requerido'
-                    changes.append(f"cambio de contraseña: {pwd_status}")
+                    critical_changes.append(('organization_change', f"{old_values.get('organization')} -> {self.organization.name if self.organization else None}"))
                 
-                if changes:
-                    logger.info(f"Usuario actualizado {self.email} (ID: {self.pk}): {', '.join(changes)}")
+                # Solo loggear si hay cambios críticos
+                if critical_changes:
+                    log_business_event(
+                        event="user_updated",
+                        action="updated",
+                        entity_type="user",
+                        entity_id=self.pk,
+                        user_email=self.email,
+                        changes=str(critical_changes),
+                        logger_name='apps.accounts'
+                    )
                     
         except Exception as e:
-            logger.error(f"Error al guardar usuario {self.email}: {str(e)}")
+            log_error(
+                event="user_save_failed",
+                error_code="USR005",
+                error_message=str(e),
+                user_email=self.email,
+                user_id=self.pk,
+                logger_name='apps.accounts'
+            )
             raise
 
     def __str__(self):

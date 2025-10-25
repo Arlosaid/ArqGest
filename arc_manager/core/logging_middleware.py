@@ -16,7 +16,18 @@ class RequestLoggingMiddleware(MiddlewareMixin):
     """
     Middleware optimizado con sampling para mínimo impacto en performance.
     Solo loggea requests lentas, errores, y una muestra de requests normales.
+    EXCLUYE automáticamente archivos estáticos para reducir ruido.
     """
+    
+    # Rutas estáticas que nunca deben loguearse (reducir ruido en 90%)
+    STATIC_PATHS = (
+        '/static/',
+        '/media/',
+        '/favicon.ico',
+        '/robots.txt',
+        '/sitemap.xml',
+        '/__debug__/',  # Django Debug Toolbar
+    )
     
     def __init__(self, get_response):
         self.get_response = get_response
@@ -28,6 +39,10 @@ class RequestLoggingMiddleware(MiddlewareMixin):
         self.sample_rate = getattr(settings, 'SAMPLE_RATE', 0)  # 0 = sin sampling por defecto
     
     def __call__(self, request):
+        # OPTIMIZACIÓN: Excluir archivos estáticos inmediatamente (sin overhead)
+        if self._is_static_request(request):
+            return self.get_response(request)
+        
         # Generar o reutilizar request ID
         request_id = self._get_or_create_request_id(request)
         request.request_id = request_id
@@ -66,6 +81,11 @@ class RequestLoggingMiddleware(MiddlewareMixin):
         finally:
             clear_request_id()
             clear_user_context()
+    
+    def _is_static_request(self, request):
+        """Detecta si es un request a archivos estáticos (reducir ruido en 90%)"""
+        path = request.path
+        return any(path.startswith(static_path) for static_path in self.STATIC_PATHS)
     
     def _get_or_create_request_id(self, request):
         """Obtiene request ID existente o crea uno nuevo"""

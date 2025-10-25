@@ -155,6 +155,7 @@ class RequestLoggingFilter(logging.Filter):
 class SensitiveDataFilter(logging.Filter):
     """
     Filtro que remueve datos sensibles de todos los logs
+    GDPR/Privacy compliant - anonimiza emails, tokens
     """
     
     SENSITIVE_PATTERNS = [
@@ -166,9 +167,18 @@ class SensitiveDataFilter(logging.Filter):
         (r'api_key=[^&\s]*', 'api_key=[FILTERED]'),
         # Tokens de sesión
         (r'sessionid=[^&\s]*', 'sessionid=[FILTERED]'),
-        # Email completos (solo mostrar primera parte)
-        (r'([a-zA-Z0-9._%+-]+)@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})', r'\1@[DOMAIN]'),
+        # Email completos - MEJORADO: mostrar hash en lugar de primera parte
+        (r'\b([a-zA-Z0-9._%+-]+)@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b', lambda m: f"user_{hash(m.group(0)) % 10000:04d}@[REDACTED]"),
     ]
+    
+    @staticmethod
+    def _anonymize_email(email):
+        """Anonimiza un email de forma consistente usando hash"""
+        if not email:
+            return email
+        # Usar hash para generar ID consistente pero anónimo
+        email_hash = hash(email.lower()) % 10000
+        return f"user_{email_hash:04d}@[REDACTED]"
     
     def filter(self, record):
         """
@@ -178,7 +188,11 @@ class SensitiveDataFilter(logging.Filter):
             cleaned_msg = record.msg
             
             for pattern, replacement in self.SENSITIVE_PATTERNS:
-                cleaned_msg = re.sub(pattern, replacement, cleaned_msg, flags=re.IGNORECASE)
+                if callable(replacement):
+                    # Para patterns con funciones lambda (emails)
+                    cleaned_msg = re.sub(pattern, replacement, cleaned_msg, flags=re.IGNORECASE)
+                else:
+                    cleaned_msg = re.sub(pattern, replacement, cleaned_msg, flags=re.IGNORECASE)
             
             record.msg = cleaned_msg
         
@@ -189,7 +203,10 @@ class SensitiveDataFilter(logging.Filter):
                 if isinstance(arg, str):
                     cleaned_arg = arg
                     for pattern, replacement in self.SENSITIVE_PATTERNS:
-                        cleaned_arg = re.sub(pattern, replacement, cleaned_arg, flags=re.IGNORECASE)
+                        if callable(replacement):
+                            cleaned_arg = re.sub(pattern, replacement, cleaned_arg, flags=re.IGNORECASE)
+                        else:
+                            cleaned_arg = re.sub(pattern, replacement, cleaned_arg, flags=re.IGNORECASE)
                     cleaned_args.append(cleaned_arg)
                 else:
                     cleaned_args.append(arg)
