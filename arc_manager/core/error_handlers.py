@@ -3,13 +3,20 @@ Handlers personalizados para errores HTTP.
 En lugar de mostrar páginas de error completas, usa el sistema de notificaciones
 de la app para mostrar mensajes amigables al usuario.
 Los detalles técnicos solo van a los logs del backend.
+
+IMPORTANTE: Los logs ya se generan automáticamente en:
+- logging_middleware.py (para requests HTTP)
+- structured_logging.py (para errores de aplicación)
+
+Este módulo solo debe:
+1. Mostrar notificaciones amigables al usuario
+2. Redirigir apropiadamente
+3. NO duplicar logs que ya se generan en el middleware
 """
 import logging
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.contrib import messages
-from django.conf import settings
-from core.structured_logging import log_error, log_security_event
 
 logger = logging.getLogger(__name__)
 
@@ -17,18 +24,8 @@ logger = logging.getLogger(__name__)
 def custom_400_view(request, exception=None):
     """
     Handler personalizado para errores 400 (Bad Request).
+    NO loguea (ya lo hace el middleware automáticamente).
     """
-    # Log técnico para backend (con detalles)
-    log_error(
-        event="http_400_bad_request",
-        error_code="HTTP400",
-        error_message="Bad Request",
-        path=request.path,
-        method=request.method,
-        user_id=getattr(request.user, 'id', None) if hasattr(request, 'user') else None,
-        logger_name='django.request'
-    )
-    
     # Para requests AJAX, devolver JSON
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({
@@ -36,7 +33,7 @@ def custom_400_view(request, exception=None):
             'status': 400
         }, status=400)
     
-    # Para requests normales: mensaje amigable y redirigir al inicio o página anterior
+    # Para requests normales: mensaje amigable y redirigir
     messages.warning(request, 'La información enviada no es válida. Por favor, verifica e intenta nuevamente.')
     
     # Intentar redirigir a la página anterior, si no existe ir al dashboard
@@ -49,17 +46,8 @@ def custom_400_view(request, exception=None):
 def custom_403_view(request, exception=None):
     """
     Handler personalizado para errores 403 (Forbidden - Acceso denegado).
+    NO loguea (ya lo hace el middleware automáticamente).
     """
-    # Log técnico para backend (puede indicar intento de ataque)
-    log_security_event(
-        event="http_403_forbidden",
-        severity="medium",
-        path=request.path,
-        method=request.method,
-        user_id=getattr(request.user, 'id', None) if hasattr(request, 'user') else None,
-        logger_name='django.security'
-    )
-    
     # Para requests AJAX, devolver JSON
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({
@@ -80,18 +68,9 @@ def custom_403_view(request, exception=None):
 def custom_404_view(request, exception=None):
     """
     Handler personalizado para errores 404 (Not Found - Página no encontrada).
+    NO loguea (ya lo hace el middleware automáticamente).
+    Solo el 404 muestra un template porque es común y no es un error crítico.
     """
-    # Log técnico para backend (solo WARNING, no es crítico)
-    logger.warning(
-        f'404 Not Found: {request.path}',
-        extra={
-            'path': request.path,
-            'method': request.method,
-            'referer': request.META.get('HTTP_REFERER', ''),
-            'user_id': getattr(request.user, 'id', None) if hasattr(request, 'user') else None,
-        }
-    )
-    
     # Para requests AJAX, devolver JSON
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({
@@ -99,26 +78,16 @@ def custom_404_view(request, exception=None):
             'status': 404
         }, status=404)
     
-    # Para requests normales: mostrar template de 404
+    # Para requests normales: mostrar template de 404 (es la única excepción)
     return render(request, '404.html', status=404)
 
 
 def custom_500_view(request):
     """
     Handler personalizado para errores 500 (Internal Server Error).
-    Este es el más importante: no asustar al usuario, pero loguear todo para los devs.
+    NO loguea (ya lo hace el middleware automáticamente con traceback completo).
+    IMPORTANTE: NO muestra template 500.html, solo notificación y redirección.
     """
-    # Log técnico COMPLETO para backend (ERROR crítico con traceback)
-    log_error(
-        event="http_500_internal_error",
-        error_code="HTTP500",
-        error_message="Internal Server Error",
-        path=request.path,
-        method=request.method,
-        user_id=getattr(request.user, 'id', None) if hasattr(request, 'user') else None,
-        logger_name='django.request'
-    )
-    
     # Para requests AJAX, devolver JSON
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({
@@ -132,5 +101,5 @@ def custom_500_view(request):
         'Algo salió mal de nuestro lado. Ya estamos trabajando en solucionarlo. Por favor, intenta nuevamente en unos momentos.'
     )
     
-    # Redirigir al dashboard (no queremos que el usuario vea una página en blanco)
+    # Redirigir al dashboard (NO mostrar template 500.html)
     return redirect('dashboard')

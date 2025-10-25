@@ -112,9 +112,9 @@ exec gunicorn --bind 0.0.0.0:${PORT:-8000} \\\n\
     --keep-alive 5 \\\n\
     --max-requests 1000 \\\n\
     --max-requests-jitter 100 \\\n\
-    --access-logfile - \\\n\
+    --access-logfile /dev/null \\\n\
     --error-logfile - \\\n\
-    --log-level info \\\n\
+    --log-level warning \\\n\
     --preload \\\n\
     core.wsgi:application' > /app/start.sh && chmod +x /app/start.sh
 

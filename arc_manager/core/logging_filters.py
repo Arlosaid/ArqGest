@@ -3,8 +3,10 @@ Filtros de logging optimizados para performance y seguridad
 """
 import logging
 import re
+import traceback
 from threading import local
 from urllib.parse import urlparse, parse_qs
+from django.conf import settings
 
 # Thread-local storage para request context
 _thread_locals = local()
@@ -151,6 +153,61 @@ class RequestLoggingFilter(logging.Filter):
         )
         
         return new_msg
+
+
+class CompactExceptionFilter(logging.Filter):
+    """
+    Filtro que reduce el tamaño de los stack traces en producción.
+    En lugar de mostrar todo el traceback, solo muestra:
+    - Primera línea (donde empezó el error)
+    - Última línea (donde ocurrió el error)
+    - Mensaje de excepción
+    
+    El stack trace completo se debe enviar a Sentry/herramientas de monitoreo externas.
+    """
+    
+    def filter(self, record):
+        """
+        Reduce stack traces en producción para evitar logs verbosos
+        """
+        # Solo aplicar en producción
+        try:
+            if settings.DEBUG:
+                return True
+        except:
+            # Si no se puede acceder a settings, asumir producción
+            pass
+        
+        # Si el record tiene información de excepción
+        if record.exc_info:
+            exc_type, exc_value, exc_tb = record.exc_info
+            
+            if exc_tb:
+                # Extraer primera y última línea del traceback
+                tb_list = traceback.extract_tb(exc_tb)
+                
+                if len(tb_list) > 0:
+                    first_frame = tb_list[0]
+                    last_frame = tb_list[-1]
+                    
+                    # Crear un resumen compacto del traceback
+                    compact_tb = (
+                        f"{exc_type.__name__} at {record.pathname}:{record.lineno}\n"
+                        f"  First: {first_frame.filename}:{first_frame.lineno} in {first_frame.name}\n"
+                        f"  Last:  {last_frame.filename}:{last_frame.lineno} in {last_frame.name}\n"
+                        f"  Message: {exc_value}"
+                    )
+                    
+                    # Reemplazar el mensaje para incluir el resumen compacto
+                    if hasattr(record, 'msg'):
+                        record.msg = f"{record.msg}\n{compact_tb}"
+                    
+                    # Limpiar exc_info para evitar que se loguee el traceback completo
+                    record.exc_info = None
+                    record.exc_text = None
+        
+        return True
+
 
 class SensitiveDataFilter(logging.Filter):
     """
