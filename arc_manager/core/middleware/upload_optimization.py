@@ -43,11 +43,25 @@ class UploadOptimizationMiddleware(MiddlewareMixin):
         
         # Optimizaciones de memoria para uploads grandes
         if hasattr(settings, 'FILE_UPLOAD_HANDLERS'):
-            # Forzar uso de archivo temporal para uploads grandes
-            request.upload_handlers = [
-                handler for handler in settings.FILE_UPLOAD_HANDLERS 
-                if 'Memory' not in handler or content_length <= settings.DATA_UPLOAD_MAX_MEMORY_SIZE
-            ]
+            # 🔥 FIX: Instanciar los handlers correctamente en lugar de usar strings
+            from django.utils.module_loading import import_string
+            
+            handlers = []
+            for handler_path in settings.FILE_UPLOAD_HANDLERS:
+                # Excluir MemoryFileUploadHandler para archivos grandes
+                if 'Memory' in handler_path and content_length > settings.DATA_UPLOAD_MAX_MEMORY_SIZE:
+                    continue
+                
+                try:
+                    # Importar e instanciar el handler
+                    handler_class = import_string(handler_path)
+                    handler_instance = handler_class(request)
+                    handlers.append(handler_instance)
+                except Exception as e:
+                    logger.warning(f"No se pudo instanciar upload handler {handler_path}: {e}")
+            
+            if handlers:
+                request.upload_handlers = handlers
         
         # Headers de optimización
         request.META['HTTP_X_LARGE_UPLOAD'] = 'true'
