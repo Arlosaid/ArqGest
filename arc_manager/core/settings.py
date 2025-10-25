@@ -632,6 +632,7 @@ LOGGING = {
         'require_debug_false': {'()': 'django.utils.log.RequireDebugFalse'},
         'request_id': {'()': 'core.logging_filters.RequestIdFilter'},
         'filter_sensitive_data': {'()': 'core.logging_filters.SensitiveDataFilter'},
+        'compact_exceptions': {'()': 'core.logging_filters.CompactExceptionFilter'},
         'ignore_timezone_warnings': {
             '()': 'django.utils.log.CallbackFilter',
             'callback': lambda record: 'DateTimeField' not in record.getMessage() or 'received a naive datetime' not in record.getMessage()
@@ -648,14 +649,14 @@ LOGGING = {
         # Handler para producción (JSON estructurado)
         'console_prod': {
             'level': 'INFO',
-            'filters': ['require_debug_false', 'request_id', 'filter_sensitive_data', 'ignore_timezone_warnings'],
+            'filters': ['require_debug_false', 'request_id', 'filter_sensitive_data', 'compact_exceptions', 'ignore_timezone_warnings'],
             'class': 'logging.StreamHandler',
             'formatter': 'json',
         },
         # Handler de errores críticos a STDERR
         'stderr': {
             'level': 'ERROR',
-            'filters': ['request_id', 'filter_sensitive_data'],
+            'filters': ['request_id', 'filter_sensitive_data', 'compact_exceptions'],
             'class': 'logging.StreamHandler',
             'stream': 'ext://sys.stderr',
             'formatter': 'verbose',

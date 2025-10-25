@@ -2,10 +2,10 @@ from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.core.exceptions import ValidationError
 from .models import User
-import logging
+from core.structured_logging import log_info, log_warning
  
-# Configurar logger del módulo
-logger = logging.getLogger(__name__)
+# NOTA: Los logs de estos signals se reducen al mínimo.
+# Los eventos de negocio se loguean desde las views donde ocurren.
 
 
 @receiver(pre_save, sender=User)
@@ -69,20 +69,18 @@ def validate_admin_without_org(sender, instance, **kwargs):
 
 @receiver(post_save, sender=User)
 def log_user_creation(sender, instance, created, **kwargs):
-    """Log creación de usuarios críticos (superusers y admins)"""
+    """Log creación de usuarios críticos (superusers y admins) - SOLO eventos de seguridad"""
     if created:
-        # Solo loguear creación de usuarios con permisos elevados (seguridad)
+        # Solo loguear creación de superusers (crítico para seguridad)
         if instance.is_superuser:
-            logger.info(
-                f"SUPERUSUARIO CREADO - Email: {instance.email}, "
-                f"Nombre: {instance.get_full_name()}, ID: {instance.pk}"
+            log_warning(
+                event="superuser_created",
+                message=f"SUPERUSUARIO CREADO - {instance.email}",
+                user_id=instance.pk,
+                user_email=instance.email,
+                logger_name='django.security'
             )
-        elif instance.is_org_admin:
-            org_name = instance.organization.name if instance.organization else "Sin organización"
-            logger.info(
-                f"ADMIN DE ORGANIZACIÓN CREADO - Email: {instance.email}, "
-                f"Organización: {org_name}, ID: {instance.pk}"
-            )
+        # Los admins de org NO se loguean aquí, se loguean desde la view donde se crean
 
 
 @receiver(pre_save, sender=User)
@@ -92,14 +90,19 @@ def log_user_changes(sender, instance, **kwargs):
         try:
             old_instance = User.objects.get(pk=instance.pk)
             
-            # Solo loguear cambios de permisos y seguridad críticos
-            if old_instance.is_org_admin != instance.is_org_admin:
-                role_change = 'promovido a admin' if instance.is_org_admin else 'removido como admin'
-                logger.info(f"Usuario {instance.email} - {role_change}")
-            
+            # Solo loguear cambios de permisos CRÍTICOS (superuser)
             if old_instance.is_superuser != instance.is_superuser:
                 role_change = 'promovido a superusuario' if instance.is_superuser else 'removido como superusuario'
-                logger.warning(f"CAMBIO CRÍTICO: Usuario {instance.email} - {role_change}")
+                log_warning(
+                    event="superuser_role_changed",
+                    message=f"CAMBIO CRÍTICO: Usuario {instance.email} - {role_change}",
+                    user_id=instance.pk,
+                    user_email=instance.email,
+                    old_is_superuser=old_instance.is_superuser,
+                    new_is_superuser=instance.is_superuser,
+                    logger_name='django.security'
+                )
+            # Los cambios de is_org_admin NO se loguean aquí (no son críticos de seguridad)
                 
         except User.DoesNotExist:
             pass
