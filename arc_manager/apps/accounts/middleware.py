@@ -145,24 +145,18 @@ class SuperuserRestrictMiddleware:
 class ErrorHandlingMiddleware(MiddlewareMixin):
     """
     Middleware para manejo de errores en producción.
-    Asegura que nunca se muestren errores genéricos de Railway.
+    
+    Maneja errores 400, 403, 500 con notificaciones + redirect.
+    Los 404 usan su template normal (son comunes y no críticos).
     """
     
     def process_exception(self, request, exception):
+        """
+        Maneja excepciones no capturadas (principalmente 500).
+        NO loguea (ya lo hace Django automáticamente).
+        Muestra notificación amigable usando messages.
+        """
         if not settings.DEBUG:
-            client_ip = self.get_client_ip(request)
-            user_email = 'anonymous'
-            
-            if hasattr(request, 'user') and request.user.is_authenticated:
-                user_email = request.user.email
-            
-            # NO LOGUEAR AQUÍ - Django y el RequestLoggingMiddleware ya lo hacen
-            # Eliminar duplicación: el log ya se genera en:
-            # 1. El modelo/vista que lanza la excepción (log_error)
-            # 2. El middleware de logging (RequestLoggingMiddleware)
-            # 3. Django request logger (automático)
-            # Este middleware solo debe manejar la RESPUESTA al usuario
-            
             # Para requests AJAX, devolver JSON
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({
@@ -170,42 +164,65 @@ class ErrorHandlingMiddleware(MiddlewareMixin):
                     'status': 500
                 }, status=500)
             
-            # Para requests normales, usar template personalizado
-            try:
-                template = loader.get_template('500.html')
-                return HttpResponseServerError(template.render({}))
-            except Exception as e:
-                # Fallback si no se puede cargar el template
-                logger.error(f"No se pudo cargar template 500.html: {str(e)}")
-                return HttpResponseServerError(
-                    """
-                    <!DOCTYPE html>
-                    <html lang="es">
-                    <head>
-                        <meta charset="UTF-8">
-                        <title>Error del Servidor - ARC Manager</title>
-                        <style>
-                            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f8f9fa; }
-                            .error { max-width: 400px; margin: 0 auto; }
-                            h1 { color: #dc3545; font-size: 3rem; }
-                            p { color: #6c757d; margin: 1rem 0; }
-                            .btn { display: inline-block; padding: 10px 20px; background: #007bff; color: white; 
-                                   text-decoration: none; border-radius: 5px; }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="error">
-                            <h1>500</h1>
-                            <h2>Error del servidor</h2>
-                            <p>Algo salió mal. Por favor, inténtalo de nuevo más tarde.</p>
-                            <a href="/" class="btn">Ir al inicio</a>
-                        </div>
-                    </body>
-                    </html>
-                    """
-                )
+            # Para requests normales: usar sistema de messages + redirect
+            # NO mostrar template 500.html, usar notificaciones
+            messages.error(
+                request, 
+                'Algo salió mal de nuestro lado. Ya estamos trabajando en solucionarlo. '
+                'Por favor, intenta nuevamente en unos momentos.'
+            )
+            
+            # Redirigir al dashboard o página principal
+            return redirect('main:dashboard')
         
+        # En desarrollo, dejar que Django maneje la excepción normalmente
         return None
+    
+    def process_response(self, request, response):
+        """
+        Intercepta respuestas de error para convertirlas en notificaciones.
+        Solo para 400 y 403. Los 404 y 500 se manejan en otros lugares.
+        """
+        if not settings.DEBUG and hasattr(response, 'status_code'):
+            # 400 Bad Request
+            if response.status_code == 400:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'error': 'La solicitud no pudo procesarse. Por favor, intenta nuevamente.',
+                        'status': 400
+                    }, status=400)
+                
+                messages.warning(
+                    request,
+                    'La información enviada no es válida. Por favor, verifica e intenta nuevamente.'
+                )
+                referer = request.META.get('HTTP_REFERER')
+                if referer and request.build_absolute_uri() != referer:
+                    return redirect(referer)
+                return redirect('main:dashboard')
+            
+            # 403 Forbidden
+            elif response.status_code == 403:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'error': 'No tienes permiso para acceder a este recurso.',
+                        'status': 403
+                    }, status=403)
+                
+                messages.error(
+                    request,
+                    'No tienes permisos para acceder a esta página. Si crees que esto es un error, contacta con tu administrador.'
+                )
+                referer = request.META.get('HTTP_REFERER')
+                if referer and request.build_absolute_uri() != referer:
+                    return redirect(referer)
+                return redirect('main:dashboard')
+            
+            # 404 Not Found - MANTENER TEMPLATE (no interceptar)
+            # Los 404 son comunes y esperados, merecen su propia página
+            # El handler404 en urls.py se encarga de esto
+        
+        return response
     
     def get_client_ip(self, request):
         """Obtener la IP real del cliente considerando proxies"""

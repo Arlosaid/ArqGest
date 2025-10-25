@@ -49,20 +49,18 @@ def send_user_credentials_email(user_email, password, username, subject=None, us
         return False
         
     if not password or not username:
-        logger.error(f"Missing data for {user_email}")
+        logger.error(f"Missing credentials data for {user_email}")
         return False
     
     from core.email_utils import send_credentials_email
     try:
         result = send_credentials_email(user_email, username, password)
-        if result:
-            logger.info(f"Credenciales enviadas exitosamente a {user_email}")
-            return True
-        else:
-            logger.error(f"Error enviando credenciales a {user_email}")
-            return False
+        # Solo logear si falla - backend ya maneja logging
+        if not result:
+            logger.error(f"Failed to send credentials email to {user_email}")
+        return bool(result)
     except Exception as e:
-        logger.error(f"Error enviando credenciales a {user_email}: {e}")
+        logger.error(f"Exception sending credentials to {user_email}: {e}")
         return False
 
 
@@ -136,7 +134,6 @@ def send_new_user_email(user, password, request=None, background=True):
     """
     Envía email de credenciales a nuevo usuario (SIMPLE)
     """
-    # Usar el nombre completo o email como username para el email
     username_for_email = user.full_name or user.email
     
     try:
@@ -146,10 +143,10 @@ def send_new_user_email(user, password, request=None, background=True):
             username=username_for_email,
             user_obj=user
         )
-        logger.info(f"[EMAIL] send_new_user_email result for {user.email}: {result}")
+        # Solo logear si FALLA - éxito es silencioso
         return result
     except Exception as e:
-        logger.error(f"[EMAIL] Exception in send_new_user_email for {user.email}: {str(e)}")
+        logger.error(f"[EMAIL] Failed to send credentials email to {user.email}: {str(e)}")
         return False
 
 

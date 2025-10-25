@@ -223,13 +223,10 @@ def send_credentials_email(user_email, username, password):
     """
     from django.template.loader import render_to_string
     
-    logger.info(f"[EMAIL] Starting send_credentials_email for {user_email}")
-    
+    # NO logear nada en flujo exitoso - solo errores
     site_name = getattr(settings, 'SITE_NAME', 'ArqGest')
     subject = f"¡Bienvenido a {site_name}!"
     protocol, domain = get_site_protocol_and_domain()
-    
-    logger.info(f"[EMAIL] Site config - name: {site_name}, protocol: {protocol}, domain: {domain}")
     
     context = {
         'user': {'email': user_email, 'first_name': '', 'last_name': ''},
@@ -240,27 +237,21 @@ def send_credentials_email(user_email, username, password):
         'domain': domain
     }
     
-    logger.info(f"[EMAIL] Context prepared: {context}")
+    # NUNCA logear context porque contiene password
     
     try:
-        # Renderizar template HTML
+        # Renderizar templates sin logging innecesario
         html_content = render_to_string('users/emails/new_user_credentials.html', context)
-        logger.info(f"[EMAIL] HTML template rendered successfully, length: {len(html_content)}")
-        
-        # Renderizar template de texto plano
         text_content = render_to_string('users/emails/new_user_credentials.txt', context)
-        logger.info(f"[EMAIL] Text template rendered successfully, length: {len(text_content)}")
         
-        # Enviar email
+        # Enviar email - el backend ya loguea si falla
         result = send_resend_email(user_email, subject, html_content, text_content)
-        logger.info(f"[EMAIL] send_resend_email result: {result}")
         
         return result
         
     except Exception as e:
-        logger.error(f"[EMAIL] Error in send_credentials_email: {str(e)}")
-        import traceback
-        logger.error(f"[EMAIL] Traceback: {traceback.format_exc()}")
+        # Solo logear errores, sin traceback completo
+        logger.error(f"[EMAIL] Error sending credentials email: {str(e)}")
         return None
 
 

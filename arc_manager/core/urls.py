@@ -53,11 +53,12 @@ if settings.DEBUG:
     ]
 
 # Custom error handlers for production
-# Estos handlers aseguran que se muestren nuestras páginas de error personalizadas
-handler400 = 'core.error_views.bad_request_view'
-handler403 = 'core.error_views.permission_denied_view'
-handler404 = 'core.error_views.page_not_found_view'
-handler500 = 'core.error_views.server_error_view'
+# IMPORTANTE: El ErrorHandlingMiddleware maneja excepciones 500 ANTES de estos handlers
+# Estos handlers solo se usan para ciertos casos edge donde el middleware no interviene
+handler400 = 'core.error_handlers.custom_400_view'
+handler403 = 'core.error_handlers.custom_403_view'
+handler404 = 'core.error_handlers.custom_404_view'
+handler500 = 'core.error_handlers.custom_500_view'
 # Note: handler502 is not a Django standard handler - 502 errors are typically
 # handled by the web server (nginx/gunicorn) before reaching Django
 # The template 502.html can be served directly by the web server
