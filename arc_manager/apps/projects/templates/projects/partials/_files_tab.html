@@ -92,18 +92,14 @@
 console.log('🚀 Files tab script loaded!');
 // Configuración de validación de documentos
 const FILE_VALIDATION = {
-    // Leer límites desde la configuración global (más confiable que meta tags)
-    MAX_SIZE_MB: window.SYSTEM_CONFIG?.MAX_FILE_SIZE_MB || 1500,
-    MAX_SIZE_MOBILE_MB: window.SYSTEM_CONFIG?.MAX_FILE_SIZE_MOBILE_MB || 200,
-    ALLOWED_EXTENSIONS: ['PDF', 'JPG', 'JPEG', 'PNG', 'GIF', 'TIFF', 'DWG', 'DXF', 'RVT', 'SKP', 'DOC', 'DOCX', 'XLS', 'XLSX', 'PPT', 'PPTX', 'ZIP', 'RAR', 'TXT', 'MD'],
+    // Usar configuración centralizada con límites específicos por dispositivo
+    MAX_SIZE_MB: window.FILE_UPLOAD_CONFIG?.MAX_FILE_SIZE_MB || 1500,
+    MAX_SIZE_MOBILE_MB: window.FILE_UPLOAD_CONFIG?.MAX_FILE_SIZE_MOBILE_MB || 1500,
+    ALLOWED_EXTENSIONS: window.FILE_UPLOAD_CONFIG?.ALLOWED_EXTENSIONS || ['PDF', 'JPG', 'JPEG', 'PNG', 'GIF', 'TIFF', 'DWG', 'DXF', 'RVT', 'SKP', 'DOC', 'DOCX', 'XLS', 'XLSX', 'PPT', 'PPTX', 'ZIP', 'RAR', 'TXT', 'MD'],
     
     // Log del límite cargado
     init: function() {
-        if (window.SYSTEM_CONFIG) {
-            console.log(`✅ Límites desde SYSTEM_CONFIG: Desktop=${this.MAX_SIZE_MB}MB, Mobile=${this.MAX_SIZE_MOBILE_MB}MB`);
-        } else {
-            console.warn('⚠️ SYSTEM_CONFIG no encontrado. Usando fallbacks');
-        }
+        console.log(`✅ Límites: Desktop=${this.MAX_SIZE_MB}MB, Mobile=${this.MAX_SIZE_MOBILE_MB}MB`);
     },
     
     // Detectar si es dispositivo móvil

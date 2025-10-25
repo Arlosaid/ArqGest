@@ -335,7 +335,7 @@ WHITENOISE_AUTOREFRESH = DEBUG
 
 # Versionado global para cache-busting en dispositivos móviles
 # Cambiar esta versión en cada deploy para forzar recarga
-STATIC_VERSION = '2025-01-24-v2-fix-cache'
+STATIC_VERSION = '2025-01-24-v5-centralized-config'
 WHITENOISE_SKIP_COMPRESS_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'zip', 'gz', 'tgz', 'bz2', 'tbz', 'xz', 'br']
 # Ventana de renovación anticipada (días antes de end_date)
 RENEWAL_WINDOW_DAYS = int(os.environ.get('RENEWAL_WINDOW_DAYS', '2'))

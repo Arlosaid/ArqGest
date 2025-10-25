@@ -5,16 +5,17 @@
 
 class LargeFileUploader {
     constructor(options = {}) {
-        // Leer el límite desde la variable global (más confiable que meta tag)
-        const maxFileSize = window.SYSTEM_CONFIG?.MAX_FILE_SIZE_MB || 1500;
+        // Usar configuración centralizada
+        const config = window.FILE_UPLOAD_CONFIG || {};
+        const maxFileSize = config.MAX_FILE_SIZE_MB || 1500;
         
-        console.log(`✅ Límite de archivo cargado: ${maxFileSize}MB (desde SYSTEM_CONFIG)`);
+        console.log(`✅ Límite de archivo: ${maxFileSize}MB`);
         
         this.options = {
             maxFileSize: maxFileSize,
-            allowedExtensions: (document.querySelector('meta[name="allowed-extensions"]')?.content || '').split(','),
-            chunkSize: 5 * 1024 * 1024, // 5MB chunks para uploads grandes
-            maxRetries: 3,
+            allowedExtensions: config.ALLOWED_EXTENSIONS || [],
+            chunkSize: (config.CHUNK_SIZE_MB || 5) * 1024 * 1024,
+            maxRetries: config.MAX_RETRIES || 3,
             ...options
         };
         
@@ -239,7 +240,7 @@ class LargeFileUploader {
                 
                 // Verificar si el archivo es muy grande para upload normal
                 const fileSizeMB = file.size / (1024 * 1024);
-                const maxSizeMB = window.SYSTEM_CONFIG?.MAX_FILE_SIZE_MB || 1500;
+                const maxSizeMB = window.FILE_UPLOAD_CONFIG?.MAX_FILE_SIZE_MB || 1500;
                 
                 if (fileSizeMB > 500) {
                     this.showNotification(

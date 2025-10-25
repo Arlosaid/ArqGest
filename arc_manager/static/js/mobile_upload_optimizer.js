@@ -10,18 +10,25 @@ class MobileUploadOptimizer {
         this.uploadQueue = [];
         this.isUploading = false;
         this.currentUpload = null;
-        this.maxConcurrentUploads = this.isMobile ? 1 : 2; // Secuencial en mobile
         
-        // Leer límites desde la configuración global (más confiable que meta tags)
+        // Usar configuración centralizada
+        const config = window.FILE_UPLOAD_CONFIG || {};
+        this.maxConcurrentUploads = this.isMobile 
+            ? (config.MOBILE_MAX_CONCURRENT || 1)
+            : (config.DESKTOP_MAX_CONCURRENT || 2);
+        
+        // Usar límite específico para móviles si está disponible
         const maxFileSizeMB = this.isMobile 
-            ? (window.SYSTEM_CONFIG?.MAX_FILE_SIZE_MOBILE_MB || 200)  // Móvil usa su límite específico
-            : (window.SYSTEM_CONFIG?.MAX_FILE_SIZE_MB || 1500);        // Desktop usa límite general
+            ? (config.MAX_FILE_SIZE_MOBILE_MB || config.MAX_FILE_SIZE_MB || 1500)
+            : (config.MAX_FILE_SIZE_MB || 1500);
         
         this.maxMobileFileSize = maxFileSizeMB * 1024 * 1024;
         
-        console.log(`📱 Mobile Upload Optimizer - Límite: ${maxFileSizeMB}MB (${this.isMobile ? 'Mobile' : 'Desktop'})`);
+        console.log(`📱 Upload Optimizer - Límite: ${maxFileSizeMB}MB (${this.isMobile ? 'Mobile' : 'Desktop'})`);
         
-        this.mobileChunkSize = this.isMobile ? 1024 * 1024 : 2 * 1024 * 1024; // 1MB chunks en mobile
+        this.mobileChunkSize = this.isMobile 
+            ? ((config.MOBILE_CHUNK_SIZE_MB || 1) * 1024 * 1024)
+            : ((config.CHUNK_SIZE_MB || 5) * 1024 * 1024);
         
         this.init();
     }
