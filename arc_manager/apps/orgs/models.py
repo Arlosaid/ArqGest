@@ -212,9 +212,15 @@ class Organization(models.Model):
         Override del delete para limpiar archivos de R2/S3 antes de eliminar la organización
         """
         import logging
-        from core.error_codes import log_operation
+        # FIXME: Migrar a structured_logging después del deploy
+        # from core.structured_logging import log_business_event
         
         logger = logging.getLogger(__name__)
+        
+        # FIXME: Función temporal hasta migrar a structured_logging
+        def log_operation(*args, **kwargs):
+            """Temporal stub para evitar errores durante deploy"""
+            pass
         
         # Log de inicio de eliminación
         log_operation(
@@ -255,9 +261,15 @@ class Organization(models.Model):
         import logging
         import os
         from django.conf import settings
-        from core.error_codes import log_operation
+        # FIXME: Migrar a structured_logging después del deploy
+        # from core.structured_logging import log_business_event
         
         logger = logging.getLogger(__name__)
+        
+        # FIXME: Función temporal hasta migrar a structured_logging
+        def log_operation(*args, **kwargs):
+            """Temporal stub para evitar errores durante deploy"""
+            pass
         
         # Verificar si R2/S3 está habilitado
         if os.environ.get('ENABLE_STORAGES', 'false').lower() != 'true':

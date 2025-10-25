@@ -57,3 +57,7 @@ handler400 = 'core.error_views.bad_request_view'
 handler403 = 'core.error_views.permission_denied_view'
 handler404 = 'core.error_views.page_not_found_view'
 handler500 = 'core.error_views.server_error_view'
+# Note: handler502 is not a Django standard handler - 502 errors are typically
+# handled by the web server (nginx/gunicorn) before reaching Django
+# The template 502.html can be served directly by the web server
+

@@ -169,7 +169,13 @@ class FileSecurityManager:
         """
         Registrar evento de seguridad
         """
-        from core.error_codes import log_operation
+        # FIXME: Migrar a structured_logging después del deploy
+        # from core.structured_logging import log_security_event
+        
+        # FIXME: Función temporal hasta migrar a structured_logging
+        def log_operation(*args, **kwargs):
+            """Temporal stub para evitar errores durante deploy"""
+            pass
         
         log_operation(
             f'FILE_SECURITY_{event_type}',

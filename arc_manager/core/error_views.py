@@ -234,3 +234,23 @@ def page_not_found_view(request, exception=None):
     
     # Para 404, usar el template personalizado existente
     return render(request, '404.html', status=404)
+
+
+def bad_gateway_view(request, exception=None):
+    """
+    Vista personalizada para errores 502 Bad Gateway.
+    Se muestra cuando el servidor no puede conectarse a servicios necesarios.
+    """
+    logger.error(f"Error 502 en {request.path} - Usuario: {getattr(request, 'user', 'Anónimo')}")
+    
+    # Si es una petición AJAX, devolver JSON
+    if request.headers.get('Accept') == 'application/json' or request.path.startswith('/api/'):
+        return JsonResponse({
+            'error': True,
+            'message': 'El servicio está temporalmente no disponible. Por favor, inténtalo en unos momentos.',
+            'code': 502
+        }, status=502)
+    
+    # Para peticiones normales, usar el template personalizado
+    return render(request, '502.html', status=502)
+

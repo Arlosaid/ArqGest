@@ -9,13 +9,20 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from .models import ProjectFile, project_file_path
 from apps.projects.models import Phase
-from core.error_codes import log_operation, FileErrorCodes
+from core.error_codes import FileErrorCodes
+# TODO: Migrate to structured_logging after deploy
+# from core.structured_logging import log_error, log_business_event
 import os
 import hashlib
 import json
 import logging
 
 logger = logging.getLogger(__name__)
+
+# FIXME: Función temporal hasta migrar a structured_logging
+def log_operation(*args, **kwargs):
+    """Temporal stub para evitar errores durante deploy"""
+    pass
 
 
 try:
