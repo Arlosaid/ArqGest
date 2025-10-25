@@ -106,42 +106,118 @@ class OrganizationAdmin(ImportExportModelAdmin):
     
     def delete_model(self, request, obj):
         """
-        Al eliminar una organización, se eliminan automáticamente todos sus usuarios,
-        proyectos, archivos y clientes debido a CASCADE.
+        Al eliminar una organización:
+        1. Se limpian TODOS los archivos de R2/S3 (carpeta organizations/{id}/)
+        2. Se eliminan automáticamente usuarios, proyectos, archivos DB y clientes (CASCADE)
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Recolectar información antes de eliminar
         user_count = obj.users.count()
         org_name = obj.name
+        org_id = obj.id
         
+        try:
+            # Contar archivos en DB (se eliminarán por CASCADE)
+            from apps.files.models import ProjectFile
+            files_count = ProjectFile.objects.filter(
+                phase__project__organization=obj
+            ).count()
+            
+            # Log antes de eliminar
+            logger.info(f"🗑️ Iniciando eliminación de organización {org_id} '{org_name}'")
+            logger.info(f"   └─ {user_count} usuarios, {files_count} archivos en DB")
+            
+        except Exception as e:
+            files_count = 0
+            logger.warning(f"No se pudo contar archivos: {e}")
+        
+        # Eliminar (esto llamará al método delete() del modelo que limpia R2)
         super().delete_model(request, obj)
         
+        # Mensaje de confirmación
+        msg_parts = [f"✅ Organización '{org_name}' eliminada"]
+        
         if user_count > 0:
+            msg_parts.append(f"{user_count} usuario(s)")
+        
+        if files_count > 0:
+            msg_parts.append(f"{files_count} archivo(s) en DB")
+            msg_parts.append("archivos eliminados de R2/S3")
+        
+        self.message_user(
+            request,
+            " junto con ".join(msg_parts) + ".",
+            messages.WARNING
+        )
+        
+        # Mensaje adicional sobre R2
+        import os
+        if os.environ.get('ENABLE_STORAGES', 'false').lower() == 'true':
             self.message_user(
                 request,
-                f"Organización '{org_name}' eliminada junto con {user_count} usuario(s) y todos sus datos asociados.",
-                messages.WARNING
+                f"🗑️ Los archivos de la carpeta 'organizations/{org_id}/' han sido eliminados de R2/S3.",
+                messages.INFO
             )
     
     def delete_queryset(self, request, queryset):
         """
-        Al eliminar organizaciones, se eliminan automáticamente todos sus usuarios,
-        proyectos, archivos y clientes debido a CASCADE.
+        Al eliminar organizaciones en lote:
+        1. Se limpian TODOS los archivos de R2/S3 de cada organización
+        2. Se eliminan automáticamente usuarios, proyectos, archivos DB y clientes (CASCADE)
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Recolectar información antes de eliminar
         total_users = sum(org.users.count() for org in queryset)
         deleted_count = queryset.count()
         
+        try:
+            from apps.files.models import ProjectFile
+            total_files = sum(
+                ProjectFile.objects.filter(phase__project__organization=org).count()
+                for org in queryset
+            )
+        except Exception as e:
+            total_files = 0
+            logger.warning(f"No se pudo contar archivos: {e}")
+        
+        org_ids = list(queryset.values_list('id', flat=True))
+        org_names = list(queryset.values_list('name', flat=True))
+        
+        logger.info(f"🗑️ Iniciando eliminación en lote de {deleted_count} organizaciones")
+        
+        # Eliminar (esto llamará al método delete() de cada modelo que limpia R2)
         super().delete_queryset(request, queryset)
         
+        # Mensaje de confirmación
+        msg_parts = [f"✅ Se eliminaron {deleted_count} organización(es)"]
+        
         if total_users > 0:
+            msg_parts.append(f"{total_users} usuario(s)")
+        
+        if total_files > 0:
+            msg_parts.append(f"{total_files} archivo(s) en DB y R2/S3")
+        
+        self.message_user(
+            request,
+            " junto con ".join(msg_parts) + ".",
+            messages.WARNING
+        )
+        
+        # Mensaje adicional sobre R2
+        import os
+        if os.environ.get('ENABLE_STORAGES', 'false').lower() == 'true':
+            org_folders = ", ".join([f"organizations/{oid}/" for oid in org_ids[:3]])
+            if deleted_count > 3:
+                org_folders += f" y {deleted_count - 3} más"
+            
             self.message_user(
                 request,
-                f"Se eliminaron {deleted_count} organización(es) junto con {total_users} usuario(s) y todos sus datos asociados.",
-                messages.WARNING
-            )
-        else:
-            self.message_user(
-                request,
-                f"Se eliminaron {deleted_count} organización(es) correctamente.",
-                messages.SUCCESS
+                f"🗑️ Archivos eliminados de R2/S3: {org_folders}",
+                messages.INFO
             )
     
     fieldsets = (
