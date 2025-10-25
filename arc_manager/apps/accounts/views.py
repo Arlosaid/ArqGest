@@ -117,41 +117,29 @@ class CustomLoginView(LoginView):
         return response
     
     def form_invalid(self, form):
-        # Registrar intento de login fallido con información clara y directa
+        """Manejar login fallido con logging claro y mensajes de error al usuario"""
         username = form.cleaned_data.get('username', 'No especificado')
         client_ip = self.get_client_ip()
+        user_agent = self.request.META.get('HTTP_USER_AGENT', '')[:100]
         
-        # Verificar si el usuario existe para determinar el motivo del fallo
+        # Verificar si el usuario existe para logging
         try:
             user_exists = User.objects.filter(email=username).exists()
             
-            # Mensaje directo y claro
             if user_exists:
-                error_msg = f"LOGIN FALLIDO - Contraseña incorrecta para {username}"
                 reason = "contraseña_incorrecta"
+                log_msg = f"❌ LOGIN FALLIDO - Contraseña incorrecta | Usuario: {username} | IP: {client_ip}"
             else:
-                error_msg = f"LOGIN FALLIDO - Usuario no existe: {username}"
                 reason = "usuario_no_existe"
+                log_msg = f"❌ LOGIN FALLIDO - Usuario no existe | Email: {username} | IP: {client_ip}"
             
-            # Log con mensaje directo (no solo "login_failed")
-            logger.warning(
-                f"{error_msg} | IP: {client_ip} | User-Agent: {self.request.META.get('HTTP_USER_AGENT', '')[:80]}"
-            )
+            # Un solo log WARNING con toda la info necesaria
+            logger.warning(log_msg)
             
-            # Extra data estructurado para parsing automático
-            logger.warning(
-                "login_failed_detail",
-                extra={
-                    "event": "login_failed",
-                    "reason": reason,
-                    "user": username,
-                    "ip": client_ip,
-                    "user_agent": self.request.META.get('HTTP_USER_AGENT', '')[:100]
-                }
-            )
         except Exception as e:
-            logger.error(f"Error al verificar existencia de usuario {username}: {str(e)}")
+            logger.error(f"Error al verificar usuario en login: {str(e)}")
         
+        # Llamar al parent para que muestre los mensajes de error del formulario
         return super().form_invalid(form)
     
     def get_client_ip(self):

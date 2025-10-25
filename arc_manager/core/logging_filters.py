@@ -279,45 +279,40 @@ class OnlyErrorsFilter(logging.Filter):
 
 class SensitiveDataFilter(logging.Filter):
     """
-    Filtro que remueve datos sensibles de todos los logs
-    GDPR/Privacy compliant - anonimiza emails, tokens
+    Filtro que remueve datos sensibles de logs (passwords, tokens, CSRF)
+    pero MANTIENE emails visibles para trazabilidad y monitoreo interno.
+    
+    IMPORTANTE: Este filtro NO anonimiza emails porque son necesarios para:
+    - Trazabilidad de acciones de usuarios
+    - Debugging y soporte
+    - Monitoreo de seguridad (login attempts, etc)
+    
+    Si necesitas cumplir con GDPR, configura exportación de logs a Sentry
+    y usa anonimización en esa capa externa.
     """
     
     SENSITIVE_PATTERNS = [
         # Tokens CSRF
         (r'csrfmiddlewaretoken=[A-Za-z0-9]{64}', 'csrfmiddlewaretoken=[FILTERED]'),
-        # Passwords
+        # Passwords en URLs/forms
         (r'password=[^&\s]*', 'password=[FILTERED]'),
         # API Keys
         (r'api_key=[^&\s]*', 'api_key=[FILTERED]'),
         # Tokens de sesión
         (r'sessionid=[^&\s]*', 'sessionid=[FILTERED]'),
-        # Email completos - MEJORADO: mostrar hash en lugar de primera parte
-        (r'\b([a-zA-Z0-9._%+-]+)@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b', lambda m: f"user_{hash(m.group(0)) % 10000:04d}@[REDACTED]"),
+        # Authorization headers
+        (r'Authorization:\s*Bearer\s+[A-Za-z0-9\-._~+/]+=*', 'Authorization: Bearer [FILTERED]'),
     ]
-    
-    @staticmethod
-    def _anonymize_email(email):
-        """Anonimiza un email de forma consistente usando hash"""
-        if not email:
-            return email
-        # Usar hash para generar ID consistente pero anónimo
-        email_hash = hash(email.lower()) % 10000
-        return f"user_{email_hash:04d}@[REDACTED]"
     
     def filter(self, record):
         """
-        Remueve datos sensibles del registro de log
+        Remueve datos sensibles del registro de log, pero mantiene emails
         """
         if hasattr(record, 'msg') and isinstance(record.msg, str):
             cleaned_msg = record.msg
             
             for pattern, replacement in self.SENSITIVE_PATTERNS:
-                if callable(replacement):
-                    # Para patterns con funciones lambda (emails)
-                    cleaned_msg = re.sub(pattern, replacement, cleaned_msg, flags=re.IGNORECASE)
-                else:
-                    cleaned_msg = re.sub(pattern, replacement, cleaned_msg, flags=re.IGNORECASE)
+                cleaned_msg = re.sub(pattern, replacement, cleaned_msg, flags=re.IGNORECASE)
             
             record.msg = cleaned_msg
         
@@ -328,10 +323,7 @@ class SensitiveDataFilter(logging.Filter):
                 if isinstance(arg, str):
                     cleaned_arg = arg
                     for pattern, replacement in self.SENSITIVE_PATTERNS:
-                        if callable(replacement):
-                            cleaned_arg = re.sub(pattern, replacement, cleaned_arg, flags=re.IGNORECASE)
-                        else:
-                            cleaned_arg = re.sub(pattern, replacement, cleaned_arg, flags=re.IGNORECASE)
+                        cleaned_arg = re.sub(pattern, replacement, cleaned_arg, flags=re.IGNORECASE)
                     cleaned_args.append(cleaned_arg)
                 else:
                     cleaned_args.append(arg)

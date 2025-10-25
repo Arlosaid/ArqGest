@@ -46,14 +46,8 @@ class CustomAuthenticationForm(AuthenticationForm):
                 user = User.objects.filter(email=username).first()
                 
                 if user and not user.is_active:
-                    # Log movido a nivel WARNING con formato estructurado
-                    logger.warning(
-                        "inactive_account_login_attempt",
-                        extra={
-                            "event": "inactive_account_login",
-                            "user": username,
-                        }
-                    )
+                    # Log para cuenta inactiva
+                    logger.warning(f"⚠️ Intento de login en cuenta inactiva: {username}")
                     raise ValidationError(
                         'Tu cuenta está inactiva. Por favor, contacta con el administrador de tu organización para reactivarla.',
                         code='inactive'
@@ -61,17 +55,9 @@ class CustomAuthenticationForm(AuthenticationForm):
             except User.DoesNotExist:
                 pass
         
-        try:
-            result = super().clean()
-            return result
-        except ValidationError as e:
-            # Log de validación eliminado - ya se registra en views.py (form_invalid)
-            # para evitar duplicación
-            
-            # Si ocurre un error, asegúrate de que use los mensajes en español
-            if hasattr(e, 'message') and e.message == 'Please enter a correct username and password. Note that both fields may be case-sensitive.':
-                e.message = self.error_messages['invalid_login']
-            raise e
+        # El logging de login fallido se hace en views.py (form_invalid)
+        # para evitar duplicación
+        return super().clean()
 
 
 User = get_user_model()
