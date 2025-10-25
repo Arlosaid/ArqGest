@@ -31,11 +31,12 @@ class LoginRequiredMiddleware:
 
     def __call__(self, request):
         path = request.path_info.lstrip('/')
-        client_ip = self.get_client_ip(request)
         
         if not request.user.is_authenticated:
             # Si no está autenticado, verificar si la URL es pública
             if not any(pattern.match(path) for pattern in self.exempt_urls):
+                # NO loguear - esto se ejecuta en CADA request no autenticado
+                # Generaría spam masivo
                 return redirect(f'{self.login_url}?next=/{path}')
         else:
             # Si está autenticado, optimizar el objeto user
@@ -43,7 +44,9 @@ class LoginRequiredMiddleware:
                 request.user = User.objects.select_related('organization').get(pk=request.user.pk)
             except User.DoesNotExist:
                 # Caso muy raro: el usuario fue borrado durante su sesión
-                logger.error(f"Usuario autenticado no encontrado en BD - ID: {request.user.pk}")
+                logger.error(
+                    f"USUARIO AUTENTICADO NO ENCONTRADO | User ID: {request.user.pk}"
+                )
                 pass
 
         response = self.get_response(request)
@@ -83,6 +86,9 @@ class PasswordChangeRequiredMiddleware:
             # Si necesita cambiar contraseña y no está en una URL exenta
             if (request.user.password_change_required and 
                 not any(request.path.startswith(url) for url in self.exempt_urls)):
+                
+                # NO loguear - esto se ejecuta en CADA request
+                # Solo loguear en la vista de password change
                 return redirect('/accounts/force-password-change/')
 
         response = self.get_response(request)
@@ -116,7 +122,6 @@ class SuperuserRestrictMiddleware:
     def __call__(self, request):
         if request.user.is_authenticated and request.user.is_superuser:
             path = request.path.lstrip('/')
-            client_ip = self.get_client_ip(request)
             
             # Permitir acceso al panel de admin
             if path.startswith('admin/'):
@@ -125,8 +130,10 @@ class SuperuserRestrictMiddleware:
                     request.session['admin_welcome_shown'] = True
                 return self.get_response(request)
 
-            # Bloquear acceso al resto de la app
+            # Bloquear acceso al resto de la app para superusers
             if not any(pattern.match(path) for pattern in self.exempt_urls):
+                # NO loguear - esto se ejecuta en CADA request de superuser
+                # Solo loguear el login de superuser (ya está en views.py)
                 return redirect('/admin/')
         
         response = self.get_response(request)

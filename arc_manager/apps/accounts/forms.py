@@ -39,15 +39,18 @@ class CustomAuthenticationForm(AuthenticationForm):
         username = self.cleaned_data.get('username')
         password = self.cleaned_data.get('password')
         
-        # Primero verificar si el usuario existe y está inactivo
+        # Verificar si el usuario existe y está inactivo
         if username and password:
             try:
                 User = get_user_model()
                 user = User.objects.filter(email=username).first()
                 
                 if user and not user.is_active:
-                    # Log para cuenta inactiva
-                    logger.warning(f"⚠️ Intento de login en cuenta inactiva: {username}")
+                    # Log solo para cuenta inactiva (evento de seguridad importante)
+                    from django.utils import timezone
+                    logger.warning(
+                        f"LOGIN BLOQUEADO - CUENTA INACTIVA | Email: {username}"
+                    )
                     raise ValidationError(
                         'Tu cuenta está inactiva. Por favor, contacta con el administrador de tu organización para reactivarla.',
                         code='inactive'
@@ -56,7 +59,6 @@ class CustomAuthenticationForm(AuthenticationForm):
                 pass
         
         # El logging de login fallido se hace en views.py (form_invalid)
-        # para evitar duplicación
         return super().clean()
 
 

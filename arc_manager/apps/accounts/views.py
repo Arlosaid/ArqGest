@@ -22,30 +22,27 @@ class CustomLoginView(LoginView):
     authentication_form = CustomAuthenticationForm
     
     def dispatch(self, request, *args, **kwargs):
-        """Process login request"""
-        # Log eliminado - se registra en form_valid/form_invalid para evitar duplicación
+        """Process login request - Solo log en desarrollo para debugging"""
+        # Log eliminado para evitar spam - el inicio de login se detecta en form_valid/form_invalid
         return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
         user = form.get_user()
         client_ip = self.get_client_ip()
-        user_agent = self.request.META.get('HTTP_USER_AGENT', '')[:200]  # Limitar longitud
+        user_agent = self.request.META.get('HTTP_USER_AGENT', '')[:200]
         
         # Configurar duración de sesión según checkbox "Recordarme"
         remember_me = form.cleaned_data.get('remember_me', False)
         if remember_me:
-            # Extender sesión a 30 días (2592000 segundos)
-            self.request.session.set_expiry(2592000)
+            self.request.session.set_expiry(2592000)  # 30 días
             session_duration = "30 días"
         else:
-            # Usar duración predeterminada de 7 días
-            self.request.session.set_expiry(604800)
+            self.request.session.set_expiry(604800)  # 7 días
             session_duration = "7 días"
         
-        # Limpiar cualquier flag de sesión anterior (para evitar mensajes cruzados)
+        # Limpiar flags de sesión anterior
         session_keys_to_clear = [
             'admin_welcome_shown',
-            # Limpiar flags de warnings de suscripción
             'subscription_warning_expired_shown',
             'subscription_warning_expires_soon_shown', 
             'subscription_warning_user_limit_exceeded_shown',
@@ -58,29 +55,22 @@ class CustomLoginView(LoginView):
         
         # Si es superuser, redirigir al admin de Django
         if user.is_superuser:
-            # Hacer login primero
             login(self.request, user)
             
-            # Log de seguridad CRÍTICO para superusuarios - CLARO Y DIRECTO
+            # Log de seguridad CRÍTICO para superusuarios (nivel WARNING para alertas)
             logger.warning(
-                f"🔐 SUPERUSER LOGIN EXITOSO - {user.email} | "
-                f"IP: {client_ip} | "
-                f"User-Agent: {user_agent[:80]} | "
+                f"SUPERUSER LOGIN | Email: {user.email} | IP: {client_ip} | "
                 f"Sesión: {session_duration}"
             )
             
-            # Redirigir directamente al admin sin mensaje
-            # El mensaje se mostrará en el admin mediante el middleware
             return redirect('/admin/')
         
-        # Para usuarios normales y org_admin, verificar si necesita cambio de contraseña
+        # Verificar si necesita cambio de contraseña
         if getattr(user, 'password_change_required', False):
-            # Hacer login primero
             login(self.request, user)
             logger.info(
-                f"⚠️ CAMBIO DE CONTRASEÑA REQUERIDO - {user.email} | IP: {client_ip}"
+                f"PASSWORD CHANGE REQUIRED | Email: {user.email} | IP: {client_ip}"
             )
-            # Redirigir al cambio forzado de contraseña
             return redirect('/accounts/force-password-change/')
         
         user_info = {
@@ -93,53 +83,56 @@ class CustomLoginView(LoginView):
         # Proceder con el login normal
         response = super().form_valid(form)
         
-        # Registrar login exitoso con información completa para SEGURIDAD
+        # Guardar timestamp de login en la sesión para calcular duración
+        self.request.session['_auth_user_login_time'] = timezone.now().isoformat()
+        
+        # Log consolidado de login exitoso (UN SOLO LOG)
         logger.info(
-            f"✅ LOGIN EXITOSO - {user_info['email']} (ID: {user_info['id']}) | "
+            f"LOGIN EXITOSO | Email: {user_info['email']} | ID: {user_info['id']} | "
             f"Rol: {user_info['role']} | Org: {user_info['organization']} | "
             f"IP: {client_ip} | Sesión: {session_duration}"
         )
         
-        # Log de seguridad adicional para admins (solo org_admin, superuser ya logueó arriba)
+        # Log adicional SOLO para org_admin (seguridad)
         if user.is_org_admin and not user.is_superuser:
             logger.warning(
-                "admin_login",
-                extra={
-                    "event": "admin_login",
-                    "user": user.email,
-                    "user_id": user.pk,
-                    "role": "org_admin",
-                    "ip": client_ip,
-                    "session_duration": session_duration
-                }
+                f"ORG_ADMIN LOGIN | Email: {user.email} | "
+                f"Org: {user_info['organization']} | IP: {client_ip}"
             )
         
         return response
     
     def form_invalid(self, form):
-        """Manejar login fallido con logging claro y mensajes de error al usuario"""
-        username = form.cleaned_data.get('username', 'No especificado')
+        """Manejar login fallido con mensaje ESPECÍFICO sobre qué está mal"""
+        username = form.cleaned_data.get('username', 'N/A')
         client_ip = self.get_client_ip()
-        user_agent = self.request.META.get('HTTP_USER_AGENT', '')[:100]
         
-        # Verificar si el usuario existe para logging
+        # Determinar el motivo EXACTO del error (UN SOLO LOG)
+        error_detail = "desconocido"
         try:
-            user_exists = User.objects.filter(email=username).exists()
-            
-            if user_exists:
-                reason = "contraseña_incorrecta"
-                log_msg = f"❌ LOGIN FALLIDO - Contraseña incorrecta | Usuario: {username} | IP: {client_ip}"
+            if not username or username == 'N/A':
+                error_detail = "Email vacío"
             else:
-                reason = "usuario_no_existe"
-                log_msg = f"❌ LOGIN FALLIDO - Usuario no existe | Email: {username} | IP: {client_ip}"
+                user_exists = User.objects.filter(email=username).exists()
+                
+                if not user_exists:
+                    error_detail = "Email NO existe"
+                else:
+                    user = User.objects.get(email=username)
+                    if not user.is_active:
+                        error_detail = "Cuenta INACTIVA"
+                    else:
+                        error_detail = "Contraseña INCORRECTA"
             
-            # Un solo log WARNING con toda la info necesaria
-            logger.warning(log_msg)
+            # UN SOLO LOG WARNING - Información crítica sin ruido
+            logger.warning(
+                f"LOGIN FALLIDO | Motivo: {error_detail} | "
+                f"Email: {username} | IP: {client_ip}"
+            )
             
         except Exception as e:
-            logger.error(f"Error al verificar usuario en login: {str(e)}")
+            logger.error(f"ERROR verificando login | Email: {username} | Error: {str(e)}")
         
-        # Llamar al parent para que muestre los mensajes de error del formulario
         return super().form_invalid(form)
     
     def get_client_ip(self):
@@ -165,20 +158,16 @@ class CustomLogoutView(View):
         if request.user.is_authenticated:
             email = request.user.email
             user_id = request.user.pk
-            role = request.user.role_display()
-            organization = request.user.get_organization_name()
             client_ip = self.get_client_ip(request)
-            session_key = request.session.session_key
             
+            # UN SOLO LOG - Sin calcular duración de sesión (overhead innecesario)
             logger.info(
-                f"LOGOUT - Usuario: {email} (ID: {user_id}), Rol: {role}, "
-                f"Org: {organization}, IP: {client_ip}"
+                f"LOGOUT | Email: {email} | ID: {user_id} | IP: {client_ip}"
             )
         
         # Limpiar flags de sesión específicos antes del logout
         session_keys_to_clear = [
             'admin_welcome_shown',
-            # Limpiar flags de warnings de suscripción
             'subscription_warning_expired_shown',
             'subscription_warning_expires_soon_shown', 
             'subscription_warning_user_limit_exceeded_shown',
@@ -192,13 +181,11 @@ class CustomLogoutView(View):
         # Limpiar mensajes pendientes de la sesión actual
         storage = messages.get_messages(request)
         for message in storage:
-            pass  # Esto consume/limpia los mensajes
+            pass
         
-        # Forzar guardar la sesión limpia antes del logout
         request.session.save()
-        
         logout(request)
-        logger.info(f"Logout completado exitosamente - IP: {client_ip}")
+        
         return redirect('accounts:login')
     
     def get_client_ip(self, request):
@@ -236,28 +223,30 @@ class SecurePasswordResetView(PasswordResetView):
         cache_key = f"password_reset_{email}"
         client_ip = self.get_client_ip()
         
-        logger.info(f"Solicitud de reset de contraseña - Email: {email}, IP: {client_ip}")
-        
-        # Verificar si ya hay una solicitud reciente
+        # Verificar si ya hay una solicitud reciente (rate limiting)
         if cache.get(cache_key):
-            logger.warning(f"Reset de contraseña duplicado bloqueado - Email: {email}, IP: {client_ip}")
+            logger.warning(
+                f"PASSWORD RESET BLOQUEADO | Email: {email} | IP: {client_ip} | "
+                f"Razón: Solicitud reciente"
+            )
             messages.info(self.request, "Ya enviamos instrucciones. Revisa tu correo o espera 15 minutos para solicitar otro.", extra_tags='password_reset')
             return self.form_invalid(form)
         
-        # Verificar si el usuario existe
+        # Verificar si el usuario existe (UN SOLO LOG)
         try:
             user_exists = User.objects.filter(email=email, is_active=True).exists()
             if user_exists:
-                logger.info(f"Reset de contraseña procesado para usuario existente: {email}")
+                logger.info(f"PASSWORD RESET | Email: {email} | IP: {client_ip}")
             else:
-                logger.warning(f"Reset de contraseña solicitado para email no registrado: {email} (IP: {client_ip})")
+                logger.warning(
+                    f"PASSWORD RESET | Email NO registrado: {email} | IP: {client_ip}"
+                )
         except Exception as e:
-            logger.error(f"Error al verificar usuario para reset: {email} - {str(e)}")
+            logger.error(f"ERROR en password reset | Email: {email} | Error: {str(e)}")
         
-        # Guardar en cache por 15 minutos
+        # Guardar en cache por 15 minutos para evitar spam
         cache.set(cache_key, True, timeout=900)
         
-        # Usar el método estándar de Django
         return super().form_valid(form)
     
     def get_client_ip(self):
@@ -278,7 +267,9 @@ class ForcePasswordChangeView(View):
     def get(self, request):
         # Si el usuario no necesita cambiar contraseña, redirigir al dashboard
         if not getattr(request.user, 'password_change_required', False):
-            logger.warning(f"User {request.user.email} accessed force-password-change without requirement")
+            logger.warning(
+                f"ACCESO NO AUTORIZADO PASSWORD CHANGE | Email: {request.user.email}"
+            )
             return redirect('/')
         
         form = ForcePasswordChangeForm(user=request.user)
@@ -287,33 +278,39 @@ class ForcePasswordChangeView(View):
     def post(self, request):
         client_ip = self.get_client_ip()
         
-        # Si el usuario no necesita cambiar contraseña, redirigir al dashboard
+        # Si el usuario no necesita cambiar contraseña, redirigir
         if not getattr(request.user, 'password_change_required', False):
-            logger.warning(f"Usuario {request.user.email} intentó cambio de contraseña sin requerimiento (IP: {client_ip})")
+            logger.warning(
+                f"INTENTO NO AUTORIZADO PASSWORD CHANGE | Email: {request.user.email}"
+            )
             return redirect('/')
         
         form = ForcePasswordChangeForm(user=request.user, data=request.POST)
         if form.is_valid():
             try:
-                # Cambiar la contraseña
                 user = request.user
                 user.set_password(form.cleaned_data['new_password1'])
-                user.password_change_required = False  # Ya no necesita cambiar contraseña
+                user.password_change_required = False
                 user.save()
                 
-                # Mantener la sesión activa después del cambio de contraseña
                 update_session_auth_hash(request, user)
                 
-                logger.info(f"Cambio forzado de contraseña exitoso - Usuario: {user.email}, IP: {client_ip}")
+                logger.info(
+                    f"PASSWORD CHANGE EXITOSO | Email: {user.email} | IP: {client_ip}"
+                )
                 messages.success(request, '¡Contraseña cambiada exitosamente! Ahora puedes acceder a todas las funciones del sistema.')
                 
-                # Redirigir al dashboard principal
                 return redirect('/')
             except Exception as e:
-                logger.error(f"Error en cambio forzado de contraseña para {request.user.email}: {str(e)}")
+                logger.error(
+                    f"ERROR PASSWORD CHANGE | Email: {request.user.email} | Error: {str(e)}"
+                )
                 messages.error(request, 'Ocurrió un error al cambiar la contraseña. Por favor inténtalo de nuevo.')
         else:
-            logger.warning(f"Formulario inválido en cambio forzado de contraseña - Usuario: {request.user.email}, Errores: {form.errors.as_text()}")
+            logger.warning(
+                f"PASSWORD CHANGE FALLIDO | Email: {request.user.email} | "
+                f"Errores: {form.errors.as_text()}"
+            )
         
         return render(request, self.template_name, {'form': form})
     
