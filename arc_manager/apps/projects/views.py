@@ -16,21 +16,28 @@ from datetime import datetime
 import os
 from django.core.files.storage import default_storage
 from .models import Project, Task, Phase, PhaseTemplate, ProjectPayment
-from core.error_codes import (
-    log_operation, 
-    TaskErrorCodes, 
-    ProjectErrorCodes,
-    log_performance_warning
-)
+from core.error_codes import TaskErrorCodes, ProjectErrorCodes
+from core.structured_logging import log_error, log_warning, log_info, log_slow_operation
 
 # Enhanced logging helper with error codes
 def log_task_operation(operation, user_email, error_code=None, level='INFO', **kwargs):
     """Enhanced task operation logging with structured error codes"""
-    return log_operation(operation, user_email, logger, level=level, error_code=error_code, **kwargs)
+    if level == 'ERROR':
+        log_error(event=operation, error_code=error_code, user_email=user_email, **kwargs)
+    elif level == 'WARNING':
+        log_warning(event=operation, error_code=error_code, user_email=user_email, **kwargs)
+    else:
+        log_info(event=operation, error_code=error_code, user_email=user_email, **kwargs)
 
 def log_project_operation(operation, user_email, error_code=None, level='INFO', **kwargs):
     """Enhanced project operation logging with structured error codes"""
-    return log_operation(operation, user_email, logger, level=level, error_code=error_code, **kwargs)
+    if level == 'ERROR':
+        log_error(event=operation, error_code=error_code, user_email=user_email, **kwargs)
+    elif level == 'WARNING':
+        log_warning(event=operation, error_code=error_code, user_email=user_email, **kwargs)
+    else:
+        log_info(event=operation, error_code=error_code, user_email=user_email, **kwargs)
+
 from apps.files.models import ProjectFile
 from .forms import ProjectForm, TaskForm, PhaseTemplateForm, PhaseFormSet
 from .services import create_phases_for_project  # Importar el nuevo servicio
