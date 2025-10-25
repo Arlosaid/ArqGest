@@ -202,7 +202,8 @@ AXES_LOCKOUT_CALLABLE = None
 
 # Reducir verbosidad de AXES - solo loguear cuando hay bloqueos (WARNING+)
 AXES_VERBOSE = False
-AXES_LOGGER = 'axes.watch_login'
+# AXES_LOGGER está deprecado en versiones recientes de AXES
+# El logging se maneja directamente en accounts/views.py
 
 
 # Configuración de cache (usando Redis)
@@ -732,10 +733,16 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
-        # AXES: Solo loguear WARNING+ (bloqueos reales)
+        # AXES: SILENCIADO - El logging se maneja en accounts/views.py
+        # Solo logs CRÍTICOS para evitar ruido innecesario con info hasheada
+        'axes': {
+            'handlers': [],  # Sin handlers = sin logs
+            'level': 'CRITICAL',
+            'propagate': False,
+        },
         'axes.watch_login': {
-            'handlers': ['console_dev', 'console_prod'],
-            'level': 'WARNING',
+            'handlers': [],  # Sin handlers = sin logs
+            'level': 'CRITICAL',
             'propagate': False,
         },
     },
