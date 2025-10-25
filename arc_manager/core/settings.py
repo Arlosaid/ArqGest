@@ -48,7 +48,7 @@ LOG_REQUESTS = os.environ.get('LOG_REQUESTS', 'true').lower() == 'true'  # Habil
 LOG_ONLY_ERRORS = os.environ.get('LOG_ONLY_ERRORS', 'false').lower() == 'true'
 LOG_SLOW_REQUESTS = os.environ.get('LOG_SLOW_REQUESTS', 'true').lower() == 'true'
 SAMPLE_RATE = float(os.environ.get('SAMPLE_RATE', '0'))  # 0 = sin sampling
-SLOW_REQUEST_THRESHOLD = int(os.environ.get('SLOW_REQUEST_THRESHOLD', '2000'))  # 2 segundos
+SLOW_REQUEST_THRESHOLD = int(float(os.environ.get('SLOW_REQUEST_THRESHOLD', '2000')))  # 2 segundos
 
 # Configuración mejorada de ALLOWED_HOSTS
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
@@ -676,25 +676,26 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        # django.request: SOLO 1 handler para evitar duplicación
         'django.request': {
-            'handlers': ['stderr', 'mail_admins'],
-            'level': 'ERROR',  # Solo errores HTTP
-            'propagate': False,
+            'handlers': ['stderr'],
+            'level': 'ERROR',
+            'propagate': False,  # CRÍTICO: NO propagar para evitar duplicación
         },
         'django.security': {
-            'handlers': ['stderr', 'mail_admins'],
+            'handlers': ['stderr'],
             'level': 'WARNING',
             'propagate': False,
         },
-        # Django server: logs profesionales del middleware
+        # Django server: reducido a WARNING
         'django.server': {
             'handlers': ['console_dev', 'console_prod'],
-            'level': 'WARNING',  # Solo warnings y errores para mantener logs limpios
+            'level': 'WARNING',
             'propagate': False,
         },
         'django.utils.autoreload': {
             'handlers': [],
-            'level': 'WARNING',  # Solo warnings y errores
+            'level': 'WARNING',
             'propagate': False,
         },
         'apps': {
@@ -708,13 +709,18 @@ LOGGING = {
             'propagate': False,
         },
         'apps.accounts': {
-            'handlers': ['console_dev', 'console_prod', 'stderr'],
+            'handlers': ['console_dev', 'console_prod'],
             'level': 'INFO',
-            'propagate': False,
+            'propagate': False,  # NO propagar a root
         },
         'core': {
             'handlers': ['console_dev', 'console_prod'],
             'level': 'INFO',
+            'propagate': False,
+        },
+        'core.email': {
+            'handlers': ['console_dev', 'console_prod'],
+            'level': 'WARNING',  # Solo warnings y errores de email
             'propagate': False,
         },
         'core.logging': {
@@ -724,7 +730,7 @@ LOGGING = {
         },
     },
     'root': {
-        'handlers': ['console_prod', 'stderr'],
+        'handlers': ['console_prod'],  # Solo console_prod, stderr ya está en loggers específicos
         'level': 'WARNING',
     },
 }

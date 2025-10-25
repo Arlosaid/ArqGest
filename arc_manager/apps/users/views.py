@@ -146,8 +146,8 @@ class SimpleUserCreateView(LoginRequiredMixin, View):
                             f'Por favor, proporciona las credenciales manualmente: {user.email}'
                         )
                     
-                    # Log para diagnosticar el envío en cualquier entorno (incluye contraseña temporal)
-                    logger.warning(f"Error enviando email a usuario creado: {user.email} - Contraseña temporal: {temp_password}")
+                    # NUNCA logear passwords - vulnerabilidad de seguridad crítica
+                    logger.warning(f"Error enviando email a usuario creado: {user.email}")
                 
                 return redirect('users:user_list')
                 

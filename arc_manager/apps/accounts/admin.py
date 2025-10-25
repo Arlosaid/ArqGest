@@ -168,19 +168,17 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
             # Guardar el usuario primero
             super().save_model(request, obj, form, change)
             
-            # Enviar credenciales automáticamente
+            # Enviar credenciales automáticamente - solo logear si falla
             try:
-                logger.info(f"[ADMIN] Auto-enviando credenciales para nuevo usuario: {obj.email}")
                 result = send_new_user_email(obj, password)
                 
                 if result:
-                    logger.info(f"[ADMIN] Credenciales enviadas automáticamente a {obj.email}")
                     messages.success(
                         request, 
                         f"✅ Usuario creado exitosamente. Las credenciales fueron enviadas automáticamente a {obj.email}"
                     )
                 else:
-                    logger.warning(f"[ADMIN] Falló el envío automático de credenciales a {obj.email}")
+                    logger.error(f"[ADMIN] Failed to send credentials to {obj.email}")
                     messages.warning(
                         request, 
                         f"⚠️ Usuario creado pero falló el envío de credenciales a {obj.email}. "
@@ -362,7 +360,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
                     send_new_user_email(user, new_password)
                     success_count += 1
                     processed_emails.append(user.email)
-                    logger.info(f"[ADMIN] Credentials sent to {user.email}")
+                    # Solo logear errores, no éxitos
                 except Exception as e:
                     error_count += 1
                     error_details.append(f"{user.email} - {str(e)[:50]}...")
