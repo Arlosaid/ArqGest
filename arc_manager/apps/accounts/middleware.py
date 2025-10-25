@@ -10,7 +10,8 @@ from django.template import loader
 import logging
 import re
 from django.utils import timezone
-from core.error_codes import log_operation, SystemErrorCodes
+from core.error_codes import SystemErrorCodes
+from core.structured_logging import log_error
 
 logger = logging.getLogger('apps.accounts')
 User = get_user_model()
@@ -164,21 +165,19 @@ class ErrorHandlingMiddleware(MiddlewareMixin):
             elif 'ValidationError' in str(type(exception)):
                 error_code = SystemErrorCodes.SYSTEM_MIDDLEWARE_AUTH_ERROR
             
-            # Log estructurado del error 500
-            log_operation(
-                'UNHANDLED_EXCEPTION',
-                user_email,
-                logger,
-                level='ERROR',
+            # Log estructurado del error 500 (solo si no es un 404)
+            log_error(
+                event="unhandled_exception",
                 error_code=error_code,
+                error_message=str(exception),
                 path=request.path,
                 method=request.method,
                 client_ip=client_ip,
                 user_agent=request.META.get('HTTP_USER_AGENT', ''),
                 referer=request.META.get('HTTP_REFERER', ''),
                 exception_type=str(type(exception).__name__),
-                exception_message=str(exception),
-                exception=exception
+                user_email=user_email,
+                logger_name='django.request'
             )
             
             # Para requests AJAX, devolver JSON

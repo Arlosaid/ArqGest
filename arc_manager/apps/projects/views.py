@@ -1412,9 +1412,15 @@ def phase_files_paginated(request, project_id, phase_id):
     """
     from django.core.cache import cache
     from django.conf import settings
-    from core.error_codes import log_operation
+    # FIXME: Migrar a structured_logging después del deploy
+    # from core.structured_logging import log_error
     import logging
     logger = logging.getLogger(__name__)
+    
+    # FIXME: Función temporal hasta migrar a structured_logging
+    def log_operation(*args, **kwargs):
+        """Temporal stub para evitar errores durante deploy"""
+        pass
     
     try:
         phase = get_object_or_404(Phase, id=phase_id, project_id=project_id, project__organization=request.user.organization)

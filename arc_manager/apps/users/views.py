@@ -11,18 +11,14 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import logging
 from django.conf import settings
-from core.error_codes import log_operation, UserErrorCodes, log_operation_with_context
+from core.error_codes import UserErrorCodes
+from core.structured_logging import log_error, log_business_event
 
 from .forms import SimpleUserCreateForm, SimpleUserEditForm
 from core.mixins import PageSizeMixin
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
-
-# Enhanced logging helper for user operations
-def log_user_operation(operation, user_email, error_code=None, level='INFO', **kwargs):
-    """Enhanced user operation logging with structured error codes"""
-    return log_operation(operation, user_email, logger, level=level, error_code=error_code, **kwargs)
 
 class UserListView(LoginRequiredMixin, PageSizeMixin, ListView):
     """Vista para listar usuarios - Solo para org_admin"""
@@ -157,26 +153,24 @@ class SimpleUserCreateView(LoginRequiredMixin, View):
                 
             except IntegrityError as e:
                 # Posible condición de carrera con email duplicado u otra unicidad
-                log_operation(
-                    'CREATE_USER_ERROR',
-                    request.user.email,
-                    logger,
-                    level='WARNING',
+                log_error(
+                    event="user_create_failed",
                     error_code=UserErrorCodes.USER_CREATE_EMAIL_DUPLICATE,
+                    error_message="Email duplicado",
                     target_email=form.cleaned_data.get('email'),
-                    exception=str(e)
+                    exception_type=str(type(e).__name__),
+                    logger_name=__name__
                 )
                 form.add_error('email', 'Este correo ya está registrado.')
             except Exception as e:
                 # Log detallado del error para desarrolladores
-                log_operation(
-                    'CREATE_USER_ERROR',
-                    request.user.email,
-                    logger,
-                    level='ERROR',
+                log_error(
+                    event="user_create_failed",
                     error_code=UserErrorCodes.USER_CREATE_UNEXPECTED_ERROR,
+                    error_message=str(e),
                     target_email=form.cleaned_data.get('email', 'unknown'),
-                    exception=str(e)
+                    exception_type=str(type(e).__name__),
+                    logger_name=__name__
                 )
                 
                 # Siempre mostrar mensaje amigable, nunca errores técnicos

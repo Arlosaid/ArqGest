@@ -7,7 +7,8 @@ import logging
 import resend
 from django.conf import settings
 from django.core.mail.backends.base import BaseEmailBackend
-from core.error_codes import EmailErrorCodes, log_operation
+from core.error_codes import EmailErrorCodes
+from core.structured_logging import log_error, log_info
 
 logger = logging.getLogger('core.email')
 
@@ -23,26 +24,22 @@ class ResendBackend(BaseEmailBackend):
         self.api_key = getattr(settings, 'RESEND_API_KEY', None)
         
         if not self.api_key:
-            log_operation(
-                'EMAIL_BACKEND_INIT',
-                'system',
-                logger,
-                level='ERROR',
+            log_error(
+                event='email_backend_init',
                 error_code=EmailErrorCodes.EMAIL_CONFIG_API_KEY_MISSING,
-                reason='RESEND_API_KEY no configurado en variables de entorno'
+                reason='RESEND_API_KEY no configurado en variables de entorno',
+                logger_name='core.email'
             )
             raise ValueError("RESEND_API_KEY no esta configurado")
         
         # Configurar Resend con el API key
         resend.api_key = self.api_key
         
-        log_operation(
-            'EMAIL_BACKEND_INIT',
-            'system',
-            logger,
-            level='INFO',
+        log_info(
+            event='email_backend_init',
             backend='ResendBackend',
-            api_key_prefix=self.api_key[:10] if self.api_key else 'None'
+            api_key_prefix=self.api_key[:10] if self.api_key else 'None',
+            logger_name='core.email'
         )
     
     def send_messages(self, email_messages):
@@ -121,16 +118,15 @@ class ResendBackend(BaseEmailBackend):
                 email_data["reply_to"] = message.reply_to
             
             # Log inicio de envío
-            log_operation(
-                'EMAIL_SEND_START',
-                recipients,
-                logger,
-                level='INFO',
+            log_info(
+                event='email_send_start',
+                recipients=recipients,
                 sender=sender,
                 subject=message.subject[:50],
                 recipients_count=len(message.to),
                 has_html='html' in email_data,
-                has_attachments=len(message.attachments) if hasattr(message, 'attachments') else 0
+                has_attachments=len(message.attachments) if hasattr(message, 'attachments') else 0,
+                logger_name='core.email'
             )
             
             # Enviar usando Resend
@@ -139,31 +135,29 @@ class ResendBackend(BaseEmailBackend):
             # Verificar respuesta
             if response and isinstance(response, dict) and 'id' in response:
                 # Log exitoso con trazabilidad completa
-                log_operation(
-                    'EMAIL_SEND_SUCCESS',
-                    recipients,
-                    logger,
-                    level='INFO',
+                log_info(
+                    event='email_send_success',
                     error_code=EmailErrorCodes.EMAIL_SEND_SUCCESS,
                     email_id=response['id'],
+                    recipients=recipients,
                     sender=sender,
                     subject=message.subject[:50],
                     provider='Resend',
-                    recipients_count=len(message.to)
+                    recipients_count=len(message.to),
+                    logger_name='core.email'
                 )
                 return True
             else:
                 # Respuesta inesperada
-                log_operation(
-                    'EMAIL_SEND_WARNING',
-                    recipients,
-                    logger,
-                    level='WARNING',
+                log_error(
+                    event='email_send_warning',
                     error_code=EmailErrorCodes.EMAIL_SEND_API_ERROR,
+                    recipients=recipients,
                     sender=sender,
                     subject=message.subject[:50],
                     response=str(response)[:100],
-                    reason='Respuesta inesperada de Resend API'
+                    reason='Respuesta inesperada de Resend API',
+                    logger_name='core.email'
                 )
                 return False
                 
@@ -182,18 +176,17 @@ class ResendBackend(BaseEmailBackend):
             else:
                 error_code = EmailErrorCodes.EMAIL_SEND_FAILED
             
-            log_operation(
-                'EMAIL_SEND_ERROR',
-                recipients,
-                logger,
-                level='ERROR',
+            log_error(
+                event='email_send_error',
                 error_code=error_code,
+                recipients=recipients,
                 sender=sender,
                 subject=message.subject[:50],
                 error_type=error_type,
                 error_message=error_message[:200],
                 provider='Resend',
-                fail_silently=self.fail_silently
+                fail_silently=self.fail_silently,
+                logger_name='core.email'
             )
             
             if not self.fail_silently:

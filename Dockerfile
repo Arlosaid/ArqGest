@@ -78,21 +78,24 @@ while [ $attempt -lt $max_attempts ]; do\n\
   fi\n\
 done\n\
 \n\
+# CRITICO: Fallar si DB no está disponible en producción\n\
 if [ "$db_ready" = false ]; then\n\
-  echo "WARNING: Could not connect to database after $max_attempts attempts"\n\
-  echo "Continuing startup - Railway will retry"\n\
+  echo "ERROR: Could not connect to database after $max_attempts attempts"\n\
+  echo "Deployment failed - database connection required"\n\
+  exit 1  # Exit con error para que Railway NO despliegue\n\
 fi\n\
 \n\
 # Migraciones solo si DB está lista\n\
-if [ "$db_ready" = true ]; then\n\
-  echo "Running migrations..."\n\
-  python manage.py migrate --noinput || echo "WARNING: Migration failed"\n\
-  \n\
-  echo "Collecting static files..."\n\
-  python manage.py collectstatic --noinput --clear || echo "WARNING: Static collection failed"\n\
-else\n\
-  echo "Skipping migrations - database not ready"\n\
-fi\n\
+echo "Running migrations..."\n\
+python manage.py migrate --noinput || {\n\
+  echo "ERROR: Migration failed"\n\
+  exit 1\n\
+}\n\
+\n\
+echo "Collecting static files..."\n\
+python manage.py collectstatic --noinput --clear || {\n\
+  echo "WARNING: Static collection failed, continuing..."\n\
+}\n\
 \n\
 # Calcular workers basado en Railway\n\
 workers=${GUNICORN_WORKERS:-2}\n\

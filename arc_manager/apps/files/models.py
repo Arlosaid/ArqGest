@@ -144,7 +144,14 @@ class ProjectFile(models.Model):
             return 'fa-file'
 
     def save(self, *args, **kwargs):
-        from core.error_codes import log_operation, FileErrorCodes
+        from core.error_codes import FileErrorCodes
+        # FIXME: Migrar a structured_logging después del deploy
+        # from core.structured_logging import log_error
+        
+        # FIXME: Función temporal hasta migrar a structured_logging
+        def log_operation(*args, **kwargs):
+            """Temporal stub para evitar errores durante deploy"""
+            pass
         
         is_new = self.pk is None
         
@@ -239,7 +246,14 @@ class ProjectFile(models.Model):
             raise
     
     def delete(self, *args, **kwargs):
-        from core.error_codes import log_operation, FileErrorCodes
+        from core.error_codes import FileErrorCodes
+        # FIXME: Migrar a structured_logging después del deploy
+        # from core.structured_logging import log_business_event
+        
+        # FIXME: Función temporal hasta migrar a structured_logging
+        def log_operation(*args, **kwargs):
+            """Temporal stub para evitar errores durante deploy"""
+            pass
         
         # Guardar información antes de eliminar
         file_info = {

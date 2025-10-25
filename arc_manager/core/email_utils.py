@@ -7,7 +7,8 @@ import os
 import logging
 import resend
 from django.conf import settings
-from core.error_codes import EmailErrorCodes, log_operation
+from core.error_codes import EmailErrorCodes
+from core.structured_logging import log_error, log_info
 
 logger = logging.getLogger('core.email')
 
@@ -99,13 +100,12 @@ def send_resend_email(to_email, subject, html_content, text_content=None):
         # Validar configuración primero
         is_valid, error_message = validate_resend_config()
         if not is_valid:
-            log_operation(
-                'EMAIL_CONFIG_VALIDATION',
-                to_email,
-                logger,
-                level='ERROR',
+            log_error(
+                event='email_config_validation',
                 error_code=EmailErrorCodes.EMAIL_CONFIG_BACKEND_ERROR,
-                validation_error=error_message
+                validation_error=error_message,
+                to_email=to_email,
+                logger_name='core.email'
             )
             return None
         
@@ -137,16 +137,15 @@ def send_resend_email(to_email, subject, html_content, text_content=None):
             email_data["reply_to"] = [reply_to]
         
         # Log inicio de envío
-        log_operation(
-            'EMAIL_SEND_START',
-            to_email,
-            logger,
-            level='INFO',
+        log_info(
+            event='email_send_start',
+            to_email=to_email,
             sender=from_email,
             subject=subject[:50],
             has_html=True,
             has_text=text_content is not None,
-            provider='Resend'
+            provider='Resend',
+            logger_name='core.email'
         )
         
         # Enviar usando Resend API
@@ -154,41 +153,38 @@ def send_resend_email(to_email, subject, html_content, text_content=None):
         
         # Resend retorna un dict con 'id' cuando es exitoso
         if response and isinstance(response, dict) and 'id' in response:
-            log_operation(
-                'EMAIL_SEND_SUCCESS',
-                to_email,
-                logger,
-                level='INFO',
+            log_info(
+                event='email_send_success',
                 error_code=EmailErrorCodes.EMAIL_SEND_SUCCESS,
                 email_id=response['id'],
+                to_email=to_email,
                 sender=from_email,
                 subject=subject[:50],
-                provider='Resend'
+                provider='Resend',
+                logger_name='core.email'
             )
             return response
         elif response:
-            log_operation(
-                'EMAIL_SEND_WARNING',
-                to_email,
-                logger,
-                level='WARNING',
+            log_error(
+                event='email_send_warning',
                 error_code=EmailErrorCodes.EMAIL_SEND_API_ERROR,
+                to_email=to_email,
                 sender=from_email,
                 subject=subject[:50],
                 response=str(response)[:100],
-                reason='Respuesta sin ID de Resend'
+                reason='Respuesta sin ID de Resend',
+                logger_name='core.email'
             )
             return response
         else:
-            log_operation(
-                'EMAIL_SEND_ERROR',
-                to_email,
-                logger,
-                level='ERROR',
+            log_error(
+                event='email_send_error',
                 error_code=EmailErrorCodes.EMAIL_SEND_FAILED,
+                to_email=to_email,
                 sender=from_email,
                 subject=subject[:50],
-                reason='Respuesta vacía de Resend API'
+                reason='Respuesta vacía de Resend API',
+                logger_name='core.email'
             )
             return None
         
@@ -206,17 +202,16 @@ def send_resend_email(to_email, subject, html_content, text_content=None):
         else:
             error_code = EmailErrorCodes.EMAIL_SEND_FAILED
         
-        log_operation(
-            'EMAIL_SEND_ERROR',
-            to_email,
-            logger,
-            level='ERROR',
+        log_error(
+            event='email_send_error',
             error_code=error_code,
+            to_email=to_email,
             subject=subject[:50],
             error_type=error_type,
             error_message=error_message[:200],
             provider='Resend',
-            has_code=hasattr(e, 'code')
+            has_code=hasattr(e, 'code'),
+            logger_name='core.email'
         )
         
         return None
