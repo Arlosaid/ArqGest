@@ -88,12 +88,32 @@ def log_error(
     # Agregar campos adicionales
     data.update(kwargs)
     
-    # Crear mensaje legible
-    msg = f"[{event}]"
+    # Crear mensaje CLARO Y DIRECTO con toda la información
+    msg_parts = []
+    
+    # Siempre empezar con el evento en formato legible
+    msg_parts.append(f"❌ {event.replace('_', ' ').upper()}")
+    
+    # Agregar código de error si existe
     if error_code:
-        msg += f" {error_code}"
+        msg_parts.append(f"[{error_code}]")
+    
+    # Agregar mensaje de error (LO MÁS IMPORTANTE)
     if error_message:
-        msg += f" - {error_message}"
+        msg_parts.append(f"- {error_message}")
+    
+    # Agregar contexto adicional relevante
+    context_parts = []
+    for key, value in kwargs.items():
+        if key not in ['event', 'error_code', 'error_message']:
+            # Solo agregar campos importantes al mensaje principal
+            if key in ['user_email', 'user_id', 'organization_id', 'file_name', 'project_id']:
+                context_parts.append(f"{key}={value}")
+    
+    if context_parts:
+        msg_parts.append(f"| {' | '.join(context_parts)}")
+    
+    msg = ' '.join(msg_parts)
     
     # Loggear con contexto adicional
     logger.error(msg, extra=_add_context(data))
@@ -129,7 +149,8 @@ def log_warning(
         data['message'] = message
     data.update(kwargs)
     
-    msg = f"[{event}]"
+    # Mensaje CLARO Y DIRECTO
+    msg = f"⚠️ {event.replace('_', ' ').upper()}"
     if message:
         msg += f" - {message}"
     
@@ -166,7 +187,8 @@ def log_info(
         data['message'] = message
     data.update(kwargs)
     
-    msg = f"[{event}]"
+    # Mensaje CLARO Y DIRECTO
+    msg = f"ℹ️ {event.replace('_', ' ').title()}"
     if message:
         msg += f" - {message}"
     

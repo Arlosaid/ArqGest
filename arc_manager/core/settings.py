@@ -181,7 +181,8 @@ AXES_USERNAME_FORM_FIELD = 'username'
 AXES_PASSWORD_FORM_FIELD = 'password'
 
 # Configuración de manipulación y almacenamiento
-AXES_HANDLER = 'axes.handlers.database.AxesDatabaseHandler'
+# Handler personalizado para logs más claros y útiles
+AXES_HANDLER = 'core.axes_handler.CustomAxesHandler'
 AXES_LOCKOUT_BY_USER_OR_IP = True
 
 # URLs y redirecciones
