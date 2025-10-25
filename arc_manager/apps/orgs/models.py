@@ -207,6 +207,152 @@ class Organization(models.Model):
         
         super().save(*args, **kwargs)
     
+    def delete(self, *args, **kwargs):
+        """
+        Override del delete para limpiar archivos de R2/S3 antes de eliminar la organización
+        """
+        import logging
+        from core.error_codes import log_operation
+        
+        logger = logging.getLogger(__name__)
+        
+        # Log de inicio de eliminación
+        log_operation(
+            'ORG_DELETE_START',
+            'system',
+            logger,
+            level='INFO',
+            organization_id=self.id,
+            organization_name=self.name
+        )
+        
+        # 1. Limpiar archivos de R2/S3
+        files_deleted = self._cleanup_r2_files()
+        
+        # 2. Invalidar todos los caches relacionados
+        self.invalidate_user_cache()
+        self.invalidate_storage_cache()
+        
+        # 3. Eliminar la organización (cascada eliminará proyectos, fases, archivos DB, etc.)
+        super().delete(*args, **kwargs)
+        
+        # Log de eliminación exitosa
+        log_operation(
+            'ORG_DELETE_SUCCESS',
+            'system',
+            logger,
+            level='INFO',
+            organization_id=self.id,
+            organization_name=self.name,
+            files_deleted=files_deleted
+        )
+    
+    def _cleanup_r2_files(self):
+        """
+        Elimina todos los archivos de R2/S3 de esta organización
+        Retorna el número de archivos eliminados
+        """
+        import logging
+        import os
+        from django.conf import settings
+        from core.error_codes import log_operation
+        
+        logger = logging.getLogger(__name__)
+        
+        # Verificar si R2/S3 está habilitado
+        if os.environ.get('ENABLE_STORAGES', 'false').lower() != 'true':
+            logger.info(f"R2/S3 no habilitado, solo se eliminarán registros de DB para org {self.id}")
+            return 0
+        
+        try:
+            import boto3
+            from botocore.exceptions import ClientError
+        except ImportError:
+            logger.warning("boto3 no disponible, no se pueden limpiar archivos de R2")
+            return 0
+        
+        try:
+            # Obtener cliente S3/R2
+            from core.r2_config import get_optimized_r2_client
+            s3_client = get_optimized_r2_client()
+            bucket_name = settings.AWS_STORAGE_BUCKET_NAME
+            
+            # Prefijo de la organización en R2
+            org_prefix = f'organizations/{self.id}/'
+            
+            logger.info(f"🗑️ Limpiando archivos de R2 para org {self.id} (prefix: {org_prefix})")
+            
+            files_deleted = 0
+            files_to_delete = []
+            
+            # Listar todos los objetos con el prefijo de esta organización
+            paginator = s3_client.get_paginator('list_objects_v2')
+            pages = paginator.paginate(Bucket=bucket_name, Prefix=org_prefix)
+            
+            for page in pages:
+                if 'Contents' not in page:
+                    continue
+                
+                # Recolectar archivos para eliminación en lote
+                for obj in page['Contents']:
+                    files_to_delete.append({'Key': obj['Key']})
+                    
+                    # Eliminar en lotes de 1000 (límite de S3 delete_objects)
+                    if len(files_to_delete) >= 1000:
+                        response = s3_client.delete_objects(
+                            Bucket=bucket_name,
+                            Delete={'Objects': files_to_delete}
+                        )
+                        files_deleted += len(response.get('Deleted', []))
+                        
+                        # Log de errores si los hay
+                        if 'Errors' in response:
+                            for error in response['Errors']:
+                                logger.error(f"Error eliminando {error['Key']}: {error['Message']}")
+                        
+                        files_to_delete = []
+            
+            # Eliminar archivos restantes
+            if files_to_delete:
+                response = s3_client.delete_objects(
+                    Bucket=bucket_name,
+                    Delete={'Objects': files_to_delete}
+                )
+                files_deleted += len(response.get('Deleted', []))
+                
+                if 'Errors' in response:
+                    for error in response['Errors']:
+                        logger.error(f"Error eliminando {error['Key']}: {error['Message']}")
+            
+            # Log exitoso
+            log_operation(
+                'ORG_R2_CLEANUP_SUCCESS',
+                'system',
+                logger,
+                level='INFO',
+                organization_id=self.id,
+                organization_name=self.name,
+                files_deleted=files_deleted,
+                prefix=org_prefix
+            )
+            
+            logger.info(f"✅ Eliminados {files_deleted} archivos de R2 para org {self.id}")
+            return files_deleted
+            
+        except Exception as e:
+            # Log de error pero continuar con la eliminación de la org
+            log_operation(
+                'ORG_R2_CLEANUP_ERROR',
+                'system',
+                logger,
+                level='ERROR',
+                organization_id=self.id,
+                organization_name=self.name,
+                error_message=str(e)
+            )
+            logger.error(f"❌ Error limpiando archivos de R2 para org {self.id}: {e}")
+            return 0
+    
     def get_admins(self):
         """Retorna usuarios administradores"""
         return self.users.filter(is_org_admin=True)
