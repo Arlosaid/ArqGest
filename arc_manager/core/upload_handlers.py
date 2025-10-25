@@ -156,9 +156,10 @@ class ProgressTrackingUploadHandler(FileUploadHandler):
         if self.total_size > 0:
             progress = (self.uploaded_size / self.total_size) * 100
             
-            # Log cada 10% de progreso para archivos grandes
-            if self.total_size > 50 * 1024 * 1024 and progress % 10 == 0:  # >50MB
-                logger.info(f"📈 Upload progress: {progress:.1f}% completado")
+            # Log solo cada 25% de progreso para archivos grandes (reducir ruido)
+            # Solo loguear cuando hay problemas o milestones importantes
+            if self.total_size > 100 * 1024 * 1024 and progress >= 25 and progress % 25 < 1:  # >100MB
+                logger.debug(f"Upload progress: {progress:.1f}% completado")
         
         # No procesar el chunk - dejar que otros handlers lo manejen
         return raw_data
@@ -167,5 +168,6 @@ class ProgressTrackingUploadHandler(FileUploadHandler):
         """
         Upload completado
         """
-        logger.info(f"🎉 Upload completado: {self.uploaded_size} bytes transferidos")
+        # Log cambiado a DEBUG - solo interesa en desarrollo
+        logger.debug(f"Upload completado: {self.uploaded_size} bytes transferidos")
         return super().upload_complete()

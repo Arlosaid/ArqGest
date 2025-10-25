@@ -330,17 +330,21 @@ class Phase(models.Model):
         """Override save to add logging for status changes."""
         is_new = self.pk is None
         
-        if is_new:
-            logger.info(f"Creating new phase: '{self.name}' for project {self.project_id}")
-        else:
-            # Log status changes
-            if hasattr(self, '_original_status') and self._original_status != self.status:
-                logger.info(f"Phase {self.pk} ('{self.name}') status changed from '{self._original_status}' to '{self.status}'")
+        # Solo loguear cambios de estado, no creación (es ruido)
+        if not is_new and hasattr(self, '_original_status') and self._original_status != self.status:
+            logger.info(
+                "phase_status_changed",
+                extra={
+                    "event": "phase_status_changed",
+                    "phase_id": self.pk,
+                    "phase_name": self.name,
+                    "old_status": self._original_status,
+                    "new_status": self.status,
+                    "project_id": self.project_id
+                }
+            )
         
         super().save(*args, **kwargs)
-        
-        if is_new:
-            logger.info(f"Phase created successfully - ID: {self.pk}, Name: '{self.name}', Project: {self.project_id}")
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -420,19 +424,36 @@ class Task(models.Model):
         is_new = self.pk is None
         status_changed = False
         
-        if is_new:
-            logger.info(f"Creating new task: '{self.title}' in phase {self.phase_id}")
-        else:
-            # Log status changes
+        # Solo loguear cambios importantes, no creación de cada tarea
+        if not is_new:
+            # Log status changes con formato estructurado
             if hasattr(self, '_original_status') and self._original_status != self.status:
-                logger.info(f"Task {self.pk} ('{self.title}') status changed from '{self._original_status}' to '{self.status}'")
+                logger.info(
+                    "task_status_changed",
+                    extra={
+                        "event": "task_status_changed",
+                        "task_id": self.pk,
+                        "task_title": self.title,
+                        "old_status": self._original_status,
+                        "new_status": self.status,
+                        "phase_id": self.phase_id
+                    }
+                )
                 status_changed = True
             
-            # Log assignment changes
+            # Log assignment changes solo cuando es relevante
             if hasattr(self, '_original_assigned_to') and self._original_assigned_to != self.assigned_to_id:
-                old_user = f"User {self._original_assigned_to}" if self._original_assigned_to else "Unassigned"
-                new_user = f"User {self.assigned_to_id}" if self.assigned_to_id else "Unassigned"
-                logger.info(f"Task {self.pk} ('{self.title}') assignment changed from {old_user} to {new_user}")
+                logger.info(
+                    "task_assignment_changed",
+                    extra={
+                        "event": "task_assignment_changed",
+                        "task_id": self.pk,
+                        "task_title": self.title,
+                        "old_user_id": self._original_assigned_to,
+                        "new_user_id": self.assigned_to_id,
+                        "phase_id": self.phase_id
+                    }
+                )
         
         super().save(*args, **kwargs)
         

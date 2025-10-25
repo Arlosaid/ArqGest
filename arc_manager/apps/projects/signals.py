@@ -16,9 +16,18 @@ def update_phase_status_on_task_start(sender, instance, created, **kwargs):
             old_status = phase.status
             phase.status = Phase.Status.IN_PROGRESS
             phase.save()
-            logger.info(f"Phase {phase.id} ('{phase.name}') status automatically updated from '{old_status}' to 'IN_PROGRESS' due to task {instance.id} starting")
+            logger.info(
+                "phase_auto_status_changed",
+                extra={
+                    "event": "phase_auto_status_changed",
+                    "phase_id": phase.id,
+                    "phase_name": phase.name,
+                    "old_status": old_status,
+                    "new_status": "IN_PROGRESS",
+                    "trigger_task_id": instance.id
+                }
+            )
     
-    if created:
-        logger.info(f"New task created - ID: {instance.id}, Title: '{instance.title}', Phase: {instance.phase.id}, Project: {instance.phase.project.id}")
-    else:
-        logger.debug(f"Task updated - ID: {instance.id}, Status: {instance.status}, Title: '{instance.title}'")
+    # Eliminado: log de creación de tarea (redundante con models.py)
+    # Eliminado: log DEBUG de actualización (ruido innecesario)
+

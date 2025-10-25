@@ -1955,11 +1955,16 @@ class PaymentCreateView(LoginRequiredMixin, OrganizationAdminMixin, CreateView):
                 allowed_exts = {'.jpg', '.jpeg', '.png', '.gif', '.pdf', '.doc', '.docx'}
                 ext = os.path.splitext(uploaded.name)[1].lower()
                 
-                # Debug: Log del archivo para diagnóstico
-                logger.info(f"Archivo recibido en creación: {uploaded.name}, tamaño: {uploaded.size}, tipo: {uploaded.content_type}, extensión: {ext}")
-                
                 if ext not in allowed_exts:
-                    logger.warning(f"Extensión {ext} no permitida para archivo {uploaded.name}")
+                    logger.warning(
+                        "invalid_receipt_extension",
+                        extra={
+                            "event": "receipt_upload_rejected",
+                            "filename": uploaded.name,
+                            "extension": ext,
+                            "allowed_extensions": list(allowed_exts)
+                        }
+                    )
                     form.add_error('description', _('Tipo de archivo no permitido. Usa imagen, PDF o Word.'))
                     return super().form_invalid(form)
                 
@@ -2053,11 +2058,16 @@ class PaymentUpdateView(LoginRequiredMixin, OrganizationAdminMixin, UpdateView):
                 allowed_exts = {'.jpg', '.jpeg', '.png', '.gif', '.pdf', '.doc', '.docx'}
                 ext = os.path.splitext(uploaded.name)[1].lower()
                 
-                # Debug: Log del archivo para diagnóstico
-                logger.info(f"Archivo recibido en edición: {uploaded.name}, tamaño: {uploaded.size}, tipo: {uploaded.content_type}, extensión: {ext}")
-                
                 if ext not in allowed_exts:
-                    logger.warning(f"Extensión {ext} no permitida para archivo {uploaded.name}")
+                    logger.warning(
+                        "invalid_receipt_extension",
+                        extra={
+                            "event": "receipt_upload_rejected",
+                            "filename": uploaded.name,
+                            "extension": ext,
+                            "allowed_extensions": list(allowed_exts)
+                        }
+                    )
                     form.add_error('description', _('Tipo de archivo no permitido. Usa imagen, PDF o Word.'))
                     return super().form_invalid(form)
                 

@@ -198,7 +198,10 @@ AXES_ENABLE_ADMIN = False
 
 # Configuración de mensajes y respuestas
 AXES_LOCKOUT_CALLABLE = None
-AXES_VERBOSE = True
+
+# Reducir verbosidad de AXES - solo loguear cuando hay bloqueos (WARNING+)
+AXES_VERBOSE = False
+AXES_LOGGER = 'axes.watch_login'
 
 
 # Configuración de cache (usando Redis)
@@ -726,6 +729,12 @@ LOGGING = {
         'core.logging': {
             'handlers': ['console_dev', 'console_prod'],
             'level': 'INFO',
+            'propagate': False,
+        },
+        # AXES: Solo loguear WARNING+ (bloqueos reales)
+        'axes.watch_login': {
+            'handlers': ['console_dev', 'console_prod'],
+            'level': 'WARNING',
             'propagate': False,
         },
     },

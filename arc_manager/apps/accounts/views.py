@@ -22,10 +22,8 @@ class CustomLoginView(LoginView):
     authentication_form = CustomAuthenticationForm
     
     def dispatch(self, request, *args, **kwargs):
-        """Log intentos de login para seguridad"""
-        if request.method == 'POST':
-            client_ip = self.get_client_ip()
-            logger.info(f"Intento de login - IP: {client_ip}")
+        """Process login request"""
+        # Log eliminado - se registra en form_valid/form_invalid para evitar duplicación
         return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
@@ -95,26 +93,43 @@ class CustomLoginView(LoginView):
             f"IP: {client_ip}, Sesión: {session_duration}"
         )
         
-        # Log de seguridad adicional para admins
-        if user.is_org_admin:
-            logger.info(f"ADMIN LOGIN - {user.email} con permisos administrativos, IP: {client_ip}")
+        # Log de seguridad adicional para admins (solo org_admin, superuser ya logueó arriba)
+        if user.is_org_admin and not user.is_superuser:
+            logger.warning(
+                "admin_login",
+                extra={
+                    "event": "admin_login",
+                    "user": user.email,
+                    "user_id": user.pk,
+                    "role": "org_admin",
+                    "ip": client_ip,
+                    "session_duration": session_duration
+                }
+            )
         
         return response
     
     def form_invalid(self, form):
-        # Registrar intento de login fallido con detalles de seguridad
+        # Registrar intento de login fallido con formato estructurado
         username = form.cleaned_data.get('username', 'No especificado')
         client_ip = self.get_client_ip()
-        user_agent = self.request.META.get('HTTP_USER_AGENT', '')[:100]
-        errors = form.errors.as_text() if form.errors else 'Errores no especificados'
         
-        # Log adicional si el usuario existe pero la contraseña es incorrecta
+        # Verificar si el usuario existe para determinar el motivo del fallo
         try:
             user_exists = User.objects.filter(email=username).exists()
-            if user_exists:
-                logger.warning(f"LOGIN FALLIDO - Usuario EXISTE pero contraseña incorrecta: {username}, IP: {client_ip}")
-            else:
-                logger.warning(f"LOGIN FALLIDO - Usuario NO EXISTE: {username}, IP: {client_ip}")
+            reason = "invalid_password" if user_exists else "user_not_found"
+            
+            # Un solo log estructurado con toda la información necesaria
+            logger.warning(
+                "login_failed",
+                extra={
+                    "event": "login_failed",
+                    "reason": reason,
+                    "user": username if not user_exists else f"hash_{username[:8]}",
+                    "ip": client_ip,
+                    "user_agent": self.request.META.get('HTTP_USER_AGENT', '')[:100]
+                }
+            )
         except Exception as e:
             logger.error(f"Error al verificar existencia de usuario {username}: {str(e)}")
         
