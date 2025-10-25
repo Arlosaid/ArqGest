@@ -269,10 +269,12 @@ class SystemSettingsAdmin(admin.ModelAdmin):
         }),
         ('📁 Límites de Archivos', {
             'fields': (
-                'max_file_size_mb',
-                'upload_max_file_size_mobile_mb',
+                # max_file_size_mb y upload_max_file_size_mobile_mb están hardcodeados en el código
+                # Si necesitas cambiarlos, edita los archivos JS directamente
             ),
-            'description': 'Configure el tamaño máximo permitido por archivo. Desktop y móviles pueden tener límites diferentes.'
+            'description': '⚠️ Los límites de archivo están hardcodeados en 1500MB en el código JavaScript. '
+                          'Para cambiarlos, edita: large-file-upload.js, mobile_upload_optimizer.js y _files_tab.html',
+            'classes': ('collapse',)
         }),
         ('⚡ Configuración de Caché', {
             'fields': (
@@ -405,9 +407,7 @@ class SystemSettingsAdmin(admin.ModelAdmin):
         """Formatea un resumen legible de los cambios realizados"""
         summaries = []
         
-        # Agrupar cambios por categoría
-        if 'max_file_size_mb' in changed_fields or 'upload_max_file_size_mobile_mb' in changed_fields:
-            summaries.append(f"Archivos: Desktop={obj.max_file_size_mb}MB, Mobile={obj.upload_max_file_size_mobile_mb}MB")
+        # Agrupar cambios por categoría (límites de archivo removidos ya que están hardcodeados)
         
         if any(f in changed_fields for f in ['max_users_trial', 'max_users_basic']):
             summaries.append(f"Usuarios (T:{obj.max_users_trial}, B:{obj.max_users_basic})")
