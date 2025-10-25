@@ -133,8 +133,9 @@ class OrganizationAdmin(ImportExportModelAdmin):
             files_count = 0
             logger.warning(f"No se pudo contar archivos: {e}")
         
-        # Eliminar (esto llamará al método delete() del modelo que limpia R2)
-        super().delete_model(request, obj)
+        # 🔥 IMPORTANTE: Llamar a obj.delete() directamente para ejecutar el método personalizado
+        # que limpia archivos de R2, NO usar super().delete_model() que usa queryset.delete()
+        obj.delete()
         
         # Mensaje de confirmación
         msg_parts = [f"✅ Organización '{org_name}' eliminada"]
@@ -189,8 +190,10 @@ class OrganizationAdmin(ImportExportModelAdmin):
         
         logger.info(f"🗑️ Iniciando eliminación en lote de {deleted_count} organizaciones")
         
-        # Eliminar (esto llamará al método delete() de cada modelo que limpia R2)
-        super().delete_queryset(request, queryset)
+        # 🔥 IMPORTANTE: Llamar a delete() de cada instancia para ejecutar limpieza de R2
+        # NO usar super().delete_queryset() porque usa queryset.delete() que NO llama al método personalizado
+        for org in queryset:
+            org.delete()  # Esto SÍ ejecuta el método delete() con limpieza de R2
         
         # Mensaje de confirmación
         msg_parts = [f"✅ Se eliminaron {deleted_count} organización(es)"]
