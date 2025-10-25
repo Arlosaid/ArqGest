@@ -156,29 +156,12 @@ class ErrorHandlingMiddleware(MiddlewareMixin):
             if hasattr(request, 'user') and request.user.is_authenticated:
                 user_email = request.user.email
             
-            # Determinar el código de error según el tipo de excepción
-            error_code = SystemErrorCodes.SYSTEM_MIDDLEWARE_UNEXPECTED_ERROR
-            if 'DoesNotExist' in str(type(exception)):
-                error_code = SystemErrorCodes.SYSTEM_DB_INTEGRITY_ERROR
-            elif 'PermissionDenied' in str(type(exception)):
-                error_code = SystemErrorCodes.SYSTEM_MIDDLEWARE_PERMISSION_ERROR
-            elif 'ValidationError' in str(type(exception)):
-                error_code = SystemErrorCodes.SYSTEM_MIDDLEWARE_AUTH_ERROR
-            
-            # Log estructurado del error 500 (solo si no es un 404)
-            log_error(
-                event="unhandled_exception",
-                error_code=error_code,
-                error_message=str(exception),
-                path=request.path,
-                method=request.method,
-                client_ip=client_ip,
-                user_agent=request.META.get('HTTP_USER_AGENT', ''),
-                referer=request.META.get('HTTP_REFERER', ''),
-                exception_type=str(type(exception).__name__),
-                user_email=user_email,
-                logger_name='django.request'
-            )
+            # NO LOGUEAR AQUÍ - Django y el RequestLoggingMiddleware ya lo hacen
+            # Eliminar duplicación: el log ya se genera en:
+            # 1. El modelo/vista que lanza la excepción (log_error)
+            # 2. El middleware de logging (RequestLoggingMiddleware)
+            # 3. Django request logger (automático)
+            # Este middleware solo debe manejar la RESPUESTA al usuario
             
             # Para requests AJAX, devolver JSON
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':

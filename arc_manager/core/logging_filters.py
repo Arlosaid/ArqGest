@@ -209,6 +209,74 @@ class CompactExceptionFilter(logging.Filter):
         return True
 
 
+class IgnoreStaticFilesFilter(logging.Filter):
+    """
+    Filtro que ELIMINA completamente logs de archivos estáticos y peticiones innecesarias.
+    Reduce el ruido en logs de producción en un 90%.
+    """
+    
+    # Paths que NUNCA deben loguearse
+    IGNORED_PATHS = [
+        '/static/',
+        '/media/',
+        '/favicon.ico',
+        '/robots.txt',
+        '/sitemap.xml',
+        '/__debug__/',  # Django Debug Toolbar
+        '/health/',  # Health checks
+        '/_health',  # Health checks alternativo
+    ]
+    
+    # Extensiones de archivos estáticos
+    STATIC_EXTENSIONS = [
+        '.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', 
+        '.ico', '.woff', '.woff2', '.ttf', '.eot', '.map',
+        '.webp', '.pdf', '.mp4', '.webm'
+    ]
+    
+    def filter(self, record):
+        """
+        Retorna False para bloquear logs de archivos estáticos.
+        Retorna True para permitir el log.
+        """
+        # Si no hay mensaje, permitir
+        if not hasattr(record, 'msg') or not isinstance(record.msg, str):
+            return True
+        
+        msg = record.msg.lower()
+        
+        # Filtrar logs de archivos estáticos por path
+        if any(ignored_path in msg for ignored_path in self.IGNORED_PATHS):
+            return False
+        
+        # Filtrar por extensión de archivo
+        if any(ext in msg for ext in self.STATIC_EXTENSIONS):
+            return False
+        
+        # Filtrar GETs exitosos (200, 304) - Solo logear errores y mutaciones
+        if '"get ' in msg and (' 200 ' in msg or ' 304 ' in msg):
+            # Permitir solo ciertos GETs importantes
+            important_gets = ['/admin/', '/api/', '/dashboard']
+            if not any(path in msg for path in important_gets):
+                return False
+        
+        # Filtrar favicon requests independientemente del método
+        if 'favicon' in msg:
+            return False
+        
+        return True
+
+
+class OnlyErrorsFilter(logging.Filter):
+    """
+    Filtro que solo permite logs de nivel ERROR o superior.
+    Útil para producción cuando solo quieres ver problemas.
+    """
+    
+    def filter(self, record):
+        return record.levelno >= logging.ERROR
+
+
 class SensitiveDataFilter(logging.Filter):
     """
     Filtro que remueve datos sensibles de todos los logs

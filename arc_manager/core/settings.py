@@ -610,14 +610,14 @@ LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
-        # Formato JSON para producción (CloudWatch, análisis)
+        # Formato JSON para producción (CloudWatch, análisis) - SIN DUPLICAR MENSAJE
         'json': {
             '()': 'pythonjsonlogger.jsonlogger.JsonFormatter',
-            'format': '%(asctime)s %(levelname)s %(name)s %(message)s %(request_id)s %(user_id)s %(organization_id)s',
+            'format': '%(levelname)s %(name)s %(message)s %(request_id)s %(user_id)s %(organization_id)s',
         },
         # Formato simple para desarrollo
         'simple': {
-            'format': '[{asctime}] {levelname} {name}: {message} | request_id={request_id} | user_id={user_id}',
+            'format': '{levelname} {asctime} {name} [{process:d}:{thread:d}] {message}',
             'style': '{',
             'datefmt': '%Y-%m-%d %H:%M:%S',
         },
@@ -633,6 +633,8 @@ LOGGING = {
         'request_id': {'()': 'core.logging_filters.RequestIdFilter'},
         'filter_sensitive_data': {'()': 'core.logging_filters.SensitiveDataFilter'},
         'compact_exceptions': {'()': 'core.logging_filters.CompactExceptionFilter'},
+        'ignore_static_files': {'()': 'core.logging_filters.IgnoreStaticFilesFilter'},
+        'only_errors': {'()': 'core.logging_filters.OnlyErrorsFilter'},
         'ignore_timezone_warnings': {
             '()': 'django.utils.log.CallbackFilter',
             'callback': lambda record: 'DateTimeField' not in record.getMessage() or 'received a naive datetime' not in record.getMessage()
@@ -642,14 +644,14 @@ LOGGING = {
         # Handler para desarrollo (consola simple)
         'console_dev': {
             'level': 'INFO',
-            'filters': ['require_debug_true', 'request_id', 'filter_sensitive_data', 'ignore_timezone_warnings'],
+            'filters': ['require_debug_true', 'request_id', 'filter_sensitive_data', 'ignore_timezone_warnings', 'ignore_static_files'],
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
-        # Handler para producción (JSON estructurado)
+        # Handler para producción (JSON estructurado) - SIN RUIDO
         'console_prod': {
             'level': 'INFO',
-            'filters': ['require_debug_false', 'request_id', 'filter_sensitive_data', 'compact_exceptions', 'ignore_timezone_warnings'],
+            'filters': ['require_debug_false', 'request_id', 'filter_sensitive_data', 'compact_exceptions', 'ignore_timezone_warnings', 'ignore_static_files'],
             'class': 'logging.StreamHandler',
             'formatter': 'json',
         },
