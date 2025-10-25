@@ -9,7 +9,7 @@ urlpatterns = [
     # Ejemplo: /files/3/delete/
     path('files/<int:file_id>/delete/', views.delete_file, name='delete_file'),
     # Presigned URL endpoints (opcional para R2/S3)
-    path('projects/<int:project_id>/phases/<int:phase_id>/files/presign-upload/', views.get_presigned_upload, name='presign_upload'),
+    path('projects/<int:project_id>/phases/<int:phase_id>/files/presigned-upload/', views.get_presigned_upload, name='presigned_upload'),
     path('files/confirm-upload/', views.confirm_upload, name='confirm_upload'),
     
     # OPTIMIZACIÓN ULTRA: APIs para uploads masivos

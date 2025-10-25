@@ -143,12 +143,6 @@ class LargeFileUploader {
                         </div>
                         ${validation.isValid ? '<i class="fas fa-check-circle text-success"></i>' : '<i class="fas fa-exclamation-triangle text-danger"></i>'}
                     </div>
-                    ${validation.isValid && parseFloat(sizeInMB) > 100 ? `
-                        <div class="alert alert-info mt-2 mb-0 small">
-                            <i class="fas fa-info-circle"></i> 
-                            Archivo grande detectado. Se usará upload directo a almacenamiento.
-                        </div>
-                    ` : ''}
                 </div>
             </div>
         `;
@@ -236,18 +230,7 @@ class LargeFileUploader {
                 // 🔥 FALLBACK: Si R2 no está disponible (desarrollo local), usar upload normal
                 console.log('⚠️ R2 no disponible, usando upload normal:', presignError.message);
                 console.log('💡 Para habilitar R2 en local, configura ENABLE_STORAGES=true en .env');
-                this.updateProgress(progressBar, statusDiv, 10, 'Usando método alternativo de upload...');
-                
-                // Verificar si el archivo es muy grande para upload normal
-                const fileSizeMB = file.size / (1024 * 1024);
-                const maxSizeMB = window.FILE_UPLOAD_CONFIG?.MAX_FILE_SIZE_MB || 1500;
-                
-                if (fileSizeMB > 500) {
-                    this.showNotification(
-                        `⚠️ Archivo muy grande (${fileSizeMB.toFixed(0)}MB). En producción se usará R2 para mejor rendimiento.`,
-                        'warning'
-                    );
-                }
+                this.updateProgress(progressBar, statusDiv, 10, 'Procesando archivo...');
                 
                 await this.handleRegularUpload(form);
                 return; // Salir de handleLargeFileUpload
