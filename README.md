@@ -449,6 +449,28 @@ docker-compose exec web python manage.py migrate --fake-initial
 docker-compose exec web python manage.py migrate <app_name>
 ```
 
+**Error: "Network error during upload" al subir archivos grandes**
+
+Este error indica que falta configurar CORS en el bucket de R2 de Cloudflare.
+
+**Solución rápida (5 minutos):**
+1. Ve a Cloudflare Dashboard > R2 > Tu Bucket > Settings
+2. Agrega esta configuración CORS:
+```json
+[
+  {
+    "AllowedOrigins": ["https://app.arqgest.com"],
+    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedHeaders": ["Content-Type"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+3. Guarda y espera 1-2 minutos
+
+📖 **Ver guía completa:** `docs/QUICK_FIX_R2_UPLOAD.md`
+
 ### Limpiar todo y empezar de nuevo
 ```bash
 # Detener y eliminar todo
