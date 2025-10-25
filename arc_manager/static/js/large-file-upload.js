@@ -8,7 +8,7 @@ class LargeFileUploader {
         // Leer el límite desde la variable global (más confiable que meta tag)
         const maxFileSize = window.SYSTEM_CONFIG?.MAX_FILE_SIZE_MB || 1500;
         
-        console.log(`✅ Límite de archivo cargado: ${maxFileSize}MB (desde SYSTEM_CONFIG)`);
+        console.log(`Límite de archivo cargado: ${maxFileSize}MB (desde SYSTEM_CONFIG)`);
         
         this.options = {
             maxFileSize: maxFileSize,
