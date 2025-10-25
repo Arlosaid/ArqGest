@@ -61,8 +61,13 @@ class CustomLoginView(LoginView):
             # Hacer login primero
             login(self.request, user)
             
-            # Log de seguridad CRÍTICO para superusuarios
-            logger.warning(f"SUPERUSER LOGIN - Usuario: {user.email}, IP: {client_ip}, User-Agent: {user_agent[:50]}, Sesión: {session_duration}")
+            # Log de seguridad CRÍTICO para superusuarios - CLARO Y DIRECTO
+            logger.warning(
+                f"🔐 SUPERUSER LOGIN EXITOSO - {user.email} | "
+                f"IP: {client_ip} | "
+                f"User-Agent: {user_agent[:80]} | "
+                f"Sesión: {session_duration}"
+            )
             
             # Redirigir directamente al admin sin mensaje
             # El mensaje se mostrará en el admin mediante el middleware
@@ -72,7 +77,9 @@ class CustomLoginView(LoginView):
         if getattr(user, 'password_change_required', False):
             # Hacer login primero
             login(self.request, user)
-            logger.info(f"Usuario requiere cambio de contraseña - {user.email}, IP: {client_ip}")
+            logger.info(
+                f"⚠️ CAMBIO DE CONTRASEÑA REQUERIDO - {user.email} | IP: {client_ip}"
+            )
             # Redirigir al cambio forzado de contraseña
             return redirect('/accounts/force-password-change/')
         
@@ -88,9 +95,9 @@ class CustomLoginView(LoginView):
         
         # Registrar login exitoso con información completa para SEGURIDAD
         logger.info(
-            f"LOGIN EXITOSO - Usuario: {user_info['email']} (ID: {user_info['id']}), "
-            f"Rol: {user_info['role']}, Org: {user_info['organization']}, "
-            f"IP: {client_ip}, Sesión: {session_duration}"
+            f"✅ LOGIN EXITOSO - {user_info['email']} (ID: {user_info['id']}) | "
+            f"Rol: {user_info['role']} | Org: {user_info['organization']} | "
+            f"IP: {client_ip} | Sesión: {session_duration}"
         )
         
         # Log de seguridad adicional para admins (solo org_admin, superuser ya logueó arriba)
@@ -110,22 +117,34 @@ class CustomLoginView(LoginView):
         return response
     
     def form_invalid(self, form):
-        # Registrar intento de login fallido con formato estructurado
+        # Registrar intento de login fallido con información clara y directa
         username = form.cleaned_data.get('username', 'No especificado')
         client_ip = self.get_client_ip()
         
         # Verificar si el usuario existe para determinar el motivo del fallo
         try:
             user_exists = User.objects.filter(email=username).exists()
-            reason = "invalid_password" if user_exists else "user_not_found"
             
-            # Un solo log estructurado con toda la información necesaria
+            # Mensaje directo y claro
+            if user_exists:
+                error_msg = f"LOGIN FALLIDO - Contraseña incorrecta para {username}"
+                reason = "contraseña_incorrecta"
+            else:
+                error_msg = f"LOGIN FALLIDO - Usuario no existe: {username}"
+                reason = "usuario_no_existe"
+            
+            # Log con mensaje directo (no solo "login_failed")
             logger.warning(
-                "login_failed",
+                f"{error_msg} | IP: {client_ip} | User-Agent: {self.request.META.get('HTTP_USER_AGENT', '')[:80]}"
+            )
+            
+            # Extra data estructurado para parsing automático
+            logger.warning(
+                "login_failed_detail",
                 extra={
                     "event": "login_failed",
                     "reason": reason,
-                    "user": username if not user_exists else f"hash_{username[:8]}",
+                    "user": username,
                     "ip": client_ip,
                     "user_agent": self.request.META.get('HTTP_USER_AGENT', '')[:100]
                 }
