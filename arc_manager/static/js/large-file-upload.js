@@ -1,5 +1,5 @@
 /**
- * 🚀 Sistema de Upload de Archivos Grandes para Cloudflare R2
+  Sistema de Upload de Archivos Grandes para Cloudflare R2
  * Maneja uploads directos a R2 evitando los límites de Cloudflare proxy
  */
 
