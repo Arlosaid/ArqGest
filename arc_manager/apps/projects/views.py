@@ -22,21 +22,31 @@ from core.structured_logging import log_error, log_warning, log_info, log_slow_o
 # Enhanced logging helper with error codes
 def log_task_operation(operation, user_email, error_code=None, level='INFO', **kwargs):
     """Enhanced task operation logging with structured error codes"""
+    log_msg = f"{operation} | User: {user_email}"
+    log_data = {"operation": operation, "user_email": user_email, "error_code": error_code, **kwargs}
+    
     if level == 'ERROR':
         log_error(event=operation, error_code=error_code, user_email=user_email, **kwargs)
     elif level == 'WARNING':
         log_warning(event=operation, error_code=error_code, user_email=user_email, **kwargs)
     else:
         log_info(event=operation, error_code=error_code, user_email=user_email, **kwargs)
+    
+    return log_msg, log_data
 
 def log_project_operation(operation, user_email, error_code=None, level='INFO', **kwargs):
     """Enhanced project operation logging with structured error codes"""
+    log_msg = f"{operation} | User: {user_email}"
+    log_data = {"operation": operation, "user_email": user_email, "error_code": error_code, **kwargs}
+    
     if level == 'ERROR':
         log_error(event=operation, error_code=error_code, user_email=user_email, **kwargs)
     elif level == 'WARNING':
         log_warning(event=operation, error_code=error_code, user_email=user_email, **kwargs)
     else:
         log_info(event=operation, error_code=error_code, user_email=user_email, **kwargs)
+    
+    return log_msg, log_data
 
 from apps.files.models import ProjectFile
 from .forms import ProjectForm, TaskForm, PhaseTemplateForm, PhaseFormSet

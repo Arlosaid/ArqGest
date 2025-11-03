@@ -462,7 +462,6 @@ class Task(models.Model):
             from .cache_utils import (
                 invalidate_project_progress_cache, 
                 invalidate_project_cache,
-                invalidate_user_projects_cache,
                 invalidate_kanban_projects_cache
             )
             project_id = self.phase.project_id
