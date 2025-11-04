@@ -291,7 +291,8 @@ class ForcePasswordChangeView(View):
                 user = request.user
                 user.set_password(form.cleaned_data['new_password1'])
                 user.password_change_required = False
-                user.save()
+                # 🐛 FIX: Explicit update_fields para asegurar persistencia del flag
+                user.save(update_fields=['password', 'password_change_required'])
                 
                 update_session_auth_hash(request, user)
                 

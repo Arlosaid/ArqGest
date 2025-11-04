@@ -111,6 +111,9 @@ services:
     volumes:
       # Solo código necesario en desarrollo
       - ./arc_manager:/app/arc_manager:cached
+      - ./tests:/app/tests:cached
+      - ./pytest.ini:/app/pytest.ini:cached
+      - ./.coveragerc:/app/.coveragerc:cached
       - static_volume:/app/arc_manager/staticfiles
       - media_volume:/app/arc_manager/media
       - temp_uploads:/app/temp_uploads

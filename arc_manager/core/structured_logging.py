@@ -146,7 +146,7 @@ def log_warning(
     
     data = {'event': event}
     if message:
-        data['message'] = message
+        data['detail'] = message  # Cambié 'message' a 'detail' para evitar conflicto con LogRecord
     data.update(kwargs)
     
     # Mensaje CLARO Y DIRECTO
@@ -184,7 +184,7 @@ def log_info(
     
     data = {'event': event}
     if message:
-        data['message'] = message
+        data['detail'] = message  # Cambié 'message' a 'detail' para evitar conflicto con LogRecord
     data.update(kwargs)
     
     # Mensaje CLARO Y DIRECTO

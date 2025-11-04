@@ -16,7 +16,10 @@ class CustomUserManager(BaseUserManager):
             )
             raise ValueError('El correo electrónico es obligatorio')
         
-        email = self.normalize_email(email)
+        # IMPORTANTE: Normalizar email completo a lowercase
+        # normalize_email() solo convierte el dominio, no la parte local
+        # Para evitar duplicados (test@x.com vs TEST@x.com), convertimos todo
+        email = self.normalize_email(email).lower()
         org = extra_fields.get('organization')
         org_name = org.name if org else 'Sin organización'
         org_id = org.id if org else None
