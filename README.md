@@ -4,6 +4,7 @@ Sistema de gestión organizacional con Django + PostgreSQL en Docker.
 
 ## 📋 Tabla de Contenidos
 - [🚀 Configuración Inicial](#-configuración-inicial)
+- [🏗️ Datos Demo](#️-datos-demo)
 - [🐳 Comandos Docker](#-comandos-docker)
 - [🔧 Comandos Git](#-comandos-git)
 - [📁 Estructura del Proyecto](#-estructura-del-proyecto)
@@ -37,6 +38,79 @@ POSTGRES_PASSWORD=postgres123
 POSTGRES_PORT=5432
 WEB_PORT=8000
 ```
+
+## 🏗️ Datos Demo
+
+### ⚡ Inicio Rápido - Crear Datos de Demostración
+
+Para probar el sistema con datos realistas de un estudio de arquitectura:
+
+**Opción 1 - Más fácil (Windows):**
+```bash
+# Doble clic en:
+scripts\run_populate_demo.bat
+```
+
+**Opción 2 - Python:**
+```bash
+cd arc_manager
+python scripts/run_populate.py
+```
+
+**Opción 3 - Django shell:**
+```bash
+python manage.py shell
+exec(open('scripts/populate_demo_architecture_studio.py').read())
+```
+
+### 🔑 Credenciales de Acceso Demo
+
+Después de ejecutar el script de población:
+
+**Email:** `jgomez@arquitecturavanguardia.mx`  
+**Contraseña:** `Arquitectura2024!`
+
+### 📊 Datos Creados
+
+El script crea una organización completa llamada **"Grupo Arquitectónico Vanguardia"** con:
+
+- ✅ **7 Usuarios** - Equipo de arquitectos y diseñadores
+- ✅ **7 Clientes** - Empresas y particulares
+- ✅ **7 Proyectos** - Arquitectónicos profesionales ($209M MXN total)
+- ✅ **~60 Fases** - Desde anteproyecto hasta supervisión de obra
+- ✅ **~400 Tareas** - Asignadas a diferentes miembros
+- ✅ **~20 Pagos** - Calendario de pagos realista
+
+**Proyectos incluidos:**
+1. Torre Residencial Altavista ($45M)
+2. Residencia Puerta de Hierro ($12.5M)
+3. Hotel Boutique Costa Esmeralda ($75M)
+4. Planta Industrial CEMEX ($28M)
+5. Clínica Especializada ($8.5M)
+6. Centro Cultural Municipal ($18M) - COMPLETADO
+7. Edificio de Aulas UTQ ($22M)
+
+### 📖 Ver Resumen de Datos
+
+```bash
+python scripts/show_demo_summary.py
+```
+
+### 🧹 Limpiar Datos Demo
+
+```bash
+# Windows
+scripts\cleanup_demo.bat
+
+# Python
+python scripts/cleanup_demo_data.py
+```
+
+### 📚 Más Información
+
+Ver documentación completa en:
+- `scripts/QUICK_START.md` - Guía rápida
+- `scripts/README_POPULATE_DEMO.md` - Documentación detallada
 
 ## 🐳 Comandos Docker
 
