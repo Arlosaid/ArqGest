@@ -150,76 +150,22 @@ class User(AbstractUser):
     objects = CustomUserManager()
     
     def save(self, *args, **kwargs):
-        is_new = self.pk is None
-        old_values = {}
-        
-        # Capturar valores anteriores para logging de cambios
-        if not is_new:
-            try:
-                old_user = User.objects.get(pk=self.pk)
-                old_values = {
-                    'email': old_user.email,
-                    'is_active': old_user.is_active,
-                    'is_org_admin': old_user.is_org_admin,
-                    'organization': old_user.organization.name if old_user.organization else None,
-                    'password_change_required': old_user.password_change_required
-                }
-            except User.DoesNotExist:
-                log_warning(
-                    event="user_not_found_for_comparison",
-                    message="Usuario no encontrado al intentar comparar cambios",
-                    user_id=self.pk,
-                    logger_name='apps.accounts'
-                )
-        
+        """
+        Override del save() del modelo User.
+        Solo maneja lógica de generación de username.
+        El logging se maneja en:
+        - CustomUserManager.create_user() para creación programática
+        - UserAdmin.save_model() para creación/edición desde admin
+        """
         if not self.username:
             # Generar un username simple para compatibilidad con Django
             # Usar el email como base con UUID corto para garantizar unicidad
             base_username = self.email.split('@')[0]
-            unique_id = str(uuid4()).split('-')[0][:6]  # Un poco más largo para evitar colisiones
+            unique_id = str(uuid4()).split('-')[0][:6]
             self.username = f"{base_username}_{unique_id}"
 
         try:
             super().save(*args, **kwargs)
-            
-            # Solo loggear cambios importantes (no cada guardado)
-            if is_new:
-                # Business event: nuevo usuario
-                from django.conf import settings
-                if not settings.DEBUG:  # Solo en producción para auditoría
-                    log_business_event(
-                        event="user_saved",
-                        action="created",
-                        entity_type="user",
-                        entity_id=self.pk,
-                        user_email=self.email,
-                        is_superuser=self.is_superuser,
-                        is_org_admin=self.is_org_admin,
-                        organization_id=self.organization_id,
-                        logger_name='apps.accounts'
-                    )
-            else:
-                # Log de cambios importantes solamente
-                critical_changes = []
-                if old_values.get('is_active') != self.is_active:
-                    critical_changes.append(('status_change', 'activated' if self.is_active else 'deactivated'))
-                if old_values.get('is_org_admin') != self.is_org_admin:
-                    critical_changes.append(('role_change', 'promoted_to_admin' if self.is_org_admin else 'demoted_from_admin'))
-                if old_values.get('organization') != (self.organization.name if self.organization else None):
-                    critical_changes.append(('organization_change', f"{old_values.get('organization')} -> {self.organization.name if self.organization else None}"))
-                
-                # Solo loggear si hay cambios críticos
-                if critical_changes:
-                    log_business_event(
-                        event="user_updated",
-                        action="updated",
-                        entity_type="user",
-                        entity_id=self.pk,
-                        user_email=self.email,
-                        changes=str(critical_changes),
-                        logger_name='apps.accounts'
-                    )
-                    
         except Exception as e:
             log_error(
                 event="user_save_failed",
