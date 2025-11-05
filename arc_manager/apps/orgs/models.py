@@ -192,47 +192,17 @@ class Organization(models.Model):
         StorageService.invalidate_cache(self.id)
     
     def save(self, *args, **kwargs):
-        """Override del save para invalidar cache y registrar cambios importantes"""
+        """Override del save para invalidar cache"""
         import logging
         logger = logging.getLogger(__name__)
         
-        is_new = self.pk is None
-        changed_fields = []
-        
-        # Rastrear cambios importantes si es actualización
+        # Rastrear si cambió extra_storage_gb para invalidar cache
+        should_invalidate_storage = False
         if self.pk:
             try:
                 old_instance = Organization.objects.get(pk=self.pk)
-                
-                # Rastrear campos críticos que cambiaron
                 if old_instance.extra_storage_gb != self.extra_storage_gb:
-                    changed_fields.append({
-                        'field': 'extra_storage_gb',
-                        'old': old_instance.extra_storage_gb,
-                        'new': self.extra_storage_gb
-                    })
-                
-                if old_instance.is_active != self.is_active:
-                    changed_fields.append({
-                        'field': 'is_active',
-                        'old': old_instance.is_active,
-                        'new': self.is_active
-                    })
-                
-                if old_instance.is_founder_member != self.is_founder_member:
-                    changed_fields.append({
-                        'field': 'is_founder_member',
-                        'old': old_instance.is_founder_member,
-                        'new': self.is_founder_member
-                    })
-                
-                if old_instance.name != self.name:
-                    changed_fields.append({
-                        'field': 'name',
-                        'old': old_instance.name,
-                        'new': self.name
-                    })
-                
+                    should_invalidate_storage = True
             except Organization.DoesNotExist:
                 pass
         
@@ -240,32 +210,8 @@ class Organization(models.Model):
         super().save(*args, **kwargs)
         
         # Invalidar cache si cambió extra_storage_gb
-        if any(cf['field'] == 'extra_storage_gb' for cf in changed_fields):
+        if should_invalidate_storage:
             self.invalidate_storage_cache()
-        
-        # Logging de negocio - usar log_info en lugar de log_business_event
-        if is_new:
-            from core.structured_logging import log_info
-            log_info(
-                event='ORGANIZATION_CREATED',
-                message=f"Nueva organización creada: '{self.name}'",
-                logger_name='apps.orgs',
-                organization_id=self.id,
-                organization_name=self.name,
-                is_active=self.is_active,
-                is_founder=self.is_founder_member,
-                extra_storage_gb=self.extra_storage_gb
-            )
-        elif changed_fields:
-            from core.structured_logging import log_info
-            log_info(
-                event='ORGANIZATION_UPDATED',
-                message=f"Organización '{self.name}' actualizada",
-                logger_name='apps.orgs',
-                organization_id=self.id,
-                organization_name=self.name,
-                changes=changed_fields
-            )
     
     def delete(self, *args, **kwargs):
         """
@@ -667,93 +613,9 @@ class Client(models.Model):
         return self.name
     
     def save(self, *args, **kwargs):
-        """Override de save para logging estructurado"""
-        from core.structured_logging import log_info
-        import logging
-        logger = logging.getLogger(__name__)
-        
-        is_new = self.pk is None
-        changed_fields = []
-        
-        # Rastrear cambios si es actualización
-        if self.pk:
-            try:
-                old_instance = Client.objects.get(pk=self.pk)
-                
-                if old_instance.name != self.name:
-                    changed_fields.append({
-                        'field': 'name',
-                        'old': old_instance.name,
-                        'new': self.name
-                    })
-                
-                if old_instance.is_active != self.is_active:
-                    changed_fields.append({
-                        'field': 'is_active',
-                        'old': old_instance.is_active,
-                        'new': self.is_active
-                    })
-                
-                if old_instance.email != self.email:
-                    changed_fields.append({
-                        'field': 'email',
-                        'old': old_instance.email,
-                        'new': self.email
-                    })
-                
-            except Client.DoesNotExist:
-                pass
-        
-        # Guardar
+        """Override de save - el logging se maneja en el admin"""
         super().save(*args, **kwargs)
-        
-        # Logging de negocio
-        if is_new:
-            log_info(
-                event='CLIENT_CREATED',
-                message=f"Nuevo cliente creado: '{self.name}'",
-                logger_name='apps.orgs',
-                client_id=self.id,
-                client_name=self.name,
-                organization_id=self.organization.id,
-                organization_name=self.organization.name,
-                email=self.email or 'N/A',
-                is_active=self.is_active
-            )
-        elif changed_fields:
-            log_info(
-                event='CLIENT_UPDATED',
-                message=f"Cliente '{self.name}' actualizado",
-                logger_name='apps.orgs',
-                client_id=self.id,
-                client_name=self.name,
-                organization_id=self.organization.id,
-                organization_name=self.organization.name,
-                changes=changed_fields
-            )
     
     def delete(self, *args, **kwargs):
-        """Override de delete para logging estructurado"""
-        from core.structured_logging import log_info
-        import logging
-        logger = logging.getLogger(__name__)
-        
-        # Guardar información antes de eliminar
-        client_id = self.id
-        client_name = self.name
-        org_id = self.organization.id
-        org_name = self.organization.name
-        
-        # Eliminar
+        """Override de delete - el logging se maneja en el admin"""
         super().delete(*args, **kwargs)
-        
-        # Log de eliminación
-        log_info(
-            event='CLIENT_DELETED',
-            message=f"Cliente '{client_name}' eliminado",
-            logger_name='apps.orgs',
-            client_id=client_id,
-            client_name=client_name,
-            organization_id=org_id,
-            organization_name=org_name
-        )
