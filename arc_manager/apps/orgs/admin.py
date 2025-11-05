@@ -8,6 +8,10 @@ from .models import Organization, Client
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 from django.db import models
+import logging
+from core.structured_logging import log_error, log_info
+
+logger = logging.getLogger('apps.orgs')
 
 # --- Recursos para Import/Export ---
 
@@ -104,15 +108,111 @@ class OrganizationAdmin(ImportExportModelAdmin):
     
     actions = ['activate_organizations', 'deactivate_organizations', 'mark_as_founder', 'unmark_as_founder', 'reduce_extra_storage', 'add_extra_storage']
     
+    def save_model(self, request, obj, form, change):
+        """
+        Hook de Django admin para guardar el modelo.
+        Implementa logging estructurado para crear y actualizar organizaciones.
+        """
+        try:
+            if change:
+                # Es una actualización - capturar cambios
+                changes = []
+                
+                # Campos a rastrear para el logging
+                tracked_fields = {
+                    'name': 'Nombre',
+                    'is_active': 'Estado activo',
+                    'is_founder_member': 'Miembro fundador',
+                    'extra_storage_gb': 'Almacenamiento extra'
+                }
+                
+                # Obtener la instancia original de la DB
+                try:
+                    original = Organization.objects.get(pk=obj.pk)
+                    
+                    for field_name, field_label in tracked_fields.items():
+                        old_value = getattr(original, field_name)
+                        new_value = getattr(obj, field_name)
+                        
+                        if old_value != new_value:
+                            changes.append({
+                                'field': field_name,
+                                'field_label': field_label,
+                                'old': old_value,
+                                'new': new_value
+                            })
+                except Organization.DoesNotExist:
+                    # Si no existe el original, tratarlo como creación
+                    change = False
+            
+            # Guardar el objeto
+            super().save_model(request, obj, form, change)
+            
+            # Logging estructurado
+            if change and changes:
+                # ORGANIZATION_UPDATED
+                log_info(
+                    event='ORGANIZATION_UPDATED',
+                    message=f"Organización '{obj.name}' actualizada con {len(changes)} cambio(s)",
+                    logger_name='apps.orgs',
+                    organization_id=obj.id,
+                    organization_name=obj.name,
+                    changes=changes,
+                    updated_by=request.user.email if request.user else 'Sistema'
+                )
+                
+                # Mensaje para el admin
+                changes_text = ', '.join([f"{c['field_label']}" for c in changes])
+                messages.success(
+                    request,
+                    f"Organización '{obj.name}' actualizada exitosamente. Cambios: {changes_text}"
+                )
+            else:
+                # ORGANIZATION_CREATED
+                log_info(
+                    event='ORGANIZATION_CREATED',
+                    message=f"Nueva organización creada: '{obj.name}'",
+                    logger_name='apps.orgs',
+                    organization_id=obj.id,
+                    organization_name=obj.name,
+                    is_active=obj.is_active,
+                    is_founder=obj.is_founder_member,
+                    extra_storage_gb=obj.extra_storage_gb,
+                    created_by=request.user.email if request.user else 'Sistema'
+                )
+                
+                messages.success(
+                    request,
+                    f"Organización '{obj.name}' creada exitosamente."
+                )
+                
+        except Exception as e:
+            # Log del error con detalles completos
+            log_error(
+                event='ORGANIZATION_SAVE_FAILED',
+                error_code='ORG001',
+                error_message=str(e),
+                logger_name='apps.orgs',
+                organization_name=getattr(obj, 'name', 'Desconocida'),
+                action='update' if change else 'create',
+                user_email=request.user.email if request.user else 'Sistema'
+            )
+            
+            # Mensaje de error para el admin
+            messages.error(
+                request,
+                f"Error al {'actualizar' if change else 'crear'} la organización: {str(e)}"
+            )
+            
+            # Re-lanzar la excepción para que Django la maneje
+            raise
+    
     def delete_model(self, request, obj):
         """
         Al eliminar una organización:
         1. Se limpian TODOS los archivos de R2/S3 (carpeta organizations/{id}/)
         2. Se eliminan automáticamente usuarios, proyectos, archivos DB y clientes (CASCADE)
         """
-        import logging
-        logger = logging.getLogger(__name__)
-        
         # Recolectar información antes de eliminar
         user_count = obj.users.count()
         org_name = obj.name
@@ -125,42 +225,89 @@ class OrganizationAdmin(ImportExportModelAdmin):
                 phase__project__organization=obj
             ).count()
             
-            # Log antes de eliminar
-            logger.info(f"Iniciando eliminación de organización {org_id} '{org_name}'")
-            logger.info(f"   └─ {user_count} usuarios, {files_count} archivos en DB")
+            # Log ANTES de eliminar
+            log_info(
+                event='ORGANIZATION_DELETE_START',
+                message=f"Iniciando eliminación de organización '{org_name}' (ID: {org_id})",
+                logger_name='apps.orgs',
+                organization_id=org_id,
+                organization_name=org_name,
+                user_count=user_count,
+                files_count=files_count,
+                deleted_by=request.user.email if request.user else 'Sistema'
+            )
             
         except Exception as e:
             files_count = 0
-            logger.warning(f"No se pudo contar archivos: {e}")
+            log_error(
+                event='ORGANIZATION_DELETE_COUNT_ERROR',
+                error_code='ORG002',
+                error_message=f"No se pudo contar archivos: {str(e)}",
+                logger_name='apps.orgs',
+                organization_id=org_id,
+                organization_name=org_name
+            )
         
         # 🔥 IMPORTANTE: Llamar a obj.delete() directamente para ejecutar el método personalizado
         # que limpia archivos de R2, NO usar super().delete_model() que usa queryset.delete()
-        obj.delete()
-        
-        # Mensaje de confirmación
-        msg_parts = [f"Organización '{org_name}' eliminada"]
-        
-        if user_count > 0:
-            msg_parts.append(f"{user_count} usuario(s)")
-        
-        if files_count > 0:
-            msg_parts.append(f"{files_count} archivo(s) en DB")
-            msg_parts.append("archivos eliminados de R2/S3")
-        
-        self.message_user(
-            request,
-            " junto con ".join(msg_parts) + ".",
-            messages.WARNING
-        )
-        
-        # Mensaje adicional sobre R2
-        import os
-        if os.environ.get('ENABLE_STORAGES', 'false').lower() == 'true':
+        try:
+            obj.delete()
+            
+            # Log DESPUÉS de eliminar exitosamente
+            log_info(
+                event='ORGANIZATION_DELETED',
+                message=f"Organización '{org_name}' eliminada exitosamente",
+                logger_name='apps.orgs',
+                organization_id=org_id,
+                organization_name=org_name,
+                files_deleted=files_count,
+                users_deleted=user_count,
+                deleted_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            # Mensaje de confirmación
+            msg_parts = [f"Organización '{org_name}' eliminada"]
+            
+            if user_count > 0:
+                msg_parts.append(f"{user_count} usuario(s)")
+            
+            if files_count > 0:
+                msg_parts.append(f"{files_count} archivo(s) en DB")
+                msg_parts.append("archivos eliminados de R2/S3")
+            
             self.message_user(
                 request,
-                f"Los archivos de la carpeta 'organizations/{org_id}/' han sido eliminados de R2/S3.",
-                messages.INFO
+                " junto con ".join(msg_parts) + ".",
+                messages.WARNING
             )
+            
+            # Mensaje adicional sobre R2
+            import os
+            if os.environ.get('ENABLE_STORAGES', 'false').lower() == 'true':
+                self.message_user(
+                    request,
+                    f"Los archivos de la carpeta 'organizations/{org_id}/' han sido eliminados de R2/S3.",
+                    messages.INFO
+                )
+                
+        except Exception as e:
+            # Log del error
+            log_error(
+                event='ORGANIZATION_DELETE_FAILED',
+                error_code='ORG003',
+                error_message=str(e),
+                logger_name='apps.orgs',
+                organization_id=org_id,
+                organization_name=org_name,
+                deleted_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            messages.error(
+                request,
+                f"Error al eliminar la organización '{org_name}': {str(e)}"
+            )
+            
+            raise
     
     def delete_queryset(self, request, queryset):
         """
@@ -168,9 +315,6 @@ class OrganizationAdmin(ImportExportModelAdmin):
         1. Se limpian TODOS los archivos de R2/S3 de cada organización
         2. Se eliminan automáticamente usuarios, proyectos, archivos DB y clientes (CASCADE)
         """
-        import logging
-        logger = logging.getLogger(__name__)
-        
         # Recolectar información antes de eliminar
         total_users = sum(org.users.count() for org in queryset)
         deleted_count = queryset.count()
@@ -183,45 +327,93 @@ class OrganizationAdmin(ImportExportModelAdmin):
             )
         except Exception as e:
             total_files = 0
-            logger.warning(f"No se pudo contar archivos: {e}")
+            log_error(
+                event='ORGANIZATION_BULK_DELETE_COUNT_ERROR',
+                error_code='ORG004',
+                error_message=f"No se pudo contar archivos: {str(e)}",
+                logger_name='apps.orgs',
+                organization_count=deleted_count
+            )
         
         org_ids = list(queryset.values_list('id', flat=True))
         org_names = list(queryset.values_list('name', flat=True))
         
-        logger.info(f"Iniciando eliminación en lote de {deleted_count} organizaciones")
+        # Log ANTES de eliminar
+        log_info(
+            event='ORGANIZATION_BULK_DELETE_START',
+            message=f"Iniciando eliminación en lote de {deleted_count} organizaciones",
+            logger_name='apps.orgs',
+            organization_count=deleted_count,
+            total_users=total_users,
+            total_files=total_files,
+            organization_ids=org_ids,
+            deleted_by=request.user.email if request.user else 'Sistema'
+        )
         
         # IMPORTANTE: Llamar a delete() de cada instancia para ejecutar limpieza de R2
         # NO usar super().delete_queryset() porque usa queryset.delete() que NO llama al método personalizado
-        for org in queryset:
-            org.delete()  # Esto SÍ ejecuta el método delete() con limpieza de R2
-        
-        # Mensaje de confirmación
-        msg_parts = [f"Se eliminaron {deleted_count} organización(es)"]
-        
-        if total_users > 0:
-            msg_parts.append(f"{total_users} usuario(s)")
-        
-        if total_files > 0:
-            msg_parts.append(f"{total_files} archivo(s) en DB y R2/S3")
-        
-        self.message_user(
-            request,
-            " junto con ".join(msg_parts) + ".",
-            messages.WARNING
-        )
-        
-        # Mensaje adicional sobre R2
-        import os
-        if os.environ.get('ENABLE_STORAGES', 'false').lower() == 'true':
-            org_folders = ", ".join([f"organizations/{oid}/" for oid in org_ids[:3]])
-            if deleted_count > 3:
-                org_folders += f" y {deleted_count - 3} más"
+        try:
+            for org in queryset:
+                org.delete()  # Esto SÍ ejecuta el método delete() con limpieza de R2
+            
+            # Log DESPUÉS de eliminar exitosamente
+            log_info(
+                event='ORGANIZATION_BULK_DELETED',
+                message=f"{deleted_count} organizaciones eliminadas exitosamente",
+                logger_name='apps.orgs',
+                organization_count=deleted_count,
+                users_deleted=total_users,
+                files_deleted=total_files,
+                organization_names=org_names,
+                deleted_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            # Mensaje de confirmación
+            msg_parts = [f"Se eliminaron {deleted_count} organización(es)"]
+            
+            if total_users > 0:
+                msg_parts.append(f"{total_users} usuario(s)")
+            
+            if total_files > 0:
+                msg_parts.append(f"{total_files} archivo(s) en DB y R2/S3")
             
             self.message_user(
                 request,
-                f"Archivos eliminados de R2/S3: {org_folders}",
-                messages.INFO
+                " junto con ".join(msg_parts) + ".",
+                messages.WARNING
             )
+            
+            # Mensaje adicional sobre R2
+            import os
+            if os.environ.get('ENABLE_STORAGES', 'false').lower() == 'true':
+                org_folders = ", ".join([f"organizations/{oid}/" for oid in org_ids[:3]])
+                if deleted_count > 3:
+                    org_folders += f" y {deleted_count - 3} más"
+                
+                self.message_user(
+                    request,
+                    f"Archivos eliminados de R2/S3: {org_folders}",
+                    messages.INFO
+                )
+                
+        except Exception as e:
+            # Log del error
+            log_error(
+                event='ORGANIZATION_BULK_DELETE_FAILED',
+                error_code='ORG005',
+                error_message=str(e),
+                logger_name='apps.orgs',
+                organization_count=deleted_count,
+                organization_ids=org_ids,
+                deleted_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            messages.error(
+                request,
+                f"Error al eliminar organizaciones: {str(e)}"
+            )
+            
+            raise
     
     fieldsets = (
         ('Información básica', {
@@ -614,3 +806,142 @@ class ClientAdmin(ImportExportModelAdmin):
         """Optimizar la carga de la organización."""
         queryset = super().get_queryset(request)
         return queryset.select_related('organization')
+    
+    def save_model(self, request, obj, form, change):
+        """
+        Hook para guardar el modelo con logging estructurado.
+        """
+        try:
+            if change:
+                # Es una actualización - capturar cambios
+                changes = []
+                
+                tracked_fields = {
+                    'name': 'Nombre',
+                    'is_active': 'Estado activo',
+                    'email': 'Email'
+                }
+                
+                try:
+                    original = Client.objects.get(pk=obj.pk)
+                    
+                    for field_name, field_label in tracked_fields.items():
+                        old_value = getattr(original, field_name)
+                        new_value = getattr(obj, field_name)
+                        
+                        if old_value != new_value:
+                            changes.append({
+                                'field': field_name,
+                                'field_label': field_label,
+                                'old': old_value,
+                                'new': new_value
+                            })
+                except Client.DoesNotExist:
+                    change = False
+            
+            # Guardar el objeto
+            super().save_model(request, obj, form, change)
+            
+            # Logging estructurado
+            if change and changes:
+                # CLIENT_UPDATED
+                log_info(
+                    event='CLIENT_UPDATED',
+                    message=f"Cliente '{obj.name}' actualizado con {len(changes)} cambio(s)",
+                    logger_name='apps.orgs',
+                    client_id=obj.id,
+                    client_name=obj.name,
+                    organization_id=obj.organization.id if obj.organization else None,
+                    organization_name=obj.organization.name if obj.organization else None,
+                    changes=changes,
+                    updated_by=request.user.email if request.user else 'Sistema'
+                )
+                
+                changes_text = ', '.join([f"{c['field_label']}" for c in changes])
+                messages.success(
+                    request,
+                    f"Cliente '{obj.name}' actualizado exitosamente. Cambios: {changes_text}"
+                )
+            else:
+                # CLIENT_CREATED
+                log_info(
+                    event='CLIENT_CREATED',
+                    message=f"Nuevo cliente creado: '{obj.name}'",
+                    logger_name='apps.orgs',
+                    client_id=obj.id,
+                    client_name=obj.name,
+                    organization_id=obj.organization.id if obj.organization else None,
+                    organization_name=obj.organization.name if obj.organization else None,
+                    email=obj.email,
+                    is_active=obj.is_active,
+                    created_by=request.user.email if request.user else 'Sistema'
+                )
+                
+                messages.success(
+                    request,
+                    f"Cliente '{obj.name}' creado exitosamente."
+                )
+                
+        except Exception as e:
+            log_error(
+                event='CLIENT_SAVE_FAILED',
+                error_code='CLI001',
+                error_message=str(e),
+                logger_name='apps.orgs',
+                client_name=getattr(obj, 'name', 'Desconocido'),
+                action='update' if change else 'create',
+                user_email=request.user.email if request.user else 'Sistema'
+            )
+            
+            messages.error(
+                request,
+                f"Error al {'actualizar' if change else 'crear'} el cliente: {str(e)}"
+            )
+            
+            raise
+    
+    def delete_model(self, request, obj):
+        """
+        Hook para eliminar el modelo con logging estructurado.
+        """
+        client_name = obj.name
+        client_id = obj.id
+        org_name = obj.organization.name if obj.organization else 'Sin organización'
+        org_id = obj.organization.id if obj.organization else None
+        
+        try:
+            log_info(
+                event='CLIENT_DELETED',
+                message=f"Cliente '{client_name}' eliminado",
+                logger_name='apps.orgs',
+                client_id=client_id,
+                client_name=client_name,
+                organization_id=org_id,
+                organization_name=org_name,
+                deleted_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            super().delete_model(request, obj)
+            
+            messages.success(
+                request,
+                f"Cliente '{client_name}' eliminado exitosamente."
+            )
+            
+        except Exception as e:
+            log_error(
+                event='CLIENT_DELETE_FAILED',
+                error_code='CLI002',
+                error_message=str(e),
+                logger_name='apps.orgs',
+                client_id=client_id,
+                client_name=client_name,
+                deleted_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            messages.error(
+                request,
+                f"Error al eliminar el cliente '{client_name}': {str(e)}"
+            )
+            
+            raise

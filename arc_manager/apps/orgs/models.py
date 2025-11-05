@@ -193,7 +193,6 @@ class Organization(models.Model):
     
     def save(self, *args, **kwargs):
         """Override del save para invalidar cache y registrar cambios importantes"""
-        from core.structured_logging import log_business_event
         import logging
         logger = logging.getLogger(__name__)
         
@@ -244,12 +243,13 @@ class Organization(models.Model):
         if any(cf['field'] == 'extra_storage_gb' for cf in changed_fields):
             self.invalidate_storage_cache()
         
-        # Logging de negocio
+        # Logging de negocio - usar log_info en lugar de log_business_event
         if is_new:
-            log_business_event(
-                'ORGANIZATION_CREATED',
-                'admin',
-                logger,
+            from core.structured_logging import log_info
+            log_info(
+                event='ORGANIZATION_CREATED',
+                message=f"Nueva organización creada: '{self.name}'",
+                logger_name='apps.orgs',
                 organization_id=self.id,
                 organization_name=self.name,
                 is_active=self.is_active,
@@ -257,10 +257,11 @@ class Organization(models.Model):
                 extra_storage_gb=self.extra_storage_gb
             )
         elif changed_fields:
-            log_business_event(
-                'ORGANIZATION_UPDATED',
-                'admin',
-                logger,
+            from core.structured_logging import log_info
+            log_info(
+                event='ORGANIZATION_UPDATED',
+                message=f"Organización '{self.name}' actualizada",
+                logger_name='apps.orgs',
                 organization_id=self.id,
                 organization_name=self.name,
                 changes=changed_fields
@@ -270,7 +271,7 @@ class Organization(models.Model):
         """
         Override del delete para limpiar archivos de R2/S3 antes de eliminar la organización
         """
-        from core.structured_logging import log_business_event
+        from core.structured_logging import log_info
         import logging
         logger = logging.getLogger(__name__)
         
@@ -280,10 +281,10 @@ class Organization(models.Model):
         user_count = self.users.count()
         
         # Log de inicio de eliminación
-        log_business_event(
-            'ORGANIZATION_DELETE_START',
-            'admin',
-            logger,
+        log_info(
+            event='ORGANIZATION_DELETE_START',
+            message=f"Iniciando eliminación de organización '{org_name}' (ID: {org_id})",
+            logger_name='apps.orgs',
             organization_id=org_id,
             organization_name=org_name,
             user_count=user_count
@@ -300,10 +301,10 @@ class Organization(models.Model):
         super().delete(*args, **kwargs)
         
         # Log de eliminación exitosa
-        log_business_event(
-            'ORGANIZATION_DELETED',
-            'admin',
-            logger,
+        log_info(
+            event='ORGANIZATION_DELETED',
+            message=f"Organización '{org_name}' eliminada exitosamente",
+            logger_name='apps.orgs',
             organization_id=org_id,
             organization_name=org_name,
             files_deleted=files_deleted,
@@ -315,7 +316,7 @@ class Organization(models.Model):
         Elimina todos los archivos de R2/S3 de esta organización
         Retorna el número de archivos eliminados
         """
-        from core.structured_logging import log_business_event
+        from core.structured_logging import log_info, log_error
         import logging
         import os
         from django.conf import settings
@@ -388,10 +389,10 @@ class Organization(models.Model):
                         logger.error(f"Error eliminando {error['Key']}: {error['Message']}")
             
             # Log exitoso
-            log_business_event(
-                'ORGANIZATION_R2_CLEANUP_SUCCESS',
-                'admin',
-                logger,
+            log_info(
+                event='ORGANIZATION_R2_CLEANUP_SUCCESS',
+                message=f"Archivos de R2 eliminados exitosamente para org '{self.name}'",
+                logger_name='apps.orgs',
                 organization_id=self.id,
                 organization_name=self.name,
                 files_deleted=files_deleted,
@@ -403,14 +404,13 @@ class Organization(models.Model):
             
         except Exception as e:
             # Log de error pero continuar con la eliminación de la org
-            log_business_event(
-                'ORGANIZATION_R2_CLEANUP_ERROR',
-                'admin',
-                logger,
-                level='ERROR',
+            log_error(
+                event='ORGANIZATION_R2_CLEANUP_ERROR',
+                error_code='ORG_R2_001',
+                error_message=str(e),
+                logger_name='apps.orgs',
                 organization_id=self.id,
-                organization_name=self.name,
-                error_message=str(e)
+                organization_name=self.name
             )
             logger.error(f"Error limpiando archivos de R2 para org {self.id}: {e}")
             return 0
@@ -668,7 +668,7 @@ class Client(models.Model):
     
     def save(self, *args, **kwargs):
         """Override de save para logging estructurado"""
-        from core.structured_logging import log_business_event
+        from core.structured_logging import log_info
         import logging
         logger = logging.getLogger(__name__)
         
@@ -709,10 +709,10 @@ class Client(models.Model):
         
         # Logging de negocio
         if is_new:
-            log_business_event(
-                'CLIENT_CREATED',
-                'admin',
-                logger,
+            log_info(
+                event='CLIENT_CREATED',
+                message=f"Nuevo cliente creado: '{self.name}'",
+                logger_name='apps.orgs',
                 client_id=self.id,
                 client_name=self.name,
                 organization_id=self.organization.id,
@@ -721,10 +721,10 @@ class Client(models.Model):
                 is_active=self.is_active
             )
         elif changed_fields:
-            log_business_event(
-                'CLIENT_UPDATED',
-                'admin',
-                logger,
+            log_info(
+                event='CLIENT_UPDATED',
+                message=f"Cliente '{self.name}' actualizado",
+                logger_name='apps.orgs',
                 client_id=self.id,
                 client_name=self.name,
                 organization_id=self.organization.id,
@@ -734,7 +734,7 @@ class Client(models.Model):
     
     def delete(self, *args, **kwargs):
         """Override de delete para logging estructurado"""
-        from core.structured_logging import log_business_event
+        from core.structured_logging import log_info
         import logging
         logger = logging.getLogger(__name__)
         
@@ -748,10 +748,10 @@ class Client(models.Model):
         super().delete(*args, **kwargs)
         
         # Log de eliminación
-        log_business_event(
-            'CLIENT_DELETED',
-            'admin',
-            logger,
+        log_info(
+            event='CLIENT_DELETED',
+            message=f"Cliente '{client_name}' eliminado",
+            logger_name='apps.orgs',
             client_id=client_id,
             client_name=client_name,
             organization_id=org_id,
