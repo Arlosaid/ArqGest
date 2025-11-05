@@ -310,8 +310,12 @@ class RenewSubscriptionView(LoginRequiredMixin, OrgAdminRequiredMixin, TemplateV
             return redirect('plans:renew_subscription')
 
 
-class SubscriptionInfoAPIView(LoginRequiredMixin, OrgAdminRequiredMixin, View):
-    """Vista API para obtener información de suscripción para notificaciones automáticas"""
+class SubscriptionInfoAPIView(LoginRequiredMixin, View):
+    """
+    Vista API para obtener información de suscripción para notificaciones automáticas.
+    Disponible para todos los usuarios autenticados (no solo org_admin) porque
+    todos necesitan ver la información de su suscripción en el dashboard.
+    """
     
     def get(self, request):
         """Devuelve información de suscripción en formato JSON"""
