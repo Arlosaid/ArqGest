@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, View
 from django.contrib import messages
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.http import JsonResponse
@@ -150,7 +150,24 @@ class SimpleUserCreateView(LoginRequiredMixin, View):
                     logger.warning(f"Error enviando email a usuario creado: {user.email}")
                 
                 return redirect('users:user_list')
-                
+            
+            except ValidationError as e:
+                # Errores de validación esperados - mostrar mensaje específico
+                log_error(
+                    event="user_create_validation_error",
+                    error_code=UserErrorCodes.USER_CREATE_VALIDATION_ERROR,
+                    error_message=str(e),
+                    target_email=form.cleaned_data.get('email', 'unknown'),
+                    logger_name=__name__
+                )
+                # Mostrar errores de validación en el formulario
+                if hasattr(e, 'message_dict'):
+                    for field, errors in e.message_dict.items():
+                        for error in errors:
+                            form.add_error(field, error)
+                else:
+                    messages.error(request, str(e))
+                    
             except IntegrityError as e:
                 # Posible condición de carrera con email duplicado u otra unicidad
                 log_error(
@@ -162,6 +179,7 @@ class SimpleUserCreateView(LoginRequiredMixin, View):
                     logger_name=__name__
                 )
                 form.add_error('email', 'Este correo ya está registrado.')
+                
             except Exception as e:
                 # Log detallado del error para desarrolladores
                 log_error(
@@ -173,8 +191,8 @@ class SimpleUserCreateView(LoginRequiredMixin, View):
                     logger_name=__name__
                 )
                 
-                # Siempre mostrar mensaje amigable, nunca errores técnicos
-                messages.error(request, "Ha ocurrido un error al crear el usuario. Por favor, contacta con soporte técnico.")
+                # Solo para errores INESPERADOS mostrar mensaje genérico
+                messages.error(request, "Ha ocurrido un error inesperado. Por favor, contacta con soporte técnico.")
         
         return render(request, self.template_name, {'form': form})
     

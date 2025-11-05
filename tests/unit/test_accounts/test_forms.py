@@ -76,7 +76,7 @@ class TestCustomAuthenticationForm:
         assert form.cleaned_data['remember_me'] is True
     
     
-    def test_form_invalid_with_wrong_password(self, db, disable_account_signals):
+    def test_form_invalid_with_wrong_password(self, db, disable_account_signals, rf):
         """
         ❌ FORM INVÁLIDO CON CONTRASEÑA INCORRECTA
         
@@ -100,7 +100,8 @@ class TestCustomAuthenticationForm:
         )
         
         # ACT: Form con contraseña incorrecta
-        form = CustomAuthenticationForm(data={
+        request = rf.post('/accounts/login/')
+        form = CustomAuthenticationForm(request, data={
             'username': 'test@example.com',
             'password': 'WrongPassword!',
         })
