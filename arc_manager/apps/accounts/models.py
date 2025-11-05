@@ -156,6 +156,9 @@ class User(AbstractUser):
         El logging se maneja en:
         - CustomUserManager.create_user() para creación programática
         - UserAdmin.save_model() para creación/edición desde admin
+        
+        IMPORTANTE: No se hace logging de errores aquí para evitar duplicación
+        cuando se llama desde save_model() del admin que ya hace su propio logging.
         """
         if not self.username:
             # Generar un username simple para compatibilidad con Django
@@ -164,18 +167,8 @@ class User(AbstractUser):
             unique_id = str(uuid4()).split('-')[0][:6]
             self.username = f"{base_username}_{unique_id}"
 
-        try:
-            super().save(*args, **kwargs)
-        except Exception as e:
-            log_error(
-                event="user_save_failed",
-                error_code="USR005",
-                error_message=str(e),
-                user_email=self.email,
-                user_id=self.pk,
-                logger_name='apps.accounts'
-            )
-            raise
+        # Dejar que las excepciones se propaguen sin logging duplicado
+        super().save(*args, **kwargs)
 
     def __str__(self):
         """Mostrar nombre completo o email como fallback"""
