@@ -1,5 +1,4 @@
 :root {
-    /* Colores del proyecto ArcManager - Coherente con la app */
     --auth-color-primary: #3b82f6;
     --auth-color-primary-hover: #2563eb;
     --auth-color-secondary: #10b981;
@@ -11,18 +10,15 @@
     --auth-color-gray-lighter: #f8fafc;
     --auth-color-danger: #ef4444;
     
-    /* Colores de alertas */
     --auth-warning-bg: #fff3cd;
     --auth-warning-border: #ffecb5;
     --auth-warning-text: #664d03;
     
-    /* Efectos */
     --auth-box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     --auth-shadow-lg: 0 10px 25px rgba(59, 130, 246, 0.15);
     --auth-transition: all 0.3s ease;
 }
 
-/* Reset básico para asegurar consistencia - Solo para contenido de autenticación */
 .auth-wrapper *,
 .auth-body * {
   margin: 0;
@@ -30,7 +26,6 @@
   box-sizing: border-box;
 }
 
-/* Base styles */
 .auth-body {
   margin: 0;
   padding: 0;
@@ -42,7 +37,6 @@
   color: var(--auth-color-dark);
 }
 
-/* Asegurar que el body tenga fondo en móvil con colores del proyecto */
 @media (max-width: 992px) {
   .auth-body {
     background: linear-gradient(135deg, var(--auth-color-primary) 0%, var(--auth-color-secondary) 100%) !important;
@@ -64,24 +58,11 @@
   background-position: center;
   background-repeat: no-repeat;
   position: relative;
-  box-shadow: inset -10px 0 15px -10px rgba(0, 0, 0, 0.1);
-}
-
-/* Overlay sutil con colores del proyecto */
-.auth-image-container::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
   z-index: 1;
 }
 
 .auth-form-container {
-  width: 60% !important; /* Forzamos el 60% */
-  flex: 0 0 60%; /* Hacemos que sea fijo en 60% */
+  width: 60% !important;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -1,7 +1,4 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Animación de entrada deshabilitada
-    // animateLoginForm();
-    
     // Selecciona elementos del formulario
     const inputs = document.querySelectorAll('.login-form input');
     const passwordInput = document.getElementById('id_password');
@@ -22,10 +19,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setupFormValidation(loginForm);
 });
 
-// Función para animar la entrada del formulario
-function animateLoginForm() { /* deshabilitada intencionalmente */ }
-
-// Configurar efectos en los inputs
 function setupInputEffects(inputs) {
     if (inputs.length > 0) {
         inputs.forEach(input => {
@@ -62,7 +55,6 @@ function setupInputEffects(inputs) {
     }
 }
 
-// Configurar toggle de contraseña
 function setupPasswordToggle(passwordInput, passwordToggle) {
     if (passwordToggle && passwordInput) {
         passwordToggle.addEventListener('click', function() {
@@ -80,7 +72,6 @@ function setupPasswordToggle(passwordInput, passwordToggle) {
     }
 }
 
-// Configurar efecto de botón
 function setupButtonEffect(signInBtn) {
     if (signInBtn) {
         signInBtn.addEventListener('mousedown', function() {
@@ -97,7 +88,6 @@ function setupButtonEffect(signInBtn) {
     }
 }
 
-// Configurar validación de formulario
 function setupFormValidation(loginForm) {
     if (loginForm) {
         loginForm.addEventListener('submit', function(event) {
@@ -105,7 +95,6 @@ function setupFormValidation(loginForm) {
             const username = document.getElementById('id_username');
             const password = document.getElementById('id_password');
             
-            // Validación de email
             if (username && !validateEmail(username.value)) {
                 showError(username, 'Por favor, introduce un email válido');
                 isValid = false;
@@ -113,7 +102,6 @@ function setupFormValidation(loginForm) {
                 removeError(username);
             }
             
-            // Validación de contraseña
             if (password && password.value.length < 1) {
                 showError(password, 'La contraseña es obligatoria');
                 isValid = false;
@@ -125,10 +113,9 @@ function setupFormValidation(loginForm) {
                 event.preventDefault();
                 shakeElement(loginForm.querySelector('.sign-in-btn'));
             } else {
-                // Animación de carga
-                const btn = this.querySelector('.sign-in-btn'); // Usar 'this' en lugar de loginForm
+                const btn = this.querySelector('.sign-in-btn');
                 if (btn) {
-                    btn.innerHTML = 'Iniciando sesión...'; // Sin el spinner por ahora
+                    btn.innerHTML = 'Iniciando sesión...';
                     btn.disabled = true;
                 }
             }
@@ -136,42 +123,31 @@ function setupFormValidation(loginForm) {
     }
 }
 
-// Función para validar email
 function validateEmail(email) {
     const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
     return re.test(String(email).toLowerCase());
 }
 
-// Función para mostrar errores
 function showError(element, message) {
-    // Quitar error previo si existe
     removeError(element);
     
-    // Obtener el wrapper
     const wrapper = element.closest('.input-wrapper');
     
-    // Crear y mostrar nuevo error
     const errorDiv = document.createElement('div');
     errorDiv.className = 'error-message';
     errorDiv.textContent = message;
     
-    // Aplicar clases de error
     element.classList.add('error');
     if (wrapper) wrapper.classList.add('has-error');
     
-    // Insertar después del wrapper
     wrapper.parentNode.insertBefore(errorDiv, wrapper.nextSibling);
     
-    // Animar el campo con error
     shakeElement(wrapper);
 }
 
-// Función para quitar errores
 function removeError(element) {
-    // Obtener el wrapper
     const wrapper = element.closest('.input-wrapper');
     
-    // Quitar mensaje de error
     if (wrapper) {
         const parent = wrapper.parentNode;
         const errorDiv = parent.querySelector('.error-message');
@@ -180,13 +156,11 @@ function removeError(element) {
             parent.removeChild(errorDiv);
         }
         
-        // Quitar clases de error
         element.classList.remove('error');
         wrapper.classList.remove('has-error');
     }
 }
 
-// Función para hacer vibrar un elemento
 function shakeElement(element) {
     element.classList.add('shake');
     setTimeout(() => {
@@ -194,7 +168,6 @@ function shakeElement(element) {
     }, 500);
 }
 
-// Añadir estilos dinámicos para animaciones adicionales
 (function addDynamicStyles() {
     const style = document.createElement('style');
     style.textContent = `
@@ -262,7 +235,6 @@ function shakeElement(element) {
     document.head.appendChild(style);
 })();
 
-// Añade esta función al final del archivo auth.js
 function setupButtonEffects() {
     const buttons = document.querySelectorAll('.sign-in-btn');
     
@@ -286,9 +258,5 @@ function setupButtonEffects() {
     });
 }
 
-// Asegúrate de llamar a esta función al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
-    // Resto de tu código existente...
-    // Efectos adicionales de botones deshabilitados
-    // setupButtonEffects();
 });
