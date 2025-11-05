@@ -215,29 +215,11 @@ class Organization(models.Model):
     
     def delete(self, *args, **kwargs):
         """
-        Override del delete para limpiar archivos de R2/S3 antes de eliminar la organización
+        Override del delete para limpiar archivos de R2/S3 antes de eliminar la organización.
+        El logging se maneja en el admin para tener contexto del usuario.
         """
-        from core.structured_logging import log_info
-        import logging
-        logger = logging.getLogger(__name__)
-        
-        # Información contextual antes de eliminar
-        org_id = self.id
-        org_name = self.name
-        user_count = self.users.count()
-        
-        # Log de inicio de eliminación
-        log_info(
-            event='ORGANIZATION_DELETE_START',
-            message=f"Iniciando eliminación de organización '{org_name}' (ID: {org_id})",
-            logger_name='apps.orgs',
-            organization_id=org_id,
-            organization_name=org_name,
-            user_count=user_count
-        )
-        
-        # 1. Limpiar archivos de R2/S3
-        files_deleted = self._cleanup_r2_files()
+        # 1. Limpiar archivos de R2/S3 (silenciosamente)
+        self._cleanup_r2_files()
         
         # 2. Invalidar todos los caches relacionados
         self.invalidate_user_cache()
@@ -245,24 +227,13 @@ class Organization(models.Model):
         
         # 3. Eliminar la organización (cascada eliminará proyectos, fases, archivos DB, etc.)
         super().delete(*args, **kwargs)
-        
-        # Log de eliminación exitosa
-        log_info(
-            event='ORGANIZATION_DELETED',
-            message=f"Organización '{org_name}' eliminada exitosamente",
-            logger_name='apps.orgs',
-            organization_id=org_id,
-            organization_name=org_name,
-            files_deleted=files_deleted,
-            users_deleted=user_count
-        )
     
     def _cleanup_r2_files(self):
         """
-        Elimina todos los archivos de R2/S3 de esta organización
-        Retorna el número de archivos eliminados
+        Elimina todos los archivos de R2/S3 de esta organización.
+        Retorna el número de archivos eliminados.
+        Solo loggea errores críticos, no eventos de éxito (para evitar ruido).
         """
-        from core.structured_logging import log_info, log_error
         import logging
         import os
         from django.conf import settings
@@ -271,7 +242,7 @@ class Organization(models.Model):
         
         # Verificar si R2/S3 está habilitado
         if os.environ.get('ENABLE_STORAGES', 'false').lower() != 'true':
-            logger.info(f"R2/S3 no habilitado, solo se eliminarán registros de DB para org {self.id}")
+            logger.debug(f"R2/S3 no habilitado para org {self.id}")
             return 0
         
         try:
@@ -290,7 +261,7 @@ class Organization(models.Model):
             # Prefijo de la organización en R2
             org_prefix = f'organizations/{self.id}/'
             
-            logger.info(f"Limpiando archivos de R2 para org {self.id} (prefix: {org_prefix})")
+            logger.debug(f"Limpiando archivos de R2 para org {self.id} (prefix: {org_prefix})")
             
             files_deleted = 0
             files_to_delete = []
@@ -334,22 +305,15 @@ class Organization(models.Model):
                     for error in response['Errors']:
                         logger.error(f"Error eliminando {error['Key']}: {error['Message']}")
             
-            # Log exitoso
-            log_info(
-                event='ORGANIZATION_R2_CLEANUP_SUCCESS',
-                message=f"Archivos de R2 eliminados exitosamente para org '{self.name}'",
-                logger_name='apps.orgs',
-                organization_id=self.id,
-                organization_name=self.name,
-                files_deleted=files_deleted,
-                prefix=org_prefix
-            )
+            # Solo log DEBUG para éxito (no INFO para evitar ruido)
+            if files_deleted > 0:
+                logger.debug(f"Eliminados {files_deleted} archivos de R2 para org {self.id}")
             
-            logger.info(f"Eliminados {files_deleted} archivos de R2 para org {self.id}")
             return files_deleted
             
         except Exception as e:
-            # Log de error pero continuar con la eliminación de la org
+            # Log de error crítico
+            from core.structured_logging import log_error
             log_error(
                 event='ORGANIZATION_R2_CLEANUP_ERROR',
                 error_code='ORG_R2_001',

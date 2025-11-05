@@ -104,10 +104,12 @@ class Plan(models.Model):
         # Logging de negocio
         if is_new:
             log_business_event(
-                'PLAN_CREATED',
-                'admin',
-                logger,
-                plan_id=self.id,
+                event='plan_created',
+                action='created',
+                entity_type='plan',
+                entity_id=self.id,
+                outcome='success',
+                logger_name='apps.plans',
                 plan_name=self.display_name,
                 plan_type=self.name,
                 price=str(self.price),
@@ -118,10 +120,12 @@ class Plan(models.Model):
             )
         elif changed_fields:
             log_business_event(
-                'PLAN_UPDATED',
-                'admin',
-                logger,
-                plan_id=self.id,
+                event='plan_updated',
+                action='updated',
+                entity_type='plan',
+                entity_id=self.id,
+                outcome='success',
+                logger_name='apps.plans',
                 plan_name=self.display_name,
                 plan_type=self.name,
                 changes=changed_fields
@@ -242,10 +246,12 @@ class Subscription(models.Model):
             self.save(update_fields=['start_date', 'end_date', 'subscription_status'])
             
             log_business_event(
-                'SUBSCRIPTION_CREATED',
-                'admin',
-                logger,
-                subscription_id=self.id,
+                event='subscription_created',
+                action='created',
+                entity_type='subscription',
+                entity_id=self.id,
+                outcome='success',
+                logger_name='apps.plans',
                 organization_id=self.organization.id,
                 organization_name=self.organization.name,
                 plan_name=self.plan.display_name,
@@ -256,10 +262,12 @@ class Subscription(models.Model):
             )
         elif changed_fields:
             log_business_event(
-                'SUBSCRIPTION_UPDATED',
-                'admin',
-                logger,
-                subscription_id=self.id,
+                event='subscription_updated',
+                action='updated',
+                entity_type='subscription',
+                entity_id=self.id,
+                outcome='success',
+                logger_name='apps.plans',
                 organization_id=self.organization.id,
                 organization_name=self.organization.name,
                 plan_name=self.plan.display_name,
@@ -361,10 +369,12 @@ class Subscription(models.Model):
         self.save()
         
         log_business_event(
-            'SUBSCRIPTION_PAYMENT_PROCESSED',
-            'admin',
-            logger,
-            subscription_id=self.id,
+            event='subscription_payment_processed',
+            action='payment_received',
+            entity_type='subscription',
+            entity_id=self.id,
+            outcome='success',
+            logger_name='apps.plans',
             payment_id=payment.id,
             organization_id=self.organization.id,
             organization_name=self.organization.name,
@@ -418,10 +428,12 @@ class Subscription(models.Model):
         self.save()
         
         log_business_event(
-            'SUBSCRIPTION_EXTENDED',
-            'admin',
-            logger,
-            subscription_id=self.id,
+            event='subscription_extended',
+            action='extended',
+            entity_type='subscription',
+            entity_id=self.id,
+            outcome='success',
+            logger_name='apps.plans',
             payment_id=payment.id,
             organization_id=self.organization.id,
             organization_name=self.organization.name,
@@ -463,10 +475,12 @@ class Subscription(models.Model):
         self.save()
         
         log_business_event(
-            'SUBSCRIPTION_PLAN_CHANGED',
-            'admin',
-            logger,
-            subscription_id=self.id,
+            event='subscription_plan_changed',
+            action='plan_switched',
+            entity_type='subscription',
+            entity_id=self.id,
+            outcome='success',
+            logger_name='apps.plans',
             payment_id=payment.id,
             organization_id=self.organization.id,
             organization_name=self.organization.name,
@@ -532,10 +546,12 @@ class Payment(models.Model):
         # Logging solo para nuevos pagos (los updates son raros en Payment)
         if is_new:
             log_business_event(
-                'PAYMENT_RECORDED',
-                'admin',
-                logger,
-                payment_id=self.id,
+                event='payment_recorded',
+                action='created',
+                entity_type='payment',
+                entity_id=self.id,
+                outcome='success',
+                logger_name='apps.plans',
                 subscription_id=self.subscription.id,
                 organization_id=self.subscription.organization.id,
                 organization_name=self.subscription.organization.name,
