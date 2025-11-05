@@ -292,16 +292,30 @@ class SensitiveDataFilter(logging.Filter):
     """
     
     SENSITIVE_PATTERNS = [
-        # Tokens CSRF
-        (r'csrfmiddlewaretoken=[A-Za-z0-9]{64}', 'csrfmiddlewaretoken=[FILTERED]'),
-        # Passwords en URLs/forms
-        (r'password=[^&\s]*', 'password=[FILTERED]'),
+        # Tokens CSRF (diferentes formatos)
+        (r'csrfmiddlewaretoken["\s]*[=:]["\s]*[A-Za-z0-9]{32,}', 'csrfmiddlewaretoken=***'),
+        
+        # Passwords en diferentes formatos (URLs, forms, JSON, multiline)
+        (r'password["\s]*[=:]["\s]*[^\s&"\n]+', 'password=***'),
+        (r'passwd["\s]*[=:]["\s]*[^\s&"\n]+', 'passwd=***'),
+        (r'pwd["\s]*[=:]["\s]*[^\s&"\n]+', 'pwd=***'),
+        (r'new_password\d*["\s]*[=:]["\s]*[^\s&"\n]+', 'new_password=***'),
+        (r'old_password["\s]*[=:]["\s]*[^\s&"\n]+', 'old_password=***'),
+        
         # API Keys
-        (r'api_key=[^&\s]*', 'api_key=[FILTERED]'),
+        (r'api[_-]?key["\s]*[=:]["\s]*[^\s&"\n]+', 'api_key=***'),
+        (r'secret[_-]?key["\s]*[=:]["\s]*[^\s&"\n]+', 'secret_key=***'),
+        (r'access[_-]?token["\s]*[=:]["\s]*[^\s&"\n]+', 'access_token=***'),
+        
         # Tokens de sesión
-        (r'sessionid=[^&\s]*', 'sessionid=[FILTERED]'),
+        (r'sessionid["\s]*[=:]["\s]*[A-Za-z0-9]{24,}', 'sessionid=***'),
+        
         # Authorization headers
-        (r'Authorization:\s*Bearer\s+[A-Za-z0-9\-._~+/]+=*', 'Authorization: Bearer [FILTERED]'),
+        (r'Authorization:\s*Bearer\s+[A-Za-z0-9\-._~+/]+=*', 'Authorization: Bearer ***'),
+        
+        # Tarjetas de crédito
+        (r'\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b', '****-****-****-****'),
+        (r'cvv["\s]*[=:]["\s]*\d{3,4}', 'cvv=***'),
     ]
     
     def filter(self, record):
