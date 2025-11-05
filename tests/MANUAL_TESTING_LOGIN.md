@@ -71,9 +71,9 @@
 - ✅ Log en sistema: `LOGIN EXITOSO | Email: test@example.com`
 
 **Verificaciones adicionales:**
-- [ ] Nombre completo del usuario visible en navbar
-- [ ] Opciones de menú según rol del usuario
-- [ ] Timestamp de login guardado en sesión
+- [v ] Nombre completo del usuario visible en navbar
+- [ v] Opciones de menú según rol del usuario
+- [v ] Timestamp de login guardado en sesión
 
 ---
 
@@ -449,18 +449,36 @@ Content-Security-Policy: frame-ancestors 'none'
 **Objetivo:** Verificar que contraseñas NO se loguean
 
 **Pasos:**
-1. Intentar login fallido
-2. Revisar logs del sistema
+1. Intentar login fallido o exitoso
+2. Revisar logs del sistema (Railway logs, archivos logs/, o consola)
 
 **Verificación en logs:**
 ```
 ✅ CORRECTO: LOGIN FALLIDO | Email: test@example.com | IP: 192.168.1.1
-❌ INCORRECTO: LOGIN FALLIDO | Password: Password123
+✅ CORRECTO: password=*** (censurado por SensitiveDataFilter)
+✅ CORRECTO: csrfmiddlewaretoken=*** (censurado)
+❌ INCORRECTO: password=Password123 (visible en texto plano)
 ```
 
 **Archivos a revisar:**
-- `logs/app.log`
-- `logs/security.log`
+- Railway logs (Production)
+- `logs/app.log` (Development)
+- `logs/security.log` (Development)
+
+**Filtro de seguridad:**
+- Implementado en `core/logging_filters.py` → `SensitiveDataFilter`
+- Activo en todos los handlers de logging (producción y desarrollo)
+- Censura automáticamente: passwords, tokens CSRF, API keys, session IDs, tarjetas de crédito
+
+**⚠️ NOTA IMPORTANTE:**
+En Railway con Gunicorn, si ves output POST con passwords visibles, NO es un problema de tu código.
+Es el comportamiento por defecto de servidores WSGI en modo verbose. El filtro `SensitiveDataFilter`
+censura todos los logs de tu aplicación Django, pero no controla el output directo de Gunicorn/WSGI.
+
+**Solución aplicada:**
+- Filtro `SensitiveDataFilter` mejorado para detectar múltiples formatos de passwords
+- Patrones regex actualizados para capturar: `password=X`, `password: X`, `"password":"X"`
+- Censura aplicada a TODOS los handlers de logging (console_dev, console_prod, stderr)
 
 ---
 
@@ -676,23 +694,42 @@ Content-Security-Policy: frame-ancestors 'none'
 - `SESSION_COOKIE_AGE = 604800` (7 días)
 
 **Pasos:**
-1. Login **SIN marcar** "Recordarme"
-2. Verificar cookie
+1. Navegar a `/accounts/login/`
+2. Ingresar credenciales válidas
+3. ⚠️ **IMPORTANTE: NO marcar el checkbox "Recordarme por 30 días"** (dejarlo sin marcar)
+4. Hacer clic en "Iniciar Sesión"
+5. Abrir DevTools → Application → Cookies → buscar `sessionid`
+6. Verificar el campo "Expires"
 
 **Resultado esperado:**
-- ✅ Cookie con expiración: **7 días** desde ahora
+- ✅ Cookie con expiración: **7 días** desde ahora (aproximadamente `2025-11-12T21:45:33.382Z` si haces login el 05/11/2025)
 - ✅ `SESSION_EXPIRE_AT_BROWSER_CLOSE = False` (mantiene sesión)
+- ✅ Log indica: `Sesión: 7 días`
 
 ---
 
 ### SES-02: Duración de Sesión - Con "Recordarme"
 
+**Objetivo:** Verificar que el checkbox "Recordarme" extiende la sesión a 30 días
+
 **Pasos:**
-1. Login **marcando** "Recordarme por 30 días"
-2. Verificar cookie
+1. Navegar a `/accounts/login/`
+2. Ingresar credenciales válidas
+3. ✅ **MARCAR el checkbox "Recordarme por 30 días"** (hacer clic en él)
+4. Hacer clic en "Iniciar Sesión"
+5. Abrir DevTools → Application → Cookies → buscar `sessionid`
+6. Verificar el campo "Expires"
 
 **Resultado esperado:**
-- ✅ Cookie con expiración: **30 días** (2592000 segundos)
+- ✅ Cookie con expiración: **30 días** desde ahora (2592000 segundos)
+- ✅ Si haces login el 05/11/2025, la expiración debe ser aproximadamente `2025-12-05T21:45:33.382Z`
+- ✅ Log indica: `Sesión: 30 días`
+
+**⚠️ NOTA IMPORTANTE:**
+Si obtienes 7 días en lugar de 30, verifica que:
+1. **Marcaste el checkbox** "Recordarme por 30 días" antes de hacer login
+2. El checkbox tiene el atributo `name="remember_me"`
+3. El campo aparece en el formulario POST (verificar en DevTools → Network → Payload)
 
 ---
 
