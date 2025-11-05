@@ -165,7 +165,7 @@ class SubscriptionAdmin(ImportExportModelAdmin):
     @admin.display(description="Fundador", ordering='organization__is_founder_member')
     def get_founder_indicator(self, obj):
         if obj.organization.is_founder_member:
-            return format_html('<span style="color: #F39C12; font-weight: bold;">⭐ $249</span>')
+            return format_html('<span style="color: #F39C12; font-weight: bold;">FUNDADOR $249</span>')
         return '-'
 
     @admin.display(description="Estado", ordering='subscription_status')
@@ -195,7 +195,7 @@ class SubscriptionAdmin(ImportExportModelAdmin):
             return format_html(f'<span style="color: orange;">{days} día(s) de gracia</span>')
         return f"{days} día(s)"
 
-    @admin.action(description="💰 Procesar pago recibido y extender suscripción")
+    @admin.action(description="Procesar pago recibido y extender suscripción")
     def process_selected_payments(self, request, queryset):
         processed_count = 0
         for subscription in queryset:
@@ -213,7 +213,7 @@ class SubscriptionAdmin(ImportExportModelAdmin):
         if processed_count > 0:
             self.message_user(request, f"{processed_count} suscripciones han sido extendidas exitosamente.", messages.SUCCESS)
 
-    @admin.action(description="🗓️ Extender suscripción manualmente")
+    @admin.action(description="Extender suscripción manualmente")
     def extend_subscription_action(self, request, queryset):
         if 'apply' in request.POST:
             form = ExtendSubscriptionForm(request.POST)
@@ -244,7 +244,7 @@ class SubscriptionAdmin(ImportExportModelAdmin):
             'form': form
         })
         
-    @admin.action(description="🔄 Cambiar plan manualmente")
+    @admin.action(description="Cambiar plan manualmente")
     def change_plan_action(self, request, queryset):
         if 'apply' in request.POST:
             form = ChangePlanForm(request.POST)
@@ -312,7 +312,7 @@ class UpgradeRequestAdmin(admin.ModelAdmin):
             result = req.approve(request.user)
             if result['success']:
                 approved_count += 1
-        self.message_user(request, f'{approved_count} solicitudes de upgrade aprobadas.', messages.SUCCESS)
+            self.message_user(request, f'{approved_count} solicitudes de upgrade aprobadas.', messages.SUCCESS)
     approve_selected_requests.short_description = "Aprobar solicitudes seleccionadas"
 
     def reject_selected_requests(self, request, queryset):
@@ -507,7 +507,7 @@ class RenewalRequestAdmin(ImportExportModelAdmin):
         # Por defecto, comportamiento estándar
         return super().save_model(request, obj, form, change)
 
-    @admin.action(description="✅ Aprobar solicitudes seleccionadas")
+    @admin.action(description="Aprobar solicitudes seleccionadas")
     def approve_selected_renewals(self, request, queryset):
         approved_count = 0
         for renewal_request in queryset.filter(status='pending'):
@@ -536,7 +536,7 @@ class RenewalRequestAdmin(ImportExportModelAdmin):
                 messages.SUCCESS
             )
 
-    @admin.action(description="❌ Rechazar solicitudes seleccionadas")
+    @admin.action(description="Rechazar solicitudes seleccionadas")
     def reject_selected_renewals(self, request, queryset):
         rejected_count = 0
         for renewal_request in queryset.filter(status='pending'):

@@ -92,7 +92,7 @@ def log_error(
     msg_parts = []
     
     # Siempre empezar con el evento en formato legible
-    msg_parts.append(f"❌ {event.replace('_', ' ').upper()}")
+    msg_parts.append(f"ERROR: {event.replace('_', ' ').upper()}")
     
     # Agregar código de error si existe
     if error_code:
@@ -150,7 +150,7 @@ def log_warning(
     data.update(kwargs)
     
     # Mensaje CLARO Y DIRECTO
-    msg = f"⚠️ {event.replace('_', ' ').upper()}"
+    msg = f"WARNING: {event.replace('_', ' ').upper()}"
     if message:
         msg += f" - {message}"
     

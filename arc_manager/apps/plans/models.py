@@ -46,6 +46,87 @@ class Plan(models.Model):
     def __str__(self):
         return self.display_name
     
+    def save(self, *args, **kwargs):
+        """Override de save para logging estructurado"""
+        from core.structured_logging import log_business_event
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        is_new = self.pk is None
+        changed_fields = []
+        
+        # Rastrear cambios críticos si es actualización
+        if self.pk:
+            try:
+                old_instance = Plan.objects.get(pk=self.pk)
+                
+                if old_instance.price != self.price:
+                    changed_fields.append({
+                        'field': 'price',
+                        'old': str(old_instance.price),
+                        'new': str(self.price)
+                    })
+                
+                if old_instance.max_users != self.max_users:
+                    changed_fields.append({
+                        'field': 'max_users',
+                        'old': old_instance.max_users,
+                        'new': self.max_users
+                    })
+                
+                if old_instance.max_storage_gb != self.max_storage_gb:
+                    changed_fields.append({
+                        'field': 'max_storage_gb',
+                        'old': old_instance.max_storage_gb,
+                        'new': self.max_storage_gb
+                    })
+                
+                if old_instance.is_active != self.is_active:
+                    changed_fields.append({
+                        'field': 'is_active',
+                        'old': old_instance.is_active,
+                        'new': self.is_active
+                    })
+                
+                if old_instance.trial_days != self.trial_days:
+                    changed_fields.append({
+                        'field': 'trial_days',
+                        'old': old_instance.trial_days,
+                        'new': self.trial_days
+                    })
+                
+            except Plan.DoesNotExist:
+                pass
+        
+        # Guardar
+        super().save(*args, **kwargs)
+        
+        # Logging de negocio
+        if is_new:
+            log_business_event(
+                'PLAN_CREATED',
+                'admin',
+                logger,
+                plan_id=self.id,
+                plan_name=self.display_name,
+                plan_type=self.name,
+                price=str(self.price),
+                max_users=self.max_users,
+                max_storage_gb=self.max_storage_gb,
+                trial_days=self.trial_days,
+                is_active=self.is_active
+            )
+        elif changed_fields:
+            log_business_event(
+                'PLAN_UPDATED',
+                'admin',
+                logger,
+                plan_id=self.id,
+                plan_name=self.display_name,
+                plan_type=self.name,
+                changes=changed_fields
+            )
+    
     def get_feature_list(self):
         """Retorna las características del plan como una lista simple."""
         features = [f"Hasta {self.max_users} usuario{'s' if self.max_users != 1 else ''}"]
@@ -118,11 +199,72 @@ class Subscription(models.Model):
         return f"{self.organization.name} - {self.plan.display_name}"
 
     def save(self, *args, **kwargs):
+        from core.structured_logging import log_business_event
+        import logging
+        logger = logging.getLogger(__name__)
+        
         is_new = not self.pk
+        changed_fields = []
+        
+        # Rastrear cambios si es actualización
+        if self.pk:
+            try:
+                old_instance = Subscription.objects.get(pk=self.pk)
+                
+                if old_instance.plan_id != self.plan_id:
+                    changed_fields.append({
+                        'field': 'plan',
+                        'old': old_instance.plan.display_name,
+                        'new': self.plan.display_name
+                    })
+                
+                if old_instance.subscription_status != self.subscription_status:
+                    changed_fields.append({
+                        'field': 'subscription_status',
+                        'old': old_instance.subscription_status,
+                        'new': self.subscription_status
+                    })
+                
+                if old_instance.end_date != self.end_date:
+                    changed_fields.append({
+                        'field': 'end_date',
+                        'old': str(old_instance.end_date),
+                        'new': str(self.end_date)
+                    })
+                
+            except Subscription.DoesNotExist:
+                pass
+        
         super().save(*args, **kwargs)
+        
         if is_new:
             self.setup_initial_subscription(self.plan)
             self.save(update_fields=['start_date', 'end_date', 'subscription_status'])
+            
+            log_business_event(
+                'SUBSCRIPTION_CREATED',
+                'admin',
+                logger,
+                subscription_id=self.id,
+                organization_id=self.organization.id,
+                organization_name=self.organization.name,
+                plan_name=self.plan.display_name,
+                plan_type=self.plan.name,
+                start_date=str(self.start_date),
+                end_date=str(self.end_date),
+                status=self.subscription_status
+            )
+        elif changed_fields:
+            log_business_event(
+                'SUBSCRIPTION_UPDATED',
+                'admin',
+                logger,
+                subscription_id=self.id,
+                organization_id=self.organization.id,
+                organization_name=self.organization.name,
+                plan_name=self.plan.display_name,
+                changes=changed_fields
+            )
 
     def setup_initial_subscription(self, plan):
         """Configura las fechas y el estado inicial de la suscripción."""
@@ -186,6 +328,10 @@ class Subscription(models.Model):
 
     def process_payment(self, amount, processed_by):
         """Procesa un pago, extiende la suscripción y crea un registro de pago."""
+        from core.structured_logging import log_business_event
+        import logging
+        logger = logging.getLogger(__name__)
+        
         now = timezone.now()
         old_end_date = self.end_date
         
@@ -213,12 +359,32 @@ class Subscription(models.Model):
             new_end_date=safe_new_end_date
         )
         self.save()
+        
+        log_business_event(
+            'SUBSCRIPTION_PAYMENT_PROCESSED',
+            'admin',
+            logger,
+            subscription_id=self.id,
+            payment_id=payment.id,
+            organization_id=self.organization.id,
+            organization_name=self.organization.name,
+            amount=str(amount),
+            days_added=self.plan.billing_cycle_days,
+            old_end_date=str(old_end_date),
+            new_end_date=str(self.end_date),
+            processed_by=processed_by
+        )
+        
         return {'success': True, 'payment_id': payment.id}
 
     def extend_subscription(self, days, processed_by, reason=""):
         """
         Extiende la suscripción por un número determinado de días.
         """
+        from core.structured_logging import log_business_event
+        import logging
+        logger = logging.getLogger(__name__)
+        
         now = timezone.now()
         old_end_date = self.end_date
 
@@ -250,12 +416,33 @@ class Subscription(models.Model):
             new_end_date=safe_new_end_date
         )
         self.save()
+        
+        log_business_event(
+            'SUBSCRIPTION_EXTENDED',
+            'admin',
+            logger,
+            subscription_id=self.id,
+            payment_id=payment.id,
+            organization_id=self.organization.id,
+            organization_name=self.organization.name,
+            days_added=days,
+            old_end_date=str(old_end_date),
+            new_end_date=str(self.end_date),
+            reason=reason or 'N/A',
+            processed_by=processed_by
+        )
+        
         return {'success': True, 'payment_id': payment.id}
 
     def switch_plan(self, new_plan, processed_by):
         """Cambia el plan de la suscripción, reinicia las fechas y crea un registro."""
+        from core.structured_logging import log_business_event
+        import logging
+        logger = logging.getLogger(__name__)
+        
         now = timezone.now()
-        old_plan_display = self.plan.display_name
+        old_plan_name = self.plan.display_name
+        old_plan_type = self.plan.name
         
         self.plan = new_plan
         self.start_date = now
@@ -270,10 +457,28 @@ class Subscription(models.Model):
             payment_type='upgrade',
             status='completed',
             processed_by=processed_by,
-            description=f'Upgrade de plan: {old_plan_display} -> {new_plan.display_name}',
+            description=f'Upgrade de plan: {old_plan_name} -> {new_plan.display_name}',
             days_added=new_plan.billing_cycle_days
         )
         self.save()
+        
+        log_business_event(
+            'SUBSCRIPTION_PLAN_CHANGED',
+            'admin',
+            logger,
+            subscription_id=self.id,
+            payment_id=payment.id,
+            organization_id=self.organization.id,
+            organization_name=self.organization.name,
+            old_plan=old_plan_name,
+            old_plan_type=old_plan_type,
+            new_plan=new_plan.display_name,
+            new_plan_type=new_plan.name,
+            amount=str(new_plan.price),
+            days_added=new_plan.billing_cycle_days,
+            processed_by=processed_by
+        )
+        
         return {'success': True, 'payment_id': payment.id}
 
     def get_payment_history(self, limit=10):
@@ -312,6 +517,35 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.subscription.organization.name} - ${self.amount} ({self.get_status_display()})"
+    
+    def save(self, *args, **kwargs):
+        """Override de save para logging estructurado"""
+        from core.structured_logging import log_business_event
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        is_new = self.pk is None
+        
+        # Guardar
+        super().save(*args, **kwargs)
+        
+        # Logging solo para nuevos pagos (los updates son raros en Payment)
+        if is_new:
+            log_business_event(
+                'PAYMENT_RECORDED',
+                'admin',
+                logger,
+                payment_id=self.id,
+                subscription_id=self.subscription.id,
+                organization_id=self.subscription.organization.id,
+                organization_name=self.subscription.organization.name,
+                amount=str(self.amount),
+                payment_method=self.payment_method,
+                payment_type=self.payment_type,
+                days_added=self.days_added,
+                processed_by=self.processed_by or 'N/A',
+                description=self.description[:100] if self.description else 'N/A'
+            )
 
 
 class RenewalRequest(models.Model):

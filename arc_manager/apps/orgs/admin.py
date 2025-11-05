@@ -126,7 +126,7 @@ class OrganizationAdmin(ImportExportModelAdmin):
             ).count()
             
             # Log antes de eliminar
-            logger.info(f"🗑️ Iniciando eliminación de organización {org_id} '{org_name}'")
+            logger.info(f"Iniciando eliminación de organización {org_id} '{org_name}'")
             logger.info(f"   └─ {user_count} usuarios, {files_count} archivos en DB")
             
         except Exception as e:
@@ -138,7 +138,7 @@ class OrganizationAdmin(ImportExportModelAdmin):
         obj.delete()
         
         # Mensaje de confirmación
-        msg_parts = [f"✅ Organización '{org_name}' eliminada"]
+        msg_parts = [f"Organización '{org_name}' eliminada"]
         
         if user_count > 0:
             msg_parts.append(f"{user_count} usuario(s)")
@@ -158,7 +158,7 @@ class OrganizationAdmin(ImportExportModelAdmin):
         if os.environ.get('ENABLE_STORAGES', 'false').lower() == 'true':
             self.message_user(
                 request,
-                f"🗑️ Los archivos de la carpeta 'organizations/{org_id}/' han sido eliminados de R2/S3.",
+                f"Los archivos de la carpeta 'organizations/{org_id}/' han sido eliminados de R2/S3.",
                 messages.INFO
             )
     
@@ -188,15 +188,15 @@ class OrganizationAdmin(ImportExportModelAdmin):
         org_ids = list(queryset.values_list('id', flat=True))
         org_names = list(queryset.values_list('name', flat=True))
         
-        logger.info(f"🗑️ Iniciando eliminación en lote de {deleted_count} organizaciones")
+        logger.info(f"Iniciando eliminación en lote de {deleted_count} organizaciones")
         
-        # 🔥 IMPORTANTE: Llamar a delete() de cada instancia para ejecutar limpieza de R2
+        # IMPORTANTE: Llamar a delete() de cada instancia para ejecutar limpieza de R2
         # NO usar super().delete_queryset() porque usa queryset.delete() que NO llama al método personalizado
         for org in queryset:
             org.delete()  # Esto SÍ ejecuta el método delete() con limpieza de R2
         
         # Mensaje de confirmación
-        msg_parts = [f"✅ Se eliminaron {deleted_count} organización(es)"]
+        msg_parts = [f"Se eliminaron {deleted_count} organización(es)"]
         
         if total_users > 0:
             msg_parts.append(f"{total_users} usuario(s)")
@@ -219,7 +219,7 @@ class OrganizationAdmin(ImportExportModelAdmin):
             
             self.message_user(
                 request,
-                f"🗑️ Archivos eliminados de R2/S3: {org_folders}",
+                f"Archivos eliminados de R2/S3: {org_folders}",
                 messages.INFO
             )
     
@@ -233,12 +233,12 @@ class OrganizationAdmin(ImportExportModelAdmin):
         }),
         ('Membresía Fundadora', {
             'fields': ('is_founder_member',),
-            'description': '🌟 <strong>Miembros Fundadores:</strong> Precio especial de $249/mes en lugar de $299/mes. El descuento se aplicará automáticamente.',
+            'description': '<strong>Miembros Fundadores:</strong> Precio especial de $249/mes en lugar de $299/mes. El descuento se aplicará automáticamente.',
             'classes': ('collapse',)
         }),
         ('Suscripción', {
             'fields': ('get_subscription_status', 'get_subscription_link'),
-            'description': '📝 Para gestionar planes y suscripciones, usa el módulo "Suscripciones" del admin.',
+            'description': 'Para gestionar planes y suscripciones, usa el módulo "Suscripciones" del admin.',
             'classes': ('collapse',)
         }),
         ('Usuarios de la Organización', {
@@ -288,7 +288,7 @@ class OrganizationAdmin(ImportExportModelAdmin):
         """Muestra una insignia si es miembro fundador."""
         if obj.is_founder_member:
             return format_html(
-                '<span style="background-color: #F39C12; color: white; padding: 3px 8px; border-radius: 3px; font-weight: bold; font-size: 11px;">⭐ FUNDADOR $249</span>'
+                '<span style="background-color: #F39C12; color: white; padding: 3px 8px; border-radius: 3px; font-weight: bold; font-size: 11px;">FUNDADOR $249</span>'
             )
         return '-'
     get_founder_badge.short_description = 'Membresía'
@@ -356,7 +356,7 @@ class OrganizationAdmin(ImportExportModelAdmin):
                 subscription = getattr(obj, 'subscription', None)
                 if subscription and hasattr(subscription, 'pk'):
                     subscription_url = reverse('admin:plans_subscription_change', args=[subscription.pk])
-                    return format_html('<a href="{}" class="button">📝 Gestionar suscripción</a>', subscription_url)
+                    return format_html('<a href="{}" class="button">Gestionar suscripción</a>', subscription_url)
         except Exception as e:
             print(f"Error en get_subscription_link para org {obj.id}: {e}")
             pass
@@ -421,11 +421,11 @@ class OrganizationAdmin(ImportExportModelAdmin):
         
         self.message_user(
             request, 
-            f"✅ Se activaron {updated} organización(es). "
+            f"Se activaron {updated} organización(es). "
             f"Los {total_users} usuario(s) asociados ahora pueden acceder nuevamente.",
             messages.SUCCESS
         )
-    activate_organizations.short_description = "✅ Activar organizaciones (restaurar acceso)"
+    activate_organizations.short_description = "Activar organizaciones (restaurar acceso)"
     
     def deactivate_organizations(self, request, queryset):
         """Desactivar organizaciones seleccionadas"""
@@ -434,11 +434,11 @@ class OrganizationAdmin(ImportExportModelAdmin):
         
         self.message_user(
             request,
-            f"⚠️ Se desactivaron {updated} organización(es). "
+            f"Se desactivaron {updated} organización(es). "
             f"Los {total_users} usuario(s) asociados NO podrán acceder hasta que reactives la organización.",
             messages.WARNING
         )
-    deactivate_organizations.short_description = "❌ Desactivar organizaciones (bloquear acceso)"
+    deactivate_organizations.short_description = "Desactivar organizaciones (bloquear acceso)"
     
     def mark_as_founder(self, request, queryset):
         """Marcar organizaciones como miembros fundadores"""
@@ -455,8 +455,8 @@ class OrganizationAdmin(ImportExportModelAdmin):
                 org.founder_discount_percentage = FOUNDER_DISCOUNT
                 org.save()
                 updated += 1
-        self.message_user(request, f"⭐ Se marcaron {updated} organizaciones como miembros fundadores. Precio especial: $249/mes.", messages.SUCCESS)
-    mark_as_founder.short_description = "⭐ Marcar como miembro fundador ($249/mes)"
+        self.message_user(request, f"Se marcaron {updated} organizaciones como miembros fundadores. Precio especial: $249/mes.", messages.SUCCESS)
+    mark_as_founder.short_description = "Marcar como miembro fundador ($249/mes)"
     
     def unmark_as_founder(self, request, queryset):
         """Quitar el estatus de miembro fundador"""
@@ -508,18 +508,18 @@ class OrganizationAdmin(ImportExportModelAdmin):
         if reduced_count > 0:
             self.message_user(
                 request, 
-                f"✅ Se redujo el almacenamiento extra de {reduced_count} organizaciones.",
+                f"Se redujo el almacenamiento extra de {reduced_count} organizaciones.",
                 messages.SUCCESS
             )
         
         if blocked_count > 0:
             self.message_user(
                 request,
-                f"⚠️ No se pudo reducir el almacenamiento de {blocked_count} organizaciones por exceder el uso actual.",
+                f"No se pudo reducir el almacenamiento de {blocked_count} organizaciones por exceder el uso actual.",
                 messages.WARNING
             )
     
-    reduce_extra_storage.short_description = "📉 Reducir almacenamiento extra seguro"
+    reduce_extra_storage.short_description = "Reducir almacenamiento extra seguro"
     
     def add_extra_storage(self, request, queryset):
         """Agregar 10 GB de almacenamiento extra a organizaciones seleccionadas"""
@@ -532,11 +532,11 @@ class OrganizationAdmin(ImportExportModelAdmin):
         
         self.message_user(
             request,
-            f"📈 Se agregaron 10 GB extra a {updated} organizaciones.",
+            f"Se agregaron 10 GB extra a {updated} organizaciones.",
             messages.SUCCESS
         )
     
-    add_extra_storage.short_description = "📈 Agregar 10 GB extra"
+    add_extra_storage.short_description = "Agregar 10 GB extra"
     
     def get_users_display(self, obj):
         """Muestra los usuarios de la organización con sus roles y emails"""
