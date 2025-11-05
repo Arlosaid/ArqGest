@@ -19,9 +19,10 @@ from apps.users.utils import (
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 import logging
+from core.structured_logging import log_error, log_info
 
 # Configurar logger
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('apps.accounts')
 
 # --- Recurso para Import/Export ---
 
@@ -150,50 +151,153 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         """
         Método que se ejecuta cuando se guarda un usuario desde el admin.
         Si es un nuevo usuario, automáticamente envía las credenciales por email.
+        Implementa logging estructurado.
         """
         is_new_user = not change  # change=False significa que es un nuevo usuario
         
-        if is_new_user and isinstance(form, UserCreationForm):
-            # Para nuevo usuario creado con UserCreationForm
-            # El formulario ya se encargó de generar y hashear la contraseña
-            password = getattr(form, '_generated_password', None)
-            
-            if not password:
-                # Fallback: esto no debería pasar si el formulario funcionó correctamente
-                logger.warning(f"[ADMIN] No se encontró contraseña generada en formulario para {obj.email}")
-                password = generate_random_password()
-                obj.set_password(password)
-                obj.password_change_required = True
-            
-            # Guardar el usuario primero
-            super().save_model(request, obj, form, change)
-            
-            # Enviar credenciales automáticamente - solo logear si falla
-            try:
-                result = send_new_user_email(obj, password)
+        try:
+            if is_new_user and isinstance(form, UserCreationForm):
+                # Para nuevo usuario creado con UserCreationForm
+                # El formulario ya se encargó de generar y hashear la contraseña
+                password = getattr(form, '_generated_password', None)
                 
-                if result:
-                    messages.success(
-                        request, 
-                        f"Usuario creado exitosamente. Las credenciales fueron enviadas automáticamente a {obj.email}"
+                if not password:
+                    # Fallback: esto no debería pasar si el formulario funcionó correctamente
+                    password = generate_random_password()
+                    obj.set_password(password)
+                    obj.password_change_required = True
+                    
+                    log_error(
+                        event='USER_PASSWORD_GENERATION_FALLBACK',
+                        error_code='USR002',
+                        error_message='No se encontró contraseña generada en formulario, usando fallback',
+                        logger_name='apps.accounts',
+                        user_email=obj.email
                     )
-                else:
-                    logger.error(f"[ADMIN] Failed to send credentials to {obj.email}")
-                    messages.warning(
+                
+                # Guardar el usuario primero
+                super().save_model(request, obj, form, change)
+                
+                # Log de creación
+                log_info(
+                    event='USER_CREATED',
+                    message=f"Nuevo usuario creado: {obj.email}",
+                    logger_name='apps.accounts',
+                    user_id=obj.id,
+                    user_email=obj.email,
+                    organization_id=obj.organization.id if obj.organization else None,
+                    organization_name=obj.organization.name if obj.organization else None,
+                    is_org_admin=obj.is_org_admin,
+                    created_by=request.user.email if request.user else 'Sistema'
+                )
+                
+                # Enviar credenciales automáticamente
+                try:
+                    result = send_new_user_email(obj, password)
+                    
+                    if result:
+                        messages.success(
+                            request, 
+                            f"Usuario creado exitosamente. Las credenciales fueron enviadas automáticamente a {obj.email}"
+                        )
+                    else:
+                        log_error(
+                            event='USER_EMAIL_SEND_FAILED',
+                            error_code='USR003',
+                            error_message='Falló el envío de credenciales',
+                            logger_name='apps.accounts',
+                            user_email=obj.email
+                        )
+                        
+                        messages.warning(
+                            request, 
+                            f"Usuario creado pero falló el envío de credenciales a {obj.email}. "
+                            f"Usa la acción 'Enviar credenciales' desde la lista de usuarios."
+                        )
+                except Exception as e:
+                    log_error(
+                        event='USER_EMAIL_SEND_ERROR',
+                        error_code='USR004',
+                        error_message=str(e),
+                        logger_name='apps.accounts',
+                        user_email=obj.email
+                    )
+                    
+                    messages.error(
                         request, 
-                        f"Usuario creado pero falló el envío de credenciales a {obj.email}. "
+                        f"Usuario creado pero error al enviar credenciales a {obj.email}: {str(e)[:100]}... "
                         f"Usa la acción 'Enviar credenciales' desde la lista de usuarios."
                     )
-            except Exception as e:
-                logger.error(f"[ADMIN] Error enviando credenciales automáticamente a {obj.email}: {str(e)}")
-                messages.error(
-                    request, 
-                    f"Usuario creado pero error al enviar credenciales a {obj.email}: {str(e)[:100]}... "
-                    f"Usa la acción 'Enviar credenciales' desde la lista de usuarios."
-                )
-        else:
-            # Para usuarios existentes o formularios diferentes, usar comportamiento normal
-            super().save_model(request, obj, form, change)
+            else:
+                # Para usuarios existentes - capturar cambios
+                if change:
+                    changes = []
+                    tracked_fields = {
+                        'is_active': 'Estado activo',
+                        'is_org_admin': 'Admin de organización',
+                        'is_staff': 'Staff',
+                        'organization': 'Organización'
+                    }
+                    
+                    try:
+                        original = User.objects.get(pk=obj.pk)
+                        for field_name, field_label in tracked_fields.items():
+                            old_value = getattr(original, field_name)
+                            new_value = getattr(obj, field_name)
+                            
+                            if old_value != new_value:
+                                # Formatear valores para logging
+                                if field_name == 'organization':
+                                    old_val = old_value.name if old_value else 'Sin organización'
+                                    new_val = new_value.name if new_value else 'Sin organización'
+                                else:
+                                    old_val = str(old_value)
+                                    new_val = str(new_value)
+                                
+                                changes.append({
+                                    'field': field_name,
+                                    'field_label': field_label,
+                                    'old': old_val,
+                                    'new': new_val
+                                })
+                    except User.DoesNotExist:
+                        pass
+                    
+                    # Guardar el usuario
+                    super().save_model(request, obj, form, change)
+                    
+                    # Log de actualización
+                    if changes:
+                        log_info(
+                            event='USER_UPDATED',
+                            message=f"Usuario {obj.email} actualizado con {len(changes)} cambio(s)",
+                            logger_name='apps.accounts',
+                            user_id=obj.id,
+                            user_email=obj.email,
+                            changes=changes,
+                            updated_by=request.user.email if request.user else 'Sistema'
+                        )
+                else:
+                    # Guardar sin cambios específicos
+                    super().save_model(request, obj, form, change)
+                    
+        except Exception as e:
+            log_error(
+                event='USER_SAVE_FAILED',
+                error_code='USR001',
+                error_message=str(e),
+                logger_name='apps.accounts',
+                user_email=getattr(obj, 'email', 'Desconocido'),
+                action='create' if is_new_user else 'update',
+                performed_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            messages.error(
+                request,
+                f"Error al {'crear' if is_new_user else 'actualizar'} el usuario: {str(e)}"
+            )
+            
+            raise
     
     def full_name(self, obj):
         return f"{obj.first_name} {obj.last_name}".strip() or obj.email

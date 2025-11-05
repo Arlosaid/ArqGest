@@ -10,8 +10,9 @@ from .models import Plan, Subscription, UpgradeRequest, Payment, RenewalRequest
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 import logging
+from core.structured_logging import log_error, log_info
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('apps.plans')
 
 # --- Recursos para Import/Export ---
 
@@ -77,6 +78,87 @@ class PlanAdmin(ImportExportModelAdmin):
         }),
     )
     readonly_fields = ('created_at', 'updated_at')
+    
+    def save_model(self, request, obj, form, change):
+        """Hook para guardar el modelo con logging estructurado."""
+        try:
+            if change:
+                # Es una actualización - capturar cambios
+                changes = []
+                tracked_fields = {
+                    'price': 'Precio',
+                    'max_users': 'Usuarios máximos',
+                    'max_storage_gb': 'Almacenamiento GB',
+                    'is_active': 'Estado activo',
+                    'trial_days': 'Días de prueba'
+                }
+                
+                try:
+                    original = Plan.objects.get(pk=obj.pk)
+                    for field_name, field_label in tracked_fields.items():
+                        old_value = getattr(original, field_name)
+                        new_value = getattr(obj, field_name)
+                        if old_value != new_value:
+                            changes.append({
+                                'field': field_name,
+                                'field_label': field_label,
+                                'old': old_value,
+                                'new': new_value
+                            })
+                except Plan.DoesNotExist:
+                    change = False
+            
+            # Guardar el objeto
+            super().save_model(request, obj, form, change)
+            
+            # Logging estructurado
+            if change and changes:
+                # PLAN_UPDATED
+                log_info(
+                    event='PLAN_UPDATED',
+                    message=f"Plan '{obj.display_name}' actualizado con {len(changes)} cambio(s)",
+                    logger_name='apps.plans',
+                    plan_id=obj.id,
+                    plan_name=obj.display_name,
+                    plan_type=obj.name,
+                    changes=changes,
+                    updated_by=request.user.email if request.user else 'Sistema'
+                )
+                
+                changes_text = ', '.join([f"{c['field_label']}" for c in changes])
+                messages.success(request, f"Plan '{obj.display_name}' actualizado. Cambios: {changes_text}")
+            else:
+                # PLAN_CREATED
+                log_info(
+                    event='PLAN_CREATED',
+                    message=f"Nuevo plan creado: '{obj.display_name}'",
+                    logger_name='apps.plans',
+                    plan_id=obj.id,
+                    plan_name=obj.display_name,
+                    plan_type=obj.name,
+                    price=str(obj.price),
+                    max_users=obj.max_users,
+                    max_storage_gb=obj.max_storage_gb,
+                    trial_days=obj.trial_days,
+                    is_active=obj.is_active,
+                    created_by=request.user.email if request.user else 'Sistema'
+                )
+                
+                messages.success(request, f"Plan '{obj.display_name}' creado exitosamente.")
+                
+        except Exception as e:
+            log_error(
+                event='PLAN_SAVE_FAILED',
+                error_code='PLN001',
+                error_message=str(e),
+                logger_name='apps.plans',
+                plan_name=getattr(obj, 'display_name', 'Desconocido'),
+                action='update' if change else 'create',
+                user_email=request.user.email if request.user else 'Sistema'
+            )
+            
+            messages.error(request, f"Error al {'actualizar' if change else 'crear'} el plan: {str(e)}")
+            raise
 
 class PaymentInline(admin.TabularInline):
     model = Payment
@@ -156,8 +238,94 @@ class SubscriptionAdmin(ImportExportModelAdmin):
         return super().add_view(request, form_url, extra_context)
     
     def save_model(self, request, obj, form, change):
-        super().save_model(request, obj, form, change)
-        obj.update_status()
+        """Hook para guardar el modelo con logging estructurado."""
+        try:
+            if change:
+                # Es una actualización - capturar cambios
+                changes = []
+                tracked_fields = {
+                    'plan': 'Plan',
+                    'subscription_status': 'Estado',
+                    'end_date': 'Fecha de vencimiento'
+                }
+                
+                try:
+                    original = Subscription.objects.get(pk=obj.pk)
+                    for field_name, field_label in tracked_fields.items():
+                        old_value = getattr(original, field_name)
+                        new_value = getattr(obj, field_name)
+                        if old_value != new_value:
+                            # Formatear valores para logging
+                            if field_name == 'plan':
+                                old_val = old_value.display_name if old_value else 'Sin plan'
+                                new_val = new_value.display_name if new_value else 'Sin plan'
+                            else:
+                                old_val = str(old_value)
+                                new_val = str(new_value)
+                            
+                            changes.append({
+                                'field': field_name,
+                                'field_label': field_label,
+                                'old': old_val,
+                                'new': new_val
+                            })
+                except Subscription.DoesNotExist:
+                    change = False
+            
+            # Guardar el objeto primero
+            super().save_model(request, obj, form, change)
+            # Actualizar estado después de guardar
+            obj.update_status()
+            
+            # Logging estructurado
+            if change and changes:
+                # SUBSCRIPTION_UPDATED
+                log_info(
+                    event='SUBSCRIPTION_UPDATED',
+                    message=f"Suscripción de '{obj.organization.name}' actualizada con {len(changes)} cambio(s)",
+                    logger_name='apps.plans',
+                    subscription_id=obj.id,
+                    organization_id=obj.organization.id,
+                    organization_name=obj.organization.name,
+                    plan_name=obj.plan.display_name if obj.plan else 'Sin plan',
+                    changes=changes,
+                    updated_by=request.user.email if request.user else 'Sistema'
+                )
+                
+                changes_text = ', '.join([f"{c['field_label']}" for c in changes])
+                messages.success(request, f"Suscripción actualizada. Cambios: {changes_text}")
+            else:
+                # SUBSCRIPTION_CREATED
+                log_info(
+                    event='SUBSCRIPTION_CREATED',
+                    message=f"Nueva suscripción creada para '{obj.organization.name}'",
+                    logger_name='apps.plans',
+                    subscription_id=obj.id,
+                    organization_id=obj.organization.id,
+                    organization_name=obj.organization.name,
+                    plan_name=obj.plan.display_name if obj.plan else 'Sin plan',
+                    plan_type=obj.plan.name if obj.plan else 'unknown',
+                    start_date=str(obj.start_date),
+                    end_date=str(obj.end_date),
+                    status=obj.subscription_status,
+                    created_by=request.user.email if request.user else 'Sistema'
+                )
+                
+                messages.success(request, f"Suscripción creada para '{obj.organization.name}'.")
+                
+        except Exception as e:
+            log_error(
+                event='SUBSCRIPTION_SAVE_FAILED',
+                error_code='SUB001',
+                error_message=str(e),
+                logger_name='apps.plans',
+                organization_name=obj.organization.name if obj.organization else 'Desconocida',
+                action='update' if change else 'create',
+                user_email=request.user.email if request.user else 'Sistema'
+            )
+            
+            messages.error(request, f"Error al {'actualizar' if change else 'crear'} la suscripción: {str(e)}")
+            raise
 
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related('plan', 'organization')

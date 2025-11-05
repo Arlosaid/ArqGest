@@ -188,7 +188,7 @@ def log_info(
     data.update(kwargs)
     
     # Mensaje CLARO Y DIRECTO
-    msg = f"ℹ️ {event.replace('_', ' ').title()}"
+    msg = f"INFO: {event.replace('_', ' ').upper()}"
     if message:
         msg += f" - {message}"
     

@@ -70,10 +70,7 @@
 - ✅ Cookie de sesión creada (7 días por defecto)
 - ✅ Log en sistema: `LOGIN EXITOSO | Email: test@example.com`
 
-**Verificaciones adicionales:**
-- [ ] Nombre completo del usuario visible en navbar
-- [ ] Opciones de menú según rol del usuario
-- [ ] Timestamp de login guardado en sesión
+ gin guardado en sesión
 
 ---
 
