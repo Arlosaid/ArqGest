@@ -75,15 +75,15 @@ class ProjectFileAdmin(admin.ModelAdmin):
         """Información del archivo con icono y descarga."""
         # Iconos simples por tipo
         icons = {
-            'PDF': '📄', 'DOC': '📝', 'DOCX': '📝', 'XLS': '📊', 'XLSX': '📊',
-            'JPG': '🖼️', 'PNG': '🖼️', 'GIF': '🖼️', 'ZIP': '🗜️', 'DWG': '📐'
+            'PDF': 'PDF', 'DOC': 'DOC', 'DOCX': 'DOCX', 'XLS': 'XLS', 'XLSX': 'XLSX',
+            'JPG': 'IMG', 'PNG': 'IMG', 'GIF': 'IMG', 'ZIP': 'ZIP', 'DWG': 'DWG'
         }
-        icon = icons.get(obj.ext_upper, '📎')
+        icon = icons.get(obj.ext_upper, 'FILE')
         
         if obj.file:
             return format_html(
                 '<div style="display: flex; align-items: center; gap: 8px;">'
-                '<span style="font-size: 18px;">{}</span>'
+                '<span style="font-size: 12px; font-weight: bold; background: #f0f0f0; padding: 2px 6px; border-radius: 3px;">{}</span>'
                 '<div>'
                 '<strong><a href="{}" target="_blank" style="text-decoration: none; color: #0073aa;">{}</a></strong><br>'
                 '<small style="color: #666; background: #f0f0f0; padding: 2px 5px; border-radius: 3px;">{}</small>'
@@ -93,7 +93,7 @@ class ProjectFileAdmin(admin.ModelAdmin):
             )
         return format_html(
             '<div style="display: flex; align-items: center; gap: 8px;">'
-            '<span style="font-size: 18px;">🚫</span>'
+            '<span style="font-size: 12px; font-weight: bold; color: #999;">ERR</span>'
             '<div><strong>{}</strong><br><small style="color: #666;">{}</small></div>'
             '</div>',
             obj.filename, obj.ext_upper
@@ -106,9 +106,9 @@ class ProjectFileAdmin(admin.ModelAdmin):
         if obj.phase and obj.phase.project and obj.phase.project.organization:
             return format_html(
                 '<div style="font-size: 12px; line-height: 1.4;">'
-                '<div style="color: #0073aa; font-weight: bold;">🏢 {}</div>'
-                '<div style="color: #666; margin-left: 10px;">📁 {}</div>'
-                '<div style="color: #999; margin-left: 20px;">📋 {}</div>'
+                '<div style="color: #0073aa; font-weight: bold;">ORG: {}</div>'
+                '<div style="color: #666; margin-left: 10px;">PROJ: {}</div>'
+                '<div style="color: #999; margin-left: 20px;">FASE: {}</div>'
                 '</div>',
                 obj.phase.project.organization.name,
                 obj.phase.project.name,
@@ -156,7 +156,7 @@ class ProjectFileAdmin(admin.ModelAdmin):
         
         if hasattr(obj, 'uploaded_by') and obj.uploaded_by:
             actions.append(format_html(
-                '<span title="Subido por {}" style="color: #666;">👤</span>',
+                '<span title="Subido por {}" style="color: #666;">USER</span>',
                 obj.uploaded_by.get_full_name() or obj.uploaded_by.email
             ))
         
@@ -178,7 +178,7 @@ class ProjectFileAdmin(admin.ModelAdmin):
                 orgs[org_name]['size'] += file_obj.size_bytes or 0
                 orgs[org_name]['count'] += 1
         
-        message = f"📊 RESUMEN DE ALMACENAMIENTO\n"
+        message = f"RESUMEN DE ALMACENAMIENTO\n"
         message += f"Total: {filesizeformat(total_size)} en {total_files} archivos\n\n"
         
         if orgs:
@@ -187,7 +187,7 @@ class ProjectFileAdmin(admin.ModelAdmin):
                 message += f"• {org_name}: {filesizeformat(data['size'])} ({data['count']} archivos)\n"
         
         self.message_user(request, message, messages.INFO)
-    calculate_storage.short_description = "📊 Calcular almacenamiento"
+    calculate_storage.short_description = "Calcular almacenamiento"
     
     def export_file_list(self, request, queryset):
         """Exportar lista de archivos seleccionados."""
@@ -230,8 +230,8 @@ class ProjectFileAdmin(admin.ModelAdmin):
         count = queryset.count()
         self.message_user(
             request, 
-            f"📋 Se exportaron {count} archivo{'s' if count != 1 else ''} exitosamente",
+            f"Se exportaron {count} archivo{'s' if count != 1 else ''} exitosamente",
             messages.SUCCESS
         )
         return response
-    export_file_list.short_description = "📋 Exportar lista (.csv)"
+    export_file_list.short_description = "Exportar lista (.csv)"

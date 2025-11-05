@@ -261,9 +261,9 @@ class ProjectAdmin(ImportExportModelAdmin):
         
         return format_html(
             '<div style="font-size: 12px;">'
-            '<div>✅ <strong>{}</strong> completadas</div>'
-            '<div>🔄 <strong>{}</strong> en progreso</div>'
-            '<div>⏳ <strong>{}</strong> pendientes</div>'
+            '<div>DONE: <strong>{}</strong></div>'
+            '<div>IN_PROG: <strong>{}</strong></div>'
+            '<div>PENDING: <strong>{}</strong></div>'
             '</div>',
             completed_tasks, in_progress_tasks, pending_tasks
         )
@@ -280,7 +280,7 @@ class ProjectAdmin(ImportExportModelAdmin):
         activity_html = '<div style="font-size: 12px;">'
         for task in recent_tasks:
             activity_html += format_html(
-                '<div style="margin-bottom: 4px;">📝 <strong>{}</strong> - {}</div>',
+                '<div style="margin-bottom: 4px;"><strong>{}</strong> - {}</div>',
                 task.title[:30] + '...' if len(task.title) > 30 else task.title,
                 task.get_status_display()
             )
@@ -312,10 +312,10 @@ class ProjectAdmin(ImportExportModelAdmin):
         if duplicated_count > 0:
             self.message_user(
                 request,
-                f"✅ Se duplicaron {duplicated_count} proyectos correctamente.",
+                f"Se duplicaron {duplicated_count} proyectos correctamente.",
                 messages.SUCCESS
             )
-    duplicate_projects.short_description = "📋 Duplicar proyectos seleccionados"
+    duplicate_projects.short_description = "Duplicar proyectos seleccionados"
     
     def generate_project_report(self, request, queryset):
         """Generar reporte de proyectos."""
@@ -323,11 +323,11 @@ class ProjectAdmin(ImportExportModelAdmin):
         project_count = queryset.count()
         self.message_user(
             request,
-            f"📊 Se ha generado un reporte para {project_count} proyecto(s). "
+            f"Se ha generado un reporte para {project_count} proyecto(s). "
             "Funcionalidad de reporte completa próximamente.",
             messages.INFO
         )
-    generate_project_report.short_description = "📊 Generar reporte de proyectos"
+    generate_project_report.short_description = "Generar reporte de proyectos"
 
 @admin.register(Phase)
 class PhaseAdmin(ImportExportModelAdmin):
@@ -411,14 +411,14 @@ class PhaseAdmin(ImportExportModelAdmin):
     def mark_as_completed(self, request, queryset):
         """Marcar fases como completadas."""
         updated = queryset.update(status='COMPLETED')
-        self.message_user(request, f"✅ Se marcaron {updated} fases como completadas.", messages.SUCCESS)
-    mark_as_completed.short_description = "✅ Marcar como completadas"
+        self.message_user(request, f"Se marcaron {updated} fases como completadas.", messages.SUCCESS)
+    mark_as_completed.short_description = "Marcar como completadas"
     
     def mark_as_in_progress(self, request, queryset):
         """Marcar fases como en progreso."""
         updated = queryset.update(status='IN_PROGRESS')
-        self.message_user(request, f"🔄 Se marcaron {updated} fases como en progreso.", messages.SUCCESS)
-    mark_as_in_progress.short_description = "🔄 Marcar como en progreso"
+        self.message_user(request, f"Se marcaron {updated} fases como en progreso.", messages.SUCCESS)
+    mark_as_in_progress.short_description = "Marcar como en progreso"
 
 
 @admin.register(Task)
@@ -521,26 +521,26 @@ class TaskAdmin(ImportExportModelAdmin):
     def mark_as_completed(self, request, queryset):
         """Marcar tareas como completadas."""
         updated = queryset.update(status='DONE')
-        self.message_user(request, f"✅ Se marcaron {updated} tareas como completadas.", messages.SUCCESS)
-    mark_as_completed.short_description = "✅ Marcar como completadas"
+        self.message_user(request, f"Se marcaron {updated} tareas como completadas.", messages.SUCCESS)
+    mark_as_completed.short_description = "Marcar como completadas"
     
     def mark_as_in_progress(self, request, queryset):
         """Marcar tareas como en progreso."""
         updated = queryset.update(status='IN_PROGRESS')
-        self.message_user(request, f"🔄 Se marcaron {updated} tareas como en progreso.", messages.SUCCESS)
-    mark_as_in_progress.short_description = "🔄 Marcar como en progreso"
+        self.message_user(request, f"Se marcaron {updated} tareas como en progreso.", messages.SUCCESS)
+    mark_as_in_progress.short_description = "Marcar como en progreso"
     
     def mark_as_pending(self, request, queryset):
         """Marcar tareas como pendientes."""
         updated = queryset.update(status='TODO')
-        self.message_user(request, f"⏳ Se marcaron {updated} tareas como pendientes.", messages.SUCCESS)
-    mark_as_pending.short_description = "⏳ Marcar como pendientes"
+        self.message_user(request, f"Se marcaron {updated} tareas como pendientes.", messages.SUCCESS)
+    mark_as_pending.short_description = "Marcar como pendientes"
     
     def assign_to_me(self, request, queryset):
         """Asignar tareas al usuario actual."""
         updated = queryset.update(assigned_to=request.user)
-        self.message_user(request, f"👤 Se asignaron {updated} tareas a tu usuario.", messages.SUCCESS)
-    assign_to_me.short_description = "👤 Asignarme estas tareas"
+        self.message_user(request, f"Se asignaron {updated} tareas a tu usuario.", messages.SUCCESS)
+    assign_to_me.short_description = "Asignarme estas tareas"
 
 
 @admin.register(PhaseTemplate)

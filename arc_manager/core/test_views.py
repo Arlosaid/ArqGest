@@ -36,7 +36,7 @@ def test_resend_api(request):
             "from": getattr(settings, 'DEFAULT_FROM_EMAIL', 'onboarding@resend.dev'),
             "to": ["adroal08@gmail.com"],
             "subject": "Test Admin - ARC Manager",
-            "html": "<p>✅ <strong>Test desde admin exitoso</strong>!</p><p>Resend API funciona correctamente.</p>"
+            "html": "<p><strong>Test desde admin exitoso</strong>!</p><p>Resend API funciona correctamente.</p>"
         }
         
         # Enviar email

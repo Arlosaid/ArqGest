@@ -267,12 +267,12 @@ class SystemSettingsAdmin(admin.ModelAdmin):
             ),
             'description': 'Configure los límites de almacenamiento en gigabytes para cada plan.'
         }),
-        ('📁 Límites de Archivos', {
+        ('Límites de Archivos', {
             'fields': (
                 # max_file_size_mb y upload_max_file_size_mobile_mb están hardcodeados en el código
                 # Si necesitas cambiarlos, edita los archivos JS directamente
             ),
-            'description': '⚠️ Los límites de archivo están hardcodeados en 1500MB en el código JavaScript. '
+            'description': 'Los límites de archivo están hardcodeados en 1500MB en el código JavaScript. '
                           'Para cambiarlos, edita: large-file-upload.js, mobile_upload_optimizer.js y _files_tab.html',
             'classes': ('collapse',)
         }),
@@ -397,11 +397,11 @@ class SystemSettingsAdmin(admin.ModelAdmin):
             changes_summary = self._format_changes(changed_fields, obj)
             messages.success(
                 request,
-                f"✅ Configuración guardada correctamente. {changes_summary} "
+                f"Configuración guardada correctamente. {changes_summary} "
                 f"Los cambios se reflejarán gradualmente (caché de 1 hora)."
             )
         else:
-            messages.success(request, "✅ Configuración guardada sin cambios.")
+            messages.success(request, "Configuración guardada sin cambios.")
     
     def _format_changes(self, changed_fields, obj):
         """Formatea un resumen legible de los cambios realizados"""
@@ -421,6 +421,6 @@ class SystemSettingsAdmin(admin.ModelAdmin):
         return "Cambios: " + " | ".join(summaries) if summaries else f"{len(changed_fields)} campo(s) actualizado(s)"
         self.message_user(
             request,
-            "✅ Configuración actualizada exitosamente. Los cambios se aplicaron automáticamente.",
+            "Configuración actualizada exitosamente. Los cambios se aplicaron automáticamente.",
             level='success'
         )

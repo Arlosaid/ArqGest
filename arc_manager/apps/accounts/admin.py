@@ -175,20 +175,20 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
                 if result:
                     messages.success(
                         request, 
-                        f"✅ Usuario creado exitosamente. Las credenciales fueron enviadas automáticamente a {obj.email}"
+                        f"Usuario creado exitosamente. Las credenciales fueron enviadas automáticamente a {obj.email}"
                     )
                 else:
                     logger.error(f"[ADMIN] Failed to send credentials to {obj.email}")
                     messages.warning(
                         request, 
-                        f"⚠️ Usuario creado pero falló el envío de credenciales a {obj.email}. "
+                        f"Usuario creado pero falló el envío de credenciales a {obj.email}. "
                         f"Usa la acción 'Enviar credenciales' desde la lista de usuarios."
                     )
             except Exception as e:
                 logger.error(f"[ADMIN] Error enviando credenciales automáticamente a {obj.email}: {str(e)}")
                 messages.error(
                     request, 
-                    f"❌ Usuario creado pero error al enviar credenciales a {obj.email}: {str(e)[:100]}... "
+                    f"Usuario creado pero error al enviar credenciales a {obj.email}: {str(e)[:100]}... "
                     f"Usa la acción 'Enviar credenciales' desde la lista de usuarios."
                 )
         else:
@@ -212,9 +212,9 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         elif obj.is_staff:
             return format_html('<span style="color: blue; font-weight: bold;">👔 Staff</span>')
         elif obj.is_org_admin:
-            return format_html('<span style="color: green; font-weight: bold;">👨‍💼 Admin Org</span>')
+            return format_html('<span style="color: green; font-weight: bold;">Admin Org</span>')
         else:
-            return format_html('<span style="color: gray;">👤 Usuario</span>')
+            return format_html('<span style="color: gray;">Usuario</span>')
     get_role_display.short_description = 'Rol'
     
     def activate_users(self, request, queryset):

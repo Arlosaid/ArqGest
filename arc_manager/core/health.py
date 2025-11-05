@@ -43,7 +43,7 @@ def health_check(request):
         }
         status["status"] = "unhealthy"
         http_status = 503  # Service Unavailable
-        logger.error(f"❌ Database health check failed after {db_time:.0f}ms: {error_msg}")
+        logger.error(f"Database health check failed after {db_time:.0f}ms: {error_msg}")
     
     # Check 2: Cache (opcional, no crítico)
     try:
@@ -57,7 +57,7 @@ def health_check(request):
             "status": "unavailable",
             "error": str(e)[:100]
         }
-        logger.warning(f"⚠️  Cache health check failed: {str(e)}")
+        logger.warning(f"Cache health check failed: {str(e)}")
         # Cache no es crítico, no afecta el status general
     
     # Check 3: Application
@@ -96,7 +96,7 @@ def readiness_check(request):
     except Exception as e:
         checks["database"] = f"not_ready: {str(e)[:100]}"
         ready = False
-        logger.error(f"❌ Readiness check - DB not ready: {str(e)}")
+        logger.error(f"Readiness check - DB not ready: {str(e)}")
     
     # Check Django está configurado
     try:
