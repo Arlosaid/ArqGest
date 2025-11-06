@@ -6,9 +6,11 @@
 {% block auth_content %}
 <div class="login-form-wrapper">
     
-    <div class="auth-branding">
-        <img src="{% static 'images/logo.png' %}?v={{ STATIC_VERSION }}" alt="ArqGest Logo" class="auth-logo" draggable="false">
-        <h1 class="auth-app-name">ArqGest</h1>
+    <div class="auth-branding auth-branding-horizontal">
+        <div class="auth-logo-name-row">
+            <img src="{% static 'images/logo.png' %}?v={{ STATIC_VERSION }}" alt="ArqGest Logo" class="auth-logo" draggable="false">
+            <h1 class="auth-app-name">ArqGest</h1>
+        </div>
         <p class="auth-tagline">Gestión de Proyectos Arquitectónicos</p>
     </div>
     
