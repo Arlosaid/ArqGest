@@ -1,9 +1,10 @@
 from django.shortcuts import render, redirect
 from django.views import View
-from django.contrib.auth.views import LoginView, PasswordResetView
+from django.contrib.auth.views import LoginView, PasswordResetView, PasswordResetConfirmView
 from django.contrib.auth import logout, login, update_session_auth_hash
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from .forms import SecureSetPasswordForm
 from django.utils.decorators import method_decorator
 from django.urls import reverse_lazy
 from django.core.cache import cache
@@ -13,6 +14,8 @@ from .forms import CustomAuthenticationForm, ForcePasswordChangeForm
 import logging
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from django.utils.http import urlsafe_base64_decode
+from django.utils.encoding import force_str
 
 logger = logging.getLogger('apps.accounts')
 User = get_user_model()
@@ -113,12 +116,13 @@ class CustomLoginView(LoginView):
             if not username or username == 'N/A':
                 error_detail = "Email vacío"
             else:
-                user_exists = User.objects.filter(email=username).exists()
+                # Búsqueda case-insensitive
+                user_exists = User.objects.filter(email__iexact=username).exists()
                 
                 if not user_exists:
                     error_detail = "Email NO existe"
                 else:
-                    user = User.objects.get(email=username)
+                    user = User.objects.get(email__iexact=username)
                     if not user.is_active:
                         error_detail = "Cuenta INACTIVA"
                     else:
@@ -234,7 +238,8 @@ class SecurePasswordResetView(PasswordResetView):
         
         # Verificar si el usuario existe (UN SOLO LOG)
         try:
-            user_exists = User.objects.filter(email=email, is_active=True).exists()
+            # Búsqueda case-insensitive
+            user_exists = User.objects.filter(email__iexact=email, is_active=True).exists()
             if user_exists:
                 logger.info(f"PASSWORD RESET | Email: {email} | IP: {client_ip}")
             else:
@@ -248,6 +253,96 @@ class SecurePasswordResetView(PasswordResetView):
         cache.set(cache_key, True, timeout=900)
         
         return super().form_valid(form)
+    
+    def get_client_ip(self):
+        """Obtener la IP real del cliente considerando proxies"""
+        x_forwarded_for = self.request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0].strip()
+        else:
+            ip = self.request.META.get('REMOTE_ADDR', 'Desconocida')
+        return ip
+
+
+class SecurePasswordResetConfirmView(PasswordResetConfirmView):
+    """Vista personalizada para confirmar password reset con logging de seguridad"""
+    template_name = 'auth/password_reset_confirm.html'
+    success_url = reverse_lazy('accounts:password_reset_complete')
+    form_class = SecureSetPasswordForm
+    
+    def get_user(self, uidb64):
+        """Obtener usuario desde uidb64 con manejo de errores"""
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+            return user
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return None
+    
+    def get(self, request, *args, **kwargs):
+        """Log cuando se accede al link de reset"""
+        uidb64 = kwargs.get('uidb64')
+        token = kwargs.get('token')
+        user = self.get_user(uidb64)
+        client_ip = self.get_client_ip()
+        
+        if user:
+            logger.info(
+                f"PASSWORD RESET TOKEN ACCEDIDO | Email: {user.email} | "
+                f"IP: {client_ip} | Token: {token[:10]}..."
+            )
+        else:
+            logger.warning(
+                f"PASSWORD RESET TOKEN INVÁLIDO | UID: {uidb64} | "
+                f"IP: {client_ip} | Razón: Usuario no encontrado"
+            )
+        
+        return super().get(request, *args, **kwargs)
+    
+    def form_valid(self, form):
+        """Log cuando se completa exitosamente el password reset"""
+        user = form.user
+        client_ip = self.get_client_ip()
+        
+        logger.info(
+            f"PASSWORD RESET COMPLETADO | Email: {user.email} | "
+            f"IP: {client_ip}"
+        )
+        
+        return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        """Log cuando falla el password reset"""
+        uidb64 = self.kwargs.get('uidb64')
+        user = self.get_user(uidb64)
+        client_ip = self.get_client_ip()
+        
+        if user:
+            # Detectar el tipo específico de error
+            errors = form.errors.as_data()
+            
+            # Si el error es por reusar la contraseña anterior, no loguear duplicado
+            if 'new_password1' in errors:
+                for error in errors['new_password1']:
+                    if error.code == 'password_same_as_old':
+                        # Ya se logueó en SecureSetPasswordForm.clean_new_password1()
+                        # No loguear duplicado
+                        return super().form_invalid(form)
+            
+            # Para otros errores (validación, token expirado, etc.)
+            error_messages = []
+            for field, field_errors in errors.items():
+                for error in field_errors:
+                    error_messages.append(f"{field}: {error.message}")
+            
+            razon = " | ".join(error_messages) if error_messages else "Error de validación"
+            
+            logger.warning(
+                f"PASSWORD RESET FALLIDO | Email: {user.email} | "
+                f"IP: {client_ip} | Razón: {razon}"
+            )
+        
+        return super().form_invalid(form)
     
     def get_client_ip(self):
         """Obtener la IP real del cliente considerando proxies"""

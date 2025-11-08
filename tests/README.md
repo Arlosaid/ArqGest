@@ -1,6 +1,6 @@
 # 🧪 ARC Manager - Test Suite Documentation
 
-**Última actualización**: 4 de Noviembre, 2025  
+**Última actualización**: 7 de Noviembre, 2025  
 **Framework**: pytest 8.4.2 + pytest-django + Factory Boy  
 **Python**: 3.11.13 | Django: 5.2
 
@@ -10,42 +10,94 @@
 
 | Métrica | Valor |
 |---------|-------|
-| **Tests Totales** | 60 tests (46 unit + 14 integration) |
-| **Unit Tests** | ✅ 46 pasando, 1 skipped |
-| **Integration Tests** | ✅ 14 pasando (CON signals activos) |
-| **Coverage Funcional** | 67% (60/89 funcionalidades) |
+| **Tests Totales** | 74 tests (59 unit + 12 integration + 3 security) |
+| **Módulos Completos** | ✅ accounts (100%) |
+| **Módulos Pendientes** | ⏸️ users, orgs, plans, projects, files, main |
+| **Coverage Funcional** | ~70% del módulo accounts |
 | **Último Run** | ✅ 100% success rate |
 | **Ambiente** | Docker Compose (PostgreSQL) |
 
-⚠️ **CRÍTICO**: Los 46 unit tests usan `disable_account_signals` (lógica aislada). Los 14 integration tests prueban comportamiento REAL de producción con signals activos.
+⚠️ **IMPORTANTE**: Estructura reorganizada por módulos. Los tests unitarios usan `disable_account_signals` (lógica aislada). Los integration tests prueban comportamiento REAL de producción con signals activos.
 
 ---
 
-## 🗂️ Estructura de Tests
+## 🗂️ Estructura de Tests (REORGANIZADA ✨)
 
 ```
 tests/
 ├── conftest.py                          # Fixtures globales y configuración
-├── factories/                           # Factory Boy - datos de prueba
-│   ├── account_factories.py            # UserFactory
-│   └── org_factories.py                # OrganizationFactory
-├── unit/test_accounts/                  # Tests unitarios (signals DESACTIVADOS)
-│   ├── test_user_models.py             # 33 tests: manager, campos, métodos
-│   ├── test_user_logging.py            # 3 tests: eventos de negocio (GDPR/SOX)
-│   ├── test_user_unicode.py            # 2 tests: 10 idiomas internacionales
-│   ├── test_user_validation.py         # 4 tests: límites RFC 5321, normalización
-│   └── test_user_relationships.py      # 1 test: CASCADE delete Organization
-├── integration/test_accounts/           # ⭐ NUEVO - Tests de integración
-│   └── test_user_signals.py            # 14 tests: signals activos (PRODUCCIÓN)
-└── security/test_accounts/              # Tests de seguridad
-    └── test_user_security.py            # 3 tests: timing attacks, password logging
-
-📄 DOCUMENTACIÓN:
-├── README.md                           # Este archivo
-├── CONTINUAR_AQUI.md                   # ⭐ Estado actual + próximos pasos
-├── AUDITORIA_MODELO_USER.md            # Matriz 89 funcionalidades
-└── PLAN_TESTING_COMPLETO.md            # Roadmap fases 0-5
+├── pytest.ini                           # Configuración de pytest
+├── README.md                            # 📖 Este archivo (guía principal)
+│
+├── 📁 docs/                             # Documentación general
+│   ├── README.md                        # Índice de documentación
+│   ├── CONTINUAR_AQUI.md                # ⭐ Próximos pasos y roadmap
+│   └── REORGANIZACION_COMPLETADA.md     # Resumen de cambios
+│
+├── 🏭 factories/                        # Factory Boy - datos de prueba
+│   ├── __init__.py                      # Re-exporta todas las factories
+│   ├── accounts/                        # ✅ Factories de accounts
+│   │   ├── __init__.py
+│   │   └── account_factories.py         # User, SuperUser, OrgAdmin, InactiveUser
+│   └── orgs/                            # ✅ Factories de orgs
+│       ├── __init__.py
+│       └── org_factories.py             # Organization
+│
+├── 🔐 accounts/                         # ✅ MÓDULO COMPLETO (74 tests)
+│   ├── docs/                            # 📚 Documentación específica del módulo
+│   │   ├── README.md                    # Índice de docs de accounts
+│   │   ├── TESTING_MANUAL.md            # Resumen de pruebas manuales
+│   │   ├── MANUAL_TESTING_LOGIN.md      # ⭐ Detalle exhaustivo (2581 líneas)
+│   │   └── COBERTURA_TESTS_LOGIN.md     # Análisis de cobertura
+│   ├── unit/                            # 59 tests unitarios (signals OFF)
+│   │   ├── test_models.py              # 20 tests: modelos base
+│   │   ├── test_user_validation.py     # 4 tests: validación RFC
+│   │   ├── test_user_unicode.py        # 2 tests: soporte i18n
+│   │   ├── test_user_logging.py        # 3 tests: auditoría
+│   │   ├── test_user_relationships.py  # 1 test: CASCADE
+│   │   ├── test_login_views.py         # 15 tests: autenticación
+│   │   ├── test_logout_views.py        # 5 tests: cierre sesión
+│   │   ├── test_password_reset_views.py # 7 tests: reset password
+│   │   ├── test_force_password_change_views.py # 9 tests: cambio forzado
+│   │   ├── test_forms.py               # 13 tests: validación forms
+│   │   └── test_middleware.py          # 10 tests: middlewares
+│   ├── integration/                     # 12 tests (signals ON)
+│   │   └── test_user_signals.py        # Comportamiento producción
+│   ├── security/                        # 3 tests críticos
+│   │   └── test_user_security.py       # Seguridad crítica
+│   └── admin/                           # 🆕 Tests del panel de administración
+│       └── test_user_admin.py          # Django Admin: list, forms, permisos
+│
+├── 👤 users/                            # ⏸️ PENDIENTE
+│   └── admin/                           # 🔜 Preparado para tests de admin
+│
+├── 🏢 orgs/                             # ⏸️ SIGUIENTE (PRIORIDAD ALTA)
+│   └── admin/                           # 🔜 Preparado para tests de admin
+│       └── test_organization_admin.py  # TODO: OrganizationAdmin, ClientAdmin
+│
+├── 💳 plans/                            # ⏸️ PENDIENTE (PRIORIDAD ALTA)
+│   └── admin/                           # 🔜 Preparado para tests de admin
+│       └── test_plan_admin.py          # TODO: PlanAdmin, SubscriptionAdmin, etc
+│
+├── 📊 projects/                         # ⏸️ PENDIENTE (PRIORIDAD MEDIA)
+│   └── admin/                           # 🔜 Preparado para tests de admin
+│       └── test_project_admin.py       # TODO: ProjectAdmin, PhaseAdmin, TaskAdmin
+│
+├── 📁 files/                            # ⏸️ PENDIENTE (PRIORIDAD MEDIA)
+│   └── admin/                           # 🔜 Preparado para tests de admin
+│       └── test_file_admin.py          # TODO: ProjectFileAdmin, FileSizeFilter
+│
+└── 🏠 main/                             # ⏸️ PENDIENTE (PRIORIDAD BAJA)
+    └── admin/                           # 🔜 Preparado para tests de admin
+        └── test_main_admin.py          # TODO: AdminDashboard, SystemSettingsAdmin
 ```
+
+**Ventajas de esta estructura**:
+- ✅ **Modular**: Cada módulo de la app tiene su carpeta de tests
+- ✅ **Documentación organizada**: Docs generales vs específicos por módulo
+- ✅ **Factories por módulo**: Fácil de encontrar y mantener
+- ✅ **Escalable**: Fácil agregar nuevos módulos
+- ✅ **Importación flexible**: `from tests.factories import UserFactory`
 
 ---
 
@@ -64,33 +116,43 @@ python -m pytest tests/  # Fallará por diferencias de ambiente
 ### Comandos Esenciales
 
 ```powershell
-# Ejecutar TODOS los tests (unit + integration + security)
-docker-compose exec web bash -c "cd /app && python -m pytest tests/unit/test_accounts/ tests/integration/test_accounts/ tests/security/test_accounts/ -v --no-cov"
+# Ejecutar TODOS los tests
+docker-compose exec web bash -c "cd /app && python -m pytest tests/ -v"
 
-# Ejecutar solo tests de integración (signals activos - PRODUCCIÓN)
-docker-compose exec web bash -c "cd /app && python -m pytest tests/integration/test_accounts/ -v --tb=short"
+# Ejecutar solo tests del módulo accounts
+docker-compose exec web bash -c "cd /app && python -m pytest tests/accounts/ -v --no-cov"
 
-# Ejecutar solo tests unitarios (signals desactivados - lógica aislada)
-docker-compose exec web bash -c "cd /app && python -m pytest tests/unit/test_accounts/ -v"
+# Ejecutar por tipo de test
+docker-compose exec web bash -c "cd /app && python -m pytest tests/accounts/unit/ -v"           # Solo unit tests
+docker-compose exec web bash -c "cd /app && python -m pytest tests/accounts/integration/ -v"   # Solo integration
+docker-compose exec web bash -c "cd /app && python -m pytest tests/accounts/security/ -v"      # Solo security
+docker-compose exec web bash -c "cd /app && python -m pytest tests/accounts/admin/ -v"         # Solo admin tests
 
-# Ejecutar solo tests de seguridad
-docker-compose exec web bash -c "cd /app && python -m pytest tests/security/test_accounts/ -v"
+# Ejecutar tests de admin de otros módulos (cuando estén implementados)
+docker-compose exec web bash -c "cd /app && python -m pytest tests/orgs/admin/ -v"
+docker-compose exec web bash -c "cd /app && python -m pytest tests/plans/admin/ -v"
+docker-compose exec web bash -c "cd /app && python -m pytest tests/projects/admin/ -v"
+docker-compose exec web bash -c "cd /app && python -m pytest tests/files/admin/ -v"
+docker-compose exec web bash -c "cd /app && python -m pytest tests/main/admin/ -v"
 
 # Ejecutar test específico
-docker-compose exec web bash -c "cd /app && python -m pytest tests/integration/test_accounts/test_user_signals.py::TestSignalEnsureNamesPresent::test_generates_names_from_email_with_dot -v"
+docker-compose exec web bash -c "cd /app && python -m pytest tests/accounts/integration/test_user_signals.py::TestSignalEnsureNamesPresent::test_generates_names_from_email_with_dot -v"
 
 # Ver solo tests fallidos (útil para debugging)
 docker-compose exec web bash -c "cd /app && python -m pytest tests/ --lf -v"
 
-# Coverage detallado
-docker-compose exec web bash -c "cd /app && python -m pytest tests/unit/test_accounts/ --cov=apps.accounts --cov-report=term-missing"
+# Coverage detallado del módulo accounts
+docker-compose exec web bash -c "cd /app && python -m pytest tests/accounts/ --cov=apps.accounts --cov-report=term-missing"
+
+# Ejecutar próximo módulo (cuando esté listo)
+docker-compose exec web bash -c "cd /app && python -m pytest tests/orgs/ -v"
 ```
 
 ---
 
 ## 📦 Tests Implementados
 
-### 🔵 UNIT TESTS (Lógica Aislada - 46 tests)
+### 🔵 UNIT TESTS (Lógica Aislada - 59 tests)
 
 Usan fixture `disable_account_signals` para probar lógica en aislamiento.
 
@@ -117,11 +179,11 @@ Usan fixture `disable_account_signals` para probar lógica en aislamiento.
 
 ---
 
-### 🟢 INTEGRATION TESTS (Comportamiento Real - 14 tests) ⭐ NUEVO
+### 🟢 INTEGRATION TESTS (Comportamiento Real - 12 tests)
 
 **NO usan** `disable_account_signals` → Signals ACTIVOS como en producción.
 
-#### `test_user_signals.py` - Signals en Producción (14 tests)
+#### `test_user_signals.py` - Signals en Producción (12 tests)
 
 **🔑 DIFERENCIA CRÍTICA:**
 - ❌ **Unit tests**: `disable_account_signals` → NO reflejan producción
@@ -174,23 +236,35 @@ Usan fixture `disable_account_signals` para probar lógica en aislamiento.
 
 | Categoría | Tests | Estado | Signals |
 |-----------|-------|--------|---------|
-| **Unit Tests** | 46 | ✅ | Desactivados |
-| **Integration Tests** | 14 | ✅ | Activos |
+| **Unit Tests** | 59 | ✅ | Desactivados |
+| **Integration Tests** | 12 | ✅ | Activos |
 | **Security Tests** | 3 | ✅ | Desactivados |
-| **Total** | **60** | ✅ | Mixto |
+| **Total** | **74** | ✅ | Mixto |
 
-**Coverage Real**: 67% de 89 funcionalidades identificadas
+**Coverage Real**: ~70% del módulo accounts completo
 
 ---
 
-## 📚 Documentación Relacionada
+## 📚 Documentación
 
-### Empezar Aquí
-👉 **`CONTINUAR_AQUI.md`** - Estado actual + próximos pasos
+### 📁 Documentación General (`docs/`)
+👉 **[docs/CONTINUAR_AQUI.md](docs/CONTINUAR_AQUI.md)** - Estado actual + próximos pasos + roadmap  
+📝 **[docs/REORGANIZACION_COMPLETADA.md](docs/REORGANIZACION_COMPLETADA.md)** - Resumen de cambios
 
-### Referencia Completa
-- **`AUDITORIA_MODELO_USER.md`** - Matriz 89 funcionalidades
-- **`PLAN_TESTING_COMPLETO.md`** - Roadmap fases 0-5
+### 📁 Documentación del Módulo Accounts (`accounts/docs/`)
+📋 **[accounts/docs/TESTING_MANUAL.md](accounts/docs/TESTING_MANUAL.md)** - Resumen ejecutivo de pruebas  
+⭐ **[accounts/docs/MANUAL_TESTING_LOGIN.md](accounts/docs/MANUAL_TESTING_LOGIN.md)** - Guía exhaustiva (2581 líneas)  
+📊 **[accounts/docs/COBERTURA_TESTS_LOGIN.md](accounts/docs/COBERTURA_TESTS_LOGIN.md)** - Análisis de cobertura
+
+### 🏭 Factories (`factories/`)
+```python
+# Importación fácil desde cualquier lugar
+from tests.factories import UserFactory, OrganizationFactory
+
+# O importar desde el módulo específico
+from tests.factories.accounts import UserFactory
+from tests.factories.orgs import OrganizationFactory
+```
 
 ---
 
@@ -226,17 +300,35 @@ markers =
 
 ---
 
-## 📈 Progreso por Fase
+## 📈 Progreso por Módulo
 
-| Fase | Tests | Estado | Coverage |
-|------|-------|--------|----------|
-| **Fase 0** | 33 tests | ✅ Completa | Base funcional |
-| **Fase 1** | 3 tests | ✅ Completa | Seguridad crítica |
-| **Fase 2** | 10 tests | ✅ Completa | Logging + Unicode + Validación |
-| **Fase 2.5** | 14 tests | ✅ Completa | Integration tests (signals) |
-| **Fase 3** | ~10 tests | ⏳ Pendiente | Save() + Org methods |
-| **Fase 4** | ~10 tests | ⏸️ Futura | Middleware + Edge cases |
-| **Fase 5** | ~10 tests | ⏸️ Futura | Performance + Integración completa |
+| Módulo | Tests | Admin Tests | Estado | Prioridad | Tiempo Estimado |
+|--------|-------|-------------|--------|-----------|-----------------|
+| **accounts** | 74 | ✅ Estructura lista | ✅ Completo | - | - |
+| **users** | 0 | 🔜 Estructura lista | ⏸️ Pendiente | Baja | 1 día |
+| **orgs** | 0 | 🔜 Estructura lista | ⏸️ Siguiente | 🔴 CRÍTICA | 5-7 días |
+| **plans** | 0 | 🔜 Estructura lista | ⏸️ Pendiente | 🔴 CRÍTICA | 4-6 días |
+| **projects** | 0 | 🔜 Estructura lista | ⏸️ Pendiente | 🟠 Alta | 4-5 días |
+| **files** | 0 | 🔜 Estructura lista | ⏸️ Pendiente | 🟠 Alta | 3-4 días |
+| **main** | 0 | 🔜 Estructura lista | ⏸️ Pendiente | 🟢 Baja | 1-2 días |
+| **TOTAL** | **74/~330** | **6 módulos prep.** | **22%** | - | **18-25 días** |
+
+### 🆕 Tests de Admin Panel (Django Admin)
+
+Todos los módulos ahora tienen la estructura preparada para probar el panel de administración Django:
+
+- **accounts/admin/** → `test_user_admin.py` ✅ Completo
+- **orgs/admin/** → `test_organization_admin.py` 🔜 Preparado (OrganizationAdmin, ClientAdmin)
+- **plans/admin/** → `test_plan_admin.py` 🔜 Preparado (PlanAdmin, SubscriptionAdmin, UpgradeRequestAdmin, PaymentAdmin, RenewalRequestAdmin)
+- **projects/admin/** → `test_project_admin.py` 🔜 Preparado (ProjectAdmin, PhaseAdmin, TaskAdmin, PhaseTemplateAdmin)
+- **files/admin/** → `test_file_admin.py` 🔜 Preparado (ProjectFileAdmin, FileSizeFilter)
+- **main/admin/** → `test_main_admin.py` 🔜 Preparado (AdminDashboard, SystemSettingsAdmin)
+
+Cada archivo incluye:
+- ✅ Estructura base con fixtures (admin_site, admin_user, admin_request)
+- ✅ Clases de test organizadas por funcionalidad
+- ✅ TODOs detallados con qué probar
+- ✅ Referencias al archivo admin.py correspondiente
 
 ---
 

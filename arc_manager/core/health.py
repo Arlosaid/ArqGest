@@ -70,9 +70,9 @@ def health_check(request):
     total_time = (time.time() - start_time) * 1000
     status["total_response_time_ms"] = round(total_time, 2)
     
-    # Log del resultado
+    # Log del resultado (DEBUG para no saturar logs con health checks frecuentes)
     if http_status == 200:
-        logger.info(f"✓ Health check OK ({total_time:.0f}ms)")
+        logger.debug(f"✓ Health check OK ({total_time:.0f}ms)")
     else:
         logger.error(f"✗ Health check FAILED ({total_time:.0f}ms) - returning 503")
     
@@ -107,7 +107,7 @@ def readiness_check(request):
         ready = False
     
     if ready:
-        logger.info("✓ Readiness check PASSED - service ready")
+        logger.debug("✓ Readiness check PASSED - service ready")
         return JsonResponse({
             "status": "ready",
             "checks": checks

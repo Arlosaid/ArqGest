@@ -1556,7 +1556,9 @@ class PhaseTemplateListView(LoginRequiredMixin, OrganizationAdminMixin, ProjectP
     def get_queryset(self):
         # Mostrar solo plantillas de la organización del usuario para gestión
         if hasattr(self.request.user, 'organization') and self.request.user.organization:
-            return PhaseTemplate.objects.filter(organization=self.request.user.organization)
+            return PhaseTemplate.objects.filter(
+                organization=self.request.user.organization
+            ).order_by('name')  # Ordenamiento explícito para paginación
         return PhaseTemplate.objects.none()
 
 class PhaseTemplateCreateView(LoginRequiredMixin, OrganizationAdminMixin, CreateView):
