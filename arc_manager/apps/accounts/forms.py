@@ -1,6 +1,7 @@
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm, SetPasswordForm
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.db import models
 import logging
@@ -35,6 +36,20 @@ class CustomAuthenticationForm(AuthenticationForm):
         label='Recordarme por 30 días'
     )
 
+    def clean_username(self):
+        """Normalizar email a minúsculas y eliminar espacios para autenticación case-insensitive"""
+        username = self.cleaned_data.get('username')
+        if username:
+            return username.strip().lower()
+        return username
+
+    def clean_password(self):
+        """Eliminar espacios accidentales al inicio/final del password"""
+        password = self.cleaned_data.get('password')
+        if password:
+            return password.strip()
+        return password
+
     def clean(self):
         username = self.cleaned_data.get('username')
         password = self.cleaned_data.get('password')
@@ -43,7 +58,8 @@ class CustomAuthenticationForm(AuthenticationForm):
         if username and password:
             try:
                 User = get_user_model()
-                user = User.objects.filter(email=username).first()
+                # Búsqueda case-insensitive
+                user = User.objects.filter(email__iexact=username).first()
                 
                 if user and not user.is_active:
                     # Log solo para cuenta inactiva (evento de seguridad importante)
@@ -108,25 +124,19 @@ class ForcePasswordChangeForm(forms.Form):
         return old_password
 
     def clean_new_password1(self):
-        """Validar la nueva contraseña"""
+        """Validar la nueva contraseña usando validadores de Django"""
         password = self.cleaned_data.get('new_password1')
         
         logger.debug(f"Validando nueva contraseña para usuario: {self.user.email}")
         
-        validation_errors = []
+        # Usar validadores de Django (incluye CommonPasswordValidator)
+        try:
+            validate_password(password, user=self.user)
+        except ValidationError as e:
+            logger.warning(f"Nueva contraseña rechazada para {self.user.email}: {e.messages}")
+            raise ValidationError(e.messages)
         
-        if len(password) < 8:
-            validation_errors.append("menos de 8 caracteres")
-            logger.warning(f"Nueva contraseña muy corta para {self.user.email}: {len(password)} caracteres")
-            raise ValidationError("La contraseña debe tener al menos 8 caracteres.")
-            
-        if password.isdigit():
-            validation_errors.append("completamente numérica")
-            logger.warning(f"Nueva contraseña completamente numérica para {self.user.email}")
-            raise ValidationError("La contraseña no puede ser completamente numérica.")
-        
-        if not validation_errors:
-            logger.debug(f"Nueva contraseña válida para usuario: {self.user.email}")
+        logger.debug(f"Nueva contraseña válida para usuario: {self.user.email}")
         
         return password
 
@@ -152,3 +162,32 @@ class ForcePasswordChangeForm(forms.Form):
             logger.info(f"Formulario de cambio de contraseña validado exitosamente para: {self.user.email}")
 
         return cleaned_data
+
+
+class SecureSetPasswordForm(SetPasswordForm):
+    """Formulario de reset de contraseña que previene reusar la contraseña anterior"""
+    
+    def clean_new_password1(self):
+        """Validar que la nueva contraseña sea diferente a la anterior y cumpla requisitos"""
+        password = self.cleaned_data.get('new_password1')
+        
+        # Usar validadores de Django (incluye CommonPasswordValidator)
+        try:
+            validate_password(password, user=self.user)
+        except ValidationError as e:
+            logger.warning(f"Password reset rechazado para {self.user.email}: {e.messages}")
+            raise ValidationError(e.messages)
+        
+        # Verificar que la nueva contraseña no sea igual a la anterior
+        if self.user and self.user.check_password(password):
+            logger.warning(
+                f"PASSWORD RESET BLOQUEADO | Email: {self.user.email} | "
+                f"Razón: Intentó usar la misma contraseña anterior"
+            )
+            raise ValidationError(
+                "Por seguridad, no puedes usar tu contraseña anterior. "
+                "Por favor, elige una contraseña diferente.",
+                code='password_same_as_old'
+            )
+        
+        return password

@@ -544,6 +544,7 @@ class PhaseTemplate(models.Model):
     class Meta:
         verbose_name = _("Plantilla de Fase")
         verbose_name_plural = _("Plantillas de Fase")
+        ordering = ['name']  # Ordenar alfabéticamente por nombre
 
 
 def payment_receipt_upload_path(instance, filename):

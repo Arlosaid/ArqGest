@@ -107,7 +107,7 @@ INSTALLED_APPS = [
     'import_export',
 
     # Local apps
-    'core',
+    'core.apps.CoreConfig',  # Usar CoreConfig explícitamente para cargar signals
     'apps.accounts',
     'apps.main',
     'apps.orgs',
@@ -133,6 +133,9 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    # Session Hijacking Prevention - debe ir DESPUÉS de MessageMiddleware
+    'core.middleware.session_validation.SessionValidationMiddleware',
+    'core.middleware.session_validation.SessionMetadataMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'axes.middleware.AxesMiddleware',
     'apps.accounts.middleware.LoginRequiredMiddleware',
@@ -165,8 +168,8 @@ else:
 
 ROOT_URLCONF = 'core.urls'
 AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesBackend',  # Debe estar PRIMERO para bloquear antes de autenticar
     'django.contrib.auth.backends.ModelBackend',
-    'axes.backends.AxesBackend',
 ]
 
 # Configuración completa de Django Axes
@@ -174,7 +177,7 @@ AUTHENTICATION_BACKENDS = [
 AXES_ENABLED = True
 AXES_FAILURE_LIMIT = 10
 AXES_COOLOFF_TIME = 0.25
-AXES_RESET_ON_SUCCESS = True
+AXES_RESET_ON_SUCCESS = False  # NO resetear contador en login exitoso - mantener bloqueo durante cooloff
 
 # Campos de formulario
 AXES_USERNAME_FORM_FIELD = 'username'
@@ -728,6 +731,11 @@ LOGGING = {
             'level': 'WARNING',  # Solo warnings y errores de email
             'propagate': False,
         },
+        'core.middleware.session_validation': {
+            'handlers': ['console_dev', 'console_prod'],
+            'level': 'INFO',  # Captura intentos de session hijacking
+            'propagate': False,
+        },
         'core.logging': {
             'handlers': ['console_dev', 'console_prod'],
             'level': 'INFO',
@@ -855,6 +863,7 @@ if IS_PRODUCTION:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    CSRF_COOKIE_HTTPONLY = True  # Protección adicional contra XSS
     
     LOGGING['handlers']['cloudwatch'] = {
         'level': 'INFO',
@@ -887,6 +896,7 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    CSRF_COOKIE_HTTPONLY = True  # Protección adicional contra XSS
     SECURE_SSL_REDIRECT = True
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
@@ -894,6 +904,26 @@ if not DEBUG:
     SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
+
+# ========================================
+# SESSION HIJACKING PREVENTION
+# ========================================
+# Validar User-Agent para detectar sesiones robadas
+SESSION_VALIDATE_USER_AGENT = os.environ.get('SESSION_VALIDATE_USER_AGENT', 'True').lower() == 'true'
+
+# Rutas exentas de validación de sesión
+SESSION_VALIDATION_EXEMPTS = [
+    '/login/',
+    '/logout/',
+    '/password_reset/',
+    '/password_reset/done/',
+    '/reset/',
+    '/admin/login/',
+    '/admin/logout/',
+    '/health/',
+    '/static/',
+    '/media/',
+]
 
 # ========================================
 # CRON JOBS - SEGURIDAD
