@@ -21,9 +21,15 @@ def validate_user_organization(sender, instance, **kwargs):
 
 @receiver(pre_save, sender=User)
 def validate_organization_limits(sender, instance, **kwargs):
-    """Validar límites de organización al crear/editar usuarios"""
+    """
+    Validar límites de organización al crear/editar usuarios.
+    
+    IMPORTANTE: Los superusers NO cuentan para límites de organización
+    porque son administradores del sistema, no usuarios regulares.
+    """
     if (instance.organization and 
         instance.is_active and 
+        not instance.is_superuser and  # Los superusers NO tienen límites
         not instance.pk):  # Solo para nuevos usuarios
         
         if not instance.organization.can_add_user():
