@@ -45,6 +45,8 @@ class TestCustomAuthenticationForm:
         2. Remember me checkbox funciona
         3. get_user() retorna el usuario correcto
         """
+        from django.test import RequestFactory
+        
         # ARRANGE
         org = OrganizationFactory()
         plan = Plan.objects.create(
@@ -59,8 +61,12 @@ class TestCustomAuthenticationForm:
             organization=org
         )
         
-        # ACT: Crear form con datos válidos
-        form = CustomAuthenticationForm(data={
+        # Crear request para Axes
+        factory = RequestFactory()
+        request = factory.post('/login/')
+        
+        # ACT: Crear form con datos válidos y request
+        form = CustomAuthenticationForm(request, data={
             'username': 'valid@example.com',
             'password': 'ValidPass123!',
             'remember_me': True
@@ -196,6 +202,8 @@ class TestCustomAuthenticationForm:
         1. Si no se envía remember_me, default es False
         2. Campo no es requerido
         """
+        from django.test import RequestFactory
+        
         # ARRANGE
         org = OrganizationFactory()
         plan = Plan.objects.create(
@@ -210,8 +218,12 @@ class TestCustomAuthenticationForm:
             organization=org
         )
         
+        # Crear request para Axes
+        factory = RequestFactory()
+        request = factory.post('/login/')
+        
         # ACT: Form SIN remember_me
-        form = CustomAuthenticationForm(data={
+        form = CustomAuthenticationForm(request, data={
             'username': 'default@example.com',
             'password': 'Password123!',
             # remember_me omitido

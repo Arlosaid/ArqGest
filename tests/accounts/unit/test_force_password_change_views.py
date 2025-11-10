@@ -403,23 +403,32 @@ class TestForcePasswordChangeErrors:
         assert user.password_change_required is False, \
             "Flag password_change_required debería ser False después del cambio"
         
-        # ACT 2: Logout y login de nuevo
+        # ACT 2: Logout y intentar login de nuevo con nueva contraseña
         client.logout()
-        login_success = client.login(
-            username='bugtest@example.com',
-            password='NewSecurePass456!'
-        )
         
-        assert login_success is True
+        # IMPORTANTE: No podemos usar client.login() porque Axes requiere un request
+        # En su lugar, hacemos un POST real al endpoint de login
+        response = client.post('/accounts/login/', {
+            'username': 'bugtest@example.com',
+            'password': 'NewSecurePass456!',
+            'remember_me': False
+        }, follow=False)
         
-        # ACT 3: Intentar acceder al dashboard
-        response = client.get('/')
+        # ASSERT 2.1: Login debe ser exitoso (redirect a home o dashboard)
+        assert response.status_code == 302, \
+            f"Login debería redirigir (302), pero retornó {response.status_code}"
         
-        # ASSERT 3: NO debe redirigir a cambio de contraseña
-        # Si hay redirect, debería ser a dashboard, NO a force-password-change
-        if response.status_code == 302:
-            assert '/accounts/force-password-change/' not in response.url, \
-                "❌ BUG: No debería redirigir a cambio de contraseña después de ya haberla cambiado"
+        # ASSERT 2.2: NO debe redirigir a force-password-change
+        assert '/accounts/force-password-change/' not in response.url, \
+            f"❌ BUG CRÍTICO: Redirige a {response.url} - El flag no se está limpiando correctamente"
+        
+        # ACT 3: Verificar que puede acceder al dashboard sin restricciones
+        response = client.get('/', follow=True)
+        
+        # ASSERT 3: NO debe haber redirect a cambio de contraseña en ningún punto
+        for redirect_url, status_code in response.redirect_chain:
+            assert '/accounts/force-password-change/' not in redirect_url, \
+                f"❌ BUG: Middleware sigue redirigiendo a force-password-change en {redirect_url}"
 
 
 # =============================================================================

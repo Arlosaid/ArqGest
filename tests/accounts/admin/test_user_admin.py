@@ -102,7 +102,8 @@ class TestUserAdminFilters:
         assert 'is_active' in user_admin.list_filter
         assert 'is_staff' in user_admin.list_filter
         assert 'is_org_admin' in user_admin.list_filter
-        assert 'organization' in user_admin.list_filter
+        # El admin usa organization__name para filtrar por nombre de org
+        assert 'organization__name' in user_admin.list_filter
 
 
 class TestUserAdminSearch:
@@ -116,10 +117,16 @@ class TestUserAdminSearch:
     
     def test_search_by_email(self, db, user_admin, admin_request, disable_account_signals):
         """Verifica que se puede buscar por email"""
+        from django.http import QueryDict
+        
         user = UserFactory(email='searchme@example.com')
         UserFactory(email='other@example.com')
         
-        admin_request.GET = {'q': 'searchme'}
+        # GET debe ser un QueryDict, no un dict normal
+        query_dict = QueryDict(mutable=True)
+        query_dict['q'] = 'searchme'
+        admin_request.GET = query_dict
+        
         changelist = user_admin.get_changelist_instance(admin_request)
         queryset = changelist.get_queryset(admin_request)
         
@@ -216,8 +223,9 @@ class TestUserChangeForm:
 class TestUserAdminPermissions:
     """Tests para permisos en el admin"""
     
-    def test_superuser_has_all_permissions(self, db, user_admin, admin_request):
+    def test_superuser_has_all_permissions(self, db, user_admin, admin_request, disable_account_signals):
         """Verifica que los superusuarios tienen todos los permisos"""
+        # Usamos disable_account_signals para evitar validación de límites
         user = UserFactory()
         
         assert user_admin.has_view_permission(admin_request, user)

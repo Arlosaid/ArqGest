@@ -154,24 +154,36 @@ def oversized_file():
 
 @pytest.fixture
 def disable_account_signals():
-    """Deshabilitar signals de validación de accounts para tests"""
+    """
+    Deshabilitar signals de validación de accounts para tests unitarios.
+    
+    IMPORTANTE: Los tests unitarios deben probar lógica aislada, sin validaciones
+    de signals que dependen de otros modelos (Organization, Plan, etc).
+    
+    Los tests de integración NO deben usar esta fixture - deben probar
+    el comportamiento real con todos los signals activos.
+    """
     from django.db.models import signals
     from apps.accounts import signals as account_signals
     from apps.accounts.models import User
     
-    # Desconectar signals de validación
+    # Desconectar TODOS los signals de validación
     signals.pre_save.disconnect(account_signals.validate_user_organization, sender=User)
     signals.pre_save.disconnect(account_signals.validate_organization_limits, sender=User)
     signals.pre_save.disconnect(account_signals.ensure_names_present, sender=User)
     signals.pre_save.disconnect(account_signals.validate_admin_without_org, sender=User)
+    signals.pre_save.disconnect(account_signals.log_user_changes, sender=User)
+    signals.post_save.disconnect(account_signals.log_user_creation, sender=User)
     
     yield
     
-    # Reconectar signals
+    # Reconectar TODOS los signals
     signals.pre_save.connect(account_signals.validate_user_organization, sender=User)
     signals.pre_save.connect(account_signals.validate_organization_limits, sender=User)
     signals.pre_save.connect(account_signals.ensure_names_present, sender=User)
     signals.pre_save.connect(account_signals.validate_admin_without_org, sender=User)
+    signals.pre_save.connect(account_signals.log_user_changes, sender=User)
+    signals.post_save.connect(account_signals.log_user_creation, sender=User)
 
 
 @pytest.fixture
