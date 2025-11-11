@@ -87,112 +87,40 @@ def health_check(request):
 @never_cache
 def readiness_check(request):
     """
-    Readiness check completo - verifica que TODO está listo para recibir tráfico.
+    Readiness check simplificado - verifica solo lo esencial para Railway.
     
-    Este endpoint es usado por Railway para determinar si el deploy fue exitoso.
-    Verifica: DB conectada + migraciones aplicadas + cache disponible.
+    SOLO verifica DB connection - lo único crítico para que la app funcione.
+    Cache, migraciones, etc. no bloquean el deploy.
     
-    Best practices: Health checks deben ser rápidos (<5s) pero completos.
+    Solución optimizada para Railway health checks.
     """
-    # Logging al inicio para debugging
-    logger.info("Readiness check initiated")
-    
     start_time = time.time()
-    checks = {}
-    ready = True
     
-    # Check 1: Database connection (CRÍTICO)
+    # ÚNICO CHECK CRÍTICO: Database connection
     try:
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
             cursor.fetchone()
-        checks["database"] = {"status": "ready", "critical": True}
-        logger.info("Readiness check - DB connection OK")
-    except Exception as e:
-        checks["database"] = {
-            "status": "not_ready",
-            "error": str(e)[:200],
-            "critical": True
-        }
-        ready = False
-        logger.error(f"Readiness check - DB connection failed: {str(e)}")
-    
-    # Check 2: Migraciones aplicadas (ADVERTENCIA, no crítico)
-    # Nota: Migraciones pendientes son comunes durante desarrollo y no deben bloquear deploys
-    try:
-        from django.db.migrations.executor import MigrationExecutor
-        executor = MigrationExecutor(connection)
-        plan = executor.migration_plan(executor.loader.graph.leaf_nodes())
         
-        if plan:
-            # Hay migraciones pendientes - reportar pero NO fallar
-            pending_migrations = [f"{migration[0]}.{migration[1]}" for migration in plan[:3]]
-            checks["migrations"] = {
-                "status": "pending",
-                "pending_count": len(plan),
-                "sample": pending_migrations,
-                "critical": False  # No crítico - solo advertencia
-            }
-            logger.warning(f"Readiness check - {len(plan)} pending migrations detected: {pending_migrations}")
-        else:
-            checks["migrations"] = {"status": "up_to_date", "critical": False}
-    except Exception as e:
-        checks["migrations"] = {
-            "status": "check_failed",
-            "error": str(e)[:200],
-            "critical": False
-        }
-        # No fallar por esto - puede ser un problema transitorio
-        logger.warning(f"Readiness check - Migration check failed: {str(e)}")
-    
-    # Check 3: Cache (Redis) disponible (IMPORTANTE pero no crítico)
-    try:
-        cache.set("readiness_check", "ok", 10)
-        cache_result = cache.get("readiness_check")
-        if cache_result == "ok":
-            checks["cache"] = {"status": "ready", "critical": False}
-        else:
-            checks["cache"] = {"status": "degraded", "critical": False}
-            logger.warning("Readiness check - Cache degraded")
-    except Exception as e:
-        checks["cache"] = {
-            "status": "unavailable",
-            "error": str(e)[:100],
-            "critical": False
-        }
-        logger.warning(f"Readiness check - Cache unavailable: {str(e)}")
-        # Cache no es crítico, no afecta readiness
-    
-    # Check 4: Settings y configuración
-    try:
-        checks["application"] = {
-            "status": "ok",
-            "debug_mode": settings.DEBUG,
-            "critical": True
-        }
-    except Exception as e:
-        checks["application"] = {
-            "status": "error",
-            "error": str(e)[:100],
-            "critical": True
-        }
-        ready = False
-    
-    # Calcular tiempo total
-    total_time = (time.time() - start_time) * 1000
-    
-    if ready:
-        logger.info(f"✓ Readiness check PASSED ({total_time:.0f}ms) - service ready for traffic")
+        # SUCCESS: DB disponible = app lista
+        total_time = (time.time() - start_time) * 1000
+        logger.info(f"✓ Readiness check PASSED ({total_time:.0f}ms)")
+        
         return JsonResponse({
             "status": "ready",
-            "checks": checks,
+            "database": "ok",
             "response_time_ms": round(total_time, 2)
         }, status=200)
-    else:
-        logger.error(f"✗ Readiness check FAILED ({total_time:.0f}ms) - service NOT ready")
+        
+    except Exception as e:
+        # FAIL: DB no disponible = app no lista
+        total_time = (time.time() - start_time) * 1000
+        logger.error(f"✗ Readiness check FAILED ({total_time:.0f}ms) - DB error: {str(e)}")
+        
         return JsonResponse({
             "status": "not_ready",
-            "checks": checks,
+            "database": "error",
+            "error": str(e)[:200],
             "response_time_ms": round(total_time, 2)
         }, status=503)
 
