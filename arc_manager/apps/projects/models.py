@@ -328,20 +328,32 @@ class Phase(models.Model):
     
     def save(self, *args, **kwargs):
         """Override save to add logging for status changes."""
+        from core.structured_logging import log_info
+        
         is_new = self.pk is None
         
         # Solo loguear cambios de estado, no creación (es ruido)
         if not is_new and hasattr(self, '_original_status') and self._original_status != self.status:
-            logger.info(
-                "phase_status_changed",
-                extra={
-                    "event": "phase_status_changed",
-                    "phase_id": self.pk,
-                    "phase_name": self.name,
-                    "old_status": self._original_status,
-                    "new_status": self.status,
-                    "project_id": self.project_id
-                }
+            # Obtener display names para los estados
+            old_status_display = dict(Phase.Status.choices).get(self._original_status, self._original_status)
+            new_status_display = dict(Phase.Status.choices).get(self.status, self.status)
+            
+            changes = [{
+                'field': 'status',
+                'field_label': 'Estado',
+                'old': old_status_display,
+                'new': new_status_display
+            }]
+            
+            log_info(
+                event='PHASE_STATUS_CHANGED',
+                message=f"Estado de fase '{self.name}' cambió de {old_status_display} a {new_status_display}",
+                logger_name='apps.projects',
+                phase_id=self.pk,
+                phase_name=self.name,
+                project_id=self.project_id,
+                project_name=self.project.name,
+                changes=changes
             )
         
         super().save(*args, **kwargs)
@@ -421,38 +433,62 @@ class Task(models.Model):
     
     def save(self, *args, **kwargs):
         """Override save to add logging for critical task operations and invalidate cache."""
+        from core.structured_logging import log_info
+        
         is_new = self.pk is None
         status_changed = False
+        changes = []
         
         # Solo loguear cambios importantes, no creación de cada tarea
         if not is_new:
             # Log status changes con formato estructurado
             if hasattr(self, '_original_status') and self._original_status != self.status:
-                logger.info(
-                    "task_status_changed",
-                    extra={
-                        "event": "task_status_changed",
-                        "task_id": self.pk,
-                        "task_title": self.title,
-                        "old_status": self._original_status,
-                        "new_status": self.status,
-                        "phase_id": self.phase_id
-                    }
-                )
+                old_status_display = dict(Task.Status.choices).get(self._original_status, self._original_status)
+                new_status_display = dict(Task.Status.choices).get(self.status, self.status)
+                
+                changes.append({
+                    'field': 'status',
+                    'field_label': 'Estado',
+                    'old': old_status_display,
+                    'new': new_status_display
+                })
                 status_changed = True
             
             # Log assignment changes solo cuando es relevante
             if hasattr(self, '_original_assigned_to') and self._original_assigned_to != self.assigned_to_id:
-                logger.info(
-                    "task_assignment_changed",
-                    extra={
-                        "event": "task_assignment_changed",
-                        "task_id": self.pk,
-                        "task_title": self.title,
-                        "old_user_id": self._original_assigned_to,
-                        "new_user_id": self.assigned_to_id,
-                        "phase_id": self.phase_id
-                    }
+                old_user = None
+                new_user = None
+                
+                if self._original_assigned_to:
+                    try:
+                        from apps.accounts.models import User
+                        old_user = User.objects.get(id=self._original_assigned_to)
+                    except User.DoesNotExist:
+                        pass
+                
+                if self.assigned_to_id:
+                    new_user = self.assigned_to
+                
+                changes.append({
+                    'field': 'assigned_to',
+                    'field_label': 'Asignado a',
+                    'old': old_user.email if old_user else 'Sin asignar',
+                    'new': new_user.email if new_user else 'Sin asignar'
+                })
+            
+            # Log cambios si hay
+            if changes:
+                log_info(
+                    event='TASK_CHANGED',
+                    message=f"Tarea '{self.title}' actualizada con {len(changes)} cambio(s)",
+                    logger_name='apps.projects',
+                    task_id=self.pk,
+                    task_title=self.title,
+                    phase_id=self.phase_id,
+                    phase_name=self.phase.name,
+                    project_id=self.phase.project_id,
+                    project_name=self.phase.project.name,
+                    changes=changes
                 )
         
         super().save(*args, **kwargs)

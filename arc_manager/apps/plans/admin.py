@@ -58,7 +58,7 @@ class ChangePlanForm(forms.Form):
 @admin.register(Plan)
 class PlanAdmin(ImportExportModelAdmin):
     resource_class = PlanResource
-    list_display = ('display_name', 'name', 'price', 'max_users', 'trial_days', 'billing_cycle_days', 'grace_period_days', 'is_active')
+    list_display = ('display_name', 'name', 'price', 'max_users', 'max_storage_gb', 'trial_days', 'billing_cycle_days', 'grace_period_days', 'is_active')
     list_filter = ('is_active', 'name')
     search_fields = ('name', 'display_name')
     ordering = ('price',)
@@ -67,7 +67,7 @@ class PlanAdmin(ImportExportModelAdmin):
             'fields': ('name', 'display_name', 'description')
         }),
         ('Configuración del Plan', {
-            'fields': ('price', 'max_users', 'trial_days', 'billing_cycle_days', 'grace_period_days')
+            'fields': ('price', 'max_users', 'max_storage_gb', 'trial_days', 'billing_cycle_days', 'grace_period_days')
         }),
         ('Estado', {
             'fields': ('is_active',)
@@ -243,6 +243,7 @@ class SubscriptionAdmin(ImportExportModelAdmin):
             if change:
                 # Es una actualización - capturar cambios
                 changes = []
+                plan_changed = False
                 tracked_fields = {
                     'plan': 'Plan',
                     'subscription_status': 'Estado',
@@ -255,6 +256,10 @@ class SubscriptionAdmin(ImportExportModelAdmin):
                         old_value = getattr(original, field_name)
                         new_value = getattr(obj, field_name)
                         if old_value != new_value:
+                            # Detectar si cambió el plan
+                            if field_name == 'plan':
+                                plan_changed = True
+                            
                             # Formatear valores para logging
                             if field_name == 'plan':
                                 old_val = old_value.display_name if old_value else 'Sin plan'
@@ -272,7 +277,31 @@ class SubscriptionAdmin(ImportExportModelAdmin):
                 except Subscription.DoesNotExist:
                     change = False
             
-            # Guardar el objeto primero
+            # Si cambió el plan, usar switch_plan para recalcular fechas
+            if change and plan_changed:
+                original = Subscription.objects.get(pk=obj.pk)
+                new_plan = obj.plan
+                
+                # Usar switch_plan para recalcular fechas automáticamente
+                result = original.switch_plan(
+                    new_plan=new_plan,
+                    processed_by=f"{request.user.email} (ID: {request.user.pk})"
+                )
+                
+                if result.get('success'):
+                    messages.success(
+                        request, 
+                        f"Plan cambiado de {original.plan.display_name} a {new_plan.display_name}. "
+                        f"Nueva fecha de vencimiento: {original.end_date.strftime('%d/%m/%Y')} "
+                        f"({new_plan.billing_cycle_days} días desde hoy)."
+                    )
+                else:
+                    messages.error(request, f"Error al cambiar el plan: {result.get('error')}")
+                    raise Exception(result.get('error'))
+                
+                return  # No continuar con el save normal
+            
+            # Guardar el objeto normalmente si NO cambió el plan
             super().save_model(request, obj, form, change)
             # Actualizar estado después de guardar
             obj.update_status()
@@ -333,7 +362,7 @@ class SubscriptionAdmin(ImportExportModelAdmin):
     @admin.display(description="Fundador", ordering='organization__is_founder_member')
     def get_founder_indicator(self, obj):
         if obj.organization.is_founder_member:
-            return format_html('<span style="color: #F39C12; font-weight: bold;">FUNDADOR $249</span>')
+            return format_html('<span style="color: #F39C12; font-weight: bold;">FUNDADOR $199</span>')
         return '-'
 
     @admin.display(description="Estado", ordering='subscription_status')

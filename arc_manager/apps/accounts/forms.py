@@ -13,6 +13,7 @@ class CustomAuthenticationForm(AuthenticationForm):
         'invalid_login': 'Por favor, introduce un correo electrónico y contraseña válidos. '
                          'Ten en cuenta que ambos campos pueden ser sensibles a mayúsculas y minúsculas.',
         'inactive': 'Tu cuenta está inactiva. Por favor, contacta con el administrador de tu organización para reactivarla.',
+        'org_inactive': 'Tu organización ha sido desactivada. Por favor, contacta con el soporte del sistema para más información.',
     }
     
     username = forms.EmailField(
@@ -54,23 +55,44 @@ class CustomAuthenticationForm(AuthenticationForm):
         username = self.cleaned_data.get('username')
         password = self.cleaned_data.get('password')
         
-        # Verificar si el usuario existe y está inactivo
+        # Verificar si el usuario existe y está inactivo o su organización está inactiva
         if username and password:
             try:
                 User = get_user_model()
-                # Búsqueda case-insensitive
-                user = User.objects.filter(email__iexact=username).first()
+                # Búsqueda case-insensitive con organización precargada
+                user = User.objects.select_related('organization').filter(email__iexact=username).first()
                 
-                if user and not user.is_active:
-                    # Log solo para cuenta inactiva (evento de seguridad importante)
-                    from django.utils import timezone
-                    logger.warning(
-                        f"LOGIN BLOQUEADO - CUENTA INACTIVA | Email: {username}"
-                    )
-                    raise ValidationError(
-                        'Tu cuenta está inactiva. Por favor, contacta con el administrador de tu organización para reactivarla.',
-                        code='inactive'
-                    )
+                if user:
+                    # Verificar si la cuenta del usuario está inactiva
+                    if not user.is_active:
+                        logger.warning(
+                            f"LOGIN BLOQUEADO - CUENTA INACTIVA | Email: {username} | "
+                            f"Org: {user.get_organization_name()}",
+                            extra={
+                                'user_id': user.id,
+                                'organization_id': user.organization_id if user.organization else None
+                            }
+                        )
+                        raise ValidationError(
+                            'Tu cuenta está inactiva. Por favor, contacta con el administrador de tu organización para reactivarla.',
+                            code='inactive'
+                        )
+                    
+                    # Verificar si la organización está inactiva (solo para usuarios no-superuser)
+                    if user.organization and not user.organization.is_active and not user.is_superuser:
+                        logger.warning(
+                            f"LOGIN BLOQUEADO - ORGANIZACION INACTIVA | Email: {username} | "
+                            f"Org: {user.organization.name} (ID: {user.organization.id}) | "
+                            f"User ID: {user.id}",
+                            extra={
+                                'user_id': user.id,
+                                'organization_id': user.organization.id
+                            }
+                        )
+                        raise ValidationError(
+                            'Tu organización ha sido desactivada. Por favor, contacta con el soporte del sistema para más información.',
+                            code='org_inactive'
+                        )
             except User.DoesNotExist:
                 pass
         

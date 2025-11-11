@@ -80,10 +80,10 @@ class OrganizationAdminForm(ModelForm):
             if hasattr(current_org, 'subscription') and current_org.subscription:
                 plan_limit = current_org.subscription.plan.max_storage_gb
             else:
-                plan_limit = 75  # Fallback
+                plan_limit = 10  # Fallback
         except Organization.DoesNotExist:
             # Si la organización no existe, usar fallback
-            plan_limit = 75
+            plan_limit = 10
         
         # Calcular el nuevo límite total
         new_total_limit = plan_limit + extra_storage_gb
@@ -150,7 +150,36 @@ class OrganizationAdmin(ImportExportModelAdmin):
             
             # Logging estructurado
             if change and changes:
-                # ORGANIZATION_UPDATED
+                # Detectar cambios críticos en is_active
+                is_active_changed = any(c['field'] == 'is_active' for c in changes)
+                
+                if is_active_changed:
+                    # Obtener el cambio específico de is_active
+                    is_active_change = next(c for c in changes if c['field'] == 'is_active')
+                    new_status = is_active_change['new']
+                    old_status = is_active_change['old']
+                    
+                    # Contar usuarios afectados
+                    user_count = obj.users.count()
+                    
+                    # Log WARNING para cambios de estado (crítico para seguridad)
+                    logger.warning(
+                        f"ORGANIZATION_STATUS_CHANGED | "
+                        f"Organización '{obj.name}' (ID: {obj.id}) | "
+                        f"Estado: {old_status} → {new_status} | "
+                        f"Usuarios afectados: {user_count} | "
+                        f"Admin: {request.user.email if request.user else 'Sistema'}",
+                        extra={
+                            'user_id': request.user.id if request.user else None,
+                            'organization_id': obj.id,
+                            'organization_name': obj.name,
+                            'old_status': old_status,
+                            'new_status': new_status,
+                            'users_affected': user_count
+                        }
+                    )
+                
+                # ORGANIZATION_UPDATED (log general)
                 log_info(
                     event='ORGANIZATION_UPDATED',
                     message=f"Organización '{obj.name}' actualizada con {len(changes)} cambio(s)",
@@ -224,19 +253,6 @@ class OrganizationAdmin(ImportExportModelAdmin):
             files_count = ProjectFile.objects.filter(
                 phase__project__organization=obj
             ).count()
-            
-            # Log ANTES de eliminar
-            log_info(
-                event='ORGANIZATION_DELETE_START',
-                message=f"Iniciando eliminación de organización '{org_name}' (ID: {org_id})",
-                logger_name='apps.orgs',
-                organization_id=org_id,
-                organization_name=org_name,
-                user_count=user_count,
-                files_count=files_count,
-                deleted_by=request.user.email if request.user else 'Sistema'
-            )
-            
         except Exception as e:
             files_count = 0
             log_error(
@@ -253,7 +269,7 @@ class OrganizationAdmin(ImportExportModelAdmin):
         try:
             obj.delete()
             
-            # Log DESPUÉS de eliminar exitosamente
+            # Log único después de eliminar exitosamente (incluye toda la info relevante)
             log_info(
                 event='ORGANIZATION_DELETED',
                 message=f"Organización '{org_name}' eliminada exitosamente",
@@ -338,25 +354,13 @@ class OrganizationAdmin(ImportExportModelAdmin):
         org_ids = list(queryset.values_list('id', flat=True))
         org_names = list(queryset.values_list('name', flat=True))
         
-        # Log ANTES de eliminar
-        log_info(
-            event='ORGANIZATION_BULK_DELETE_START',
-            message=f"Iniciando eliminación en lote de {deleted_count} organizaciones",
-            logger_name='apps.orgs',
-            organization_count=deleted_count,
-            total_users=total_users,
-            total_files=total_files,
-            organization_ids=org_ids,
-            deleted_by=request.user.email if request.user else 'Sistema'
-        )
-        
         # IMPORTANTE: Llamar a delete() de cada instancia para ejecutar limpieza de R2
         # NO usar super().delete_queryset() porque usa queryset.delete() que NO llama al método personalizado
         try:
             for org in queryset:
                 org.delete()  # Esto SÍ ejecuta el método delete() con limpieza de R2
             
-            # Log DESPUÉS de eliminar exitosamente
+            # Log único después de eliminar exitosamente (incluye toda la info relevante)
             log_info(
                 event='ORGANIZATION_BULK_DELETED',
                 message=f"{deleted_count} organizaciones eliminadas exitosamente",
@@ -364,6 +368,7 @@ class OrganizationAdmin(ImportExportModelAdmin):
                 organization_count=deleted_count,
                 users_deleted=total_users,
                 files_deleted=total_files,
+                organization_ids=org_ids,
                 organization_names=org_names,
                 deleted_by=request.user.email if request.user else 'Sistema'
             )
@@ -425,7 +430,7 @@ class OrganizationAdmin(ImportExportModelAdmin):
         }),
         ('Membresía Fundadora', {
             'fields': ('is_founder_member',),
-            'description': '<strong>Miembros Fundadores:</strong> Precio especial de $249/mes en lugar de $299/mes. El descuento se aplicará automáticamente.',
+            'description': '<strong>Miembros Fundadores:</strong> Precio especial de $199/mes en lugar de $299/mes. El descuento se aplicará automáticamente.',
             'classes': ('collapse',)
         }),
         ('Suscripción', {
@@ -480,7 +485,7 @@ class OrganizationAdmin(ImportExportModelAdmin):
         """Muestra una insignia si es miembro fundador."""
         if obj.is_founder_member:
             return format_html(
-                '<span style="background-color: #F39C12; color: white; padding: 3px 8px; border-radius: 3px; font-weight: bold; font-size: 11px;">FUNDADOR $249</span>'
+                '<span style="background-color: #F39C12; color: white; padding: 3px 8px; border-radius: 3px; font-weight: bold; font-size: 11px;">FUNDADOR $199</span>'
             )
         return '-'
     get_founder_badge.short_description = 'Membresía'
@@ -550,14 +555,11 @@ class OrganizationAdmin(ImportExportModelAdmin):
                     subscription_url = reverse('admin:plans_subscription_change', args=[subscription.pk])
                     return format_html('<a href="{}" class="button">Gestionar suscripción</a>', subscription_url)
         except Exception as e:
-            print(f"Error en get_subscription_link para org {obj.id}: {e}")
+            logger.debug(f"Error en get_subscription_link para org {obj.id}: {e}")
             pass
-        try:
-            add_subscription_url = reverse('admin:plans_subscription_add') + f'?organization={obj.pk}'
-            return format_html('<a href="{}" class="button">➕ Crear suscripción</a>', add_subscription_url)
-        except Exception as e:
-            print(f"Error creando enlace de suscripción para org {obj.id}: {e}")
-            return format_html('<span style="color: #C0392B;">Error en enlace</span>')
+        
+        # Sin suscripción, retornar '-' para consistencia con otros campos del admin
+        return '-'
     get_subscription_link.short_description = 'Gestión'
     
     def get_storage_info(self, obj):
@@ -566,18 +568,8 @@ class OrganizationAdmin(ImportExportModelAdmin):
             from apps.orgs.storage_service import StorageService
             storage_data = StorageService.get_storage_summary(obj)
             
-            # Plan base + extras - verificar de forma segura
-            plan_limit = 0
-            if hasattr(obj, 'subscription'):
-                subscription = getattr(obj, 'subscription', None)
-                if subscription:
-                    plan = getattr(subscription, 'plan', None)
-                    if plan:
-                        plan_limit = getattr(plan, 'max_storage_gb', 75)
-            else:
-                plan_limit = 75  # Fallback
-            
-            total_limit = plan_limit + getattr(obj, 'extra_storage_gb', 0)
+            # Usar el método del modelo que ya maneja el fallback correctamente
+            total_limit = obj.get_total_storage_limit_gb()
             
             # Color basado en el porcentaje de uso
             percentage = storage_data.get('percentage', 0)
@@ -607,29 +599,195 @@ class OrganizationAdmin(ImportExportModelAdmin):
     get_storage_info.short_description = 'Almacenamiento'
     
     def activate_organizations(self, request, queryset):
-        """Activar organizaciones seleccionadas"""
-        total_users = sum(org.users.count() for org in queryset)
-        updated = queryset.update(is_active=True)
+        """
+        Activar organizaciones seleccionadas con manejo robusto de errores.
+        Si falla una organización, continúa con las demás y loguea el error.
+        """
+        total_users = 0
+        org_ids = []
+        org_names = []
+        failed_orgs = []
+        success_count = 0
         
-        self.message_user(
-            request, 
-            f"Se activaron {updated} organización(es). "
-            f"Los {total_users} usuario(s) asociados ahora pueden acceder nuevamente.",
-            messages.SUCCESS
-        )
+        # Procesar cada organización individualmente para manejo de errores granular
+        for org in queryset:
+            try:
+                # Contar usuarios antes de activar
+                user_count = org.users.count()
+                
+                # Activar la organización
+                org.is_active = True
+                org.save()
+                
+                # Acumular estadísticas
+                total_users += user_count
+                org_ids.append(org.id)
+                org_names.append(org.name)
+                success_count += 1
+                
+            except Exception as e:
+                # Log del error específico para esta organización
+                log_error(
+                    event='ORGANIZATION_ACTIVATE_ERROR',
+                    error_code='ORG_ACTIVATE_001',
+                    error_message=str(e),
+                    logger_name='apps.orgs',
+                    organization_id=org.id,
+                    organization_name=org.name,
+                    user_email=request.user.email if request.user else 'Sistema'
+                )
+                
+                failed_orgs.append({
+                    'id': org.id,
+                    'name': org.name,
+                    'error': str(e)
+                })
+        
+        # Log de éxito (solo si hubo al menos una exitosa)
+        if success_count > 0:
+            logger.info(
+                f"ORGANIZATIONS_ACTIVATED | "
+                f"{success_count} organizaciones activadas | "
+                f"Usuarios reactivados: {total_users} | "
+                f"Orgs: {', '.join(org_names[:3])}" + (f" y {len(org_names)-3} más" if len(org_names) > 3 else "") + " | "
+                f"Admin: {request.user.email if request.user else 'Sistema'}",
+                extra={
+                    'user_id': request.user.id if request.user else None,
+                    'organization_ids': org_ids,
+                    'organization_count': success_count,
+                    'total_users_affected': total_users
+                }
+            )
+        
+        # Mensajes al admin
+        if success_count > 0:
+            self.message_user(
+                request, 
+                f"✅ Se activaron {success_count} organización(es). "
+                f"Los {total_users} usuario(s) asociados ahora pueden acceder nuevamente.",
+                messages.SUCCESS
+            )
+        
+        if failed_orgs:
+            # Log de resumen de errores
+            logger.error(
+                f"ORGANIZATIONS_ACTIVATE_FAILED | "
+                f"{len(failed_orgs)} organizaciones fallaron | "
+                f"Admin: {request.user.email if request.user else 'Sistema'}",
+                extra={
+                    'user_id': request.user.id if request.user else None,
+                    'failed_count': len(failed_orgs),
+                    'failed_organizations': failed_orgs
+                }
+            )
+            
+            # Mensaje de error al admin
+            error_details = ', '.join([f"{f['name']}" for f in failed_orgs[:3]])
+            if len(failed_orgs) > 3:
+                error_details += f" y {len(failed_orgs)-3} más"
+            
+            self.message_user(
+                request,
+                f"❌ Error al activar {len(failed_orgs)} organización(es): {error_details}. "
+                f"Revisa los logs para más detalles.",
+                messages.ERROR
+            )
     activate_organizations.short_description = "Activar organizaciones (restaurar acceso)"
     
     def deactivate_organizations(self, request, queryset):
-        """Desactivar organizaciones seleccionadas"""
-        total_users = sum(org.users.count() for org in queryset)
-        updated = queryset.update(is_active=False)
+        """
+        Desactivar organizaciones seleccionadas con manejo robusto de errores.
+        Si falla una organización, continúa con las demás y loguea el error.
+        """
+        total_users = 0
+        org_ids = []
+        org_names = []
+        failed_orgs = []
+        success_count = 0
         
-        self.message_user(
-            request,
-            f"Se desactivaron {updated} organización(es). "
-            f"Los {total_users} usuario(s) asociados NO podrán acceder hasta que reactives la organización.",
-            messages.WARNING
-        )
+        # Procesar cada organización individualmente para manejo de errores granular
+        for org in queryset:
+            try:
+                # Contar usuarios antes de desactivar
+                user_count = org.users.count()
+                
+                # Desactivar la organización
+                org.is_active = False
+                org.save()
+                
+                # Acumular estadísticas
+                total_users += user_count
+                org_ids.append(org.id)
+                org_names.append(org.name)
+                success_count += 1
+                
+            except Exception as e:
+                # Log del error específico para esta organización
+                log_error(
+                    event='ORGANIZATION_DEACTIVATE_ERROR',
+                    error_code='ORG_DEACTIVATE_001',
+                    error_message=str(e),
+                    logger_name='apps.orgs',
+                    organization_id=org.id,
+                    organization_name=org.name,
+                    user_email=request.user.email if request.user else 'Sistema'
+                )
+                
+                failed_orgs.append({
+                    'id': org.id,
+                    'name': org.name,
+                    'error': str(e)
+                })
+        
+        # Log de éxito (solo si hubo al menos una exitosa)
+        if success_count > 0:
+            logger.warning(
+                f"ORGANIZATIONS_DEACTIVATED | "
+                f"{success_count} organizaciones desactivadas | "
+                f"Usuarios bloqueados: {total_users} | "
+                f"Orgs: {', '.join(org_names[:3])}" + (f" y {len(org_names)-3} más" if len(org_names) > 3 else "") + " | "
+                f"Admin: {request.user.email if request.user else 'Sistema'}",
+                extra={
+                    'user_id': request.user.id if request.user else None,
+                    'organization_ids': org_ids,
+                    'organization_count': success_count,
+                    'total_users_affected': total_users
+                }
+            )
+        
+        # Mensajes al admin
+        if success_count > 0:
+            self.message_user(
+                request,
+                f"✅ Se desactivaron {success_count} organización(es). "
+                f"Los {total_users} usuario(s) asociados NO podrán acceder hasta que reactives la organización.",
+                messages.SUCCESS
+            )
+        
+        if failed_orgs:
+            # Log de resumen de errores
+            logger.error(
+                f"ORGANIZATIONS_DEACTIVATE_FAILED | "
+                f"{len(failed_orgs)} organizaciones fallaron | "
+                f"Admin: {request.user.email if request.user else 'Sistema'}",
+                extra={
+                    'user_id': request.user.id if request.user else None,
+                    'failed_count': len(failed_orgs),
+                    'failed_organizations': failed_orgs
+                }
+            )
+            
+            # Mensaje de error al admin
+            error_details = ', '.join([f"{f['name']}" for f in failed_orgs[:3]])
+            if len(failed_orgs) > 3:
+                error_details += f" y {len(failed_orgs)-3} más"
+            
+            self.message_user(
+                request,
+                f"❌ Error al desactivar {len(failed_orgs)} organización(es): {error_details}. "
+                f"Revisa los logs para más detalles.",
+                messages.ERROR
+            )
     deactivate_organizations.short_description = "Desactivar organizaciones (bloquear acceso)"
     
     def mark_as_founder(self, request, queryset):
@@ -637,8 +795,8 @@ class OrganizationAdmin(ImportExportModelAdmin):
         from django.utils import timezone
         from decimal import Decimal
         updated = 0
-        # Descuento fijo: de $299 a $249 = 16.72% de descuento
-        FOUNDER_DISCOUNT = Decimal('16.72')
+        # Descuento fijo: de $299 a $199 = 33.44% de descuento
+        FOUNDER_DISCOUNT = Decimal('33.44')
         
         for org in queryset:
             if not org.is_founder_member:
@@ -647,12 +805,19 @@ class OrganizationAdmin(ImportExportModelAdmin):
                 org.founder_discount_percentage = FOUNDER_DISCOUNT
                 org.save()
                 updated += 1
-        self.message_user(request, f"Se marcaron {updated} organizaciones como miembros fundadores. Precio especial: $249/mes.", messages.SUCCESS)
-    mark_as_founder.short_description = "Marcar como miembro fundador ($249/mes)"
+        self.message_user(request, f"Se marcaron {updated} organizaciones como miembros fundadores. Precio especial: $199/mes.", messages.SUCCESS)
+    mark_as_founder.short_description = "Marcar como miembro fundador ($199/mes)"
     
     def unmark_as_founder(self, request, queryset):
         """Quitar el estatus de miembro fundador"""
-        updated = queryset.filter(is_founder_member=True).update(is_founder_member=False)
+        from decimal import Decimal
+        updated = 0
+        for org in queryset.filter(is_founder_member=True):
+            org.is_founder_member = False
+            org.founder_discount_percentage = Decimal('0')
+            org.founder_joined_date = None
+            org.save()
+            updated += 1
         self.message_user(request, f"Se quitó el estatus de fundador a {updated} organizaciones.", messages.SUCCESS)
     unmark_as_founder.short_description = "Quitar estatus de fundador"
     
@@ -674,7 +839,7 @@ class OrganizationAdmin(ImportExportModelAdmin):
                 if hasattr(org, 'subscription') and org.subscription:
                     plan_limit = org.subscription.plan.max_storage_gb
                 else:
-                    plan_limit = 75
+                    plan_limit = 10
                 
                 # Verificar si se puede reducir completamente el extra storage
                 if used_gb <= plan_limit:

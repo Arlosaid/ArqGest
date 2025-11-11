@@ -6,6 +6,7 @@ from django.db import models
 from .models import Project, Phase, Task, PhaseTemplate
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
+from core.structured_logging import log_info, log_error
 
 
 # --- Recursos para Import/Export ---
@@ -289,9 +290,112 @@ class ProjectAdmin(ImportExportModelAdmin):
         return format_html(activity_html)
     get_recent_activity.short_description = 'Actividad Reciente'
     
+    def save_model(self, request, obj, form, change):
+        """Hook para guardar el modelo con logging estructurado."""
+        try:
+            if change:
+                # Es una actualización - capturar cambios
+                changes = []
+                
+                tracked_fields = {
+                    'name': 'Nombre',
+                    'organization': 'Organización',
+                    'client': 'Cliente',
+                    'owner': 'Propietario'
+                }
+                
+                try:
+                    original = Project.objects.get(pk=obj.pk)
+                    
+                    for field_name, field_label in tracked_fields.items():
+                        old_value = getattr(original, field_name)
+                        new_value = getattr(obj, field_name)
+                        
+                        if old_value != new_value:
+                            # Formatear valores para logging
+                            if field_name == 'organization':
+                                old_val = old_value.name if old_value else 'Sin organización'
+                                new_val = new_value.name if new_value else 'Sin organización'
+                            elif field_name == 'client':
+                                old_val = old_value.name if old_value else 'Sin cliente'
+                                new_val = new_value.name if new_value else 'Sin cliente'
+                            elif field_name == 'owner':
+                                old_val = old_value.email if old_value else 'Sin propietario'
+                                new_val = new_value.email if new_value else 'Sin propietario'
+                            else:
+                                old_val = str(old_value)
+                                new_val = str(new_value)
+                            
+                            changes.append({
+                                'field': field_name,
+                                'field_label': field_label,
+                                'old': old_val,
+                                'new': new_val
+                            })
+                except Project.DoesNotExist:
+                    change = False
+            
+            # Guardar el objeto
+            super().save_model(request, obj, form, change)
+            
+            # Logging estructurado
+            if change and changes:
+                log_info(
+                    event='PROJECT_UPDATED',
+                    message=f"Proyecto '{obj.name}' actualizado con {len(changes)} cambio(s)",
+                    logger_name='apps.projects',
+                    project_id=obj.id,
+                    project_name=obj.name,
+                    organization_id=obj.organization.id if obj.organization else None,
+                    organization_name=obj.organization.name if obj.organization else 'Sin organización',
+                    changes=changes,
+                    updated_by=request.user.email if request.user else 'Sistema'
+                )
+                
+                # Mensaje para el admin
+                changes_text = ', '.join([f"{c['field_label']}" for c in changes])
+                messages.success(
+                    request,
+                    f"Proyecto '{obj.name}' actualizado exitosamente. Cambios: {changes_text}"
+                )
+            elif not change:
+                # Creación de proyecto
+                log_info(
+                    event='PROJECT_CREATED',
+                    message=f"Proyecto '{obj.name}' creado exitosamente",
+                    logger_name='apps.projects',
+                    project_id=obj.id,
+                    project_name=obj.name,
+                    organization_id=obj.organization.id if obj.organization else None,
+                    organization_name=obj.organization.name if obj.organization else 'Sin organización',
+                    created_by=request.user.email if request.user else 'Sistema'
+                )
+        
+        except Exception as e:
+            log_error(
+                event='PROJECT_SAVE_FAILED',
+                error_code='PROJ001',
+                error_message=str(e),
+                logger_name='apps.projects',
+                project_name=getattr(obj, 'name', 'Desconocido'),
+                action='create' if not change else 'update',
+                performed_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            messages.error(
+                request,
+                f"Error al {'crear' if not change else 'actualizar'} el proyecto: {str(e)}"
+            )
+            
+            raise
+    
     def duplicate_projects(self, request, queryset):
-        """Duplicar proyectos seleccionados."""
+        """Duplicar proyectos seleccionados con logging estructurado."""
         duplicated_count = 0
+        failed_count = 0
+        duplicated_names = []
+        failed_projects = []
+        
         for project in queryset:
             try:
                 # Crear copia del proyecto
@@ -302,18 +406,53 @@ class ProjectAdmin(ImportExportModelAdmin):
                     owner=project.owner
                 )
                 duplicated_count += 1
+                duplicated_names.append(new_project.name)
+                
+                # Log de éxito individual
+                log_info(
+                    event='PROJECT_DUPLICATED',
+                    message=f"Proyecto '{project.name}' duplicado como '{new_project.name}'",
+                    logger_name='apps.projects',
+                    original_project_id=project.id,
+                    new_project_id=new_project.id,
+                    duplicated_by=request.user.email if request.user else 'Sistema'
+                )
+                
             except Exception as e:
+                failed_count += 1
+                failed_projects.append({'name': project.name, 'error': str(e)})
+                
+                # Log del error
+                log_error(
+                    event='PROJECT_DUPLICATE_FAILED',
+                    error_code='PROJ_DUP_001',
+                    error_message=str(e),
+                    logger_name='apps.projects',
+                    project_id=project.id,
+                    project_name=project.name,
+                    performed_by=request.user.email if request.user else 'Sistema'
+                )
+                
                 self.message_user(
                     request,
-                    f"Error duplicando {project.name}: {str(e)}",
+                    f"Error duplicando '{project.name}': {str(e)[:100]}",
                     messages.ERROR
                 )
         
+        # Mensajes finales
         if duplicated_count > 0:
             self.message_user(
                 request,
-                f"Se duplicaron {duplicated_count} proyectos correctamente.",
+                f"✅ Se duplicaron {duplicated_count} proyecto(s) correctamente: {', '.join(duplicated_names[:3])}" +
+                (f" y {len(duplicated_names)-3} más" if len(duplicated_names) > 3 else ""),
                 messages.SUCCESS
+            )
+        
+        if failed_count > 0:
+            self.message_user(
+                request,
+                f"❌ Fallaron {failed_count} proyecto(s). Revisa los logs para más detalles.",
+                messages.WARNING
             )
     duplicate_projects.short_description = "Duplicar proyectos seleccionados"
     
@@ -408,16 +547,179 @@ class PhaseAdmin(ImportExportModelAdmin):
         )
     get_task_progress.short_description = 'Progreso de Tareas'
     
+    def save_model(self, request, obj, form, change):
+        """Hook para guardar el modelo con logging estructurado."""
+        try:
+            if change:
+                # Es una actualización - capturar cambios
+                changes = []
+                
+                tracked_fields = {
+                    'name': 'Nombre',
+                    'status': 'Estado',
+                    'order': 'Orden',
+                    'notes': 'Notas'
+                }
+                
+                try:
+                    original = Phase.objects.get(pk=obj.pk)
+                    
+                    for field_name, field_label in tracked_fields.items():
+                        old_value = getattr(original, field_name)
+                        new_value = getattr(obj, field_name)
+                        
+                        if old_value != new_value:
+                            # Formatear valores para logging
+                            if field_name == 'status':
+                                old_val = original.get_status_display()
+                                new_val = obj.get_status_display()
+                            else:
+                                old_val = str(old_value) if old_value else ''
+                                new_val = str(new_value) if new_value else ''
+                            
+                            changes.append({
+                                'field': field_name,
+                                'field_label': field_label,
+                                'old': old_val,
+                                'new': new_val
+                            })
+                except Phase.DoesNotExist:
+                    change = False
+            
+            # Guardar el objeto
+            super().save_model(request, obj, form, change)
+            
+            # Logging estructurado
+            if change and changes:
+                log_info(
+                    event='PHASE_UPDATED',
+                    message=f"Fase '{obj.name}' actualizada con {len(changes)} cambio(s)",
+                    logger_name='apps.projects',
+                    phase_id=obj.id,
+                    phase_name=obj.name,
+                    project_id=obj.project.id,
+                    project_name=obj.project.name,
+                    changes=changes,
+                    updated_by=request.user.email if request.user else 'Sistema'
+                )
+                
+                # Mensaje para el admin
+                changes_text = ', '.join([f"{c['field_label']}" for c in changes])
+                messages.success(
+                    request,
+                    f"Fase '{obj.name}' actualizada exitosamente. Cambios: {changes_text}"
+                )
+            elif not change:
+                # Creación de fase
+                log_info(
+                    event='PHASE_CREATED',
+                    message=f"Fase '{obj.name}' creada exitosamente",
+                    logger_name='apps.projects',
+                    phase_id=obj.id,
+                    phase_name=obj.name,
+                    project_id=obj.project.id,
+                    project_name=obj.project.name,
+                    created_by=request.user.email if request.user else 'Sistema'
+                )
+        
+        except Exception as e:
+            log_error(
+                event='PHASE_SAVE_FAILED',
+                error_code='PHASE001',
+                error_message=str(e),
+                logger_name='apps.projects',
+                phase_name=getattr(obj, 'name', 'Desconocido'),
+                action='create' if not change else 'update',
+                performed_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            messages.error(
+                request,
+                f"Error al {'crear' if not change else 'actualizar'} la fase: {str(e)}"
+            )
+            
+            raise
+    
     def mark_as_completed(self, request, queryset):
-        """Marcar fases como completadas."""
-        updated = queryset.update(status='COMPLETED')
-        self.message_user(request, f"Se marcaron {updated} fases como completadas.", messages.SUCCESS)
+        """Marcar fases como completadas con logging."""
+        phase_count = queryset.count()
+        phase_ids = list(queryset.values_list('id', flat=True))
+        phase_names = list(queryset.values_list('name', flat=True))
+        
+        try:
+            updated = queryset.update(status='completed')
+            
+            # Log de éxito
+            log_info(
+                event='PHASES_MARKED_COMPLETED',
+                message=f"{updated} fases marcadas como completadas",
+                logger_name='apps.projects',
+                phase_ids=phase_ids,
+                phase_names=phase_names[:5],
+                updated_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            self.message_user(
+                request, 
+                f"Se marcaron {updated} fases como completadas.",
+                messages.SUCCESS
+            )
+        except Exception as e:
+            log_error(
+                event='PHASES_MARK_COMPLETED_FAILED',
+                error_code='PHASE_STATUS_001',
+                error_message=str(e),
+                logger_name='apps.projects',
+                phase_count=phase_count,
+                performed_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            self.message_user(
+                request,
+                f"Error al marcar fases como completadas: {str(e)}",
+                messages.ERROR
+            )
     mark_as_completed.short_description = "Marcar como completadas"
     
     def mark_as_in_progress(self, request, queryset):
-        """Marcar fases como en progreso."""
-        updated = queryset.update(status='IN_PROGRESS')
-        self.message_user(request, f"Se marcaron {updated} fases como en progreso.", messages.SUCCESS)
+        """Marcar fases como en progreso con logging."""
+        phase_count = queryset.count()
+        phase_ids = list(queryset.values_list('id', flat=True))
+        phase_names = list(queryset.values_list('name', flat=True))
+        
+        try:
+            updated = queryset.update(status='in_progress')
+            
+            # Log de éxito
+            log_info(
+                event='PHASES_MARKED_IN_PROGRESS',
+                message=f"{updated} fases marcadas como en progreso",
+                logger_name='apps.projects',
+                phase_ids=phase_ids,
+                phase_names=phase_names[:5],
+                updated_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            self.message_user(
+                request, 
+                f"Se marcaron {updated} fases como en progreso.",
+                messages.SUCCESS
+            )
+        except Exception as e:
+            log_error(
+                event='PHASES_MARK_IN_PROGRESS_FAILED',
+                error_code='PHASE_STATUS_002',
+                error_message=str(e),
+                logger_name='apps.projects',
+                phase_count=phase_count,
+                performed_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            self.message_user(
+                request,
+                f"Error al marcar fases como en progreso: {str(e)}",
+                messages.ERROR
+            )
     mark_as_in_progress.short_description = "Marcar como en progreso"
 
 
@@ -518,28 +820,277 @@ class TaskAdmin(ImportExportModelAdmin):
     get_priority_display.short_description = 'Prioridad'
     get_priority_display.admin_order_field = 'priority'
     
+    def save_model(self, request, obj, form, change):
+        """Hook para guardar el modelo con logging estructurado."""
+        try:
+            if change:
+                # Es una actualización - capturar cambios
+                changes = []
+                
+                tracked_fields = {
+                    'title': 'Título',
+                    'status': 'Estado',
+                    'priority': 'Prioridad',
+                    'assigned_to': 'Asignado a',
+                    'due_date': 'Fecha límite',
+                    'description': 'Descripción'
+                }
+                
+                try:
+                    original = Task.objects.get(pk=obj.pk)
+                    
+                    for field_name, field_label in tracked_fields.items():
+                        old_value = getattr(original, field_name)
+                        new_value = getattr(obj, field_name)
+                        
+                        if old_value != new_value:
+                            # Formatear valores para logging
+                            if field_name == 'status':
+                                old_val = original.get_status_display()
+                                new_val = obj.get_status_display()
+                            elif field_name == 'priority':
+                                old_val = original.get_priority_display()
+                                new_val = obj.get_priority_display()
+                            elif field_name == 'assigned_to':
+                                old_val = old_value.email if old_value else 'Sin asignar'
+                                new_val = new_value.email if new_value else 'Sin asignar'
+                            elif field_name == 'due_date':
+                                old_val = old_value.strftime('%Y-%m-%d') if old_value else 'Sin fecha'
+                                new_val = new_value.strftime('%Y-%m-%d') if new_value else 'Sin fecha'
+                            else:
+                                old_val = str(old_value) if old_value else ''
+                                new_val = str(new_value) if new_value else ''
+                            
+                            changes.append({
+                                'field': field_name,
+                                'field_label': field_label,
+                                'old': old_val,
+                                'new': new_val
+                            })
+                except Task.DoesNotExist:
+                    change = False
+            
+            # Guardar el objeto
+            super().save_model(request, obj, form, change)
+            
+            # Logging estructurado
+            if change and changes:
+                log_info(
+                    event='TASK_UPDATED',
+                    message=f"Tarea '{obj.title}' actualizada con {len(changes)} cambio(s)",
+                    logger_name='apps.projects',
+                    task_id=obj.id,
+                    task_title=obj.title,
+                    phase_id=obj.phase.id,
+                    phase_name=obj.phase.name,
+                    project_id=obj.phase.project.id,
+                    project_name=obj.phase.project.name,
+                    changes=changes,
+                    updated_by=request.user.email if request.user else 'Sistema'
+                )
+                
+                # Mensaje para el admin
+                changes_text = ', '.join([f"{c['field_label']}" for c in changes])
+                messages.success(
+                    request,
+                    f"Tarea '{obj.title}' actualizada exitosamente. Cambios: {changes_text}"
+                )
+            elif not change:
+                # Creación de tarea
+                log_info(
+                    event='TASK_CREATED',
+                    message=f"Tarea '{obj.title}' creada exitosamente",
+                    logger_name='apps.projects',
+                    task_id=obj.id,
+                    task_title=obj.title,
+                    phase_id=obj.phase.id,
+                    phase_name=obj.phase.name,
+                    project_id=obj.phase.project.id,
+                    project_name=obj.phase.project.name,
+                    created_by=request.user.email if request.user else 'Sistema'
+                )
+        
+        except Exception as e:
+            log_error(
+                event='TASK_SAVE_FAILED',
+                error_code='TASK001',
+                error_message=str(e),
+                logger_name='apps.projects',
+                task_title=getattr(obj, 'title', 'Desconocido'),
+                action='create' if not change else 'update',
+                performed_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            messages.error(
+                request,
+                f"Error al {'crear' if not change else 'actualizar'} la tarea: {str(e)}"
+            )
+            
+            raise
+    
     def mark_as_completed(self, request, queryset):
-        """Marcar tareas como completadas."""
-        updated = queryset.update(status='DONE')
-        self.message_user(request, f"Se marcaron {updated} tareas como completadas.", messages.SUCCESS)
+        """Marcar tareas como completadas con logging."""
+        task_count = queryset.count()
+        task_ids = list(queryset.values_list('id', flat=True))
+        task_titles = list(queryset.values_list('title', flat=True))
+        
+        try:
+            updated = queryset.update(status='DONE')
+            
+            # Log de éxito
+            log_info(
+                event='TASKS_MARKED_COMPLETED',
+                message=f"{updated} tareas marcadas como completadas",
+                logger_name='apps.projects',
+                task_ids=task_ids,
+                task_titles=task_titles[:5],
+                updated_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            self.message_user(
+                request, 
+                f"Se marcaron {updated} tareas como completadas.",
+                messages.SUCCESS
+            )
+        except Exception as e:
+            log_error(
+                event='TASKS_MARK_COMPLETED_FAILED',
+                error_code='TASK_STATUS_001',
+                error_message=str(e),
+                logger_name='apps.projects',
+                task_count=task_count,
+                performed_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            self.message_user(
+                request,
+                f"Error al marcar tareas como completadas: {str(e)}",
+                messages.ERROR
+            )
     mark_as_completed.short_description = "Marcar como completadas"
     
     def mark_as_in_progress(self, request, queryset):
-        """Marcar tareas como en progreso."""
-        updated = queryset.update(status='IN_PROGRESS')
-        self.message_user(request, f"Se marcaron {updated} tareas como en progreso.", messages.SUCCESS)
+        """Marcar tareas como en progreso con logging."""
+        task_count = queryset.count()
+        task_ids = list(queryset.values_list('id', flat=True))
+        task_titles = list(queryset.values_list('title', flat=True))
+        
+        try:
+            updated = queryset.update(status='IN_PROGRESS')
+            
+            # Log de éxito
+            log_info(
+                event='TASKS_MARKED_IN_PROGRESS',
+                message=f"{updated} tareas marcadas como en progreso",
+                logger_name='apps.projects',
+                task_ids=task_ids,
+                task_titles=task_titles[:5],
+                updated_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            self.message_user(
+                request, 
+                f"Se marcaron {updated} tareas como en progreso.",
+                messages.SUCCESS
+            )
+        except Exception as e:
+            log_error(
+                event='TASKS_MARK_IN_PROGRESS_FAILED',
+                error_code='TASK_STATUS_002',
+                error_message=str(e),
+                logger_name='apps.projects',
+                task_count=task_count,
+                performed_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            self.message_user(
+                request,
+                f"Error al marcar tareas como en progreso: {str(e)}",
+                messages.ERROR
+            )
     mark_as_in_progress.short_description = "Marcar como en progreso"
     
     def mark_as_pending(self, request, queryset):
-        """Marcar tareas como pendientes."""
-        updated = queryset.update(status='TODO')
-        self.message_user(request, f"Se marcaron {updated} tareas como pendientes.", messages.SUCCESS)
+        """Marcar tareas como pendientes con logging."""
+        task_count = queryset.count()
+        task_ids = list(queryset.values_list('id', flat=True))
+        task_titles = list(queryset.values_list('title', flat=True))
+        
+        try:
+            updated = queryset.update(status='TODO')
+            
+            # Log de éxito
+            log_info(
+                event='TASKS_MARKED_PENDING',
+                message=f"{updated} tareas marcadas como pendientes",
+                logger_name='apps.projects',
+                task_ids=task_ids,
+                task_titles=task_titles[:5],
+                updated_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            self.message_user(
+                request, 
+                f"Se marcaron {updated} tareas como pendientes.",
+                messages.SUCCESS
+            )
+        except Exception as e:
+            log_error(
+                event='TASKS_MARK_PENDING_FAILED',
+                error_code='TASK_STATUS_003',
+                error_message=str(e),
+                logger_name='apps.projects',
+                task_count=task_count,
+                performed_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            self.message_user(
+                request,
+                f"Error al marcar tareas como pendientes: {str(e)}",
+                messages.ERROR
+            )
     mark_as_pending.short_description = "Marcar como pendientes"
     
     def assign_to_me(self, request, queryset):
-        """Asignar tareas al usuario actual."""
-        updated = queryset.update(assigned_to=request.user)
-        self.message_user(request, f"Se asignaron {updated} tareas a tu usuario.", messages.SUCCESS)
+        """Asignar tareas al usuario actual con logging."""
+        task_count = queryset.count()
+        task_ids = list(queryset.values_list('id', flat=True))
+        task_titles = list(queryset.values_list('title', flat=True))
+        
+        try:
+            updated = queryset.update(assigned_to=request.user)
+            
+            # Log de éxito
+            log_info(
+                event='TASKS_ASSIGNED',
+                message=f"{updated} tareas asignadas a {request.user.email}",
+                logger_name='apps.projects',
+                task_ids=task_ids,
+                task_titles=task_titles[:5],
+                assigned_to=request.user.email,
+                assigned_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            self.message_user(
+                request, 
+                f"Se asignaron {updated} tareas a tu usuario.",
+                messages.SUCCESS
+            )
+        except Exception as e:
+            log_error(
+                event='TASKS_ASSIGN_FAILED',
+                error_code='TASK_ASSIGN_001',
+                error_message=str(e),
+                logger_name='apps.projects',
+                task_count=task_count,
+                performed_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            self.message_user(
+                request,
+                f"Error al asignar tareas: {str(e)}",
+                messages.ERROR
+            )
     assign_to_me.short_description = "Asignarme estas tareas"
 
 

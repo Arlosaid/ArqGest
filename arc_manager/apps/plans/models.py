@@ -24,7 +24,7 @@ class Plan(models.Model):
     
     # Límites del plan para el MVP
     max_users = models.PositiveIntegerField("Máximo de usuarios", default=1)
-    max_storage_gb = models.PositiveIntegerField("Límite de almacenamiento (GB)", default=75, help_text="Límite de almacenamiento en gigabytes")
+    max_storage_gb = models.PositiveIntegerField("Límite de almacenamiento (GB)", default=10, help_text="Límite de almacenamiento en gigabytes")
     
     # Características adicionales
     trial_days = models.PositiveIntegerField("Días de prueba", default=0, help_text="Para planes 'trial', establece la duración de la prueba.")
@@ -63,6 +63,7 @@ class Plan(models.Model):
                 if old_instance.price != self.price:
                     changed_fields.append({
                         'field': 'price',
+                        'field_label': 'Precio',
                         'old': str(old_instance.price),
                         'new': str(self.price)
                     })
@@ -70,6 +71,7 @@ class Plan(models.Model):
                 if old_instance.max_users != self.max_users:
                     changed_fields.append({
                         'field': 'max_users',
+                        'field_label': 'Máximo de usuarios',
                         'old': old_instance.max_users,
                         'new': self.max_users
                     })
@@ -77,6 +79,7 @@ class Plan(models.Model):
                 if old_instance.max_storage_gb != self.max_storage_gb:
                     changed_fields.append({
                         'field': 'max_storage_gb',
+                        'field_label': 'Almacenamiento máximo',
                         'old': old_instance.max_storage_gb,
                         'new': self.max_storage_gb
                     })
@@ -84,6 +87,7 @@ class Plan(models.Model):
                 if old_instance.is_active != self.is_active:
                     changed_fields.append({
                         'field': 'is_active',
+                        'field_label': 'Estado activo',
                         'old': old_instance.is_active,
                         'new': self.is_active
                     })
@@ -91,6 +95,7 @@ class Plan(models.Model):
                 if old_instance.trial_days != self.trial_days:
                     changed_fields.append({
                         'field': 'trial_days',
+                        'field_label': 'Días de prueba',
                         'old': old_instance.trial_days,
                         'new': self.trial_days
                     })
@@ -204,11 +209,13 @@ class Subscription(models.Model):
 
     def save(self, *args, **kwargs):
         from core.structured_logging import log_business_event
+        from django.core.cache import cache
         import logging
         logger = logging.getLogger(__name__)
         
         is_new = not self.pk
         changed_fields = []
+        plan_changed = False
         
         # Rastrear cambios si es actualización
         if self.pk:
@@ -216,8 +223,10 @@ class Subscription(models.Model):
                 old_instance = Subscription.objects.get(pk=self.pk)
                 
                 if old_instance.plan_id != self.plan_id:
+                    plan_changed = True
                     changed_fields.append({
                         'field': 'plan',
+                        'field_label': 'Plan',
                         'old': old_instance.plan.display_name,
                         'new': self.plan.display_name
                     })
@@ -225,6 +234,7 @@ class Subscription(models.Model):
                 if old_instance.subscription_status != self.subscription_status:
                     changed_fields.append({
                         'field': 'subscription_status',
+                        'field_label': 'Estado de suscripción',
                         'old': old_instance.subscription_status,
                         'new': self.subscription_status
                     })
@@ -232,6 +242,7 @@ class Subscription(models.Model):
                 if old_instance.end_date != self.end_date:
                     changed_fields.append({
                         'field': 'end_date',
+                        'field_label': 'Fecha de vencimiento',
                         'old': str(old_instance.end_date),
                         'new': str(self.end_date)
                     })
@@ -240,6 +251,17 @@ class Subscription(models.Model):
                 pass
         
         super().save(*args, **kwargs)
+        
+        # Invalidar caches si cambió el plan o es nueva suscripción
+        # Esto asegura que el dashboard muestre los límites correctos inmediatamente
+        if is_new or plan_changed:
+            self.organization.invalidate_storage_cache()
+            # También invalidar cache de suscripción y dashboard
+            cache_keys = [
+                f"org_subscription:{self.organization.id}",
+                f"dashboard_stats:{self.organization.id}"
+            ]
+            cache.delete_many(cache_keys)
         
         if is_new:
             self.setup_initial_subscription(self.plan)

@@ -676,10 +676,28 @@ function deleteUser(userId) {
                 showGlobalNotification(`${userName} eliminado correctamente`, 'success');
             }
             
-            // Recargar después de mostrar la notificación
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
+            // Actualizar estadísticas si se proporcionaron
+            if (data.stats) {
+                updateUserStats(data.stats);
+            }
+            
+            // Eliminar tarjeta del usuario con animación
+            const userCard = document.querySelector(`[data-user-id="${userId}"]`);
+            if (userCard) {
+                userCard.style.transition = 'all 0.3s ease';
+                userCard.style.transform = 'scale(0.8)';
+                userCard.style.opacity = '0';
+                
+                setTimeout(() => {
+                    userCard.remove();
+                    
+                    // Verificar si no quedan usuarios en la lista
+                    const userCards = document.querySelectorAll('.user-card');
+                    if (userCards.length === 0) {
+                        showEmptyUserState();
+                    }
+                }, 300);
+            }
         } else {
             throw new Error(data.error || 'Error al eliminar usuario');
         }
@@ -706,6 +724,66 @@ function deleteUser(userId) {
         // Cerrar modal 
         closeDeleteModal();
     });
+}
+
+// Función para actualizar las estadísticas de usuarios en tiempo real
+function updateUserStats(stats) {
+    // Actualizar contador total
+    const totalUsersEl = document.getElementById('totalUsers');
+    if (totalUsersEl) {
+        totalUsersEl.textContent = stats.total_users;
+    }
+    
+    // Actualizar usuarios activos
+    const activeUsersEl = document.getElementById('activeUsers');
+    if (activeUsersEl) {
+        activeUsersEl.textContent = stats.active_users;
+    }
+    
+    // Actualizar usuarios inactivos
+    const inactiveUsersEl = document.getElementById('inactiveUsers');
+    if (inactiveUsersEl) {
+        inactiveUsersEl.textContent = stats.inactive_users;
+    }
+    
+    // Actualizar porcentaje activo si existe
+    const percentageEl = document.getElementById('percentageActive');
+    if (percentageEl) {
+        percentageEl.textContent = `${stats.percentage_active}%`;
+    }
+    
+    // Actualizar barra de progreso si existe
+    const progressBar = document.querySelector('.progress-bar');
+    if (progressBar) {
+        progressBar.style.width = `${stats.percentage_active}%`;
+        progressBar.setAttribute('aria-valuenow', stats.percentage_active);
+    }
+    
+    // Actualizar espacios disponibles si se proporcionó el max_users
+    if (stats.max_users !== undefined) {
+        const remainingSlotsEl = document.getElementById('remainingSlots');
+        if (remainingSlotsEl) {
+            const remaining = Math.max(0, stats.max_users - stats.total_users);
+            remainingSlotsEl.textContent = remaining;
+        }
+    }
+}
+
+// Función para mostrar estado vacío cuando no hay usuarios
+function showEmptyUserState() {
+    const userListContainer = document.querySelector('.user-list-container');
+    if (!userListContainer) return;
+    
+    userListContainer.innerHTML = `
+        <div class="text-center py-5">
+            <i class="bi bi-people" style="font-size: 4rem; color: var(--secondary-color); opacity: 0.3;"></i>
+            <h4 class="mt-3">No hay usuarios</h4>
+            <p class="text-muted">Crea tu primer usuario para comenzar.</p>
+            <a href="/users/create/" class="btn btn-primary mt-3">
+                <i class="bi bi-person-plus"></i> Crear Usuario
+            </a>
+        </div>
+    `;
 }
 
 

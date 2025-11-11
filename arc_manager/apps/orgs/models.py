@@ -57,10 +57,10 @@ class Organization(models.Model):
     def get_founder_price(self, original_price=None):
         """
         Retorna el precio para miembros fundadores.
-        Miembros fundadores pagan $249/mes en lugar de $299/mes (plan básico).
+        Miembros fundadores pagan $199/mes en lugar de $299/mes (plan básico).
         """
         if self.is_founder_member:
-            return 249  # Precio fijo para fundadores
+            return 199  # Precio fijo para fundadores
         return original_price if original_price is not None else 299
     
     @cached_property
@@ -78,15 +78,20 @@ class Organization(models.Model):
         return self.subscription_cached
     
     def get_total_storage_limit_gb(self):
-        """Retorna el límite total de almacenamiento (plan + extras)"""
+        """
+        Retorna el límite total de almacenamiento (plan + extras).
+        Garantiza que el valor nunca sea negativo.
+        """
         plan_limit = 0
         if hasattr(self, 'subscription') and self.subscription:
             plan_limit = self.subscription.plan.max_storage_gb
         else:
             # Fallback para organizaciones sin suscripción
-            plan_limit = 75
+            plan_limit = 10
         
-        return plan_limit + self.extra_storage_gb
+        total = plan_limit + self.extra_storage_gb
+        # BUG FIX: Prevenir almacenamiento total negativo
+        return max(0, total)
     
     def _create_default_subscription(self):
         """Crea suscripción trial por defecto para nuevas organizaciones"""
@@ -499,38 +504,40 @@ class Organization(models.Model):
         return super().can_add_user() if hasattr(super(), 'can_add_user') else True
     
     def can_add_user_detailed(self):
-        """Método detallado que considera suscripciones"""
-        # Verificar suscripción primero
+        """
+        Método detallado que considera suscripciones.
+        IMPORTANTE: Siempre retorna la misma estructura de dict para evitar KeyError en el frontend.
+        """
+        # Obtener contadores de usuarios (siempre necesarios)
+        current_users = self.get_user_count()
+        active_users = self.get_active_user_count()
+        inactive_users = self.get_inactive_user_count()
+        
+        # Verificar suscripción
         subscription_check = self.can_create_user_with_subscription()
         
-        if subscription_check['subscription_required']:
-            return {
-                'can_add': False,
-                'reason': subscription_check['reason'],
-                'subscription_issue': True,
-                'current_users': self.get_user_count(),
-                'max_users': 0,
-                'available_slots': 0
-            }
-        
-        # Si la suscripción está bien, usar los límites del plan
+        # Obtener límites del plan
         plan = self.get_current_plan()
-        current_users = self.get_user_count()
         max_users = plan.max_users if plan else 0
         available_slots = max(0, max_users - current_users)
         
+        # Determinar si puede agregar usuarios
+        can_add = subscription_check['can_create'] if not subscription_check.get('subscription_required') else False
+        
+        # BUG FIX: Estructura SIEMPRE consistente, independientemente del estado de subscription
         return {
-            'can_add': subscription_check['can_create'],
+            'can_add': can_add,
             'reason': subscription_check['reason'],
-            'subscription_issue': False,
+            'subscription_issue': subscription_check.get('subscription_required', False),
             'current_users': current_users,
             'max_users': max_users,
             'available_slots': available_slots,
-            'active_users': self.get_active_user_count(),
-            'inactive_users': self.get_inactive_user_count(),
+            # Claves que faltaban cuando no había subscription:
+            'active_users': active_users,
+            'inactive_users': inactive_users,
             'total_users': current_users,
-            'has_inactive_users': self.get_inactive_user_count() > 0,
-            'is_at_limit': current_users >= max_users
+            'has_inactive_users': inactive_users > 0,
+            'is_at_limit': current_users >= max_users if max_users > 0 else True
         }
 
 class Client(models.Model):

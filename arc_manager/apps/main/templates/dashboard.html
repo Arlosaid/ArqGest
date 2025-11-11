@@ -87,9 +87,19 @@
                     </div>
                     {% empty %}
                     <div class="empty-state-card">
-                        <p>No hay proyectos activos en este momento.{% if user.is_org_admin %} ¡Crea uno para empezar!{% endif %}</p>
+                        <div class="empty-state-icon">
+                            <i class="fas fa-folder-open"></i>
+                        </div>
+                        <h3 class="empty-state-title">No hay proyectos activos</h3>
+                        <p class="empty-state-text">
+                            {% if user.is_org_admin %}
+                                ¡Crea tu primer proyecto para empezar a organizar tu trabajo!
+                            {% else %}
+                                No hay proyectos disponibles en este momento.
+                            {% endif %}
+                        </p>
                         {% if user.is_org_admin %}
-                        <a href="{% url 'projects:project-create' %}" class="btn-mini-secondary"><i class="fas fa-plus"></i> Nuevo Proyecto</a>
+                        <a href="{% url 'projects:project-create' %}" class="btn-primary"><i class="fas fa-plus"></i> Crear Nuevo Proyecto</a>
                         {% endif %}
                     </div>
                     {% endfor %}
@@ -121,6 +131,7 @@
                         </div>
                         {% empty %}
                         <div class="empty-state-card-small">
+                            <i class="fas fa-check-circle"></i>
                             <p>¡Felicidades! No tienes tareas pendientes.</p>
                         </div>
                         {% endfor %}
@@ -157,7 +168,8 @@
                         </div>
                         {% empty %}
                         <div class="empty-state-card-small">
-                             <p>No se han subido documentos recientemente.</p>
+                            <i class="fas fa-file-upload"></i>
+                            <p>No se han subido documentos recientemente.</p>
                         </div>
                         {% endfor %}
                     </div>

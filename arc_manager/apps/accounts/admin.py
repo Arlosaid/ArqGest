@@ -266,17 +266,64 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
                     # Guardar el usuario
                     super().save_model(request, obj, form, change)
                     
-                    # Log de actualización
+                    # Logging inteligente por criticidad - UN SOLO LOG por cambio
                     if changes:
-                        log_info(
-                            event='USER_UPDATED',
-                            message=f"Usuario {obj.email} actualizado con {len(changes)} cambio(s)",
-                            logger_name='apps.accounts',
-                            user_id=obj.id,
-                            user_email=obj.email,
-                            changes=changes,
-                            updated_by=request.user.email if request.user else 'Sistema'
-                        )
+                        # Detectar cambios críticos de is_active
+                        is_active_changed = any(c['field'] == 'is_active' for c in changes)
+                        is_org_admin_changed = any(c['field'] == 'is_org_admin' for c in changes)
+                        
+                        if is_active_changed:
+                            # Log WARNING solo para cambio de estado activo (crítico)
+                            is_active_change = next(c for c in changes if c['field'] == 'is_active')
+                            new_status = is_active_change['new']
+                            old_status = is_active_change['old']
+                            
+                            logger.warning(
+                                f"USER_STATUS_CHANGED | "
+                                f"Usuario '{obj.email}' (ID: {obj.id}) | "
+                                f"Estado: {old_status} → {new_status} | "
+                                f"Admin: {request.user.email if request.user else 'Sistema'}",
+                                extra={
+                                    'user_id': obj.id,
+                                    'user_email': obj.email,
+                                    'old_status': old_status,
+                                    'new_status': new_status,
+                                    'changed_by': request.user.email if request.user else 'Sistema'
+                                }
+                            )
+                        
+                        if is_org_admin_changed:
+                            # Log INFO para cambio de rol admin (importante pero no crítico)
+                            admin_change = next(c for c in changes if c['field'] == 'is_org_admin')
+                            new_role = admin_change['new']
+                            old_role = admin_change['old']
+                            
+                            logger.info(
+                                f"USER_ROLE_CHANGED | "
+                                f"Usuario '{obj.email}' (ID: {obj.id}) | "
+                                f"Admin org: {old_role} → {new_role} | "
+                                f"Admin: {request.user.email if request.user else 'Sistema'}",
+                                extra={
+                                    'user_id': obj.id,
+                                    'user_email': obj.email,
+                                    'old_role': old_role,
+                                    'new_role': new_role,
+                                    'changed_by': request.user.email if request.user else 'Sistema'
+                                }
+                            )
+                        
+                        # Solo loguear cambios generales si NO son is_active ni is_org_admin
+                        other_changes = [c for c in changes if c['field'] not in ['is_active', 'is_org_admin']]
+                        if other_changes:
+                            log_info(
+                                event='USER_UPDATED',
+                                message=f"Usuario {obj.email} actualizado con {len(other_changes)} cambio(s)",
+                                logger_name='apps.accounts',
+                                user_id=obj.id,
+                                user_email=obj.email,
+                                changes=other_changes,
+                                updated_by=request.user.email if request.user else 'Sistema'
+                            )
                 else:
                     # Guardar sin cambios específicos
                     super().save_model(request, obj, form, change)
@@ -322,23 +369,181 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
     get_role_display.short_description = 'Rol'
     
     def activate_users(self, request, queryset):
-        updated = queryset.update(is_active=True)
-        self.message_user(request, f"Se activaron {updated} usuarios correctamente.", messages.SUCCESS)
+        """Activar usuarios seleccionados con logging estructurado."""
+        user_count = queryset.count()
+        user_ids = list(queryset.values_list('id', flat=True))
+        user_emails = list(queryset.values_list('email', flat=True))
+        
+        try:
+            updated = queryset.update(is_active=True)
+            
+            # Log de éxito
+            logger.info(
+                f"USERS_ACTIVATED | "
+                f"{updated} usuarios activados | "
+                f"Usuarios: {', '.join(user_emails[:3])}" + (f" y {len(user_emails)-3} más" if len(user_emails) > 3 else "") + " | "
+                f"Admin: {request.user.email if request.user else 'Sistema'}",
+                extra={
+                    'user_id': request.user.id if request.user else None,
+                    'affected_user_ids': user_ids,
+                    'affected_count': updated
+                }
+            )
+            
+            self.message_user(
+                request, 
+                f"Se activaron {updated} usuarios correctamente: {', '.join(user_emails[:5])}" + 
+                (f" y {len(user_emails)-5} más" if len(user_emails) > 5 else ""),
+                messages.SUCCESS
+            )
+        except Exception as e:
+            log_error(
+                event='USERS_ACTIVATE_FAILED',
+                error_code='USR_ACTIVATE_001',
+                error_message=str(e),
+                logger_name='apps.accounts',
+                user_count=user_count,
+                performed_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            self.message_user(
+                request,
+                f"Error al activar usuarios: {str(e)}",
+                messages.ERROR
+            )
     activate_users.short_description = "Activar usuarios"
     
     def deactivate_users(self, request, queryset):
-        updated = queryset.update(is_active=False)
-        self.message_user(request, f"Se desactivaron {updated} usuarios correctamente.", messages.SUCCESS)
+        """Desactivar usuarios seleccionados con logging estructurado."""
+        user_count = queryset.count()
+        user_ids = list(queryset.values_list('id', flat=True))
+        user_emails = list(queryset.values_list('email', flat=True))
+        
+        try:
+            updated = queryset.update(is_active=False)
+            
+            # Log WARNING porque desactivar usuarios es una acción crítica
+            logger.warning(
+                f"USERS_DEACTIVATED | "
+                f"{updated} usuarios desactivados | "
+                f"Usuarios: {', '.join(user_emails[:3])}" + (f" y {len(user_emails)-3} más" if len(user_emails) > 3 else "") + " | "
+                f"Admin: {request.user.email if request.user else 'Sistema'}",
+                extra={
+                    'user_id': request.user.id if request.user else None,
+                    'affected_user_ids': user_ids,
+                    'affected_count': updated
+                }
+            )
+            
+            self.message_user(
+                request, 
+                f"Se desactivaron {updated} usuarios correctamente: {', '.join(user_emails[:5])}" + 
+                (f" y {len(user_emails)-5} más" if len(user_emails) > 5 else ""),
+                messages.SUCCESS
+            )
+        except Exception as e:
+            log_error(
+                event='USERS_DEACTIVATE_FAILED',
+                error_code='USR_DEACTIVATE_001',
+                error_message=str(e),
+                logger_name='apps.accounts',
+                user_count=user_count,
+                performed_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            self.message_user(
+                request,
+                f"Error al desactivar usuarios: {str(e)}",
+                messages.ERROR
+            )
     deactivate_users.short_description = "Desactivar usuarios"
     
     def make_org_admin(self, request, queryset):
-        updated = queryset.update(is_org_admin=True)
-        self.message_user(request, f"Se convirtieron {updated} usuarios en administradores de organización.", messages.SUCCESS)
+        """Convertir usuarios en administradores de organización con logging."""
+        user_count = queryset.count()
+        user_ids = list(queryset.values_list('id', flat=True))
+        user_emails = list(queryset.values_list('email', flat=True))
+        
+        try:
+            updated = queryset.update(is_org_admin=True)
+            
+            # Log INFO porque es un cambio de permisos importante
+            logger.info(
+                f"USERS_MADE_ORG_ADMIN | "
+                f"{updated} usuarios promovidos a admin de org | "
+                f"Usuarios: {', '.join(user_emails[:3])}" + (f" y {len(user_emails)-3} más" if len(user_emails) > 3 else "") + " | "
+                f"Admin: {request.user.email if request.user else 'Sistema'}",
+                extra={
+                    'user_id': request.user.id if request.user else None,
+                    'affected_user_ids': user_ids,
+                    'affected_count': updated
+                }
+            )
+            
+            self.message_user(
+                request, 
+                f"Se convirtieron {updated} usuarios en administradores de organización.",
+                messages.SUCCESS
+            )
+        except Exception as e:
+            log_error(
+                event='USERS_MAKE_ORG_ADMIN_FAILED',
+                error_code='USR_ADMIN_001',
+                error_message=str(e),
+                logger_name='apps.accounts',
+                user_count=user_count,
+                performed_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            self.message_user(
+                request,
+                f"Error al promover usuarios a admin: {str(e)}",
+                messages.ERROR
+            )
     make_org_admin.short_description = "Hacer admin de org"
     
     def remove_org_admin(self, request, queryset):
-        updated = queryset.update(is_org_admin=False)
-        self.message_user(request, f"Se removieron permisos de admin de org a {updated} usuarios.", messages.SUCCESS)
+        """Remover permisos de admin de organización con logging."""
+        user_count = queryset.count()
+        user_ids = list(queryset.values_list('id', flat=True))
+        user_emails = list(queryset.values_list('email', flat=True))
+        
+        try:
+            updated = queryset.update(is_org_admin=False)
+            
+            # Log INFO porque es un cambio de permisos
+            logger.info(
+                f"USERS_REMOVE_ORG_ADMIN | "
+                f"{updated} usuarios removidos de admin de org | "
+                f"Usuarios: {', '.join(user_emails[:3])}" + (f" y {len(user_emails)-3} más" if len(user_emails) > 3 else "") + " | "
+                f"Admin: {request.user.email if request.user else 'Sistema'}",
+                extra={
+                    'user_id': request.user.id if request.user else None,
+                    'affected_user_ids': user_ids,
+                    'affected_count': updated
+                }
+            )
+            
+            self.message_user(
+                request, 
+                f"Se removieron permisos de admin de org a {updated} usuarios.",
+                messages.SUCCESS
+            )
+        except Exception as e:
+            log_error(
+                event='USERS_REMOVE_ORG_ADMIN_FAILED',
+                error_code='USR_ADMIN_002',
+                error_message=str(e),
+                logger_name='apps.accounts',
+                user_count=user_count,
+                performed_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            self.message_user(
+                request,
+                f"Error al remover permisos de admin: {str(e)}",
+                messages.ERROR
+            )
     remove_org_admin.short_description = "Quitar admin de org"
     
     def send_password_reset_email(self, request, queryset):

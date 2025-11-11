@@ -60,10 +60,22 @@ class CustomLoginView(LoginView):
         if user.is_superuser:
             login(self.request, user)
             
+            # Obtener org_id de forma segura
+            org_id = None
+            org_name = "Sin organización"
+            if hasattr(user, 'organization') and user.organization:
+                org_id = user.organization.id
+                org_name = user.organization.name
+            
             # Log de seguridad CRÍTICO para superusuarios (nivel WARNING para alertas)
             logger.warning(
-                f"SUPERUSER LOGIN | Email: {user.email} | IP: {client_ip} | "
-                f"Sesión: {session_duration}"
+                f"SUPERUSER LOGIN | Email: {user.email} | ID: {user.id} | "
+                f"Org: {org_name}" + (f" (ID: {org_id})" if org_id else "") + f" | "
+                f"IP: {client_ip} | Sesion: {session_duration}",
+                extra={
+                    'user_id': user.id,
+                    'organization_id': org_id
+                }
             )
             
             return redirect('/admin/')
@@ -72,7 +84,11 @@ class CustomLoginView(LoginView):
         if getattr(user, 'password_change_required', False):
             login(self.request, user)
             logger.info(
-                f"PASSWORD CHANGE REQUIRED | Email: {user.email} | IP: {client_ip}"
+                f"PASSWORD CHANGE REQUIRED | Email: {user.email} | IP: {client_ip}",
+                extra={
+                    'user_id': user.id,
+                    'organization_id': user.organization_id if user.organization else None
+                }
             )
             return redirect('/accounts/force-password-change/')
         
@@ -80,7 +96,9 @@ class CustomLoginView(LoginView):
             'email': user.email,
             'id': user.pk,
             'role': user.role_display(),
-            'organization': user.get_organization_name()
+            'organization': user.get_organization_name(),
+            'organization_id': user.organization_id if user.organization else None,
+            'organization_active': user.organization.is_active if user.organization else None
         }
         
         # Proceder con el login normal
@@ -89,19 +107,25 @@ class CustomLoginView(LoginView):
         # Guardar timestamp de login en la sesión para calcular duración
         self.request.session['_auth_user_login_time'] = timezone.now().isoformat()
         
-        # Log consolidado de login exitoso (UN SOLO LOG)
-        logger.info(
-            f"LOGIN EXITOSO | Email: {user_info['email']} | ID: {user_info['id']} | "
-            f"Rol: {user_info['role']} | Org: {user_info['organization']} | "
-            f"IP: {client_ip} | Sesión: {session_duration}"
-        )
+        # Log consolidado de login exitoso (UN SOLO LOG) - Incluye estado de org
+        org_status = f"Org: {user_info['organization']}"
+        if user_info['organization_id']:
+            org_status += f" (ID: {user_info['organization_id']}, {'ACTIVA' if user_info['organization_active'] else 'INACTIVA'})"
         
-        # Log adicional SOLO para org_admin (seguridad)
-        if user.is_org_admin and not user.is_superuser:
-            logger.warning(
-                f"ORG_ADMIN LOGIN | Email: {user.email} | "
-                f"Org: {user_info['organization']} | IP: {client_ip}"
-            )
+        # Log según criticidad del rol
+        # - WARNING para org_admin (acceso administrativo)
+        # - INFO para usuarios regulares
+        log_level = logger.warning if user.is_org_admin and not user.is_superuser else logger.info
+        
+        log_level(
+            f"LOGIN EXITOSO | Email: {user_info['email']} | ID: {user_info['id']} | "
+            f"Rol: {user_info['role']} | {org_status} | "
+            f"IP: {client_ip} | Sesion: {session_duration}",
+            extra={
+                'user_id': user_info['id'],
+                'organization_id': user_info['organization_id']
+            }
+        )
         
         return response
     
@@ -112,30 +136,53 @@ class CustomLoginView(LoginView):
         
         # Determinar el motivo EXACTO del error (UN SOLO LOG)
         error_detail = "desconocido"
+        org_info = ""
         try:
             if not username or username == 'N/A':
                 error_detail = "Email vacío"
             else:
-                # Búsqueda case-insensitive
-                user_exists = User.objects.filter(email__iexact=username).exists()
+                # Búsqueda case-insensitive con organización precargada
+                user = User.objects.select_related('organization').filter(email__iexact=username).first()
                 
-                if not user_exists:
+                if not user:
                     error_detail = "Email NO existe"
                 else:
-                    user = User.objects.get(email__iexact=username)
+                    # Construir información de organización
+                    if user.organization:
+                        org_info = f" | Org: {user.organization.name} (ID: {user.organization.id}, {'ACTIVA' if user.organization.is_active else 'INACTIVA'})"
+                    else:
+                        org_info = " | Org: Sin organización"
+                    
+                    # Determinar el motivo específico
                     if not user.is_active:
                         error_detail = "Cuenta INACTIVA"
+                    elif user.organization and not user.organization.is_active and not user.is_superuser:
+                        error_detail = "Organizacion INACTIVA"
                     else:
-                        error_detail = "Contraseña INCORRECTA"
+                        error_detail = "Contrasena INCORRECTA"
             
             # UN SOLO LOG WARNING - Información crítica sin ruido
+            extra_context = {'user_id': None, 'organization_id': None}
+            if user:
+                extra_context['user_id'] = user.id
+                extra_context['organization_id'] = user.organization_id if user.organization else None
+            
             logger.warning(
                 f"LOGIN FALLIDO | Motivo: {error_detail} | "
-                f"Email: {username} | IP: {client_ip}"
+                f"Email: {username}{org_info} | IP: {client_ip}",
+                extra=extra_context
             )
             
         except Exception as e:
-            logger.error(f"ERROR verificando login | Email: {username} | Error: {str(e)}")
+            logger.error(
+                f"ERROR verificando login | Email: {username} | Error: {str(e)} | IP: {client_ip}",
+                extra={
+                    'user_id': None,
+                    'organization_id': None,
+                    'error': str(e)
+                },
+                exc_info=True  # Incluir traceback completo
+            )
         
         return super().form_invalid(form)
     
@@ -164,9 +211,23 @@ class CustomLogoutView(View):
             user_id = request.user.pk
             client_ip = self.get_client_ip(request)
             
-            # UN SOLO LOG - Sin calcular duración de sesión (overhead innecesario)
+            # Informacion de organizacion
+            org_info = ""
+            org_id = None
+            if hasattr(request.user, 'organization') and request.user.organization:
+                org = request.user.organization
+                org_id = org.id
+                org_info = f" | Org: {org.name} (ID: {org.id}, {'ACTIVA' if org.is_active else 'INACTIVA'})"
+            elif hasattr(request.user, 'organization'):
+                org_info = " | Org: Sin organizacion"
+            
+            # Log de logout (nivel INFO - evento normal del sistema)
             logger.info(
-                f"LOGOUT | Email: {email} | ID: {user_id} | IP: {client_ip}"
+                f"LOGOUT | Email: {email} | ID: {user_id}{org_info} | IP: {client_ip}",
+                extra={
+                    'user_id': user_id,
+                    'organization_id': org_id
+                }
             )
         
         # Limpiar flags de sesión específicos antes del logout
@@ -247,7 +308,16 @@ class SecurePasswordResetView(PasswordResetView):
                     f"PASSWORD RESET | Email NO registrado: {email} | IP: {client_ip}"
                 )
         except Exception as e:
-            logger.error(f"ERROR en password reset | Email: {email} | Error: {str(e)}")
+            logger.error(
+                f"ERROR en password reset | Email: {email} | Error: {str(e)} | IP: {client_ip}",
+                extra={
+                    'user_id': None,
+                    'organization_id': None,
+                    'email': email,
+                    'error': str(e)
+                },
+                exc_info=True
+            )
         
         # Guardar en cache por 15 minutos para evitar spam
         cache.set(cache_key, True, timeout=900)
@@ -399,7 +469,13 @@ class ForcePasswordChangeView(View):
                 return redirect('/')
             except Exception as e:
                 logger.error(
-                    f"ERROR PASSWORD CHANGE | Email: {request.user.email} | Error: {str(e)}"
+                    f"ERROR PASSWORD CHANGE | Email: {request.user.email} | Error: {str(e)} | IP: {client_ip}",
+                    extra={
+                        'user_id': request.user.id,
+                        'organization_id': request.user.organization_id if hasattr(request.user, 'organization') and request.user.organization else None,
+                        'error': str(e)
+                    },
+                    exc_info=True
                 )
                 messages.error(request, 'Ocurrió un error al cambiar la contraseña. Por favor inténtalo de nuevo.')
         else:

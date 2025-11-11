@@ -649,12 +649,12 @@ LOGGING = {
         },
     },
     'handlers': {
-        # Handler para desarrollo (consola simple)
+        # Handler para desarrollo (JSON estructurado como producción)
         'console_dev': {
             'level': 'INFO',
             'filters': ['require_debug_true', 'request_id', 'filter_sensitive_data', 'ignore_timezone_warnings', 'ignore_static_files'],
             'class': 'logging.StreamHandler',
-            'formatter': 'simple',
+            'formatter': 'json',  # Cambiado a JSON para desarrollo también
         },
         # Handler para producción (JSON estructurado) - SIN RUIDO
         'console_prod': {
