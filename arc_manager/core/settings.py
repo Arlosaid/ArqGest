@@ -65,6 +65,10 @@ if os.environ.get('RAILWAY_ENVIRONMENT'):
         ALLOWED_HOSTS.append(railway_subdomain)
         ALLOWED_HOSTS.append('*.railway.app')
     
+    # Agregar dominio de healthcheck de Railway
+    if 'healthcheck.railway.app' not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append('healthcheck.railway.app')
+    
     # Agregar dominios personalizados comunes
     custom_domains = [
         'app.arqgest.com',
