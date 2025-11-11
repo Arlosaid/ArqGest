@@ -66,9 +66,17 @@ class FileValidator:
             'PDF,JPG,JPEG,PNG,GIF,DWG,DXF,RVT,SKP,3DS,MAX,ZIP,RAR,7Z,TIFF,DOC,DOCX,XLS,XLSX,PPT,PPTX,TXT,MD'
         ).split(','))
     
-    def validate_file(self, uploaded_file):
+    def validate_file(self, uploaded_file, raise_exception=True):
         """
         Validación completa de archivo
+        
+        Args:
+            uploaded_file: Archivo a validar
+            raise_exception: Si True, lanza ValidationError. Si False, retorna (is_valid, errors)
+        
+        Returns:
+            Si raise_exception=True: True si válido, lanza ValidationError si no
+            Si raise_exception=False: (bool, list) tupla con resultado y lista de errores
         """
         errors = []
         
@@ -101,9 +109,15 @@ class FileValidator:
         errors.extend(content_errors)
         
         if errors:
-            raise ValidationError(errors)
+            if raise_exception:
+                raise ValidationError(errors)
+            else:
+                return (False, errors)
         
-        return True
+        if raise_exception:
+            return True
+        else:
+            return (True, [])
     
     def _validate_filename(self, filename):
         """Validar nombre de archivo"""
@@ -211,7 +225,11 @@ class FileValidator:
         if uploaded_file.size == 0:
             errors.append("Archivo vacío")
         elif uploaded_file.size < 10:
-            errors.append("Archivo sospechosamente pequeño (posiblemente corrupto)")
+            # Solo rechazar archivos extremadamente pequeños en extensiones que deberían ser más grandes
+            extension = self._get_extension(uploaded_file.name)
+            # Archivos que típicamente son más grandes
+            if extension in ['PDF', 'DOC', 'DOCX', 'XLS', 'XLSX', 'PPT', 'PPTX']:
+                errors.append("Archivo sospechosamente pequeño (posiblemente corrupto)")
         
         # Verificar que se pueda leer
         try:
@@ -222,6 +240,14 @@ class FileValidator:
             # Verificar que no sea un archivo de script ejecutable
             if first_bytes.startswith((b'#!/', b'@echo', b'<script')):
                 errors.append("Contenido de script no permitido")
+            
+            # SECURITY: Detectar magic bytes de ejecutables Windows (MZ header)
+            if first_bytes.startswith(b'MZ'):
+                errors.append("Contenido sospechoso: archivo ejecutable detectado")
+            
+            # SECURITY: Detectar magic bytes de ejecutables ELF (Linux)
+            if first_bytes.startswith(b'\x7fELF'):
+                errors.append("Contenido sospechoso: ejecutable Linux detectado")
             
         except Exception as e:
             errors.append(f"Error leyendo contenido del archivo: {e}")

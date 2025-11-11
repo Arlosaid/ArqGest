@@ -61,6 +61,24 @@ from .projects import (
     PhaseTemplateFactory,
 )
 
+from .files import (
+    ProjectFileFactory,
+    PDFFileFactory,
+    ImageFileFactory,
+    JPGFileFactory,
+    PNGFileFactory,
+    WordFileFactory,
+    ExcelFileFactory,
+    DWGFileFactory,
+    RVTFileFactory,
+    ZIPFileFactory,
+    LargeFileFactory,
+    MaliciousFileFactory,
+    PathTraversalFileFactory,
+    ExecutableFileFactory,
+    NoExtensionFileFactory,
+)
+
 __all__ = [
     # Accounts
     'UserFactory',
@@ -98,4 +116,20 @@ __all__ = [
     'HighPriorityTaskFactory',
     'ProjectPaymentFactory',
     'PhaseTemplateFactory',
+    # Files
+    'ProjectFileFactory',
+    'PDFFileFactory',
+    'ImageFileFactory',
+    'JPGFileFactory',
+    'PNGFileFactory',
+    'WordFileFactory',
+    'ExcelFileFactory',
+    'DWGFileFactory',
+    'RVTFileFactory',
+    'ZIPFileFactory',
+    'LargeFileFactory',
+    'MaliciousFileFactory',
+    'PathTraversalFileFactory',
+    'ExecutableFileFactory',
+    'NoExtensionFileFactory',
 ]
