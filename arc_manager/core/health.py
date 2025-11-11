@@ -81,50 +81,126 @@ def health_check(request):
 
 def readiness_check(request):
     """
-    Readiness check más estricto - solo responde OK si todo está listo.
-    Railway puede usar esto para determinar cuándo empezar a enviar tráfico.
+    Readiness check completo - verifica que TODO está listo para recibir tráfico.
+    
+    Este endpoint es usado por Railway para determinar si el deploy fue exitoso.
+    Verifica: DB conectada + migraciones aplicadas + cache disponible.
+    
+    Best practices: Health checks deben ser rápidos (<5s) pero completos.
     """
+    start_time = time.time()
     checks = {}
     ready = True
     
-    # Check DB
+    # Check 1: Database connection (CRÍTICO)
     try:
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
             cursor.fetchone()
-        checks["database"] = "ready"
+        checks["database"] = {"status": "ready", "critical": True}
     except Exception as e:
-        checks["database"] = f"not_ready: {str(e)[:100]}"
+        checks["database"] = {
+            "status": "not_ready",
+            "error": str(e)[:200],
+            "critical": True
+        }
         ready = False
-        logger.error(f"Readiness check - DB not ready: {str(e)}")
+        logger.error(f"Readiness check - DB connection failed: {str(e)}")
     
-    # Check Django está configurado
+    # Check 2: Migraciones aplicadas (CRÍTICO)
     try:
-        checks["settings"] = "ok"
-        checks["debug_mode"] = settings.DEBUG
+        from django.db.migrations.executor import MigrationExecutor
+        executor = MigrationExecutor(connection)
+        plan = executor.migration_plan(executor.loader.graph.leaf_nodes())
+        
+        if plan:
+            # Hay migraciones pendientes
+            pending_migrations = [f"{migration[0]}.{migration[1]}" for migration in plan[:3]]
+            checks["migrations"] = {
+                "status": "pending",
+                "pending_count": len(plan),
+                "sample": pending_migrations,
+                "critical": True
+            }
+            ready = False
+            logger.error(f"Readiness check - {len(plan)} pending migrations: {pending_migrations}")
+        else:
+            checks["migrations"] = {"status": "up_to_date", "critical": True}
     except Exception as e:
-        checks["settings"] = f"error: {str(e)[:100]}"
+        checks["migrations"] = {
+            "status": "check_failed",
+            "error": str(e)[:200],
+            "critical": True
+        }
+        # No fallar por esto - puede ser un problema transitorio
+        logger.warning(f"Readiness check - Migration check failed: {str(e)}")
+    
+    # Check 3: Cache (Redis) disponible (IMPORTANTE pero no crítico)
+    try:
+        cache.set("readiness_check", "ok", 10)
+        cache_result = cache.get("readiness_check")
+        if cache_result == "ok":
+            checks["cache"] = {"status": "ready", "critical": False}
+        else:
+            checks["cache"] = {"status": "degraded", "critical": False}
+            logger.warning("Readiness check - Cache degraded")
+    except Exception as e:
+        checks["cache"] = {
+            "status": "unavailable",
+            "error": str(e)[:100],
+            "critical": False
+        }
+        logger.warning(f"Readiness check - Cache unavailable: {str(e)}")
+        # Cache no es crítico, no afecta readiness
+    
+    # Check 4: Settings y configuración
+    try:
+        checks["application"] = {
+            "status": "ok",
+            "debug_mode": settings.DEBUG,
+            "critical": True
+        }
+    except Exception as e:
+        checks["application"] = {
+            "status": "error",
+            "error": str(e)[:100],
+            "critical": True
+        }
         ready = False
+    
+    # Calcular tiempo total
+    total_time = (time.time() - start_time) * 1000
     
     if ready:
-        logger.debug("✓ Readiness check PASSED - service ready")
+        logger.info(f"✓ Readiness check PASSED ({total_time:.0f}ms) - service ready for traffic")
         return JsonResponse({
             "status": "ready",
-            "checks": checks
+            "checks": checks,
+            "response_time_ms": round(total_time, 2)
         }, status=200)
     else:
-        logger.error("✗ Readiness check FAILED - service not ready")
+        logger.error(f"✗ Readiness check FAILED ({total_time:.0f}ms) - service NOT ready")
         return JsonResponse({
             "status": "not_ready",
-            "checks": checks
+            "checks": checks,
+            "response_time_ms": round(total_time, 2)
         }, status=503)
 
 
 def liveness_check(request):
     """
-    Liveness check simple - solo verifica que la app responde.
+    Liveness check simple - verifica que la aplicación está viva (no colgada).
+    
+    Este endpoint NO verifica dependencias externas (DB, cache, etc).
+    Solo verifica que Django puede procesar requests.
+    
+    Uso: Para detectar si el proceso está colgado y necesita reiniciarse.
+    Si este endpoint no responde, el contenedor debe reiniciarse.
     """
-    return JsonResponse({"status": "alive"}, status=200)
+    return JsonResponse({
+        "status": "alive",
+        "timestamp": time.time()
+    }, status=200)
 
 
 def database_diagnostic(request):

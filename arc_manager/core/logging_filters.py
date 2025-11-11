@@ -233,6 +233,8 @@ class IgnoreStaticFilesFilter(logging.Filter):
         '/sitemap.xml',
         '/__debug__/',  # Django Debug Toolbar
         '/health/',  # Health checks
+        '/health/live/',  # Liveness check
+        '/health/ready/',  # Readiness check
         '/_health',  # Health checks alternativo
     ]
     

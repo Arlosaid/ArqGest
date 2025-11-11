@@ -583,6 +583,9 @@ LOGIN_EXEMPT_URLS = [
     r'^__debug__/.*$',
     r'^plans/cron/renewal-reminders/?$',  # Endpoint para cron externo
     r'^health/?$',  # Health check endpoint
+    r'^health/live/?$',  # Liveness check endpoint
+    r'^health/ready/?$',  # Readiness check endpoint
+    r'^health/db-diagnostic/?$',  # Database diagnostic endpoint
 ]
 
 # Django Debug Toolbar
@@ -925,6 +928,9 @@ SESSION_VALIDATION_EXEMPTS = [
     '/admin/login/',
     '/admin/logout/',
     '/health/',
+    '/health/live/',
+    '/health/ready/',
+    '/health/db-diagnostic/',
     '/static/',
     '/media/',
 ]
