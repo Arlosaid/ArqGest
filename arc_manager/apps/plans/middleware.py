@@ -34,6 +34,7 @@ class SubscriptionAccessMiddleware(MiddlewareMixin):
             '/health/',  # Health check endpoint
             '/health/live/',  # Liveness check endpoint
             '/health/ready/',  # Readiness check endpoint
+            '/health/db-diagnostic/',  # Database diagnostic endpoint
         ]
         
         # Rutas que requieren acceso completo
