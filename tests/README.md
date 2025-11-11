@@ -2,7 +2,7 @@
 
 Suite de tests automatizados robustos para ARC Manager.
 
-**Estado:** ~1120 tests implementados | ~75% cobertura | ~98% passing
+**Estado:** ~1261 tests implementados | ~78% cobertura | ~99% passing
 
 ---
 
@@ -57,9 +57,9 @@ docker-compose exec web pytest --cov=apps --cov-report=html
 ✅ ACCOUNTS  ( 87 tests) - 100% completo
 ✅ ORGS      (~385 tests) -  90% completo  
 ✅ PLANS     (~378 tests) - 100% completo
-✅ PROJECTS  (~270 tests) -  95% completo ← RECIÉN COMPLETADO
-⏳ FILES     (  0 tests) -   0% ← SIGUIENTE (CRÍTICO)
-⏳ USERS     (  0 tests) -   0%
+✅ PROJECTS  (~270 tests) -  95% completo
+✅ FILES     (141 tests) - 100% completo ← RECIÉN COMPLETADO
+⏳ USERS     (  0 tests) -   0% ← SIGUIENTE
 ⏳ MAIN      (  0 tests) -   0%
 ```
 
@@ -84,7 +84,7 @@ tests/
 ├── accounts/                    # ✅ 87 tests
 ├── orgs/                        # ✅ ~385 tests
 ├── plans/                       # ✅ ~378 tests
-├── projects/                    # ✅ ~270 tests (NUEVO)
+├── projects/                    # ✅ ~270 tests
 │   ├── conftest.py
 │   ├── unit/
 │   │   ├── test_project_models.py
@@ -93,7 +93,14 @@ tests/
 │   │   └── test_payment_models.py
 │   └── admin/
 │
-├── files/                       # ⏳ SIGUIENTE
+├── files/                       # ✅ 141 tests (NUEVO)
+│   ├── conftest.py
+│   ├── security/
+│   │   └── test_file_security.py     # 41 tests
+│   └── unit/
+│       ├── test_file_models.py       # 47 tests
+│       ├── test_file_manager.py      # 30 tests
+│       └── test_file_storage.py      # 23 tests
 ├── users/                       # ⏳ Pendiente
 └── main/                        # ⏳ Pendiente
 ```
@@ -102,11 +109,12 @@ tests/
 
 ## 🎯 PRÓXIMO PASO
 
-**Módulo FILES** (CRÍTICO - Seguridad de uploads)
+**Módulo USERS** (Importante - Gestión de usuarios)
 
-Ver instrucciones completas en:
-- [TESTS_MASTER_GUIDE.md](../docs/TESTS_MASTER_GUIDE.md) - Sección FILES
-- [TESTS_NEXT_STEPS.md](../docs/TESTS_NEXT_STEPS.md)
+Prioridad media. Sistema de usuarios, permisos y roles.
+
+Ver instrucciones en documentación:
+- `tests/docs/CONTINUAR_AQUI.md`
 
 ---
 
@@ -182,28 +190,33 @@ docker-compose exec web pytest --cov=apps --cov-report=html
 
 ## 📊 ESTADÍSTICAS
 
-- **Tests Totales:** ~1120
-- **Archivos de Test:** ~40+
-- **Factories:** ~50+
-- **Cobertura:** ~75%
-- **Passing Rate:** ~98%
-- **Bugs Encontrados:** 1 crítico, 8+ potenciales
+- **Tests Totales:** ~1261
+- **Archivos de Test:** ~44+
+- **Factories:** ~55+
+- **Cobertura:** ~78%
+- **Passing Rate:** ~99%
+- **Bugs Encontrados:** 6 críticos (arreglados), 8+ potenciales
 
 ---
 
 ## 🐛 BUGS ENCONTRADOS
 
-### Crítico (Arreglado)
-✅ Superusuarios limitados por límite de organización
+### Críticos (Arreglados) ✅
+1. Superusuarios limitados por límite de organización (Orgs)
+2. Path Traversal en uploads (`../../../etc/passwd`) (Files)
+3. Ejecutables disfrazados como PDFs no detectados (Files)
+4. Cross-organization file uploads sin validación (Files)
+5. Null bytes en filenames no removidos (Files)
+6. Nombres de archivo muy largos sin truncar (Files)
 
-### Potenciales (Documentados)
-- ⚠️ No hay validación start_date < end_date (Project/Phase)
-- ⚠️ Cliente puede ser de diferente organización (Project)
-- ⚠️ Pagos pueden tener monto negativo/cero (ProjectPayment)
-- ⚠️ Pagos pueden tener fechas futuras (ProjectPayment)
-- ⚠️ No hay constraint de unicidad (project, order) en Phase
+### Potenciales (Documentados) ⚠️
+- No hay validación start_date < end_date (Project/Phase)
+- Cliente puede ser de diferente organización (Project)
+- Pagos pueden tener monto negativo/cero (ProjectPayment)
+- Pagos pueden tener fechas futuras (ProjectPayment)
+- No hay constraint de unicidad (project, order) en Phase
 
-Ver más en: `docs/TESTS_IMPLEMENTATION_SUMMARY.md`
+Ver más en: `tests/docs/`
 
 ---
 
@@ -247,5 +260,5 @@ Para preguntas o dudas:
 ---
 
 **Última actualización:** 11 de Noviembre, 2025  
-**Versión:** 1.0  
-**Próximo módulo:** FILES (CRÍTICO)
+**Versión:** 1.1  
+**Próximo módulo:** USERS
