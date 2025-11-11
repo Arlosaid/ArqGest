@@ -34,7 +34,11 @@ def custom_400_view(request, exception=None):
         }, status=400)
     
     # Para requests normales: mensaje amigable y redirigir
-    messages.warning(request, 'La información enviada no es válida. Por favor, verifica e intenta nuevamente.')
+    try:
+        messages.warning(request, 'La información enviada no es válida. Por favor, verifica e intenta nuevamente.')
+    except Exception:
+        # Si el middleware de mensajes no está disponible, simplemente continuar
+        pass
     
     # Intentar redirigir a la página anterior, si no existe ir al dashboard
     referer = request.META.get('HTTP_REFERER')
@@ -56,7 +60,11 @@ def custom_403_view(request, exception=None):
         }, status=403)
     
     # Para requests normales: mensaje amigable
-    messages.error(request, 'No tienes permisos para acceder a esta página. Si crees que esto es un error, contacta con tu administrador.')
+    try:
+        messages.error(request, 'No tienes permisos para acceder a esta página. Si crees que esto es un error, contacta con tu administrador.')
+    except Exception:
+        # Si el middleware de mensajes no está disponible, simplemente continuar
+        pass
     
     # Redirigir a la página anterior o al dashboard
     referer = request.META.get('HTTP_REFERER')
@@ -96,10 +104,14 @@ def custom_500_view(request):
         }, status=500)
     
     # Para requests normales: mensaje amigable y tranquilizador
-    messages.error(
-        request, 
-        'Algo salió mal de nuestro lado. Ya estamos trabajando en solucionarlo. Por favor, intenta nuevamente en unos momentos.'
-    )
+    try:
+        messages.error(
+            request, 
+            'Algo salió mal de nuestro lado. Ya estamos trabajando en solucionarlo. Por favor, intenta nuevamente en unos momentos.'
+        )
+    except Exception:
+        # Si el middleware de mensajes no está disponible, simplemente continuar
+        pass
     
     # Redirigir al dashboard (NO mostrar template 500.html)
     return redirect('dashboard')
