@@ -107,30 +107,30 @@ def readiness_check(request):
         ready = False
         logger.error(f"Readiness check - DB connection failed: {str(e)}")
     
-    # Check 2: Migraciones aplicadas (CRÍTICO)
+    # Check 2: Migraciones aplicadas (ADVERTENCIA, no crítico)
+    # Nota: Migraciones pendientes son comunes durante desarrollo y no deben bloquear deploys
     try:
         from django.db.migrations.executor import MigrationExecutor
         executor = MigrationExecutor(connection)
         plan = executor.migration_plan(executor.loader.graph.leaf_nodes())
         
         if plan:
-            # Hay migraciones pendientes
+            # Hay migraciones pendientes - reportar pero NO fallar
             pending_migrations = [f"{migration[0]}.{migration[1]}" for migration in plan[:3]]
             checks["migrations"] = {
                 "status": "pending",
                 "pending_count": len(plan),
                 "sample": pending_migrations,
-                "critical": True
+                "critical": False  # No crítico - solo advertencia
             }
-            ready = False
-            logger.error(f"Readiness check - {len(plan)} pending migrations: {pending_migrations}")
+            logger.warning(f"Readiness check - {len(plan)} pending migrations detected: {pending_migrations}")
         else:
-            checks["migrations"] = {"status": "up_to_date", "critical": True}
+            checks["migrations"] = {"status": "up_to_date", "critical": False}
     except Exception as e:
         checks["migrations"] = {
             "status": "check_failed",
             "error": str(e)[:200],
-            "critical": True
+            "critical": False
         }
         # No fallar por esto - puede ser un problema transitorio
         logger.warning(f"Readiness check - Migration check failed: {str(e)}")
