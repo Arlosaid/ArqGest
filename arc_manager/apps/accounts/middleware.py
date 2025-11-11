@@ -78,6 +78,7 @@ class PasswordChangeRequiredMiddleware:
             '/admin/',  # Para que los admins puedan cambiar contraseñas desde el panel
             '/static/',
             '/media/',
+            '/health/',  # Health check endpoints
         ]
 
     def __call__(self, request):
