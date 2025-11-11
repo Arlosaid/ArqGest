@@ -2,12 +2,16 @@ from django.http import JsonResponse
 from django.db import connection
 from django.core.cache import cache
 from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.cache import never_cache
 import logging
 import time
 
 logger = logging.getLogger(__name__)
 
 
+@csrf_exempt
+@never_cache
 def health_check(request):
     """
     Health check endpoint para Railway/Docker.
@@ -79,6 +83,8 @@ def health_check(request):
     return JsonResponse(status, status=http_status)
 
 
+@csrf_exempt
+@never_cache
 def readiness_check(request):
     """
     Readiness check completo - verifica que TODO está listo para recibir tráfico.
@@ -88,6 +94,9 @@ def readiness_check(request):
     
     Best practices: Health checks deben ser rápidos (<5s) pero completos.
     """
+    # Logging al inicio para debugging
+    logger.info("Readiness check initiated")
+    
     start_time = time.time()
     checks = {}
     ready = True
@@ -98,6 +107,7 @@ def readiness_check(request):
             cursor.execute("SELECT 1")
             cursor.fetchone()
         checks["database"] = {"status": "ready", "critical": True}
+        logger.info("Readiness check - DB connection OK")
     except Exception as e:
         checks["database"] = {
             "status": "not_ready",
@@ -187,6 +197,8 @@ def readiness_check(request):
         }, status=503)
 
 
+@csrf_exempt
+@never_cache
 def liveness_check(request):
     """
     Liveness check simple - verifica que la aplicación está viva (no colgada).
@@ -203,6 +215,8 @@ def liveness_check(request):
     }, status=200)
 
 
+@csrf_exempt
+@never_cache
 def database_diagnostic(request):
     """
     Endpoint de diagnóstico detallado de la base de datos.
