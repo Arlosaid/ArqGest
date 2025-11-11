@@ -5,6 +5,7 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.contrib import messages
 from .models import ProjectFile
+from core.structured_logging import log_info, log_error
 
 
 class FileSizeFilter(admin.SimpleListFilter):
@@ -163,75 +164,271 @@ class ProjectFileAdmin(admin.ModelAdmin):
         return format_html(''.join(actions))
     get_actions.short_description = 'Acciones'
     
+    def save_model(self, request, obj, form, change):
+        """Hook para guardar el modelo con logging estructurado."""
+        try:
+            if change:
+                # Es una actualización - capturar cambios
+                changes = []
+                
+                tracked_fields = {
+                    'phase': 'Fase',
+                    'file': 'Archivo'
+                }
+                
+                try:
+                    original = ProjectFile.objects.get(pk=obj.pk)
+                    
+                    for field_name, field_label in tracked_fields.items():
+                        old_value = getattr(original, field_name)
+                        new_value = getattr(obj, field_name)
+                        
+                        if old_value != new_value:
+                            # Formatear valores para logging
+                            if field_name == 'phase':
+                                old_val = f"{old_value.name} (Proyecto: {old_value.project.name})" if old_value else 'Sin fase'
+                                new_val = f"{new_value.name} (Proyecto: {new_value.project.name})" if new_value else 'Sin fase'
+                            elif field_name == 'file':
+                                old_val = str(old_value.name) if old_value else 'Sin archivo'
+                                new_val = str(new_value.name) if new_value else 'Sin archivo'
+                            else:
+                                old_val = str(old_value) if old_value else ''
+                                new_val = str(new_value) if new_value else ''
+                            
+                            changes.append({
+                                'field': field_name,
+                                'field_label': field_label,
+                                'old': old_val,
+                                'new': new_val
+                            })
+                except ProjectFile.DoesNotExist:
+                    change = False
+            
+            # Guardar el objeto
+            super().save_model(request, obj, form, change)
+            
+            # Logging estructurado
+            if change and changes:
+                log_info(
+                    event='FILE_UPDATED',
+                    message=f"Archivo '{obj.filename}' actualizado con {len(changes)} cambio(s)",
+                    logger_name='apps.files',
+                    file_id=obj.id,
+                    filename=obj.filename,
+                    file_extension=obj.ext_upper,
+                    file_size_bytes=obj.size_bytes,
+                    phase_id=obj.phase.id if obj.phase else None,
+                    phase_name=obj.phase.name if obj.phase else 'Sin fase',
+                    project_id=obj.phase.project.id if obj.phase and obj.phase.project else None,
+                    project_name=obj.phase.project.name if obj.phase and obj.phase.project else 'Sin proyecto',
+                    changes=changes,
+                    updated_by=request.user.email if request.user else 'Sistema'
+                )
+                
+                # Mensaje para el admin
+                changes_text = ', '.join([f"{c['field_label']}" for c in changes])
+                messages.success(
+                    request,
+                    f"Archivo '{obj.filename}' actualizado exitosamente. Cambios: {changes_text}"
+                )
+            elif not change:
+                # Creación de archivo
+                log_info(
+                    event='FILE_UPLOADED',
+                    message=f"Archivo '{obj.filename}' subido exitosamente",
+                    logger_name='apps.files',
+                    file_id=obj.id,
+                    filename=obj.filename,
+                    file_extension=obj.ext_upper,
+                    file_size_bytes=obj.size_bytes,
+                    phase_id=obj.phase.id if obj.phase else None,
+                    phase_name=obj.phase.name if obj.phase else 'Sin fase',
+                    project_id=obj.phase.project.id if obj.phase and obj.phase.project else None,
+                    project_name=obj.phase.project.name if obj.phase and obj.phase.project else 'Sin proyecto',
+                    uploaded_by=request.user.email if request.user else 'Sistema'
+                )
+        
+        except Exception as e:
+            log_error(
+                event='FILE_SAVE_FAILED',
+                error_code='FILE001',
+                error_message=str(e),
+                logger_name='apps.files',
+                filename=getattr(obj, 'filename', 'Desconocido'),
+                action='create' if not change else 'update',
+                performed_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            messages.error(
+                request,
+                f"Error al {'subir' if not change else 'actualizar'} el archivo: {str(e)}"
+            )
+            
+            raise
+    
     def calculate_storage(self, request, queryset):
-        """Calcular uso de almacenamiento."""
-        total_size = queryset.aggregate(total=Sum('size_bytes'))['total'] or 0
-        total_files = queryset.count()
-        
-        # Estadísticas por organización
-        orgs = {}
-        for file_obj in queryset.select_related('phase__project__organization'):
-            if file_obj.phase and file_obj.phase.project and file_obj.phase.project.organization:
-                org_name = file_obj.phase.project.organization.name
-                if org_name not in orgs:
-                    orgs[org_name] = {'size': 0, 'count': 0}
-                orgs[org_name]['size'] += file_obj.size_bytes or 0
-                orgs[org_name]['count'] += 1
-        
-        message = f"RESUMEN DE ALMACENAMIENTO\n"
-        message += f"Total: {filesizeformat(total_size)} en {total_files} archivos\n\n"
-        
-        if orgs:
-            message += "Por organización:\n"
-            for org_name, data in sorted(orgs.items()):
-                message += f"• {org_name}: {filesizeformat(data['size'])} ({data['count']} archivos)\n"
-        
-        self.message_user(request, message, messages.INFO)
+        """Calcular uso de almacenamiento con manejo de errores."""
+        try:
+            total_size = queryset.aggregate(total=Sum('size_bytes'))['total'] or 0
+            total_files = queryset.count()
+            
+            # Estadísticas por organización
+            orgs = {}
+            for file_obj in queryset.select_related('phase__project__organization'):
+                try:
+                    if file_obj.phase and file_obj.phase.project and file_obj.phase.project.organization:
+                        org_name = file_obj.phase.project.organization.name
+                        if org_name not in orgs:
+                            orgs[org_name] = {'size': 0, 'count': 0}
+                        orgs[org_name]['size'] += file_obj.size_bytes or 0
+                        orgs[org_name]['count'] += 1
+                except Exception as e:
+                    # Log error pero continúa procesando
+                    log_error(
+                        event='STORAGE_CALCULATION_FILE_ERROR',
+                        error_code='FILE_STORAGE_001',
+                        error_message=f"Error procesando archivo {file_obj.id}: {str(e)}",
+                        logger_name='apps.files',
+                        file_id=file_obj.id,
+                        performed_by=request.user.email if request.user else 'Sistema'
+                    )
+            
+            message = f"RESUMEN DE ALMACENAMIENTO\n"
+            message += f"Total: {filesizeformat(total_size)} en {total_files} archivos\n\n"
+            
+            if orgs:
+                message += "Por organización:\n"
+                for org_name, data in sorted(orgs.items()):
+                    message += f"• {org_name}: {filesizeformat(data['size'])} ({data['count']} archivos)\n"
+            
+            # Log de la operación
+            log_info(
+                event='STORAGE_CALCULATED',
+                message=f"Cálculo de almacenamiento completado: {filesizeformat(total_size)} en {total_files} archivos",
+                logger_name='apps.files',
+                total_size_bytes=total_size,
+                total_files=total_files,
+                organizations_count=len(orgs),
+                performed_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            self.message_user(request, message, messages.INFO)
+            
+        except Exception as e:
+            log_error(
+                event='STORAGE_CALCULATION_FAILED',
+                error_code='FILE_STORAGE_002',
+                error_message=str(e),
+                logger_name='apps.files',
+                file_count=queryset.count(),
+                performed_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            self.message_user(
+                request,
+                f"Error al calcular almacenamiento: {str(e)}",
+                messages.ERROR
+            )
     calculate_storage.short_description = "Calcular almacenamiento"
     
     def export_file_list(self, request, queryset):
-        """Exportar lista de archivos seleccionados."""
+        """Exportar lista de archivos seleccionados con manejo de errores."""
         import csv
         from django.http import HttpResponse
         from django.utils import timezone
         
-        # Crear respuesta CSV
-        response = HttpResponse(content_type='text/csv; charset=utf-8')
-        timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
-        response['Content-Disposition'] = f'attachment; filename="archivos_{timestamp}.csv"'
-        
-        # Escribir BOM para UTF-8
-        response.write('\ufeff')
-        
-        writer = csv.writer(response)
-        writer.writerow([
-            'Archivo', 'Extensión', 'Tamaño', 'Organización', 
-            'Proyecto', 'Fase', 'Usuario', 'Fecha Subida'
-        ])
-        
-        for file_obj in queryset.select_related('phase__project__organization', 'uploaded_by'):
-            org = file_obj.phase.project.organization.name if file_obj.phase and file_obj.phase.project and file_obj.phase.project.organization else 'Sin organización'
-            project = file_obj.phase.project.name if file_obj.phase and file_obj.phase.project else 'Sin proyecto'
-            phase = file_obj.phase.name if file_obj.phase else 'Sin fase'
-            user = file_obj.uploaded_by.get_full_name() or file_obj.uploaded_by.email if file_obj.uploaded_by else 'Usuario desconocido'
+        try:
+            # Crear respuesta CSV
+            response = HttpResponse(content_type='text/csv; charset=utf-8')
+            timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+            response['Content-Disposition'] = f'attachment; filename="archivos_{timestamp}.csv"'
             
+            # Escribir BOM para UTF-8
+            response.write('\ufeff')
+            
+            writer = csv.writer(response)
             writer.writerow([
-                file_obj.filename,
-                file_obj.ext_upper,
-                filesizeformat(file_obj.size_bytes or 0),
-                org,
-                project,
-                phase,
-                user,
-                file_obj.uploaded_at.strftime('%d/%m/%Y %H:%M')
+                'Archivo', 'Extensión', 'Tamaño', 'Organización', 
+                'Proyecto', 'Fase', 'Usuario', 'Fecha Subida'
             ])
-        
-        # Mensaje de confirmación
-        count = queryset.count()
-        self.message_user(
-            request, 
-            f"Se exportaron {count} archivo{'s' if count != 1 else ''} exitosamente",
-            messages.SUCCESS
-        )
-        return response
+            
+            exported_count = 0
+            error_count = 0
+            
+            for file_obj in queryset.select_related('phase__project__organization', 'uploaded_by'):
+                try:
+                    org = file_obj.phase.project.organization.name if file_obj.phase and file_obj.phase.project and file_obj.phase.project.organization else 'Sin organización'
+                    project = file_obj.phase.project.name if file_obj.phase and file_obj.phase.project else 'Sin proyecto'
+                    phase = file_obj.phase.name if file_obj.phase else 'Sin fase'
+                    user = file_obj.uploaded_by.get_full_name() or file_obj.uploaded_by.email if file_obj.uploaded_by else 'Usuario desconocido'
+                    
+                    writer.writerow([
+                        file_obj.filename,
+                        file_obj.ext_upper,
+                        filesizeformat(file_obj.size_bytes or 0),
+                        org,
+                        project,
+                        phase,
+                        user,
+                        file_obj.uploaded_at.strftime('%d/%m/%Y %H:%M')
+                    ])
+                    exported_count += 1
+                    
+                except Exception as e:
+                    error_count += 1
+                    # Log error pero continúa exportando
+                    log_error(
+                        event='FILE_EXPORT_ROW_ERROR',
+                        error_code='FILE_EXPORT_001',
+                        error_message=f"Error exportando archivo {file_obj.id}: {str(e)}",
+                        logger_name='apps.files',
+                        file_id=file_obj.id,
+                        filename=getattr(file_obj, 'filename', 'Desconocido'),
+                        performed_by=request.user.email if request.user else 'Sistema'
+                    )
+            
+            # Log de la operación exitosa
+            log_info(
+                event='FILES_EXPORTED',
+                message=f"Exportación CSV completada: {exported_count} archivos exportados",
+                logger_name='apps.files',
+                exported_count=exported_count,
+                error_count=error_count,
+                performed_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            # Mensaje de confirmación
+            if error_count > 0:
+                self.message_user(
+                    request, 
+                    f"Se exportaron {exported_count} archivo(s). {error_count} tuvieron errores y se omitieron.",
+                    messages.WARNING
+                )
+            else:
+                self.message_user(
+                    request, 
+                    f"Se exportaron {exported_count} archivo{'s' if exported_count != 1 else ''} exitosamente",
+                    messages.SUCCESS
+                )
+            
+            return response
+            
+        except Exception as e:
+            log_error(
+                event='FILE_EXPORT_FAILED',
+                error_code='FILE_EXPORT_002',
+                error_message=str(e),
+                logger_name='apps.files',
+                file_count=queryset.count(),
+                performed_by=request.user.email if request.user else 'Sistema'
+            )
+            
+            self.message_user(
+                request,
+                f"Error al exportar archivos: {str(e)}",
+                messages.ERROR
+            )
+            
+            # Retornar None hace que Django maneje el error apropiadamente
+            return None
     export_file_list.short_description = "Exportar lista (.csv)"

@@ -8,6 +8,10 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
 from .models import SystemSettings
+from core.structured_logging import log_info, log_error
+import logging
+
+logger = logging.getLogger('apps.main')
 
 User = get_user_model()
 
@@ -343,65 +347,133 @@ class SystemSettingsAdmin(admin.ModelAdmin):
     
     def save_model(self, request, obj, form, change):
         """
-        Guardar configuración del sistema de forma óptima.
+        Guardar configuración del sistema con logging estructurado.
         
         Estrategia:
         1. Guardar cambios en DB (los signals sincronizan con Planes automáticamente)
         2. Limpiar solo los cachés necesarios basándose en qué cambió
-        3. Mostrar mensaje claro de confirmación
-        
-        No es necesario que los cambios sean instantáneos (caché de 1 hora está bien).
+        3. Logging detallado de cambios críticos
+        4. Mostrar mensaje claro de confirmación
         """
         from django.core.cache import cache
         from django.contrib import messages
-        import logging
         
-        logger = logging.getLogger(__name__)
-        
-        # Detectar qué campos cambiaron para logs
-        changed_fields = []
-        if change and form.changed_data:
-            changed_fields = form.changed_data
-        
-        # Guardar en DB (esto dispara el signal que sincroniza con Planes)
-        super().save_model(request, obj, form, change)
-        
-        # Limpiar caché de SystemSettings para reflejar cambios
-        cache.delete('system_settings')
-        logger.info(f"SystemSettings guardado. Campos modificados: {changed_fields or 'ninguno'}")
-        
-        # Solo limpiar cachés adicionales SI cambiaron campos específicos
-        critical_fields_changed = any(field in changed_fields for field in [
-            'max_users_trial', 'max_users_basic', 
-            'storage_trial_gb', 'storage_basic_gb',
-            'trial_duration_days', 'billing_cycle_days', 'grace_period_days'
-        ])
-        
-        if critical_fields_changed:
-            # Limpiar cachés de planes (signals ya actualizaron los planes)
-            cache.delete('plans_cache')
-            cache.delete('active_plans_cache')
+        try:
+            # Detectar qué campos cambiaron para logs
+            changed_fields = []
+            changes_detail = []
             
-            # Invalidar caché de organizaciones si cambiaron límites de usuarios
-            if any(field in changed_fields for field in ['max_users_trial', 'max_users_basic']):
-                from apps.orgs.models import Organization
-                # Invalidar caché de organizaciones (hacerlo async para no bloquear)
-                for org in Organization.objects.all()[:100]:  # Limitar a las primeras 100
-                    cache.delete(f"org_user_count:{org.id}")
-                    cache.delete(f"org_active_users:{org.id}")
-                    cache.delete(f"org_inactive_users:{org.id}")
-                logger.info("Cachés de organizaciones invalidados")
-        
-        # Mensaje de confirmación detallado
-        if changed_fields:
-            changes_summary = self._format_changes(changed_fields, obj)
-            messages.success(
-                request,
-                f"Configuración guardada correctamente. {changes_summary} "
-                f"Los cambios se reflejarán gradualmente (caché de 1 hora)."
+            if change and form.changed_data:
+                changed_fields = form.changed_data
+                
+                # Capturar valores originales para logging detallado
+                try:
+                    original = SystemSettings.objects.get(pk=obj.pk)
+                    
+                    for field_name in changed_fields:
+                        old_value = getattr(original, field_name)
+                        new_value = getattr(obj, field_name)
+                        
+                        changes_detail.append({
+                            'field': field_name,
+                            'old': str(old_value),
+                            'new': str(new_value)
+                        })
+                except SystemSettings.DoesNotExist:
+                    pass
+            
+            # Guardar en DB (esto dispara el signal que sincroniza con Planes)
+            super().save_model(request, obj, form, change)
+            
+            # Limpiar caché de SystemSettings para reflejar cambios
+            cache.delete('system_settings')
+            
+            # Identificar si son cambios críticos
+            critical_fields_changed = any(field in changed_fields for field in [
+                'max_users_trial', 'max_users_basic', 
+                'storage_trial_gb', 'storage_basic_gb',
+                'trial_duration_days', 'grace_period_days',
+                'maintenance_mode'
+            ])
+            
+            # Logging estructurado basado en criticidad
+            if critical_fields_changed:
+                # Log WARNING para cambios críticos que afectan el sistema
+                logger.warning(
+                    f"SYSTEM_SETTINGS_CRITICAL_CHANGE | "
+                    f"Configuración del sistema actualizada con cambios críticos | "
+                    f"Campos: {', '.join(changed_fields)} | "
+                    f"Admin: {request.user.email if request.user else 'Sistema'}",
+                    extra={
+                        'user_id': request.user.id if request.user else None,
+                        'changed_fields': changed_fields,
+                        'changes_detail': changes_detail,
+                        'is_critical': True
+                    }
+                )
+                
+                # Limpiar cachés de planes (signals ya actualizaron los planes)
+                cache.delete('plans_cache')
+                cache.delete('active_plans_cache')
+                
+                # Invalidar caché de organizaciones si cambiaron límites de usuarios
+                if any(field in changed_fields for field in ['max_users_trial', 'max_users_basic']):
+                    from apps.orgs.models import Organization
+                    # Invalidar caché de organizaciones (hacerlo async para no bloquear)
+                    invalidated_count = 0
+                    for org in Organization.objects.all()[:100]:  # Limitar a las primeras 100
+                        cache.delete(f"org_user_count:{org.id}")
+                        cache.delete(f"org_active_users:{org.id}")
+                        cache.delete(f"org_inactive_users:{org.id}")
+                        invalidated_count += 1
+                    
+                    logger.info(f"Cachés de {invalidated_count} organizaciones invalidados")
+            elif changed_fields:
+                # Log INFO para cambios no críticos
+                log_info(
+                    event='SYSTEM_SETTINGS_UPDATED',
+                    message=f"Configuración del sistema actualizada",
+                    logger_name='apps.main',
+                    changed_fields=changed_fields,
+                    changes_detail=changes_detail,
+                    updated_by=request.user.email if request.user else 'Sistema'
+                )
+            
+            # Mensaje de confirmación detallado
+            if changed_fields:
+                changes_summary = self._format_changes(changed_fields, obj)
+                
+                if critical_fields_changed:
+                    messages.warning(
+                        request,
+                        f"⚠️ Configuración crítica actualizada. {changes_summary} "
+                        f"Los cambios afectarán el comportamiento del sistema (caché de 1 hora)."
+                    )
+                else:
+                    messages.success(
+                        request,
+                        f"Configuración guardada correctamente. {changes_summary} "
+                        f"Los cambios se reflejarán gradualmente (caché de 1 hora)."
+                    )
+            else:
+                messages.success(request, "Configuración guardada sin cambios.")
+                
+        except Exception as e:
+            # Log del error
+            log_error(
+                event='SYSTEM_SETTINGS_SAVE_FAILED',
+                error_code='SYS001',
+                error_message=str(e),
+                logger_name='apps.main',
+                performed_by=request.user.email if request.user else 'Sistema'
             )
-        else:
-            messages.success(request, "Configuración guardada sin cambios.")
+            
+            messages.error(
+                request,
+                f"Error al guardar la configuración del sistema: {str(e)}"
+            )
+            
+            raise
     
     def _format_changes(self, changed_fields, obj):
         """Formatea un resumen legible de los cambios realizados"""
@@ -419,8 +491,3 @@ class SystemSettingsAdmin(admin.ModelAdmin):
             summaries.append(f"Días (Trial:{obj.trial_duration_days}, Gracia:{obj.grace_period_days})")
         
         return "Cambios: " + " | ".join(summaries) if summaries else f"{len(changed_fields)} campo(s) actualizado(s)"
-        self.message_user(
-            request,
-            "Configuración actualizada exitosamente. Los cambios se aplicaron automáticamente.",
-            level='success'
-        )

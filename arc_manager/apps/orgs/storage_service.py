@@ -164,4 +164,9 @@ class StorageService:
         i = int(math.floor(math.log(bytes_size, 1024)))
         p = math.pow(1024, i)
         s = round(bytes_size / p, 2)
+        
+        # Para bytes (i=0), no mostrar decimales
+        if i == 0:
+            return f"{int(s)} {size_names[i]}"
+        
         return f"{s} {size_names[i]}"

@@ -5,17 +5,18 @@ from django.views.generic import ListView, CreateView, UpdateView, DetailView, D
 from django.db.utils import IntegrityError
 from django.db.models import Q
 from django.http import JsonResponse
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from core.mixins import PageSizeMixin
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from .models import Organization, Client
 from .mixins import ClientOwnerMixin
 from .forms import OrganizationForm, ClientForm
+from core.structured_logging import log_error, log_info
 import logging
 import json
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('apps.orgs')
 
 # =============================================================================
 # Vistas de Clientes
@@ -94,10 +95,50 @@ class ClientCreateView(LoginRequiredMixin, CreateView):
         form.instance.organization = self.request.user.organization
         try:
             response = super().form_valid(form)
+            
+            # Log estructurado de creación de cliente
+            log_info(
+                event='CLIENT_CREATED',
+                message=f"Cliente '{self.object.name}' creado exitosamente",
+                logger_name='apps.orgs',
+                client_id=self.object.id,
+                client_name=self.object.name,
+                organization_id=self.object.organization.id if self.object.organization else None,
+                organization_name=self.object.organization.name if self.object.organization else None,
+                email=self.object.email or '',
+                is_active=self.object.is_active,
+                created_by=self.request.user.email
+            )
+            
             messages.success(self.request, "Cliente creado con éxito.")
             return response
-        except IntegrityError:
+            
+        except IntegrityError as e:
+            log_error(
+                event='CLIENT_CREATE_FAILED',
+                error_code='CLI002',
+                error_message='Cliente duplicado - ya existe un cliente con este nombre',
+                logger_name='apps.orgs',
+                client_name=form.cleaned_data.get('name', 'Desconocido'),
+                organization_id=self.request.user.organization.id if self.request.user.organization else None,
+                created_by=self.request.user.email,
+                exception_type=str(type(e).__name__)
+            )
             form.add_error('name', 'Ya existe un cliente con este nombre en tu organización.')
+            return self.form_invalid(form)
+            
+        except Exception as e:
+            log_error(
+                event='CLIENT_CREATE_FAILED',
+                error_code='CLI001',
+                error_message=str(e),
+                logger_name='apps.orgs',
+                client_name=form.cleaned_data.get('name', 'Desconocido'),
+                organization_id=self.request.user.organization.id if self.request.user.organization else None,
+                created_by=self.request.user.email,
+                exception_type=str(type(e).__name__)
+            )
+            messages.error(self.request, "Ha ocurrido un error inesperado al crear el cliente. Por favor, contacta con soporte técnico.")
             return self.form_invalid(form)
 
 class ClientUpdateView(LoginRequiredMixin, ClientOwnerMixin, UpdateView):
@@ -112,14 +153,83 @@ class ClientUpdateView(LoginRequiredMixin, ClientOwnerMixin, UpdateView):
         if hasattr(self.request.user, 'organization'):
             kwargs['organization'] = self.request.user.organization
         return kwargs
-
+    
     def form_valid(self, form):
         try:
+            # Capturar valores originales antes de guardar
+            original_client = Client.objects.get(pk=self.object.pk)
+            changes = []
+            
+            tracked_fields = {
+                'name': 'Nombre',
+                'email': 'Email',
+                'phone_number': 'Teléfono',
+                'is_active': 'Estado activo'
+            }
+            
+            for field_name, field_label in tracked_fields.items():
+                old_value = getattr(original_client, field_name)
+                new_value = form.cleaned_data.get(field_name)
+                
+                if old_value != new_value:
+                    changes.append({
+                        'field': field_name,
+                        'field_label': field_label,
+                        'old': old_value,
+                        'new': new_value
+                    })
+            
             response = super().form_valid(form)
-            messages.success(self.request, "Cliente actualizado con éxito.")
+            
+            # Log solo si hubo cambios
+            if changes:
+                log_info(
+                    event='CLIENT_UPDATED',
+                    message=f"Cliente '{self.object.name}' actualizado con {len(changes)} cambio(s)",
+                    logger_name='apps.orgs',
+                    client_id=self.object.id,
+                    client_name=self.object.name,
+                    organization_id=self.object.organization.id if self.object.organization else None,
+                    organization_name=self.object.organization.name if self.object.organization else None,
+                    changes=changes,
+                    updated_by=self.request.user.email
+                )
+                
+                changes_text = ', '.join([c['field_label'] for c in changes])
+                messages.success(self.request, f"Cliente actualizado con éxito. Cambios: {changes_text}")
+            else:
+                messages.info(self.request, "No se realizaron cambios.")
+            
             return response
-        except IntegrityError:
+            
+        except IntegrityError as e:
+            log_error(
+                event='CLIENT_UPDATE_FAILED',
+                error_code='CLI004',
+                error_message='Cliente duplicado - ya existe un cliente con este nombre',
+                logger_name='apps.orgs',
+                client_id=self.object.id,
+                client_name=form.cleaned_data.get('name', 'Desconocido'),
+                organization_id=self.request.user.organization.id if self.request.user.organization else None,
+                updated_by=self.request.user.email,
+                exception_type=str(type(e).__name__)
+            )
             form.add_error('name', 'Ya existe un cliente con este nombre en tu organización.')
+            return self.form_invalid(form)
+            
+        except Exception as e:
+            log_error(
+                event='CLIENT_UPDATE_FAILED',
+                error_code='CLI003',
+                error_message=str(e),
+                logger_name='apps.orgs',
+                client_id=self.object.id if hasattr(self, 'object') else None,
+                client_name=form.cleaned_data.get('name', 'Desconocido'),
+                organization_id=self.request.user.organization.id if self.request.user.organization else None,
+                updated_by=self.request.user.email,
+                exception_type=str(type(e).__name__)
+            )
+            messages.error(self.request, "Ha ocurrido un error inesperado al actualizar el cliente. Por favor, contacta con soporte técnico.")
             return self.form_invalid(form)
 
 class ClientDeleteView(LoginRequiredMixin, ClientOwnerMixin, DeleteView):
@@ -128,8 +238,45 @@ class ClientDeleteView(LoginRequiredMixin, ClientOwnerMixin, DeleteView):
     success_url = reverse_lazy('orgs:client_list')
 
     def form_valid(self, form):
-        messages.success(self.request, "Cliente eliminado con éxito.")
-        return super().form_valid(form)
+        try:
+            # Capturar información antes de eliminar
+            client_id = self.object.id
+            client_name = self.object.name
+            org_id = self.object.organization.id if self.object.organization else None
+            org_name = self.object.organization.name if self.object.organization else None
+            
+            # Eliminar
+            result = super().form_valid(form)
+            
+            # Log estructurado de eliminación
+            log_info(
+                event='CLIENT_DELETED',
+                message=f"Cliente '{client_name}' eliminado exitosamente",
+                logger_name='apps.orgs',
+                client_id=client_id,
+                client_name=client_name,
+                organization_id=org_id,
+                organization_name=org_name,
+                deleted_by=self.request.user.email
+            )
+            
+            messages.success(self.request, "Cliente eliminado con éxito.")
+            return result
+            
+        except Exception as e:
+            log_error(
+                event='CLIENT_DELETE_FAILED',
+                error_code='CLI005',
+                error_message=str(e),
+                logger_name='apps.orgs',
+                client_id=self.object.id if hasattr(self, 'object') else None,
+                client_name=self.object.name if hasattr(self, 'object') else 'Desconocido',
+                organization_id=self.request.user.organization.id if self.request.user.organization else None,
+                deleted_by=self.request.user.email,
+                exception_type=str(type(e).__name__)
+            )
+            messages.error(self.request, "Ha ocurrido un error al eliminar el cliente. Por favor, contacta con soporte técnico.")
+            return redirect(self.success_url)
 
 
 class ClientToggleStatusView(LoginRequiredMixin, View):
@@ -153,16 +300,25 @@ class ClientToggleStatusView(LoginRequiredMixin, View):
         try:
             data = json.loads(request.body)
             new_status = data.get('is_active', False)
+            old_status = client_to_toggle.is_active
             
             # Cambiar estado
             client_to_toggle.is_active = new_status
             client_to_toggle.save()
             
-            # Log del cambio
+            # Log estructurado del cambio
             action = "activado" if new_status else "desactivado"
-            logger.info(
-                f"Cliente {action}: {client_to_toggle.name} "
-                f"(ID: {client_to_toggle.id}, por {request.user.email})"
+            log_info(
+                event='CLIENT_STATUS_CHANGED',
+                message=f"Cliente '{client_to_toggle.name}' {action}",
+                logger_name='apps.orgs',
+                client_id=client_to_toggle.id,
+                client_name=client_to_toggle.name,
+                organization_id=client_to_toggle.organization.id if client_to_toggle.organization else None,
+                organization_name=client_to_toggle.organization.name if client_to_toggle.organization else None,
+                old_status=old_status,
+                new_status=new_status,
+                changed_by=request.user.email
             )
             
             # Obtener estadísticas actualizadas para clientes
@@ -182,13 +338,33 @@ class ClientToggleStatusView(LoginRequiredMixin, View):
                 }
             })
             
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            log_error(
+                event='CLIENT_STATUS_CHANGE_FAILED',
+                error_code='CLI006',
+                error_message='Datos JSON inválidos',
+                logger_name='apps.orgs',
+                client_id=client_to_toggle.id,
+                client_name=client_to_toggle.name,
+                changed_by=request.user.email,
+                exception_type=str(type(e).__name__)
+            )
             return JsonResponse({
                 'success': False,
                 'error': 'Datos inválidos'
             }, status=400)
+            
         except Exception as e:
-            logger.error(f"Error al cambiar estado de cliente: {str(e)}")
+            log_error(
+                event='CLIENT_STATUS_CHANGE_FAILED',
+                error_code='CLI007',
+                error_message=str(e),
+                logger_name='apps.orgs',
+                client_id=client_to_toggle.id,
+                client_name=client_to_toggle.name,
+                changed_by=request.user.email,
+                exception_type=str(type(e).__name__)
+            )
             return JsonResponse({
                 'success': False,
                 'error': 'Error al cambiar el estado del cliente'

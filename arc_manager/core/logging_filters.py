@@ -14,14 +14,23 @@ _thread_locals = local()
 
 class RequestIdFilter(logging.Filter):
     """
-    Agrega request_id y user_id a todos los logs para trazabilidad
+    Agrega request_id y user_id a todos los logs para trazabilidad.
+    NO sobrescribe valores que ya vienen en extra={} de logger.info/warning/error
     """
     
     def filter(self, record):
-        """Agrega request_id y user_id del thread local al record"""
-        record.request_id = getattr(_thread_locals, 'request_id', None)
-        record.user_id = getattr(_thread_locals, 'user_id', None)
-        record.organization_id = getattr(_thread_locals, 'organization_id', None)
+        """Agrega request_id y user_id del thread local al record SOLO si no existen"""
+        # Request ID: siempre del thread local (consistencia)
+        if not hasattr(record, 'request_id') or record.request_id is None:
+            record.request_id = getattr(_thread_locals, 'request_id', None)
+        
+        # User ID y Org ID: NO sobrescribir si ya vienen en extra={}
+        if not hasattr(record, 'user_id') or record.user_id is None:
+            record.user_id = getattr(_thread_locals, 'user_id', None)
+        
+        if not hasattr(record, 'organization_id') or record.organization_id is None:
+            record.organization_id = getattr(_thread_locals, 'organization_id', None)
+        
         return True
 
 

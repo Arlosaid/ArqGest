@@ -509,28 +509,62 @@
     background: var(--surface) !important;
     border: 2px dashed var(--border);
     border-radius: var(--radius);
-    padding: 2rem;
+    padding: 3rem 2rem;
     text-align: center;
     color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
 }
 
-.dashboard-premium .empty-state-card p {
+.dashboard-premium .empty-state-icon {
+    font-size: 4rem;
+    color: var(--text-muted);
+    opacity: 0.5;
+    margin-bottom: 0.5rem;
+}
+
+.dashboard-premium .empty-state-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+}
+
+.dashboard-premium .empty-state-text {
     margin: 0;
     font-size: 1rem;
+    color: var(--text-secondary);
+    max-width: 400px;
+    line-height: 1.5;
 }
+
+
 
 .dashboard-premium .empty-state-card-small {
     background: var(--bg) !important;
     border: 1px dashed var(--border);
     border-radius: var(--radius);
-    padding: 0.75rem;
+    padding: 1.25rem 0.75rem;
     text-align: center;
     color: var(--text-secondary);
     font-size: 0.875rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dashboard-premium .empty-state-card-small i {
+    font-size: 2rem;
+    color: var(--text-muted);
+    opacity: 0.5;
 }
 
 .dashboard-premium .empty-state-card-small p {
     margin: 0;
+    line-height: 1.4;
 }
 
 /* ===== RESPONSIVE ===== */

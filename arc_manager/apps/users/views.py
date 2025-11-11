@@ -418,11 +418,29 @@ class UserDeleteAjaxView(LoginRequiredMixin, View):
             # Log importante para auditoría
             logger.info(f"Usuario eliminado: {user_to_delete.email} por {request.user.email}")
             
+            # Eliminar usuario
             user_to_delete.delete()
+            
+            # Obtener estadísticas actualizadas
+            org = request.user.organization
+            max_users = org.get_max_users() if org else 0
+            stats = {
+                'total_users': org.get_user_count(),
+                'active_users': org.get_active_user_count(),
+                'inactive_users': org.get_inactive_user_count(),
+                'max_users': max_users,
+            }
+            if stats['total_users'] > 0:
+                stats['percentage_active'] = round(
+                    (stats['active_users'] / stats['total_users']) * 100
+                )
+            else:
+                stats['percentage_active'] = 0
             
             return JsonResponse({
                 'success': True,
-                'message': f'Usuario {full_name} ({username}) eliminado exitosamente.'
+                'message': f'Usuario {full_name} ({username}) eliminado exitosamente.',
+                'stats': stats
             })
             
         except Exception as e:
