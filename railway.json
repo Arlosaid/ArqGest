@@ -8,8 +8,8 @@
     "numReplicas": 1,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3,
-    "healthcheckPath": "/health/",
-    "healthcheckTimeout": 10,
+    "healthcheckPath": "/health/ready/",
+    "healthcheckTimeout": 120,
     "startCommand": "/app/start.sh",
     "resources": {
       "limits": {
