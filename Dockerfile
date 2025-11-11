@@ -100,7 +100,8 @@ diagnose_db() {\n\
 \n\
 # Verificación de DB con diagnóstico detallado\n\
 echo "Checking database connection..."\n\
-max_attempts=15\n\
+echo "Timeout: 3 minutes (45 attempts x 4 seconds)"\n\
+max_attempts=45\n\
 attempt=0\n\
 db_ready=false\n\
 \n\
@@ -108,20 +109,14 @@ while [ $attempt -lt $max_attempts ]; do\n\
   attempt=$((attempt + 1))\n\
   \n\
   if python manage.py check --database default 2>&1 | tee /tmp/db_check.log; then\n\
-    echo "✓ Database ready!"\n\
+    echo "✓ Database ready after $attempt attempts!"\n\
     db_ready=true\n\
     break\n\
   else\n\
     echo "✗ Database check failed (attempt $attempt/$max_attempts)"\n\
     \n\
-    # Mostrar error de Django\n\
-    if [ -f /tmp/db_check.log ]; then\n\
-      echo "Django error:"\n\
-      cat /tmp/db_check.log | head -20\n\
-    fi\n\
-    \n\
-    # Diagnóstico detallado en el primer intento y cada 5 intentos\n\
-    if [ $attempt -eq 1 ] || [ $((attempt % 5)) -eq 0 ]; then\n\
+    # Diagnóstico detallado en el primer intento y cada 10 intentos\n\
+    if [ $attempt -eq 1 ] || [ $((attempt % 10)) -eq 0 ]; then\n\
       diagnose_db\n\
     fi\n\
     \n\
@@ -131,43 +126,40 @@ while [ $attempt -lt $max_attempts ]; do\n\
   fi\n\
 done\n\
 \n\
-# Si DB no está lista, mostrar diagnóstico final y continuar (Railway healthcheck manejará el estado)\n\
+# Si DB no está lista después de 3 minutos, FALLAR COMPLETAMENTE\n\
 if [ "$db_ready" = false ]; then\n\
   echo ""\n\
   echo "===================================="\n\
-  echo "⚠️  DATABASE CONNECTION FAILED"\n\
+  echo "❌ DATABASE CONNECTION FAILED"\n\
   echo "===================================="\n\
   diagnose_db\n\
+  echo "CRITICAL ERROR: Database not available after 3 minutes"\n\
+  echo ""\n\
   echo "POSSIBLE CAUSES:"\n\
-  echo "  1. Database service not started yet (Railway starting order)"\n\
-  echo "  2. Database credentials incorrect (check Railway variables)"\n\
+  echo "  1. Database service not started (check Railway dashboard)"\n\
+  echo "  2. DATABASE_URL incorrect or missing"\n\
   echo "  3. Network issue between services"\n\
-  echo "  4. Database not provisioned in Railway"\n\
+  echo "  4. Database credentials wrong"\n\
   echo ""\n\
-  echo "NEXT STEPS:"\n\
-  echo "  1. Check Railway dashboard for database service status"\n\
-  echo "  2. Verify DATABASE_URL is correctly set"\n\
-  echo "  3. Check database service logs"\n\
-  echo ""\n\
-  echo "Starting app anyway - healthcheck will report unhealthy status"\n\
+  echo "Container will exit now. Railway will retry."\n\
   echo "===================================="\n\
-  echo ""\n\
+  exit 1\n\
 fi\n\
 \n\
-# Migraciones (skip si DB no disponible)\n\
-if [ "$db_ready" = true ]; then\n\
-  echo "Running migrations..."\n\
-  python manage.py migrate --noinput 2>&1 || {\n\
-    echo "⚠️  Migration failed - check logs above"\n\
-  }\n\
-  \n\
-  echo "Collecting static files..."\n\
-  python manage.py collectstatic --noinput --clear 2>&1 || {\n\
-    echo "⚠️  Static collection failed"\n\
-  }\n\
-else\n\
-  echo "⚠️  Skipping migrations - database not available"\n\
+# Migraciones\n\
+echo "Running migrations..."\n\
+if ! python manage.py migrate --noinput 2>&1; then\n\
+  echo "❌ Migration failed - exiting"\n\
+  exit 1\n\
 fi\n\
+echo "✓ Migrations completed successfully"\n\
+\n\
+# Collecting static files (sin --clear para ser más rápido)\n\
+echo "Collecting static files..."\n\
+if ! python manage.py collectstatic --noinput 2>&1; then\n\
+  echo "⚠️  Static collection failed - continuing anyway"\n\
+fi\n\
+echo "✓ Static files collected"\n\
 \n\
 # Calcular workers\n\
 workers=${GUNICORN_WORKERS:-2}\n\
@@ -202,9 +194,12 @@ exec gunicorn --bind 0.0.0.0:${PORT:-8000} \\\n\
 
 EXPOSE ${PORT:-8000}
 
-# Health check simplificado para Railway
-# Railway usa /health/ por defecto
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-8000}/health/ || exit 1
+# Health check para Docker
+# start-period: tiempo de gracia para startup inicial (3 minutos)
+# interval: frecuencia de checks después del start-period
+# timeout: tiempo máximo para que responda el check
+# retries: intentos fallidos antes de marcar como unhealthy
+HEALTHCHECK --interval=30s --timeout=10s --start-period=180s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-8000}/health/ready/ || exit 1
 
 CMD ["/app/start.sh"]
