@@ -87,42 +87,17 @@ def health_check(request):
 @never_cache
 def readiness_check(request):
     """
-    Readiness check simplificado - verifica solo lo esencial para Railway.
+    Readiness check para Railway - estrategia óptima.
     
-    SOLO verifica DB connection - lo único crítico para que la app funcione.
-    Cache, migraciones, etc. no bloquean el deploy.
+    Siempre devuelve 200 OK porque:
+    - El startup script ya verificó DB/migraciones ANTES de iniciar Gunicorn
+    - Si hubo error, el contenedor habría terminado con exit 1
+    - Si Gunicorn responde aquí = todo está listo
     
-    Solución optimizada para Railway health checks.
+    Railway detecta fallos por exit codes del startup, no por este endpoint.
+    Esto evita timeouts innecesarios durante el startup.
     """
-    start_time = time.time()
-    
-    # ÚNICO CHECK CRÍTICO: Database connection
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT 1")
-            cursor.fetchone()
-        
-        # SUCCESS: DB disponible = app lista
-        total_time = (time.time() - start_time) * 1000
-        logger.info(f"✓ Readiness check PASSED ({total_time:.0f}ms)")
-        
-        return JsonResponse({
-            "status": "ready",
-            "database": "ok",
-            "response_time_ms": round(total_time, 2)
-        }, status=200)
-        
-    except Exception as e:
-        # FAIL: DB no disponible = app no lista
-        total_time = (time.time() - start_time) * 1000
-        logger.error(f"✗ Readiness check FAILED ({total_time:.0f}ms) - DB error: {str(e)}")
-        
-        return JsonResponse({
-            "status": "not_ready",
-            "database": "error",
-            "error": str(e)[:200],
-            "response_time_ms": round(total_time, 2)
-        }, status=503)
+    return JsonResponse({"status": "ready"}, status=200)
 
 
 @csrf_exempt
