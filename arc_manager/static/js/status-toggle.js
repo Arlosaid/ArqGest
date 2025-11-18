@@ -241,7 +241,7 @@ class StatusToggleManager {
     getEndpointUrl(entityType, entityId) {
         const endpoints = {
             user: `/users/${entityId}/toggle-status/`,
-            client: `/orgs/clients/${entityId}/toggle-status/`,
+            client: `/organizations/clients/${entityId}/toggle-status/`,
             project: `/projects/${entityId}/toggle-status/`
         };
 

@@ -8,36 +8,41 @@
 
 ## 📝 RESUMEN EJECUTIVO
 
-### 🎯 Estado Actual del Proyecto
-- ✅ **87 tests implementados** en módulo accounts (100% completo)
-- ✅ **~385 tests implementados** en módulo orgs (~90% completo)
-- ✅ **~378 tests implementados** en módulo plans (100% completo)
-- ✅ **~270 tests implementados** en módulo projects (95% completo)
-- ✅ **141 tests implementados** en módulo files (100% completo) ← RECIÉN COMPLETADO
-- ✅ **6 BUGS CRÍTICOS DE SEGURIDAD ENCONTRADOS Y ARREGLADOS** en files
-- 🚀 **2 módulos pendientes** (users, main) - Users es el siguiente
+### 🎯 Estado Actual del Proyecto - 11 Noviembre 2025
 
-### 🎉 COMPLETADO EXITOSAMENTE
-1. ✅ **Módulo ACCOUNTS** - 87 tests, 100% completo
-2. ✅ **Módulo ORGS** - ~385 tests, 90% completo
-3. ✅ **Módulo PLANS** - ~378 tests, 100% completo
-4. ✅ **Módulo PROJECTS** - ~270 tests, 95% completo
-5. ✅ **Módulo FILES** - 141 tests, 100% completo (seguridad crítica)
-6. ✅ **6 BUGS DE SEGURIDAD CRÍTICOS ARREGLADOS** en files (path traversal, executables, cross-org access)
+#### ✅ Módulos Implementados y Funcionando
+- ✅ **152 tests** en módulo **accounts** (100% passing)
+- ✅ **206 tests** en módulo **orgs** (100% passing) ← ARREGLADO HOY
+- ⚠️ **~130 tests** en módulo **plans** (~90% passing, ~5-10 fallando)
+- ⚠️ **~270 tests** en módulo **projects** (~95% passing, ~5 fallando)
+- ✅ **141 tests** en módulo **files** (100% passing)
 
-### 📊 Progreso General
+#### 📊 Resumen Numérico
 ```
-Módulos:     [██████████████] 71% (5/7 módulos completos: accounts, orgs, plans, projects, files)
-Tests:       [██████████████] 95% (~1261/~1320 tests implementados)
-Passing:     [██████████████] ~99% (todos los módulos completados passing)
-Cobertura:   [████████████░░] ~78% (coverage estimada después de files)
+Total tests implementados:  ~900 tests
+Tests passing:              ~686 tests (76%)
+Tests fallando:             ~15 tests (2%)
+Módulos completos:          3/5 (accounts, orgs, files)
+Módulos pendientes:         2 (users, main - no implementados)
 ```
 
-### 🚀 Próximos Pasos
-1. ✅ **FASE 0 COMPLETADA**: Accounts 100% funcional
-2. ✅ **FASE 1 COMPLETADA**: ORGS + PLANS (módulos críticos)
-3. ✅ **FASE 2 COMPLETADA**: PROJECTS + FILES
-4. **FASE 3** (1 semana): USERS + MAIN ⬅️ **SIGUIENTE**
+#### 🐛 Bugs Críticos Encontrados
+1. ✅ **accounts**: Superusuarios limitados por límites de organización (ARREGLADO)
+2. ✅ **orgs**: 6 bugs (admin form, SQL injection test, JSON parsing, redirects) (ARREGLADOS)
+3. ✅ **files**: 6 BUGS CRÍTICOS de seguridad (path traversal, executables, cross-org access) (ARREGLADOS)
+4. ⏸️ **plans**: ~5-10 tests fallando (pendiente arreglar)
+5. ⏸️ **projects**: ~5 tests fallando (lógica de fechas)
+
+#### 📊 Análisis de Calidad Realizado
+- ✅ **982 tests analizados** en detalle
+- ✅ **91% tests útiles** (detectan bugs reales, lógica de negocio, seguridad)
+- ⚠️ **9% tests triviales/redundantes** (identificados, no urgente eliminar)
+- 📄 **Documento completo**: `tests/docs/ANALISIS_CALIDAD_TESTS.md`
+
+### 🚀 Siguiente Paso INMEDIATO
+**🎯 ARREGLAR tests fallidos en PLANS y PROJECTS** para llegar a 100% passing
+
+---
 
 ---
 
@@ -667,51 +672,280 @@ docker-compose exec web pytest tests/orgs/ -v
 
 ---
 
-## 🎯 PRÓXIMA ACCIÓN RECOMENDADA
+## 🎯 PRÓXIMOS PASOS - COMPLETAR TESTS RESTANTES
 
-### ⭐ COMMIT DE CAMBIOS (Ahora)
+### ⚠️ FILOSOFÍA DE TESTING - LEER ANTES DE CONTINUAR
+
+**IMPORTANTE**: Los tests deben ser **ÚTILES**, no solo pasar por pasar. 
+
+#### ✅ Tests que SÍ debes escribir:
+1. **Tests de seguridad** - Detectan vulnerabilidades reales
+2. **Tests de lógica de negocio** - Verifican cálculos, flujos críticos
+3. **Tests de edge cases** - Límites, nulls, errores específicos
+4. **Tests de integraciones** - Verifican que módulos interactúan correctamente
+
+#### ❌ Tests que NO debes escribir:
+1. **Django defaults** - `max_length`, `null`, `blank`, defaults de modelo
+2. **CRUD trivial** - `save()`, `delete()`, `update()` sin lógica custom
+3. **Strings simples** - `__str__()` que solo retorna un campo
+4. **Propiedades triviales** - `@property` sin lógica, solo `return self.field`
+5. **Tests redundantes** - Ya cubiertos por otros tests
+
+#### 📊 Análisis Realizado
+- ✅ **Revisados 982 tests existentes**
+- ✅ **91% son útiles** (detectan bugs reales)
+- ⚠️ **9% son triviales/redundantes** (ver `ANALISIS_CALIDAD_TESTS.md`)
+
+---
+
+### 🚧 PASO 1: Arreglar Tests Fallidos en PLANS (30-60 min)
+
+**Estado actual**: ~115 passing, ~5-15 fallando
+
 ```bash
-# 1. Ver archivos modificados
+# Ver qué tests están fallando
+docker-compose exec -T web bash -c "cd /app && pytest tests/plans/ -x --tb=short 2>&1 | tail -40"
+```
+
+**Problemas comunes a buscar**:
+- ✅ Patch incorrecto de `log_business_event` (ya arreglado en payment_models.py)
+- ⚠️ Falta `MessageMiddleware` en algunos tests
+- ⚠️ Comparación de tuplas vs listas en admin
+- ⚠️ Plan duplicado (usar nombres únicos)
+- ⚠️ Redirects que esperan URLs específicas
+
+**Proceso de arreglo**:
+1. Ejecutar test fallido con `--tb=short` para ver el error
+2. Analizar la causa raíz (no solo hacer pasar el test)
+3. Arreglar el problema de fondo
+4. Verificar que el fix no rompe otros tests
+5. Documentar si encuentras un bug real en el código
+
+**CRITERIO**: Si al arreglar un test descubres que es trivial o redundante, **elimínalo** en lugar de arreglarlo.
+
+---
+
+### 🚧 PASO 2: Arreglar Tests Fallidos en PROJECTS (30-60 min)
+
+**Estado actual**: ~199 passing, ~5 fallando
+
+```bash
+# Ver qué tests están fallando
+docker-compose exec -T web bash -c "cd /app && pytest tests/projects/ -x --tb=short 2>&1 | tail -40"
+```
+
+**Problemas conocidos**:
+- Lógica de fechas en `test_task_models.py`
+- Método `is_due_soon()` con fechas pasadas/futuras
+- Posibles problemas con timezone
+
+**Proceso**:
+1. Revisar la lógica de `is_due_soon()` en el modelo
+2. Verificar que los tests usan `timezone.now()` correctamente
+3. Arreglar la lógica de comparación de fechas
+4. Asegurar que los tests cubren casos reales (no solo edge cases artificiales)
+
+---
+
+### 🚧 PASO 3: Verificar Estado Final (10 min)
+
+```bash
+# Ejecutar TODOS los tests
+docker-compose exec -T web bash -c "cd /app && pytest tests/ -q --tb=no 2>&1 | tail -10"
+
+# Ver resumen detallado por módulo
+docker-compose exec -T web bash -c "cd /app && pytest tests/accounts/ -q --tb=no 2>&1 | tail -2"
+docker-compose exec -T web bash -c "cd /app && pytest tests/orgs/ -q --tb=no 2>&1 | tail -2"
+docker-compose exec -T web bash -c "cd /app && pytest tests/plans/ -q --tb=no 2>&1 | tail -2"
+docker-compose exec -T web bash -c "cd /app && pytest tests/projects/ -q --tb=no 2>&1 | tail -2"
+docker-compose exec -T web bash -c "cd /app && pytest tests/files/ -q --tb=no 2>&1 | tail -2"
+
+# Calcular coverage
+docker-compose exec -T web bash -c "cd /app && pytest tests/ --cov=apps --cov-report=term-missing --cov-report=html -q 2>&1 | grep -A 20 'TOTAL'"
+```
+
+**Objetivo**: 
+- ✅ Todos los módulos implementados deben pasar 100%
+- ✅ Coverage > 75%
+- ✅ No errores ni warnings críticos
+
+---
+
+### 📝 PASO 4: Actualizar Esta Documentación (15 min)
+
+Después de arreglar todos los tests, actualizar este archivo con:
+
+```markdown
+## ✅ ESTADO FINAL - 11 Noviembre 2025
+
+### 🎉 COMPLETADO: Todos los Tests Pasando
+
+**Resumen Ejecutivo**:
+- **Total tests**: XXX tests (100% passing)
+- **Cobertura**: XX%
+- **Tiempo de ejecución**: ~XX minutos
+- **Bugs encontrados**: XX bugs críticos detectados y arreglados
+
+### Estado por Módulo
+
+| Módulo | Tests | Estado | Bugs Encontrados |
+|--------|-------|--------|------------------|
+| **accounts** | 152 | ✅ 100% | 1 bug crítico (superuser limits) |
+| **orgs** | 206 | ✅ 100% | 6 bugs (admin, JSON, redirects) |
+| **plans** | XXX | ✅ 100% | X bugs (describir) |
+| **projects** | XXX | ✅ 100% | X bugs (describir) |
+| **files** | 141 | ✅ 100% | 6 BUGS CRÍTICOS (path traversal, executables) |
+| **users** | 0 | ⏸️ No implementado | N/A |
+| **main** | 0 | ⏸️ No implementado | N/A |
+
+### 🐛 Bugs Críticos Detectados Durante Testing
+
+1. **accounts**: Superusuarios limitados por límites de organización
+2. **orgs**: [Listar bugs encontrados]
+3. **plans**: [Listar bugs encontrados]
+4. **projects**: [Listar bugs encontrados]
+5. **files**: 6 vulnerabilidades de seguridad (path traversal, executables, cross-org)
+
+### 📊 Análisis de Calidad Completado
+
+- ✅ **982 tests analizados**
+- ✅ **91% tests útiles** (detectan bugs reales)
+- ⚠️ **9% tests triviales/redundantes** (identificados en ANALISIS_CALIDAD_TESTS.md)
+- 📄 **Documento**: `tests/docs/ANALISIS_CALIDAD_TESTS.md`
+
+**Recomendación**: Los tests triviales NO deben eliminarse ahora. Se identificaron para referencia futura.
+
+### 📖 Guía de Ejecución
+
+**Ejecutar todos los tests**:
+```bash
+docker-compose exec web pytest tests/ -v
+```
+
+**Por módulo específico**:
+```bash
+docker-compose exec web pytest tests/accounts/ -v
+docker-compose exec web pytest tests/orgs/ -v
+docker-compose exec web pytest tests/plans/ -v
+docker-compose exec web pytest tests/projects/ -v
+docker-compose exec web pytest tests/files/ -v
+```
+
+**Solo tests de seguridad (CRÍTICO antes de deploy)**:
+```bash
+docker-compose exec web pytest tests/ -k "security" -v
+```
+
+**Con coverage report**:
+```bash
+docker-compose exec web pytest tests/ --cov=apps --cov-report=html
+# Ver reporte en: htmlcov/index.html
+```
+
+**Tests paralelos (más rápido)**:
+```bash
+docker-compose exec web pytest tests/ -n 4
+```
+
+### 🎯 Próximos Pasos (OPCIONAL)
+
+#### 1. Módulos Pendientes (Baja Prioridad)
+
+**USERS** (~8 tests básicos):
+- ⚠️ **NO implementar tests triviales de CRUD**
+- ✅ Solo tests de lógica específica del perfil
+- Ejemplo: Validaciones custom, métodos de negocio
+
+**MAIN** (~10 tests básicos):
+- ⚠️ **NO testear views simples sin lógica**
+- ✅ Solo tests de dashboard calculations
+- ✅ Tests de system settings con validaciones
+
+#### 2. Optimización (OPCIONAL - No Urgente)
+
+Ver `tests/docs/ANALISIS_CALIDAD_TESTS.md` para:
+- FASE 1: Eliminar 26 tests más triviales (~1,000 líneas)
+- FASE 2: Combinar 31 tests redundantes (~2,000 líneas)
+
+**Beneficio**: -20% tiempo de ejecución, misma cobertura efectiva
+**Riesgo**: Bajo (bien documentado)
+
+### ⚠️ REGLAS DE ORO PARA NUEVOS TESTS
+
+Antes de escribir un test, pregúntate:
+
+1. **¿Puede detectar un bug real?**
+   - ✅ SÍ: Test de cálculo financiero, validación de límites
+   - ❌ NO: Test que solo verifica `obj.save()` funciona
+
+2. **¿Ya está cubierto por otro test?**
+   - ✅ NO: Test de edge case específico
+   - ❌ SÍ: Otro test ya prueba esta validación
+
+3. **¿Testea Django defaults?**
+   - ❌ SÍ: `max_length`, `null`, `blank`, ORM básico
+   - ✅ NO: Validación custom, lógica de negocio
+
+4. **¿Es mantenible?**
+   - ✅ SÍ: Test claro, con buen nombre, fácil de entender
+   - ❌ NO: Test complejo que nadie entenderá en 6 meses
+
+### 📁 Archivos Modificados en Esta Sesión
+
+**Tests arreglados**:
+- `tests/orgs/admin/test_organization_admin.py` (form validation)
+- `tests/orgs/security/test_org_security.py` (SQL injection)
+- `tests/orgs/unit/test_decorators.py` (JSON parsing, redirects)
+- `tests/plans/admin/test_plan_admin.py` (tuple comparison)
+- `tests/plans/middleware/test_middleware.py` (MessageMiddleware)
+- `tests/plans/unit/test_payment_models.py` (log patch)
+- [Agregar más según arregles]
+
+**Código de producción arreglado**:
+- `arc_manager/apps/accounts/signals.py` (bug de superuser limits)
+- [Agregar si encuentras más bugs]
+
+**Documentación creada**:
+- `tests/docs/ANALISIS_CALIDAD_TESTS.md` (análisis completo)
+
+### 🚀 Comando para Commit Final
+
+```bash
+# Ver cambios
 git status
 
-# 2. Hacer commit de los arreglos
+# Agregar todo
 git add .
-git commit -m "fix: Resolver 5 test failures y bug crítico de superuser limits
 
-- Fix: 3 admin tests (list_filter, search, permissions)
-- Fix: 2 Axes backend errors en forms y force_password tests  
-- Fix: Timing attack test más robusto (50 iter, outliers, 50ms threshold)
-- Fix: BUG PRODUCCIÓN - Superusuarios limitados por org user limits
-- Modificados: 6 archivos (signals.py, conftest.py, 4 test files)
-- Tests: 152/153 passing (99%), cobertura 32%"
+# Commit descriptivo
+git commit -m "test: Completar suite de tests y análisis de calidad
 
-# 3. Push al branch
-git push origin feat-orgs-unitests
+- Fix: Plans module - X tests arreglados (detallar)
+- Fix: Projects module - X tests arreglados (detallar)
+- Fix: X bugs de producción encontrados y arreglados
+- Docs: Análisis completo de calidad (ANALISIS_CALIDAD_TESTS.md)
+- Docs: Guía completa de testing actualizada
+
+Estado: 100% tests passing en módulos implementados
+Coverage: XX%
+Total: XXX tests, XX bugs críticos encontrados"
+
+# Push
+git push origin feature-files-tests
 ```
 
 ---
 
-### 🚀 SIGUIENTE SESIÓN: Módulo ORGS (3-4 semanas)
+**Última actualización**: 11 de Noviembre, 2025  
+**Branch**: feature-files-tests  
+**Estado**: 🚧 En progreso - Arreglando tests de plans y projects
 
-**Comenzar con:**
-1. Analizar archivos del módulo orgs
-2. Verificar y completar factories
-3. Implementar test_models.py (Organization, Client)
-4. Seguir con storage_service, cache_utils, decorators
-5. Integration tests → Security tests → Admin tests
+### 💡 RECUERDA
 
-**Comando para empezar:**
-```powershell
-# Analizar estructura
-docker-compose exec web bash -c "cd /app && ls -la arc_manager/apps/orgs/"
-```
+> "Un test que no puede detectar un bug real es solo ruido que hace más lento el CI/CD"
 
----
+> "Mejor 100 tests útiles que 1000 tests triviales"
 
-**Última actualización**: 10 de Noviembre, 2025  
-**Branch**: feat-orgs-unitests  
-**Estado**: ✅ Módulo ACCOUNTS 100% completo - Listo para ORGS
+> "Los tests de seguridad son sagrados - nunca los elimines ni simplifiques"
 
-**🎉 ¡Excelente progreso! Base sólida establecida para continuar con confianza.**
-
-**¡Buena suerte! 🚀**
+**🎯 Meta**: Tests que encuentren bugs, no tests que solo pasen.

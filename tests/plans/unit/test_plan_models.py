@@ -161,13 +161,21 @@ class TestPlanValidation:
             )
     
     def test_trial_days_defaults_to_zero(self):
-        """trial_days debe defaultear a 0"""
-        plan = PlanFactory(trial_days=None)
-        plan.save()
-        plan.refresh_from_db()
+        """trial_days debe defaultear a 0 cuando no se especifica"""
+        # No pasar trial_days para usar el default del modelo
+        plan = Plan.objects.create(
+            name='test_plan',
+            display_name='Test Plan',
+            description='Test',
+            price=Decimal('299.00'),
+            max_users=3,
+            max_storage_gb=25,
+            billing_cycle_days=30
+            # trial_days no especificado, debe usar default=0
+        )
         
         # El default debe ser 0
-        assert plan.trial_days is not None
+        assert plan.trial_days == 0
 
 
 # ============================================================================
@@ -383,7 +391,7 @@ class TestPlanQuerysets:
 class TestPlanSaveMethod:
     """Tests del método save - CRÍTICO para logging"""
     
-    @patch('apps.plans.models.log_business_event')
+    @patch('core.structured_logging.log_business_event')
     def test_save_creates_log_for_new_plan(self, mock_log):
         """Crear nuevo plan debe generar log"""
         plan = Plan(
@@ -402,7 +410,7 @@ class TestPlanSaveMethod:
         assert call_kwargs['event'] == 'plan_created'
         assert call_kwargs['plan_name'] == 'Trial'
     
-    @patch('apps.plans.models.log_business_event')
+    @patch('core.structured_logging.log_business_event')
     def test_save_logs_price_change(self, mock_log):
         """Cambiar precio debe generar log con el cambio"""
         plan = PlanFactory(price=Decimal('299.00'))
@@ -419,7 +427,7 @@ class TestPlanSaveMethod:
         changes = call_kwargs['changes']
         assert any(c['field'] == 'price' for c in changes)
     
-    @patch('apps.plans.models.log_business_event')
+    @patch('core.structured_logging.log_business_event')
     def test_save_logs_limits_change(self, mock_log):
         """Cambiar límites debe generar log"""
         plan = PlanFactory(max_users=3, max_storage_gb=25)
@@ -437,7 +445,7 @@ class TestPlanSaveMethod:
         assert any(c['field'] == 'max_users' for c in changes)
         assert any(c['field'] == 'max_storage_gb' for c in changes)
     
-    @patch('apps.plans.models.log_business_event')
+    @patch('core.structured_logging.log_business_event')
     def test_save_logs_activation_deactivation(self, mock_log):
         """
         CRÍTICO: Cambiar is_active debe generar log WARNING
@@ -551,5 +559,6 @@ class TestPlanTimestamps:
         plan.save()
         
         assert plan.updated_at > original_updated_at
+
 
 

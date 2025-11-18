@@ -112,7 +112,7 @@ class TestPlanAdminListDisplay:
             'trial_days', 'billing_cycle_days', 'grace_period_days', 'is_active'
         ]
         
-        assert plan_admin_instance.list_display == expected_fields
+        assert list(plan_admin_instance.list_display) == expected_fields
     
     def test_list_filter_configured(self, plan_admin_instance):
         """Verificar que list_filter está configurado"""
@@ -206,7 +206,7 @@ class TestSubscriptionAdminListDisplay:
             'end_date_formatted', 'days_remaining_display', 'is_active'
         ]
         
-        assert subscription_admin_instance.list_display == expected_fields
+        assert list(subscription_admin_instance.list_display) == expected_fields
     
     def test_list_filter_configured(self, subscription_admin_instance):
         """Verificar que list_filter está configurado"""
@@ -332,7 +332,7 @@ class TestSubscriptionAdminSaveModel:
     def test_save_model_calls_switch_plan_on_plan_change(self, mock_switch_plan, subscription_admin_instance, admin_request):
         """Cambiar plan debe llamar a switch_plan"""
         subscription = SubscriptionFactory()
-        new_plan = BasicPlanFactory()
+        new_plan = PlanFactory(name='new-unique-plan')  # Nombre único para evitar duplicados
         
         subscription.plan = new_plan
         subscription_admin_instance.save_model(admin_request, subscription, None, change=True)

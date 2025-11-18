@@ -351,3 +351,4 @@ docker-compose logs -f web | grep FILE
 **Autor:** AI Assistant  
 **Versión:** 1.0
 
+

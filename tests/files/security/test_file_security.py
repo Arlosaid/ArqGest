@@ -668,3 +668,4 @@ class TestContentValidation:
         assert not is_valid
         assert any("script" in e.lower() for e in errors)
 
+

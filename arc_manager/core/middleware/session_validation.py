@@ -61,12 +61,12 @@ class SessionValidationMiddleware:
             if stored_user_agent is None:
                 # Primera vez, guardar User-Agent
                 request.session['_session_user_agent'] = current_user_agent
-            elif stored_user_agent != current_user_agent:
-                # User-Agent cambió - posible session hijacking
+            elif not self._user_agents_match(stored_user_agent, current_user_agent):
+                # User-Agent cambió significativamente - posible session hijacking
                 logger.warning(
                     f"SESSION HIJACKING DETECTED | User: {request.user.username} | "
-                    f"Original UA: {stored_user_agent[:50]}... | "
-                    f"Current UA: {current_user_agent[:50]}..."
+                    f"Original UA: {stored_user_agent[:80]}... | "
+                    f"Current UA: {current_user_agent[:80]}..."
                 )
                 return self._invalidate_session(request, "User-Agent cambió")
         
@@ -76,6 +76,61 @@ class SessionValidationMiddleware:
     def _is_exempt(self, path):
         """Verifica si la ruta está exenta de validación."""
         return any(path.startswith(exempt) for exempt in self.exempt_urls)
+    
+    def _user_agents_match(self, stored_ua, current_ua):
+        """
+        Compara User-Agents de forma robusta, tolerando variaciones menores.
+        
+        Esto previene falsos positivos con navegadores móviles (especialmente iOS)
+        que pueden variar ligeramente el User-Agent entre requests.
+        
+        Estrategia:
+        1. Si son exactamente iguales, OK
+        2. Normalizar espacios y comparar
+        3. Extraer componentes principales (navegador, OS) y comparar
+        """
+        # Comparación exacta
+        if stored_ua == current_ua:
+            return True
+        
+        # Normalizar espacios en blanco
+        stored_normalized = ' '.join(stored_ua.split())
+        current_normalized = ' '.join(current_ua.split())
+        
+        if stored_normalized == current_normalized:
+            return True
+        
+        # Extraer componentes principales para comparación tolerante
+        def extract_signature(ua):
+            """
+            Extrae la firma principal del User-Agent ignorando versiones menores.
+            Ejemplo: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X)"
+            """
+            import re
+            
+            # Extraer plataforma principal (iPhone, Windows, Mac, etc.)
+            platform_match = re.search(r'\((.*?)\)', ua)
+            platform = platform_match.group(1) if platform_match else ''
+            
+            # Simplificar plataforma eliminando versiones específicas
+            # "iPhone; CPU iPhone OS 18_7" -> "iPhone; CPU iPhone OS"
+            platform = re.sub(r'\d+[_\.]\d+', '', platform)
+            
+            # Extraer nombre del navegador (Safari, Chrome, Firefox, etc.)
+            browser_match = re.search(r'(Chrome|Safari|Firefox|Edge|Opera)[\/\s]', ua)
+            browser = browser_match.group(1) if browser_match else ''
+            
+            return f"{platform}|{browser}".lower()
+        
+        stored_signature = extract_signature(stored_ua)
+        current_signature = extract_signature(current_ua)
+        
+        # Si las firmas principales coinciden, considerar como match
+        if stored_signature == current_signature:
+            return True
+        
+        # Si llegamos aquí, los User-Agents son significativamente diferentes
+        return False
     
     def _invalidate_session(self, request, reason):
         """Invalida la sesión y redirige al login."""

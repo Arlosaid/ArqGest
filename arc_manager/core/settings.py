@@ -915,6 +915,8 @@ SESSION_VALIDATE_USER_AGENT = os.environ.get('SESSION_VALIDATE_USER_AGENT', 'Tru
 SESSION_VALIDATION_EXEMPTS = [
     '/login/',
     '/logout/',
+    '/accounts/login/',
+    '/accounts/logout/',
     '/password_reset/',
     '/password_reset/done/',
     '/reset/',
