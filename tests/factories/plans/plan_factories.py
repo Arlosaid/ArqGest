@@ -13,7 +13,7 @@ class PlanFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Plan
     
-    name = 'basic'
+    name = factory.Sequence(lambda n: f'plan_{n}')
     display_name = factory.Sequence(lambda n: f'Plan {n}')
     description = factory.Faker('text', max_nb_chars=200)
     price = Decimal('299.00')
@@ -28,7 +28,7 @@ class PlanFactory(factory.django.DjangoModelFactory):
 class TrialPlanFactory(PlanFactory):
     """Factory para crear planes trial"""
     
-    name = 'trial'
+    name = factory.Sequence(lambda n: f'trial_{n}')
     display_name = 'Plan de Prueba'
     price = Decimal('0.00')
     max_users = 1
@@ -40,7 +40,7 @@ class TrialPlanFactory(PlanFactory):
 class BasicPlanFactory(PlanFactory):
     """Factory para crear planes básicos"""
     
-    name = 'basic'
+    name = factory.Sequence(lambda n: f'basic_{n}')
     display_name = 'Plan Básico'
     price = Decimal('299.00')
     max_users = 3
@@ -67,7 +67,7 @@ class SubscriptionFactory(factory.django.DjangoModelFactory):
 class TrialSubscriptionFactory(SubscriptionFactory):
     """Factory para crear suscripciones trial"""
     
-    plan = factory.SubFactory(TrialPlanFactory)
+    plan = factory.SubFactory(TrialPlanFactory, name='trial')
     subscription_status = 'trial_active'
 
 

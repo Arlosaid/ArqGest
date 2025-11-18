@@ -543,3 +543,4 @@ class TestProjectFileEdgeCases:
         
         assert file_obj.size_bytes == 0
 
+

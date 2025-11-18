@@ -20,7 +20,7 @@ from tests.factories import (
     SuperUserFactory,
     InactiveOrganizationFactory
 )
-from apps.orgs.models import Client as ClientModel
+from apps.orgs.models import Organization, Client as ClientModel
 
 
 # ============================================================================
@@ -365,7 +365,7 @@ class TestMaliciousInput:
         assert org.pk is not None
         
         # La tabla debe seguir existiendo
-        assert OrganizationFactory.objects.filter(id=org.id).exists()
+        assert Organization.objects.filter(id=org.id).exists()
     
     def test_organization_name_xss_prevention(self):
         """
@@ -513,5 +513,6 @@ class TestRateLimitingAndDOS:
             org.get_total_storage_limit_gb()
         
         # Debe completarse sin timeout (gracias a cache)
+
 
 

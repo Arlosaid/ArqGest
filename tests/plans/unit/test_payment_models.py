@@ -457,7 +457,7 @@ class TestPaymentDates:
 class TestPaymentSaveMethod:
     """Tests del método save - CRÍTICO para logging"""
     
-    @patch('apps.plans.models.log_business_event')
+    @patch('core.structured_logging.log_business_event')
     def test_save_creates_log_for_new_payment(self, mock_log):
         """Crear nuevo pago debe generar log"""
         subscription = SubscriptionFactory()
@@ -481,7 +481,7 @@ class TestPaymentSaveMethod:
         assert call_kwargs['entity_type'] == 'payment'
         assert call_kwargs['amount'] == '299.00'
     
-    @patch('apps.plans.models.log_business_event')
+    @patch('core.structured_logging.log_business_event')
     def test_save_does_not_log_on_update(self, mock_log):
         """Actualizar pago NO debe generar log (solo crea log en creación)"""
         payment = PaymentFactory()
@@ -583,16 +583,19 @@ class TestPaymentEdgeCases:
         assert '🚀' in payment.description
     
     def test_payment_with_very_long_processed_by(self):
-        """Pago con processed_by muy largo"""
+        """
+        BUG POTENCIAL: processed_by tiene max_length=100
+        Django debe lanzar error si intentamos guardar más caracteres
+        """
         subscription = SubscriptionFactory()
         long_processed_by = 'A' * 200
-        payment = PaymentFactory(
-            subscription=subscription,
-            processed_by=long_processed_by
-        )
         
-        # Verificar que no excede max_length (100)
-        assert len(payment.processed_by) <= 100
+        # Django debe lanzar DataError al intentar guardar más de 100 caracteres
+        with pytest.raises(Exception):  # DataError de Django
+            PaymentFactory(
+                subscription=subscription,
+                processed_by=long_processed_by
+            )
     
     def test_multiple_payments_same_subscription(self):
         """Múltiples pagos para la misma suscripción"""

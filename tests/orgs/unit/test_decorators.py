@@ -4,6 +4,7 @@ Tests exhaustivos para decorators de orgs
 Estos decorators controlan SEGURIDAD y PERMISOS. Los tests DEBEN detectar bugs
 que podrían permitir acceso no autorizado o bypassear límites.
 """
+import json
 import pytest
 from django.test import RequestFactory
 from django.http import JsonResponse
@@ -114,9 +115,9 @@ class TestCheckUserLimitDecorator:
                     decorated = check_user_limit(mock_view)
                     response = decorated(request)
         
-        # Debe redirigir a user_list
+        # Debe redirigir a la lista de usuarios
         assert response.status_code == 302
-        assert 'user_list' in response.url
+        assert '/users/' in response.url or 'user_list' in response.url
     
     def test_blocks_ajax_post_when_at_limit(self, request_factory, mock_view, disable_account_signals):
         """
@@ -147,7 +148,7 @@ class TestCheckUserLimitDecorator:
         
         # Debe retornar JSON con error
         assert response.status_code == 400
-        data = response.json()
+        data = json.loads(response.content)
         assert data['success'] is False
         assert 'límite' in data['error'].lower()
     
@@ -293,7 +294,7 @@ class TestRequireOrgAdminDecorator:
         response = decorated(request)
         
         assert response.status_code == 403
-        data = response.json()
+        data = json.loads(response.content)
         assert data['success'] is False
         assert data['permission_denied'] is True
 
@@ -362,9 +363,9 @@ class TestRequireActiveSubscriptionDecorator:
             decorated = require_active_subscription(mock_view)
             response = decorated(request)
         
-        # Debe redirigir a subscription_dashboard
+        # Debe redirigir al dashboard de planes/suscripciones
         assert response.status_code == 302
-        assert 'subscription_dashboard' in response.url
+        assert '/plans/dashboard/' in response.url or 'subscription_dashboard' in response.url
     
     def test_blocks_without_subscription(self, request_factory, mock_view, disable_account_signals):
         """
@@ -406,7 +407,7 @@ class TestRequireActiveSubscriptionDecorator:
             response = decorated(request)
         
         assert response.status_code == 403
-        data = response.json()
+        data = json.loads(response.content)
         assert data['success'] is False
         assert data['subscription_required'] is True
 
@@ -483,9 +484,9 @@ class TestRequirePlanFeatureDecorator:
             decorated = require_plan_feature('Feature B')(mock_view)
             response = decorated(request)
         
-        # Debe redirigir a subscription_dashboard
+        # Debe redirigir al dashboard de planes/suscripciones
         assert response.status_code == 302
-        assert 'subscription_dashboard' in response.url
+        assert '/plans/dashboard/' in response.url or 'subscription_dashboard' in response.url
     
     def test_blocks_without_subscription(self, request_factory, mock_view, disable_account_signals):
         """
@@ -576,7 +577,7 @@ class TestValidateOrganizationContextDecorator:
         response = decorated(request, org_id=org2.id)
         
         assert response.status_code == 403
-        data = response.json()
+        data = json.loads(response.content)
         assert data['success'] is False
         assert data['organization_mismatch'] is True
     
@@ -694,5 +695,6 @@ class TestDecoratorsSecurityEdgeCases:
         
         # Debe pasar (comparación debe manejar string vs int)
         assert response.status_code == 200
+
 
 

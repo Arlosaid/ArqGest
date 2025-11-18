@@ -607,12 +607,18 @@ class TestOrganizationAdminFormValidation:
     def test_form_validation_for_new_organization(self):
         """Nueva organización no tiene restricciones de storage"""
         form = OrganizationAdminForm(
-            data={'name': 'New Org', 'extra_storage_gb': -100, 'is_active': True}
+            data={
+                'name': 'New Org',
+                'extra_storage_gb': -100,
+                'is_active': True,
+                'is_founder_member': False,
+                'founder_discount_percentage': 0
+            }
         )
         
         # Para nuevas organizaciones, cualquier valor debe ser válido
         # (se validará después de asignar el plan)
-        assert form.is_valid()
+        assert form.is_valid(), f"Form should be valid for new org, got errors: {form.errors}"
 
 
 # ============================================================================
