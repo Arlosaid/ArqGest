@@ -553,13 +553,14 @@ class OrganizationAdmin(ImportExportModelAdmin):
                 subscription = getattr(obj, 'subscription', None)
                 if subscription and hasattr(subscription, 'pk'):
                     subscription_url = reverse('admin:plans_subscription_change', args=[subscription.pk])
-                    return format_html('<a href="{}" class="button">Gestionar suscripción</a>', subscription_url)
+                    return format_html('<a href="{}" class="button" style="color: white;">Gestionar suscripción</a>', subscription_url)
         except Exception as e:
             logger.debug(f"Error en get_subscription_link para org {obj.id}: {e}")
             pass
         
-        # Sin suscripción, retornar '-' para consistencia con otros campos del admin
-        return '-'
+        # Sin suscripción, mostrar botón para crear una
+        create_subscription_url = reverse('admin:plans_subscription_add') + f'?organization={obj.id}'
+        return format_html('<a href="{}" class="button" style="color: white; background-color: #417690;">Gestionar suscripción</a>', create_subscription_url)
     get_subscription_link.short_description = 'Gestión'
     
     def get_storage_info(self, obj):
