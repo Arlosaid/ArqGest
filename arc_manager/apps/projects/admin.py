@@ -151,6 +151,7 @@ class ProjectAdmin(ImportExportModelAdmin):
     search_fields = ('name', 'client__name', 'owner__email', 'organization__name')
     ordering = ('-created_at',)
     readonly_fields = ('created_at', 'get_phase_progress', 'get_task_summary', 'get_recent_activity')
+    autocomplete_fields = ['organization', 'client', 'owner']
     inlines = [PhaseInline]
     actions = ['duplicate_projects', 'generate_project_report']
     

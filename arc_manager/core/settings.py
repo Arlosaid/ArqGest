@@ -409,10 +409,13 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = _upload_config['memory_size']
 DATA_UPLOAD_MAX_NUMBER_SIZE = _upload_config['max_size']
 
 # Directorio temporal para archivos grandes durante upload
-FILE_UPLOAD_TEMP_DIR = os.environ.get('FILE_UPLOAD_TEMP_DIR', os.path.join(BASE_DIR, 'temp_uploads'))
+# IMPORTANTE: Validar que no sea una cadena vacía para evitar crear directorios con nombres inválidos
+FILE_UPLOAD_TEMP_DIR = os.environ.get('FILE_UPLOAD_TEMP_DIR', '').strip()
+if not FILE_UPLOAD_TEMP_DIR:  # Si está vacío o no definido, usar default
+    FILE_UPLOAD_TEMP_DIR = os.path.join(BASE_DIR, 'temp_uploads')
 
 # Crear el directorio temporal si no existe
-if not os.path.exists(FILE_UPLOAD_TEMP_DIR):
+if FILE_UPLOAD_TEMP_DIR and not os.path.exists(FILE_UPLOAD_TEMP_DIR):
     try:
         os.makedirs(FILE_UPLOAD_TEMP_DIR, exist_ok=True)
     except OSError as e:

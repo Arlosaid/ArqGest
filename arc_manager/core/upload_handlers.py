@@ -31,12 +31,16 @@ class OptimizedTemporaryFileUploadHandler(TemporaryFileUploadHandler):
         if content_length and content_length > settings.DATA_UPLOAD_MAX_MEMORY_SIZE:
             # Crear directorio temporal si no existe
             temp_dir = getattr(settings, 'FILE_UPLOAD_TEMP_DIR', None)
-            if temp_dir and not os.path.exists(temp_dir):
-                try:
-                    os.makedirs(temp_dir, mode=0o755, exist_ok=True)
-                except OSError as e:
-                    logger.warning(f"No se pudo crear directorio temporal {temp_dir}: {e}")
-                    temp_dir = None
+            # Validar que temp_dir no sea None, vacío o solo espacios
+            if temp_dir and isinstance(temp_dir, str) and temp_dir.strip():
+                if not os.path.exists(temp_dir):
+                    try:
+                        os.makedirs(temp_dir, mode=0o755, exist_ok=True)
+                    except OSError as e:
+                        logger.warning(f"No se pudo crear directorio temporal {temp_dir}: {e}")
+                        temp_dir = None
+            else:
+                temp_dir = None
             
             # Crear archivo temporal con directorio específico si está disponible
             if temp_dir:

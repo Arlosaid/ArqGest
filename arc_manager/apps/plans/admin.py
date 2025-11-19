@@ -177,6 +177,7 @@ class SubscriptionAdmin(ImportExportModelAdmin):
     list_filter = ('subscription_status', 'plan__name', 'organization__is_founder_member')
     search_fields = ('organization__name', 'plan__display_name')
     list_select_related = ('organization', 'plan')
+    autocomplete_fields = ['organization']
     
     readonly_fields = ('start_date', 'grace_end_date', 'created_at', 'updated_at', 'days_remaining_display')
     
@@ -481,6 +482,7 @@ class UpgradeRequestAdmin(admin.ModelAdmin):
     ]
     list_filter = ['status', 'created_at']
     search_fields = ['organization__name']
+    autocomplete_fields = ['organization']
     readonly_fields = [
         'organization', 'current_plan', 'requested_plan', 'amount', 'status',
         'created_at', 'updated_at', 'approved_by'
@@ -643,6 +645,7 @@ class RenewalRequestAdmin(ImportExportModelAdmin):
     ]
     list_filter = ['status', 'created_at', 'processed_at']
     search_fields = ['organization__name', 'subscription__plan__display_name', 'reason']
+    autocomplete_fields = ['organization', 'subscription']
     readonly_fields = [
         'organization', 'subscription', 'renewal_amount', 'renewal_days', 
         'created_at', 'updated_at', 'processed_at', 'approved_by'
