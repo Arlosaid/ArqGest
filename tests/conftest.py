@@ -198,11 +198,14 @@ def disable_subscription_middleware(settings):
     # Guardar middlewares originales
     original_middleware = settings.MIDDLEWARE.copy()
     
-    # Remover middlewares de subscription y organización
+    # Remover middlewares que pueden causar redirects en tests
     middlewares_to_remove = [
         'apps.plans.middleware.SubscriptionAccessMiddleware',
         'apps.plans.middleware.SubscriptionInfoMiddleware',
         'apps.orgs.middleware.OrganizationContextMiddleware',
+        'apps.accounts.middleware.LoginRequiredMiddleware',
+        'apps.accounts.middleware.PasswordChangeRequiredMiddleware',
+        'apps.accounts.middleware.SuperuserRestrictMiddleware',
     ]
     
     settings.MIDDLEWARE = [

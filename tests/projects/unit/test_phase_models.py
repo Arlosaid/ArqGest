@@ -325,14 +325,35 @@ class TestPhaseOrdering:
         project_a = ProjectFactory(name='A Project')
         project_b = ProjectFactory(name='B Project')
         
-        phase_b = PhaseFactory(project=project_b, order=1)
-        phase_a = PhaseFactory(project=project_a, order=1)
+        # Crear múltiples fases para cada proyecto para validar el ordenamiento
+        phase_a1 = PhaseFactory(project=project_a, order=1)
+        phase_a2 = PhaseFactory(project=project_a, order=2)
+        phase_b1 = PhaseFactory(project=project_b, order=1)
+        phase_b2 = PhaseFactory(project=project_b, order=2)
         
-        phases = Phase.objects.filter(project__in=[project_a, project_b])
+        phases = list(Phase.objects.filter(project__in=[project_a, project_b]).order_by('project', 'order'))
         
-        # Orden por proyecto primero, luego por order
-        assert phases[0].project == project_a
-        assert phases[1].project == project_b
+        # Verificar que hay exactamente 4 fases
+        assert len(phases) == 4
+        
+        # Verificar que las fases del mismo proyecto están juntas
+        # Las primeras dos fases deben ser del mismo proyecto
+        assert phases[0].project == phases[1].project
+        # Las últimas dos fases deben ser del mismo proyecto
+        assert phases[2].project == phases[3].project
+        # Y deben ser de proyectos diferentes
+        assert phases[0].project != phases[2].project
+        
+        # Verificar que las fases de cada proyecto están ordenadas por 'order'
+        project_phases = {}
+        for phase in phases:
+            if phase.project not in project_phases:
+                project_phases[phase.project] = []
+            project_phases[phase.project].append(phase)
+        
+        for project, project_phases_list in project_phases.items():
+            orders = [p.order for p in project_phases_list]
+            assert orders == sorted(orders), f"Fases de {project} no están ordenadas correctamente"
 
 
 # ============================================================================

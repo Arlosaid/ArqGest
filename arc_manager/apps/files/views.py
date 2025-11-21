@@ -192,7 +192,7 @@ def upload_file(request, project_id, phase_id):
                 event="file_upload_validation_failed",
                 message=f"Archivo rechazado: {', '.join(file_errors)}",
                 error_code=FileErrorCodes.FILE_UPLOAD_INVALID_TYPE,
-                filename=uploaded_file.name,
+                file_name=uploaded_file.name,  # Cambiado de filename a file_name
                 size_mb=round(size_mb, 2),
                 project_id=project_id,
                 phase_id=phase_id
@@ -247,7 +247,7 @@ def upload_file(request, project_id, phase_id):
                 action="created",
                 entity_type="file",
                 entity_id=instance.id,
-                filename=uploaded_file.name,
+                file_name=uploaded_file.name,  # Cambiado de filename a file_name (evitar conflicto con LogRecord)
                 size_mb=round(size_mb, 2),
                 extension=ext,
                 project_id=project_id,
@@ -349,7 +349,7 @@ def upload_file(request, project_id, phase_id):
                 error_message=str(e),
                 project_id=project_id,
                 phase_id=phase_id,
-                filename=uploaded_file.name,
+                file_name=uploaded_file.name,  # Cambiado de filename a file_name
                 size_bytes=uploaded_file.size or 0,
                 extension=ext,
                 stack_trace=stack_trace_full[:500]
@@ -476,7 +476,7 @@ def delete_file(request, file_id):
             action="deleted",
             entity_type="file",
             entity_id=file_id,
-            filename=file_info['filename'],
+            file_name=file_info['filename'],  # Cambiado de filename a file_name
             size_mb=round(file_info['size_bytes'] / (1024 * 1024), 2),
             extension=file_info['extension'],
             project_id=file_info['project_id'],
@@ -495,7 +495,7 @@ def delete_file(request, file_id):
             error_code=FileErrorCodes.FILE_MANAGEMENT_DELETE_ERROR,
             error_message=str(e),
             file_id=file_id,
-            filename=file_info['filename'],
+            file_name=file_info['filename'],  # Cambiado de filename a file_name
             project_id=file_info['project_id'],
             phase_id=file_info['phase_id'],
             stack_trace=traceback.format_exc()[:500]

@@ -129,8 +129,9 @@ class TestProjectFileRelationships:
     
     def test_file_belongs_to_user(self, use_local_storage):
         """Archivo tiene usuario que lo subió"""
-        user = UserFactory()
-        file_obj = ProjectFileFactory(uploaded_by=user)
+        phase = PhaseFactory()
+        user = UserFactory(organization=phase.project.organization)
+        file_obj = ProjectFileFactory(phase=phase, uploaded_by=user)
         
         assert file_obj.uploaded_by == user
     
@@ -158,8 +159,9 @@ class TestProjectFileRelationships:
         
         Los archivos se mantienen pero uploaded_by se vuelve NULL.
         """
-        user = UserFactory()
-        file_obj = ProjectFileFactory(uploaded_by=user)
+        phase = PhaseFactory()
+        user = UserFactory(organization=phase.project.organization)
+        file_obj = ProjectFileFactory(phase=phase, uploaded_by=user)
         
         user.delete()
         

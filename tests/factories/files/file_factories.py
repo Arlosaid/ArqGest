@@ -5,6 +5,7 @@ Proporciona factories para crear archivos de prueba con diferentes
 características: documentos, imágenes, CAD, archivos maliciosos, etc.
 """
 import factory
+import uuid
 from factory.django import DjangoModelFactory
 from django.core.files.uploadedfile import SimpleUploadedFile
 from apps.files.models import ProjectFile
@@ -17,13 +18,15 @@ class ProjectFileFactory(DjangoModelFactory):
         model = ProjectFile
     
     phase = factory.SubFactory('tests.factories.projects.project_factories.PhaseFactory')
-    uploaded_by = factory.SubFactory('tests.factories.accounts.account_factories.UserFactory')
-    
-    filename = factory.Faker('uuid4')
+    uploaded_by = factory.LazyAttribute(
+        lambda obj: __import__('tests.factories.accounts.account_factories', fromlist=['UserFactory']).UserFactory(
+            organization=obj.phase.project.organization
+        )
+    )
     
     file = factory.LazyAttribute(
         lambda obj: SimpleUploadedFile(
-            name=f"test_file_{obj.filename}.pdf",
+            name=f"test_file_{uuid.uuid4().hex[:8]}.pdf",
             content=b"PDF test content",
             content_type="application/pdf"
         )
@@ -40,7 +43,7 @@ class PDFFileFactory(ProjectFileFactory):
     
     file = factory.LazyAttribute(
         lambda obj: SimpleUploadedFile(
-            name=f"document_{obj.filename}.pdf",
+            name=f"document_{uuid.uuid4().hex[:8]}.pdf",
             content=b"%PDF-1.4 fake pdf content",
             content_type="application/pdf"
         )
@@ -55,7 +58,7 @@ class ImageFileFactory(ProjectFileFactory):
     
     file = factory.LazyAttribute(
         lambda obj: SimpleUploadedFile(
-            name=f"image_{obj.filename}.jpg",
+            name=f"image_{uuid.uuid4().hex[:8]}.jpg",
             content=b"\xff\xd8\xff\xe0\x00\x10JFIF fake jpeg",
             content_type="image/jpeg"
         )
@@ -70,7 +73,7 @@ class JPGFileFactory(ImageFileFactory):
     
     file = factory.LazyAttribute(
         lambda obj: SimpleUploadedFile(
-            name=f"photo_{obj.filename}.jpg",
+            name=f"photo_{uuid.uuid4().hex[:8]}.jpg",
             content=b"\xff\xd8\xff\xe0\x00\x10JFIF fake jpeg",
             content_type="image/jpeg"
         )
@@ -84,7 +87,7 @@ class PNGFileFactory(ImageFileFactory):
     
     file = factory.LazyAttribute(
         lambda obj: SimpleUploadedFile(
-            name=f"image_{obj.filename}.png",
+            name=f"image_{uuid.uuid4().hex[:8]}.png",
             content=b"\x89PNG\r\n\x1a\n fake png",
             content_type="image/png"
         )
@@ -98,7 +101,7 @@ class WordFileFactory(ProjectFileFactory):
     
     file = factory.LazyAttribute(
         lambda obj: SimpleUploadedFile(
-            name=f"document_{obj.filename}.docx",
+            name=f"document_{uuid.uuid4().hex[:8]}.docx",
             content=b"PK fake docx content",
             content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
@@ -113,7 +116,7 @@ class ExcelFileFactory(ProjectFileFactory):
     
     file = factory.LazyAttribute(
         lambda obj: SimpleUploadedFile(
-            name=f"spreadsheet_{obj.filename}.xlsx",
+            name=f"spreadsheet_{uuid.uuid4().hex[:8]}.xlsx",
             content=b"PK fake xlsx content",
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
@@ -128,7 +131,7 @@ class DWGFileFactory(ProjectFileFactory):
     
     file = factory.LazyAttribute(
         lambda obj: SimpleUploadedFile(
-            name=f"drawing_{obj.filename}.dwg",
+            name=f"drawing_{uuid.uuid4().hex[:8]}.dwg",
             content=b"AC1021 fake dwg content",
             content_type="application/acad"
         )
@@ -143,7 +146,7 @@ class RVTFileFactory(ProjectFileFactory):
     
     file = factory.LazyAttribute(
         lambda obj: SimpleUploadedFile(
-            name=f"model_{obj.filename}.rvt",
+            name=f"model_{uuid.uuid4().hex[:8]}.rvt",
             content=b"fake revit content",
             content_type="application/octet-stream"
         )
@@ -158,7 +161,7 @@ class ZIPFileFactory(ProjectFileFactory):
     
     file = factory.LazyAttribute(
         lambda obj: SimpleUploadedFile(
-            name=f"archive_{obj.filename}.zip",
+            name=f"archive_{uuid.uuid4().hex[:8]}.zip",
             content=b"PK\x03\x04 fake zip content",
             content_type="application/zip"
         )
@@ -173,7 +176,7 @@ class LargeFileFactory(ProjectFileFactory):
     
     file = factory.LazyAttribute(
         lambda obj: SimpleUploadedFile(
-            name=f"large_model_{obj.filename}.rvt",
+            name=f"large_model_{uuid.uuid4().hex[:8]}.rvt",
             content=b"fake large file content" * 1000,
             content_type="application/octet-stream"
         )
@@ -230,7 +233,7 @@ class ExecutableFileFactory(ProjectFileFactory):
     
     file = factory.LazyAttribute(
         lambda obj: SimpleUploadedFile(
-            name=f"script_{obj.filename}.sh",
+            name=f"script_{uuid.uuid4().hex[:8]}.sh",
             content=b"#!/bin/bash\necho malicious",
             content_type="application/x-sh"
         )
