@@ -10,6 +10,9 @@ window.FILE_UPLOAD_CONFIG = {
     MAX_FILE_SIZE_MB: 1500,              // Límite para desktop/tablet
     MAX_FILE_SIZE_MOBILE_MB: 50,       // Límite para móviles (puedes reducirlo si quieres)
     
+    // Storage externo (R2/S3) - cambiar a true para habilitar uploads directos
+    ENABLE_STORAGES: false,
+    
     // Extensiones permitidas
     ALLOWED_EXTENSIONS: [
         'PDF', 'JPG', 'JPEG', 'PNG', 'GIF', 'TIFF', 

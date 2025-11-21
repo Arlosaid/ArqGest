@@ -201,10 +201,15 @@ class LargeFileUploader {
         const file = files[0];
         const sizeInMB = file.size / (1024 * 1024);
         
-        // Decidir método de upload basado en tamaño
-        if (sizeInMB > 100) {
+        // Verificar si storage externo está habilitado
+        const config = window.FILE_UPLOAD_CONFIG || {};
+        const storageEnabled = config.ENABLE_STORAGES === true || config.ENABLE_STORAGES === 'true';
+        
+        // Solo usar upload directo a R2/S3 si está habilitado Y el archivo es grande
+        if (storageEnabled && sizeInMB > 100) {
             await this.handleLargeFileUpload(file, form);
         } else {
+            // Para archivos pequeños o cuando storage no está habilitado, usar método regular
             await this.handleRegularUpload(form);
         }
     }
@@ -304,13 +309,24 @@ class LargeFileUploader {
     }
 
     async handleRegularUpload(form) {
-        // Para archivos pequeños, usar el método tradicional con HTMX
+        // Para archivos pequeños o cuando storage no está habilitado, usar el método tradicional
         const progressContainer = form.querySelector('.upload-progress-container');
         const progressBar = progressContainer.querySelector('.progress-bar');
         const statusDiv = progressContainer.querySelector('.upload-status');
+        const detailsDiv = progressContainer.querySelector('.upload-details');
         
         progressContainer.style.display = 'block';
-        this.updateProgress(progressBar, statusDiv, 50, 'Subiendo archivo...');
+        this.updateProgress(progressBar, statusDiv, 10, 'Subiendo archivo al servidor...');
+        
+        // Obtener info del archivo para mostrar
+        const fileInput = form.querySelector('input[type="file"]');
+        if (fileInput && fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            if (detailsDiv) {
+                detailsDiv.textContent = `Procesando: ${file.name} (${sizeMB} MB)`;
+            }
+        }
         
         try {
             // Usar fetch para enviar el formulario
@@ -320,7 +336,8 @@ class LargeFileUploader {
                 body: formData,
                 headers: {
                     'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'HX-Request': 'true'  // Marcar como petición HTMX
                 }
             });
             

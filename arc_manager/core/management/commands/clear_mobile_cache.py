@@ -127,11 +127,12 @@ class Command(BaseCommand):
         temp_dirs = [
             getattr(settings, 'FILE_UPLOAD_TEMP_DIR', None),
             '/tmp/django_cache',  # Cache temporal común
-            'arc_manager/temp_uploads'  # Directorio de uploads temporales
+            os.path.join(settings.BASE_DIR, 'temp_uploads')  # Directorio de uploads temporales (corregido)
         ]
         
         for temp_dir in temp_dirs:
-            if temp_dir and os.path.exists(temp_dir):
+            # Validar que temp_dir no sea None, vacío o solo espacios
+            if temp_dir and temp_dir.strip() and os.path.exists(temp_dir):
                 try:
                     shutil.rmtree(temp_dir)
                     os.makedirs(temp_dir, exist_ok=True)

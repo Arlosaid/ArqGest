@@ -85,10 +85,13 @@ class SimpleUserCreateForm(forms.Form):
             elif self.creating_user.is_superuser:
                 # Superuser: puede crear en cualquier organización
                 self.fields['organization'] = forms.ModelChoiceField(
-                    queryset=Organization.objects.filter(is_active=True),
+                    queryset=Organization.objects.filter(is_active=True).order_by('name'),
                     required=True,
                     label="Organización",
-                    widget=forms.Select(attrs={'class': 'form-select'}),
+                    widget=forms.Select(attrs={
+                        'class': 'form-select organization-select2',
+                        'data-placeholder': 'Buscar organización...'
+                    }),
                     empty_label="Selecciona una organización"
                 )
                 

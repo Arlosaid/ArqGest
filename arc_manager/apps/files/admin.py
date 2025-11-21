@@ -51,6 +51,9 @@ class ProjectFileAdmin(admin.ModelAdmin):
     # Orden lógico
     ordering = ('-uploaded_at',)
     
+    # Autocomplete para búsqueda rápida
+    autocomplete_fields = ['phase', 'uploaded_by']
+    
     # Campos de solo lectura
     readonly_fields = ('uploaded_at', 'filename', 'extension', 'size_bytes')
     

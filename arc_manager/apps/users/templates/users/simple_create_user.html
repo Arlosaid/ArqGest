@@ -5,9 +5,104 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/user_management.css' %}">
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    /* Estilos profesionales para Select2 */
+    .select2-container--default .select2-selection--single {
+        height: 45px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 14px;
+        background: white;
+        transition: all 0.2s;
+    }
+    
+    .select2-container--default .select2-selection--single:hover {
+        border-color: var(--arc-color-primary);
+    }
+    
+    .select2-container--default.select2-container--focus .select2-selection--single {
+        border-color: var(--arc-color-primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 27px;
+        color: #1e293b;
+        padding-left: 0;
+    }
+    
+    .select2-container--default .select2-selection--single .select2-selection__placeholder {
+        color: #94a3b8;
+    }
+    
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 43px;
+        right: 8px;
+    }
+    
+    .select2-dropdown {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .select2-container--default .select2-search--dropdown .select2-search__field {
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    
+    .select2-container--default .select2-search--dropdown .select2-search__field:focus {
+        border-color: var(--arc-color-primary);
+        outline: none;
+    }
+    
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: var(--arc-color-primary);
+    }
+    
+    .select2-container--default .select2-results__option[aria-selected=true] {
+        background-color: #f1f5f9;
+        color: #1e293b;
+    }
+    
+    .select2-results__option {
+        padding: 10px 12px;
+        font-size: 14px;
+    }
+    
+    .select2-container {
+        width: 100% !important;
+    }
+</style>
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Inicializar Select2 para el campo de organización
+        $('.organization-select2').select2({
+            placeholder: 'Buscar organización...',
+            allowClear: true,
+            width: '100%',
+            language: {
+                noResults: function() {
+                    return "No se encontraron organizaciones";
+                },
+                searching: function() {
+                    return "Buscando...";
+                },
+                inputTooShort: function() {
+                    return "Escribe para buscar";
+                }
+            }
+        });
+    });
+</script>
 <script src="{% static 'js/user_management.js' %}"></script>
 {% endblock %}
 
@@ -181,7 +276,8 @@
                                 </label>
                                 <select name="{{ form.organization.name }}" 
                                         id="{{ form.organization.id_for_label }}" 
-                                        class="modern-select"
+                                        class="modern-select organization-select2"
+                                        data-placeholder="Buscar organización..."
                                         {% if form.organization.field.required %}required{% endif %}>
                                     <option value="">Selecciona una organización</option>
                                     {% for org in form.organization.queryset %}
@@ -191,8 +287,8 @@
                                     {% endfor %}
                                 </select>
                                 <div class="field-hint">
-                                    <i class="fas fa-info-circle"></i>
-                                    Determina a qué organización pertenecerá el usuario
+                                    <i class="fas fa-search"></i>
+                                    Escribe para buscar entre todas las organizaciones disponibles
                                 </div>
                                 {% if form.organization.errors %}
                                     <div class="error-message">

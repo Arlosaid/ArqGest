@@ -101,6 +101,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
     list_display = ('email', 'email_status_display', 'full_name', 'get_organization_link', 'get_role_display', 'is_active', 'date_joined')
     list_filter = ('is_active', 'is_staff', 'is_org_admin', 'organization__name', 'date_joined')
     readonly_fields = ('date_joined', 'last_login')
+    autocomplete_fields = ['organization']
     
     actions = [
         'activate_users', 
@@ -140,7 +141,7 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         }),
     )
     
-    search_fields = ('email', 'first_name', 'last_name', 'organization__name')
+    search_fields = ['email', 'first_name', 'last_name', 'organization__name']
     ordering = ('-date_joined',)
 
     def get_queryset(self, request):

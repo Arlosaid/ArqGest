@@ -29,7 +29,7 @@ class FileValidator:
         '3DS': ['application/octet-stream'],  # Archivos 3D Studio Max
         'MAX': ['application/octet-stream'],  # Archivos 3D Studio Max
         'ZIP': ['application/zip', 'application/x-zip-compressed', 'application/octet-stream'],
-        'RAR': ['application/x-rar-compressed', 'application/vnd.rar', 'application/octet-stream'],
+        'RAR': ['application/x-rar-compressed', 'application/x-rar', 'application/vnd.rar', 'application/octet-stream'],
         '7Z': ['application/x-7z-compressed', 'application/octet-stream'],
         'TIFF': ['image/tiff', 'application/octet-stream'],
         'TIF': ['image/tiff', 'application/octet-stream'],
