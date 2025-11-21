@@ -10,19 +10,13 @@ from django.core.exceptions import ValidationError
 from .models import ProjectFile, project_file_path
 from apps.projects.models import Phase
 from core.error_codes import FileErrorCodes
-# TODO: Migrate to structured_logging after deploy
-# from core.structured_logging import log_error, log_business_event
+from core.structured_logging import log_error, log_warning, log_info, log_business_event, log_slow_operation
 import os
 import hashlib
 import json
 import logging
 
 logger = logging.getLogger(__name__)
-
-# FIXME: Función temporal hasta migrar a structured_logging
-def log_operation(*args, **kwargs):
-    """Temporal stub para evitar errores durante deploy"""
-    pass
 
 
 try:
@@ -50,14 +44,13 @@ def upload_file(request, project_id, phase_id):
     phase = get_object_or_404(Phase, id=phase_id, project_id=project_id)
     
     if request.user.organization != phase.project.organization:
-        log_operation(
-            'FILE_UPLOAD_ERROR',
-            request.user.email,
-            logger,
-            level='WARNING',
+        log_warning(
+            event="file_upload_permission_denied",
+            message="Usuario sin permiso intentó subir archivo",
             error_code=FileErrorCodes.FILE_UPLOAD_PERMISSION_DENIED,
             project_id=project_id,
-            phase_id=phase_id
+            phase_id=phase_id,
+            user_email=request.user.email
         )
         return HttpResponseForbidden(_("You do not have permission to access this resource."))
 
@@ -66,17 +59,6 @@ def upload_file(request, project_id, phase_id):
     total_size = sum(f.size or 0 for f in files_list)
     
     if not files_list:
-        # This case might not be hit if the input is 'required', but it's good practice.
-        log_operation(
-            'FILE_UPLOAD_ERROR',
-            request.user.email,
-            logger,
-            level='WARNING',
-            error_code=FileErrorCodes.FILE_UPLOAD_UNEXPECTED_ERROR,
-            project_id=project_id,
-            phase_id=phase_id,
-            reason='no_files_selected'
-        )
         error_msg = "No se seleccionaron archivos."
         messages.error(request, error_msg)
         if request.headers.get('HX-Request') == 'true':
@@ -106,11 +88,9 @@ def upload_file(request, project_id, phase_id):
     # Limitación a 1 archivo por vez (MVP simplificado)
     if total_files > 1:
         error_msg = "Solo se permite subir 1 archivo por vez para mantener la simplicidad"
-        log_operation(
-            'FILE_UPLOAD_ERROR',
-            request.user.email,
-            logger,
-            level='WARNING',
+        log_warning(
+            event="file_upload_too_many_files",
+            message=error_msg,
             error_code=FileErrorCodes.FILE_UPLOAD_TOO_MANY_FILES,
             project_id=project_id,
             phase_id=phase_id,
@@ -135,12 +115,20 @@ def upload_file(request, project_id, phase_id):
         organization, total_upload_size
     )
     
+    # Advertir si el storage está cerca del límite
+    if storage_data.get('usage_percentage', 0) > 80:
+        log_warning(
+            event="storage_limit_warning",
+            message=f"Organización cerca del límite de almacenamiento",
+            organization_id=organization.id,
+            usage_percentage=storage_data['usage_percentage'],
+            remaining_gb=storage_data['remaining_gb']
+        )
+    
     if not can_upload:
-        log_operation(
-            'FILE_UPLOAD_ERROR',
-            request.user.email,
-            logger,
-            level='WARNING',
+        log_warning(
+            event="file_upload_storage_limit_exceeded",
+            message="Límite de almacenamiento excedido",
             error_code=FileErrorCodes.FILE_UPLOAD_STORAGE_LIMIT,
             project_id=project_id,
             phase_id=phase_id,
@@ -169,132 +157,46 @@ def upload_file(request, project_id, phase_id):
             validate_project_file(uploaded_file)
         except ValidationError as e:
             file_errors.extend(e.messages)
-            log_operation(
-                'FILE_UPLOAD_ERROR',
-                request.user.email,
-                logger,
-                level='WARNING',
-                error_code=FileErrorCodes.FILE_UPLOAD_INVALID_TYPE,
-                project_id=project_id,
-                phase_id=phase_id,
-                filename=uploaded_file.name,
-                extension=ext,
-                validation_errors=e.messages[:3]  # Primeros 3 errores
-            )
-            continue  # Saltar al siguiente archivo
+            # NO hacer continue aquí - dejar que file_errors se procese correctamente
         
         # Validar extensión (fallback si no se usó el validador completo)
         if ext not in ALLOWED_EXTENSIONS:
             file_errors.append(f"Tipo de archivo no permitido (.{ext.lower()})")
-            log_operation(
-                'FILE_UPLOAD_ERROR',
-                request.user.email,
-                logger,
-                level='WARNING',
-                error_code=FileErrorCodes.FILE_UPLOAD_INVALID_TYPE,
-                project_id=project_id,
-                phase_id=phase_id,
-                filename=uploaded_file.name,
-                extension=ext,
-                allowed_extensions=list(ALLOWED_EXTENSIONS)[:10]
-            )
         
         # Validación básica de contenido (solo verificar que el archivo no esté vacío y tenga contenido válido)
         try:
             if uploaded_file.size == 0:
                 file_errors.append(f"Archivo vacío")
-                log_operation(
-                    'FILE_UPLOAD_ERROR',
-                    request.user.email,
-                    logger,
-                    level='WARNING',
-                    error_code=FileErrorCodes.FILE_UPLOAD_EMPTY_FILE,
-                    project_id=project_id,
-                    phase_id=phase_id,
-                    filename=uploaded_file.name,
-                    size_bytes=0
-                )
             elif uploaded_file.size < 10:  # Archivos sospechosamente pequeños
                 file_errors.append(f"Archivo muy pequeño (posiblemente corrupto)")
-                log_operation(
-                    'FILE_UPLOAD_ERROR',
-                    request.user.email,
-                    logger,
-                    level='WARNING',
-                    error_code=FileErrorCodes.FILE_UPLOAD_SUSPICIOUS_FILE,
-                    project_id=project_id,
-                    phase_id=phase_id,
-                    filename=uploaded_file.name,
-                    size_bytes=uploaded_file.size,
-                    reason='file_too_small'
-                )
             
             # Verificación básica de nombre de archivo
             if len(uploaded_file.name) > 255:
                 file_errors.append(f"Nombre de archivo muy largo (máx: 255 caracteres)")
-                log_operation(
-                    'FILE_UPLOAD_ERROR',
-                    request.user.email,
-                    logger,
-                    level='WARNING',
-                    error_code=FileErrorCodes.FILE_UPLOAD_INVALID_FILENAME,
-                    project_id=project_id,
-                    phase_id=phase_id,
-                    filename=uploaded_file.name,
-                    filename_length=len(uploaded_file.name),
-                    reason='filename_too_long'
-                )
             
             # Verificar caracteres peligrosos en nombre
             dangerous_chars = ['<', '>', ':', '"', '|', '?', '*', '\x00']
             if any(char in uploaded_file.name for char in dangerous_chars):
                 file_errors.append(f"Nombre de archivo contiene caracteres no permitidos")
-                found_chars = [char for char in dangerous_chars if char in uploaded_file.name]
-                log_operation(
-                    'FILE_UPLOAD_ERROR',
-                    request.user.email,
-                    logger,
-                    level='WARNING',
-                    error_code=FileErrorCodes.FILE_UPLOAD_INVALID_FILENAME,
-                    project_id=project_id,
-                    phase_id=phase_id,
-                    filename=uploaded_file.name,
-                    dangerous_chars=found_chars,
-                    reason='dangerous_characters'
-                )
                 
-        except Exception as e:
-            log_operation(
-                'FILE_UPLOAD_ERROR',
-                request.user.email,
-                logger,
-                level='WARNING',
-                error_code=FileErrorCodes.FILE_UPLOAD_METADATA_ERROR,
-                project_id=project_id,
-                phase_id=phase_id,
-                filename=uploaded_file.name,
-                error_message=str(e)
-            )
+        except Exception:
+            pass
         
         # Validar tamaño
         if size_mb > MAX_FILE_SIZE_MB:
             file_errors.append(f"Muy grande ({size_mb:.1f}MB, máx: {MAX_FILE_SIZE_MB}MB)")
-            log_operation(
-                'FILE_UPLOAD_ERROR',
-                request.user.email,
-                logger,
-                level='WARNING',
-                error_code=FileErrorCodes.FILE_UPLOAD_TOO_LARGE,
-                project_id=project_id,
-                phase_id=phase_id,
-                filename=uploaded_file.name,
-                size_mb=round(size_mb, 2),
-                size_bytes=uploaded_file.size,
-                max_size_mb=MAX_FILE_SIZE_MB
-            )
         
         if file_errors:
             validation_errors.append(f"{uploaded_file.name}: {', '.join(file_errors)}")
+            log_warning(
+                event="file_upload_validation_failed",
+                message=f"Archivo rechazado: {', '.join(file_errors)}",
+                error_code=FileErrorCodes.FILE_UPLOAD_INVALID_TYPE,
+                filename=uploaded_file.name,
+                size_mb=round(size_mb, 2),
+                project_id=project_id,
+                phase_id=phase_id
+            )
         else:
             valid_files.append(uploaded_file)
     
@@ -319,14 +221,18 @@ def upload_file(request, project_id, phase_id):
     failed_reasons = []
 
     for uploaded_file in valid_files:
-
+        # Calcular tamaño y extensión para logging
+        size_mb = (uploaded_file.size or 0) / (1024 * 1024)
+        ext = os.path.splitext(uploaded_file.name)[1].lower().lstrip('.')
+        
         try:
-            # 🔥 CRÍTICO: Asegurar que el puntero del archivo esté al inicio antes de guardar
+            # Asegurar que el puntero del archivo esté al inicio antes de guardar
             try:
                 uploaded_file.seek(0)
             except Exception:
-                pass  # No crítico si falla
+                pass
             
+            # Crear el registro en DB
             instance = ProjectFile.objects.create(
                 phase=phase,
                 file=uploaded_file,
@@ -335,20 +241,17 @@ def upload_file(request, project_id, phase_id):
             
             successful_uploads += 1
             
-            # Log exitoso de creación de archivo con más detalles
-            log_operation(
-                'FILE_UPLOAD_SUCCESS',
-                request.user.email,
-                logger,
-                level='INFO',
-                project_id=project_id,
-                phase_id=phase_id,
-                file_id=instance.id,
+            # Log exitoso de creación de archivo
+            log_business_event(
+                event="file_uploaded",
+                action="created",
+                entity_type="file",
+                entity_id=instance.id,
                 filename=uploaded_file.name,
-                size_bytes=uploaded_file.size or 0,
                 size_mb=round(size_mb, 2),
                 extension=ext,
-                file_path=instance.file.name if instance.file else None,
+                project_id=project_id,
+                phase_id=phase_id,
                 organization_id=request.user.organization.id if request.user.organization else None
             )
             
@@ -359,7 +262,7 @@ def upload_file(request, project_id, phase_id):
                 max_checksum_bytes = sys_settings.get_max_checksum_size_bytes()
                 
                 if (uploaded_file.size or 0) <= max_checksum_bytes:
-                    # OPTIMIZACIÓN: Resetear puntero del archivo antes del checksum
+                    # Resetear puntero del archivo antes del checksum
                     uploaded_file.seek(0)
                     hasher = hashlib.sha256()
                     for chunk in uploaded_file.chunks():
@@ -367,94 +270,91 @@ def upload_file(request, project_id, phase_id):
                     instance.checksum_sha256 = hasher.hexdigest()
                     instance.save(update_fields=["checksum_sha256"])
                     
-                    # Detectar archivos duplicados por checksum
-                    if instance.checksum_sha256:
-                        duplicate = ProjectFile.objects.filter(
-                            phase=phase,
-                            checksum_sha256=instance.checksum_sha256
-                        ).exclude(pk=instance.pk).first()
+                # Detectar archivos duplicados por checksum
+                if instance.checksum_sha256:
+                    duplicate = ProjectFile.objects.filter(
+                        phase=phase,
+                        checksum_sha256=instance.checksum_sha256
+                    ).exclude(pk=instance.pk).first()
+                    
+                    if duplicate:
+                        log_warning(
+                            event="file_duplicate_detected",
+                            message="Archivo duplicado detectado y eliminado",
+                            error_code=FileErrorCodes.FILE_UPLOAD_DUPLICATE_CHECKSUM,
+                            file_id=instance.id,
+                            duplicate_file_id=duplicate.id,
+                            checksum=instance.checksum_sha256,
+                            filename=uploaded_file.name,
+                            duplicate_filename=duplicate.filename
+                        )
+                            
+                        # Eliminar el archivo duplicado recién subido
+                        instance.file.delete(save=False)
+                        instance.delete()
                         
-                        if duplicate:
-                            log_operation(
-                                'FILE_UPLOAD_DUPLICATE_DETECTED',
-                                request.user.email,
-                                logger,
-                                level='WARNING',
-                                error_code=FileErrorCodes.FILE_UPLOAD_DUPLICATE_CHECKSUM,
-                                file_id=instance.id,
-                                duplicate_file_id=duplicate.id,
-                                checksum=instance.checksum_sha256,
-                                filename=uploaded_file.name,
-                                duplicate_filename=duplicate.filename
-                            )
-                            
-                            # Eliminar el archivo duplicado recién subido
-                            instance.file.delete(save=False)
-                            instance.delete()
-                            
-                            # Notificar al usuario sobre el duplicado
-                            duplicate_msg = f"Este archivo ya existe como '{duplicate.filename}' (subido el {duplicate.uploaded_at.strftime('%d/%m/%Y')})"
-                            
-                            if request.headers.get('HX-Request') == 'true':
-                                html_response = f'''
-                                <script>
-                                    if (window.notifications) {{
-                                        window.notifications.warning('{duplicate_msg}');
-                                    }} else if (window.showGlobalNotification) {{
-                                        window.showGlobalNotification('{duplicate_msg}', 'warning');
+                        # Notificar al usuario sobre el duplicado
+                        duplicate_msg = f"Este archivo ya existe como '{duplicate.filename}' (subido el {duplicate.uploaded_at.strftime('%d/%m/%Y')})"
+                        
+                        if request.headers.get('HX-Request') == 'true':
+                            html_response = f'''
+                            <script>
+                                if (window.notifications) {{
+                                    window.notifications.warning('{duplicate_msg}');
+                                }} else if (window.showGlobalNotification) {{
+                                    window.showGlobalNotification('{duplicate_msg}', 'warning');
+                                }}
+                                
+                                // Trigger para recargar la lista
+                                setTimeout(() => {{
+                                    const container = document.getElementById('files-container-{phase.id}');
+                                    if (container && window.htmx) {{
+                                        htmx.trigger(container, 'fileUploaded');
                                     }}
-                                    
-                                    // Trigger para recargar la lista
-                                    setTimeout(() => {{
-                                        const container = document.getElementById('files-container-{phase.id}');
-                                        if (container && window.htmx) {{
-                                            htmx.trigger(container, 'fileUploaded');
-                                        }}
-                                    }}, 100);
-                                </script>
-                                '''
-                                return HttpResponse(html_response)
-                            else:
-                                return JsonResponse({
-                                    "success": False,
-                                    "duplicate": True,
-                                    "existing_file_id": duplicate.id,
-                                    "message": duplicate_msg
-                                }, status=200)  # 200 porque técnicamente no es un error
+                                }}, 100);
+                            </script>
+                            '''
+                            return HttpResponse(html_response)
+                        else:
+                            return JsonResponse({
+                                "success": False,
+                                "duplicate": True,
+                                "existing_file_id": duplicate.id,
+                                "message": duplicate_msg
+                            }, status=200)  # 200 porque técnicamente no es un error
+
                     
             except Exception as e:
                 # Log de error en cálculo de checksum
-                log_operation(
-                    'FILE_CHECKSUM_ERROR',
-                    request.user.email,
-                    logger,
-                    level='WARNING',
+                log_warning(
+                    event="file_checksum_error",
+                    message="Error calculando checksum",
                     error_code=FileErrorCodes.FILE_PROCESSING_METADATA_EXTRACTION_ERROR,
                     file_id=instance.id,
                     error_message=str(e)
                 )
+
                 
         except Exception as e:
             failed_uploads += 1
-            failed_reasons.append(f"{uploaded_file.name}: error de storage")
+            failed_reasons.append(f"{uploaded_file.name}: {str(e)}")
             
             # Log de error en creación de archivo con stack trace
             import traceback
-            log_operation(
-                'FILE_UPLOAD_ERROR',
-                request.user.email,
-                logger,
-                level='ERROR',
+            stack_trace_full = traceback.format_exc()
+            
+            log_error(
+                event="file_upload_failed",
                 error_code=FileErrorCodes.FILE_UPLOAD_STORAGE_ERROR,
+                error_message=str(e),
                 project_id=project_id,
                 phase_id=phase_id,
                 filename=uploaded_file.name,
                 size_bytes=uploaded_file.size or 0,
                 extension=ext,
-                error_message=str(e),
-                stack_trace=traceback.format_exc()[:500]  # Limitamos el stack trace
+                stack_trace=stack_trace_full[:500]
             )
-            error_msg = "Error al guardar el archivo."
+            error_msg = f"Error al guardar el archivo: {str(e)}"
             messages.error(request, error_msg)
             if request.headers.get('HX-Request') == 'true':
                 return JsonResponse({"error": error_msg, "success": False}, status=500)
@@ -545,12 +445,9 @@ def delete_file(request, file_id):
     project_file = get_object_or_404(ProjectFile, id=file_id)
     
     if request.user.organization != project_file.phase.project.organization:
-        # Log intento de eliminación sin permisos
-        log_operation(
-            'FILE_DELETE_ERROR',
-            request.user.email,
-            logger,
-            level='WARNING',
+        log_warning(
+            event="file_delete_permission_denied",
+            message="Usuario sin permiso intentó eliminar archivo",
             error_code=FileErrorCodes.FILE_DOWNLOAD_PERMISSION_DENIED,
             file_id=file_id,
             project_id=project_file.phase.project.id,
@@ -574,14 +471,13 @@ def delete_file(request, file_id):
         project_file.delete()
         
         # Log exitoso de eliminación
-        log_operation(
-            'FILE_DELETE_SUCCESS',
-            request.user.email,
-            logger,
-            level='INFO',
-            file_id=file_id,
+        log_business_event(
+            event="file_deleted",
+            action="deleted",
+            entity_type="file",
+            entity_id=file_id,
             filename=file_info['filename'],
-            size_bytes=file_info['size_bytes'],
+            size_mb=round(file_info['size_bytes'] / (1024 * 1024), 2),
             extension=file_info['extension'],
             project_id=file_info['project_id'],
             phase_id=file_info['phase_id']
@@ -592,25 +488,17 @@ def delete_file(request, file_id):
         invalidate_phase_files_cache(file_info['phase_id'])
         
     except Exception as e:
-        # Log error en eliminación con stack trace completo
+        # Log error en eliminación
         import traceback
-        log_operation(
-            'FILE_DELETE_ERROR',
-            request.user.email,
-            logger,
-            level='ERROR',
+        log_error(
+            event="file_delete_failed",
             error_code=FileErrorCodes.FILE_MANAGEMENT_DELETE_ERROR,
+            error_message=str(e),
             file_id=file_id,
             filename=file_info['filename'],
             project_id=file_info['project_id'],
             phase_id=file_info['phase_id'],
-            size_bytes=file_info['size_bytes'],
-            extension=file_info['extension'],
-            error_message=str(e),
-            stack_trace=traceback.format_exc()[:500],
-            file_path=file_info['file_path'],
-            project_name=file_info['project_name'],
-            phase_name=file_info['phase_name']
+            stack_trace=traceback.format_exc()[:500]
         )
         
         if request.headers.get('HX-Request') == 'true':
@@ -654,38 +542,23 @@ def get_presigned_upload(request, project_id, phase_id):
     Requiere ENABLE_STORAGES=true y variables AWS/R2 configuradas.
     """
     if os.environ.get('ENABLE_STORAGES', 'false').lower() != 'true':
-        log_operation(
-            'PRESIGNED_UPLOAD_ERROR',
-            request.user.email,
-            logger,
-            level='WARNING',
-            error_code=FileErrorCodes.FILE_UPLOAD_STORAGE_ERROR,
-            project_id=project_id,
-            phase_id=phase_id,
-            reason='storages_disabled'
-        )
         return JsonResponse({"error": "almacenamiento externo no habilitado"}, status=400)
         
     if boto3 is None:
-        log_operation(
-            'PRESIGNED_UPLOAD_ERROR',
-            request.user.email,
-            logger,
-            level='ERROR',
+        log_error(
+            event="presigned_upload_boto3_unavailable",
             error_code=FileErrorCodes.FILE_UPLOAD_STORAGE_ERROR,
+            error_message="boto3 no disponible",
             project_id=project_id,
-            phase_id=phase_id,
-            reason='boto3_unavailable'
+            phase_id=phase_id
         )
         return JsonResponse({"error": "boto3 no disponible"}, status=500)
 
     phase = get_object_or_404(Phase, id=phase_id, project_id=project_id)
     if not request.user.is_superuser and request.user.organization != phase.project.organization:
-        log_operation(
-            'PRESIGNED_UPLOAD_ERROR',
-            request.user.email,
-            logger,
-            level='WARNING',
+        log_warning(
+            event="presigned_upload_permission_denied",
+            message="Usuario sin permiso intentó obtener URL presignada",
             error_code=FileErrorCodes.FILE_UPLOAD_PERMISSION_DENIED,
             project_id=project_id,
             phase_id=phase_id
@@ -706,19 +579,16 @@ def get_presigned_upload(request, project_id, phase_id):
         )
         
         if not can_upload:
-            log_operation(
-                'PRESIGNED_UPLOAD_ERROR',
-                request.user.email,
-                logger,
-                level='WARNING',
+            log_warning(
+                event="presigned_upload_storage_limit_exceeded",
+                message="Límite de almacenamiento excedido",
                 error_code=FileErrorCodes.FILE_UPLOAD_STORAGE_LIMIT,
                 project_id=project_id,
                 phase_id=phase_id,
                 filename=filename,
                 file_size_mb=round(file_size / (1024 * 1024), 2),
                 storage_used_gb=storage_data['total_gb'],
-                storage_limit_gb=storage_data['plan_limit_gb'],
-                remaining_gb=storage_data['remaining_gb']
+                storage_limit_gb=storage_data['plan_limit_gb']
             )
             return JsonResponse({
                 "error": storage_error,
@@ -726,15 +596,6 @@ def get_presigned_upload(request, project_id, phase_id):
             }, status=413)
     
     if not filename:
-        log_operation(
-            'PRESIGNED_UPLOAD_ERROR',
-            request.user.email,
-            logger,
-            level='WARNING',
-            error_code=FileErrorCodes.FILE_UPLOAD_INVALID_FILENAME,
-            project_id=project_id,
-            phase_id=phase_id
-        )
         return JsonResponse({"error": "nombre de archivo requerido"}, status=400)
 
     try:
@@ -770,33 +631,16 @@ def get_presigned_upload(request, project_id, phase_id):
             ExpiresIn=expires_seconds,
         )
         
-        # Log exitoso de generación de URL presignada
-        log_operation(
-            'PRESIGNED_UPLOAD_SUCCESS',
-            request.user.email,
-            logger,
-            level='INFO',
-            project_id=project_id,
-            phase_id=phase_id,
-            filename=filename,
-            key=key,
-            expires_seconds=int(os.environ.get('PRESIGN_EXPIRES_SECONDS', '3600'))
-        )
-        
         return JsonResponse({'url': url, 'key': key})
         
     except Exception as e:
-        # Log error en generación de URL presignada
-        log_operation(
-            'PRESIGNED_UPLOAD_ERROR',
-            request.user.email,
-            logger,
-            level='ERROR',
+        log_error(
+            event="presigned_upload_generation_failed",
             error_code=FileErrorCodes.FILE_UPLOAD_STORAGE_ERROR,
+            error_message=str(e),
             project_id=project_id,
             phase_id=phase_id,
-            filename=filename,
-            error_message=str(e)
+            filename=filename
         )
         return JsonResponse({"error": "Error generando URL de subida"}, status=500)
 
@@ -810,29 +654,13 @@ def confirm_upload(request):
     Requiere storages habilitado.
     """
     if os.environ.get('ENABLE_STORAGES', 'false').lower() != 'true':
-        log_operation(
-            'CONFIRM_UPLOAD_ERROR',
-            request.user.email,
-            logger,
-            level='WARNING',
-            error_code=FileErrorCodes.FILE_UPLOAD_STORAGE_ERROR,
-            reason='storages_disabled'
-        )
         return JsonResponse({"error": "almacenamiento externo no habilitado"}, status=400)
 
     data = request.POST.dict()
     if not data and request.body:
         try:
             data = json.loads(request.body)
-        except Exception as e:
-            log_operation(
-                'CONFIRM_UPLOAD_ERROR',
-                request.user.email,
-                logger,
-                level='WARNING',
-                error_code=FileErrorCodes.FILE_UPLOAD_METADATA_ERROR,
-                error_message=str(e)
-            )
+        except Exception:
             data = {}
 
     key = data.get('key')
@@ -842,17 +670,6 @@ def confirm_upload(request):
     content_type = data.get('content_type') or ''
     
     if not (key and project_id and phase_id):
-        log_operation(
-            'CONFIRM_UPLOAD_ERROR',
-            request.user.email,
-            logger,
-            level='WARNING',
-            error_code=FileErrorCodes.FILE_UPLOAD_METADATA_ERROR,
-            key=key,
-            project_id=project_id,
-            phase_id=phase_id,
-            reason='missing_required_parameters'
-        )
         return JsonResponse({"error": "clave, project_id, phase_id requeridos"}, status=400)
 
     phase = get_object_or_404(Phase, id=phase_id, project_id=project_id)
@@ -867,19 +684,15 @@ def confirm_upload(request):
         )
         
         if not can_upload:
-            log_operation(
-                'CONFIRM_UPLOAD_ERROR',
-                request.user.email,
-                logger,
-                level='WARNING',
+            log_warning(
+                event="confirm_upload_storage_limit_exceeded",
+                message="Límite de almacenamiento excedido",
                 error_code=FileErrorCodes.FILE_UPLOAD_STORAGE_LIMIT,
                 project_id=project_id,
                 phase_id=phase_id,
-                key=key,
                 file_size_mb=round(size_bytes / (1024 * 1024), 2),
                 storage_used_gb=storage_data['total_gb'],
-                storage_limit_gb=storage_data['plan_limit_gb'],
-                remaining_gb=storage_data['remaining_gb']
+                storage_limit_gb=storage_data['plan_limit_gb']
             )
             return JsonResponse({
                 "error": storage_error,
@@ -887,15 +700,12 @@ def confirm_upload(request):
             }, status=413)
     
     if not request.user.is_superuser and request.user.organization != phase.project.organization:
-        log_operation(
-            'CONFIRM_UPLOAD_ERROR',
-            request.user.email,
-            logger,
-            level='WARNING',
+        log_warning(
+            event="confirm_upload_permission_denied",
+            message="Usuario sin permiso intentó confirmar upload",
             error_code=FileErrorCodes.FILE_UPLOAD_PERMISSION_DENIED,
             project_id=project_id,
-            phase_id=phase_id,
-            key=key
+            phase_id=phase_id
         )
         return HttpResponseForbidden("No tienes permiso para acceder a este recurso.")
 
@@ -918,43 +728,35 @@ def confirm_upload(request):
             logger.warning(f"Could not derive extension from key {key}: {e}")
             instance.ext_upper = ''
         
-        # 🔥 CRÍTICO: Guardar sin intentar volver a subir el archivo
+        # Guardar sin intentar volver a subir el archivo
         # Como el archivo ya está en R2, solo guardamos el registro en la DB
         instance.save()
         
         # Log exitoso de confirmación de subida
-        log_operation(
-            'CONFIRM_UPLOAD_SUCCESS',
-            request.user.email,
-            logger,
-            level='INFO',
-            file_id=instance.id,
+        log_business_event(
+            event="file_upload_confirmed",
+            action="created",
+            entity_type="file",
+            entity_id=instance.id,
             project_id=project_id,
             phase_id=phase_id,
-            key=key,
-            size_bytes=size_bytes,
-            content_type=content_type,
+            size_mb=round(size_bytes / (1024 * 1024), 2),
             extension=instance.ext_upper
         )
         
-        # 🔥 FIX: Invalidar caché de archivos para que aparezcan inmediatamente
+        # Invalidar caché de archivos para que aparezcan inmediatamente
         from .cache_utils import invalidate_phase_files_cache
         invalidate_phase_files_cache(phase_id)
         
         return JsonResponse({"success": True, "id": instance.id})
         
     except Exception as e:
-        # Log error en confirmación de subida
-        log_operation(
-            'CONFIRM_UPLOAD_ERROR',
-            request.user.email,
-            logger,
-            level='ERROR',
+        log_error(
+            event="confirm_upload_failed",
             error_code=FileErrorCodes.FILE_UPLOAD_STORAGE_ERROR,
+            error_message=str(e),
             project_id=project_id,
             phase_id=phase_id,
-            key=key,
-            size_bytes=size_bytes,
-            error_message=str(e)
+            size_bytes=size_bytes
         )
         return JsonResponse({"error": "Error confirmando subida del archivo"}, status=500)
