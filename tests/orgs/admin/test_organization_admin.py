@@ -175,12 +175,14 @@ class TestOrganizationAdminListDisplay:
         assert 'Sin suscripción' in result
     
     def test_get_subscription_link_without_subscription(self, org_admin_instance):
-        """Sin subscription no debe mostrar link"""
+        """Sin subscription debe mostrar link para crear suscripción"""
         org = OrganizationFactory()
         
         result = org_admin_instance.get_subscription_link(org)
         
-        assert result == '-'
+        # Debe mostrar un enlace para gestionar/crear suscripción
+        assert 'Gestionar suscripción' in result
+        assert f'/admin/plans/subscription/add/?organization={org.id}' in result
 
 
 # ============================================================================

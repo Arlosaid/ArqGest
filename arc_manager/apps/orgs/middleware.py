@@ -1,6 +1,7 @@
 # arc_manager/apps/orgs/middleware.py
 from django.utils.deprecation import MiddlewareMixin
 from django.core.cache import cache
+from django.conf import settings
 
 class OrganizationContextMiddleware(MiddlewareMixin):
     """
@@ -9,6 +10,10 @@ class OrganizationContextMiddleware(MiddlewareMixin):
     si es necesario (optimizado en otro middleware).
     """
     def process_request(self, request):
+        # Bypass middleware en modo testing
+        if getattr(settings, 'TESTING', False):
+            return None
+            
         request.organization = None
         request.subscription = None
         

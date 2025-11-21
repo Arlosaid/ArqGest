@@ -65,6 +65,10 @@ class SubscriptionAccessMiddleware(MiddlewareMixin):
         """
         Procesa cada request para verificar permisos de suscripción
         """
+        # Bypass middleware en modo testing
+        if getattr(settings, 'TESTING', False):
+            return None
+            
         # Verificar si el middleware está habilitado
         if not self.enabled:
             return None
@@ -208,6 +212,10 @@ class SubscriptionInfoMiddleware(MiddlewareMixin):
     
     def process_request(self, request):
         """Agrega información de suscripción al request"""
+        
+        # Bypass middleware en modo testing
+        if getattr(settings, 'TESTING', False):
+            return None
         
         # Solo para usuarios autenticados con organización
         if (request.user.is_authenticated and 

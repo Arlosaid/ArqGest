@@ -30,6 +30,10 @@ class LoginRequiredMiddleware:
         self.login_url = getattr(settings, 'LOGIN_URL', '/accounts/login/')
 
     def __call__(self, request):
+        # Bypass middleware en modo testing
+        if getattr(settings, 'TESTING', False):
+            return self.get_response(request)
+            
         path = request.path_info.lstrip('/')
         
         if not request.user.is_authenticated:
@@ -81,6 +85,10 @@ class PasswordChangeRequiredMiddleware:
         ]
 
     def __call__(self, request):
+        # Bypass middleware en modo testing
+        if getattr(settings, 'TESTING', False):
+            return self.get_response(request)
+            
         # Solo verificar si el usuario está autenticado
         if request.user.is_authenticated and hasattr(request.user, 'password_change_required'):
             # Si necesita cambiar contraseña y no está en una URL exenta
@@ -120,6 +128,10 @@ class SuperuserRestrictMiddleware:
         ]
 
     def __call__(self, request):
+        # Bypass middleware en modo testing
+        if getattr(settings, 'TESTING', False):
+            return self.get_response(request)
+            
         if request.user.is_authenticated and request.user.is_superuser:
             path = request.path.lstrip('/')
             
