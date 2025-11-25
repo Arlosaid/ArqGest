@@ -73,6 +73,102 @@
     </div>
   </div>
 </div>
+
+<!-- Modal de Confirmación de Pérdida de Datos -->
+<div class="modal fade" id="confirmReplaceModal" tabindex="-1" aria-labelledby="confirmReplaceModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="confirmReplaceModalLabel">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          {% trans "¡ADVERTENCIA! Pérdida de Datos" %}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger mb-3">
+          <strong>{% trans "RIESGO CRÍTICO:" %}</strong> {% trans "Al reemplazar las fases con una plantilla, se eliminarán permanentemente todas las tareas y archivos asociados." %}
+        </div>
+        
+        <div id="taskLossDetails" class="mb-3">
+          <h6 class="fw-bold">{% trans "Se perderán:" %}</h6>
+          
+          <div class="row mb-2">
+            <div class="col-6">
+              <div class="text-danger fw-bold fs-5">
+                <i class="fas fa-tasks"></i> <span id="totalTasksToLose">0</span> {% trans "tarea(s)" %}
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="text-danger fw-bold fs-5">
+                <i class="fas fa-file"></i> <span id="totalFilesToLose">0</span> {% trans "archivo(s)" %}
+              </div>
+            </div>
+          </div>
+          
+          <div id="affectedPhasesList" class="small">
+            <!-- Se llenará dinámicamente con JavaScript -->
+          </div>
+        </div>
+        
+        <p class="mb-2">{% trans "Esta acción NO SE PUEDE DESHACER." %}</p>
+        <p class="mb-0 text-muted small">{% trans "¿Está seguro de que desea continuar?" %}</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times"></i> {% trans "Cancelar" %}
+        </button>
+        <button type="button" class="btn btn-danger" id="confirmReplaceBtn">
+          <i class="fas fa-trash-alt"></i> {% trans "Sí, Reemplazar y Eliminar Todo" %}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Confirmación para Eliminar Fase Individual -->
+<div class="modal fade" id="confirmDeletePhaseModal" tabindex="-1" aria-labelledby="confirmDeletePhaseModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title" id="confirmDeletePhaseModalLabel">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          {% trans "¡ADVERTENCIA! Eliminar Fases" %}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning mb-3">
+          <strong>{% trans "ATENCIÓN:" %}</strong> {% trans "Vas a eliminar" %} <strong><span id="deletePhaseCount">0</span> fase(s)</strong> {% trans "que contienen datos:" %}
+        </div>
+        
+        <div id="deletePhaseList" class="mb-3">
+          <!-- Se llenará dinámicamente con la lista de fases -->
+        </div>
+        
+        <div class="alert alert-danger mb-3">
+          <p class="mb-1"><strong>{% trans "Se eliminarán PERMANENTEMENTE:" %}</strong></p>
+          <ul class="mb-0">
+            <li><strong><span id="deleteTaskCount">0</span> tarea(s)</strong></li>
+            <li><strong><span id="deleteFileCount">0</span> archivo(s)</strong></li>
+          </ul>
+        </div>
+        
+        <p class="mb-2">{% trans "Esta acción NO SE PUEDE DESHACER." %}</p>
+        <p class="mb-0 text-muted small">{% trans "¿Está seguro de que desea continuar?" %}</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times"></i> {% trans "Cancelar" %}
+        </button>
+        <button type="button" class="btn btn-warning text-dark" id="confirmDeletePhaseBtn">
+          <i class="fas fa-trash-alt"></i> {% trans "Sí, Eliminar Fases y sus Datos" %}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -124,37 +220,137 @@ document.addEventListener('DOMContentLoaded', function() {
     if (e.target.closest('.phase-delete-toggle')) {
       const row = e.target.closest('.phase-form');
       const id = row.dataset.id ? parseInt(row.dataset.id) : null;
+      
       // Si no tiene id (fila nueva), eliminar del DOM al instante
       if (!id) {
         row.remove();
         return;
       }
-      // Si tiene id, marcar para eliminar y ocultar (como en formset)
-      row.dataset.delete = '1';
-      row.classList.add('deleted');
-      row.style.display = 'none';
+      
+      // Si tiene id, marcar para eliminar visualmente (sin modal todavía)
+      if (row.dataset.delete === '1') {
+        // Si ya estaba marcado, desmarcar (toggle)
+        row.dataset.delete = '0';
+        row.classList.remove('deleted');
+        row.style.display = '';
+      } else {
+        // Marcar para eliminar
+        row.dataset.delete = '1';
+        row.classList.add('deleted');
+        row.style.opacity = '0.5';
+        row.style.textDecoration = 'line-through';
+      }
     }
   });
 
-  // Aplicar plantilla: POST con template_id, sin mezclar items manuales
+  // Aplicar plantilla: POST con template_id, verificando primero si hay tareas
   if (applyTemplateBtn) {
     applyTemplateBtn.addEventListener('click', async function() {
       const templateId = templateSelect && templateSelect.value ? parseInt(templateSelect.value) : null;
       if (!templateId) return;
+      
       applyTemplateBtn.disabled = true;
-      const resp = await fetch(window.location.href, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') || '', 'X-Requested-With': 'XMLHttpRequest' },
-        body: JSON.stringify({ template_id: templateId })
-      });
-      applyTemplateBtn.disabled = false;
-      if (resp.ok) {
-        // Recargar página para ver nuevas fases
-        window.location = window.location.href;
-      } else {
-        alert('{% trans "No se pudo aplicar la plantilla" %}');
+      
+      try {
+        // Primera solicitud: verificar si hay tareas que se perderán
+        const checkResp = await fetch(window.location.href, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json', 
+            'X-CSRFToken': getCookie('csrftoken') || '', 
+            'X-Requested-With': 'XMLHttpRequest' 
+          },
+          body: JSON.stringify({ template_id: templateId, confirmed: false })
+        });
+        
+        const checkData = await checkResp.json();
+        
+        // Si requiere confirmación (hay tareas o archivos)
+        if (!checkResp.ok && checkData.error === 'confirmation_required') {
+          applyTemplateBtn.disabled = false;
+          
+          // Mostrar modal con información de datos a perder
+          const totalTasks = checkData.data.total_tasks || 0;
+          const totalFiles = checkData.data.total_files || 0;
+          const affectedPhases = checkData.data.affected_phases;
+          
+          document.getElementById('totalTasksToLose').textContent = totalTasks;
+          document.getElementById('totalFilesToLose').textContent = totalFiles;
+          
+          // Construir lista de fases afectadas
+          const phasesList = document.getElementById('affectedPhasesList');
+          phasesList.innerHTML = '<ul class="mb-0">';
+          affectedPhases.forEach(phase => {
+            let details = [];
+            if (phase.task_count > 0) details.push(`${phase.task_count} tarea(s)`);
+            if (phase.file_count > 0) details.push(`${phase.file_count} archivo(s)`);
+            phasesList.innerHTML += `<li><strong>${phase.name}:</strong> ${details.join(', ')}</li>`;
+          });
+          phasesList.innerHTML += '</ul>';
+          
+          // Mostrar modal
+          const modal = new bootstrap.Modal(document.getElementById('confirmReplaceModal'));
+          modal.show();
+          
+          // Configurar botón de confirmación
+          const confirmBtn = document.getElementById('confirmReplaceBtn');
+          confirmBtn.onclick = async function() {
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {% trans "Reemplazando..." %}';
+            
+            // Segunda solicitud: aplicar con confirmación
+            const confirmResp = await fetch(window.location.href, {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json', 
+                'X-CSRFToken': getCookie('csrftoken') || '', 
+                'X-Requested-With': 'XMLHttpRequest' 
+              },
+              body: JSON.stringify({ template_id: templateId, confirmed: true })
+            });
+            
+            if (confirmResp.ok) {
+              // Recargar página para ver nuevas fases
+              window.location = window.location.href;
+            } else {
+              alert('{% trans "No se pudo aplicar la plantilla" %}');
+              confirmBtn.disabled = false;
+              confirmBtn.innerHTML = '<i class="fas fa-trash-alt"></i> {% trans "Sí, Reemplazar y Eliminar Tareas" %}';
+            }
+          };
+          
+          return;
+        }
+        
+        // Si no hay tareas o la operación fue exitosa, continuar normalmente
+        if (checkResp.ok) {
+          window.location = window.location.href;
+        } else {
+          alert('{% trans "No se pudo aplicar la plantilla" %}');
+          applyTemplateBtn.disabled = false;
+        }
+      } catch (error) {
+        console.error('Error al aplicar plantilla:', error);
+        alert('{% trans "Ocurrió un error inesperado" %}');
+        applyTemplateBtn.disabled = false;
       }
     });
+  }
+
+  // Función auxiliar para guardar cambios
+  async function submitPhaseChanges(payload) {
+    const resp = await fetch(window.location.href, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') || '', 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify(payload)
+    });
+    
+    if (resp.ok) {
+      window.location = '{% url "projects:project-detail" project.pk %}?open_phase=1';
+    } else {
+      alert('Error guardando cambios');
+    }
+    return resp.ok;
   }
 
   saveBtn.addEventListener('click', async function() {
@@ -162,6 +358,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const payload = { phases: [] };
     let hasInvalid = false;
     let orderIndex = 0; // solo para filas no eliminadas
+    
     rows.forEach((row) => {
       const input = row.querySelector('input[type="text"]');
       const name = (input?.value || '').trim();
@@ -183,18 +380,101 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
-    saveBtn.disabled = true;
-    const resp = await fetch(window.location.href, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') || '', 'X-Requested-With': 'XMLHttpRequest' },
-      body: JSON.stringify(payload)
-    });
-    saveBtn.disabled = false;
-    if (resp.ok) {
-      window.location = '{% url "projects:project-detail" project.pk %}?open_phase=1';
-    } else {
-      alert('Error guardando cambios');
+    // Verificar si hay fases marcadas para eliminar con datos
+    const phasesToDelete = payload.phases.filter(p => p.delete && p.id);
+    
+    if (phasesToDelete.length > 0) {
+      try {
+        // Verificar cada fase marcada para eliminar
+        const checks = await Promise.all(
+          phasesToDelete.map(async (phase) => {
+            const checkResp = await fetch(`/projects/phases/${phase.id}/check-data/`, {
+              headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (checkResp.ok) {
+              const data = await checkResp.json();
+              return { ...phase, task_count: data.task_count || 0, file_count: data.file_count || 0 };
+            }
+            return { ...phase, task_count: 0, file_count: 0 };
+          })
+        );
+        
+        // Calcular totales
+        const totalTasks = checks.reduce((sum, p) => sum + p.task_count, 0);
+        const totalFiles = checks.reduce((sum, p) => sum + p.file_count, 0);
+        
+        // Si hay datos, mostrar advertencia
+        if (totalTasks > 0 || totalFiles > 0) {
+          const phasesWithData = checks.filter(p => p.task_count > 0 || p.file_count > 0);
+          
+          // Construir lista de fases con datos
+          let phaseList = '<ul class="mb-0">';
+          phasesWithData.forEach(p => {
+            phaseList += `<li><strong>${p.name}</strong>: `;
+            const parts = [];
+            if (p.task_count > 0) parts.push(`${p.task_count} tarea(s)`);
+            if (p.file_count > 0) parts.push(`${p.file_count} archivo(s)`);
+            phaseList += parts.join(', ');
+            phaseList += '</li>';
+          });
+          phaseList += '</ul>';
+          
+          // Actualizar modal
+          const deletePhaseList = document.getElementById('deletePhaseList');
+          deletePhaseList.innerHTML = phaseList;
+          
+          const deletePhaseCount = document.getElementById('deletePhaseCount');
+          deletePhaseCount.textContent = phasesWithData.length;
+          
+          const deleteTaskCount = document.getElementById('deleteTaskCount');
+          deleteTaskCount.textContent = totalTasks;
+          
+          const deleteFileCount = document.getElementById('deleteFileCount');
+          deleteFileCount.textContent = totalFiles;
+          
+          // Mostrar modal y esperar confirmación
+          const modal = new bootstrap.Modal(document.getElementById('confirmDeletePhaseModal'));
+          modal.show();
+          
+          // Guardar el payload para usarlo después de la confirmación
+          window.pendingSavePayload = payload;
+          
+          return; // No continuar con el guardado hasta que se confirme
+        }
+      } catch (error) {
+        console.error('Error al verificar fases:', error);
+        // Continuar con el guardado en caso de error
+      }
     }
+    
+    // Proceder con el guardado
+    saveBtn.disabled = true;
+    await submitPhaseChanges(payload);
+    saveBtn.disabled = false;
+  });
+  
+  // Manejar confirmación de eliminación de fases
+  const confirmDeletePhaseBtn = document.getElementById('confirmDeletePhaseBtn');
+  confirmDeletePhaseBtn.addEventListener('click', async function() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('confirmDeletePhaseModal'));
+    modal.hide();
+    
+    // Usar el payload guardado
+    const payload = window.pendingSavePayload;
+    if (!payload) {
+      alert('Error: no hay datos para guardar');
+      return;
+    }
+    
+    confirmDeletePhaseBtn.disabled = true;
+    confirmDeletePhaseBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {% trans "Eliminando..." %}';
+    
+    await submitPhaseChanges(payload);
+    
+    confirmDeletePhaseBtn.disabled = false;
+    confirmDeletePhaseBtn.innerHTML = '<i class="fas fa-trash-alt"></i> {% trans "Sí, Eliminar Fases y sus Datos" %}';
+    
+    window.pendingSavePayload = null;
   });
 });
 </script>

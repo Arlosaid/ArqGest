@@ -9,6 +9,7 @@ from .views import (
     project_kanban,
     project_statistics,
     phase_create,
+    check_phase_data,
     task_create,
     TaskListView,
     MyTaskListView,
@@ -67,6 +68,7 @@ urlpatterns = [
     path('<int:project_pk>/phases/<int:pk>/', PhaseDetailView.as_view(), name='phase-detail'),
     path('<int:project_pk>/phases/create/', phase_create, name='phase-create'),
     path('<int:pk>/phases/edit/', ProjectPhasesEditView.as_view(), name='project-phases-edit'),
+    path('phases/<int:phase_id>/check-data/', check_phase_data, name='phase-check-data'),
     path('<int:project_id>/phases/<int:phase_id>/files/', phase_files_paginated, name='phase-files-paginated'),
     
     # Paginación AJAX de tareas

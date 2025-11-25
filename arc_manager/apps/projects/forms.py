@@ -133,7 +133,7 @@ class ProjectForm(forms.ModelForm):
             self.fields.pop('template_name', None)
 
         if organization:
-            self.fields['client'].queryset = Client.objects.filter(organization=organization)
+            self.fields['client'].queryset = Client.objects.filter(organization=organization, is_active=True)
             if 'phase_template' in self.fields:
                 self.fields['phase_template'].queryset = PhaseTemplate.objects.filter(
                     models.Q(organization=organization) | models.Q(organization__isnull=True)

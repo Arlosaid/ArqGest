@@ -744,10 +744,34 @@ class ProjectPhasesEditView(LoginRequiredMixin, OrganizationAdminMixin, View):
             except PhaseTemplate.DoesNotExist:
                 return JsonResponse({'success': False, 'error': 'template_not_found'}, status=404)
 
+            # CRÍTICO: Verificar si hay tareas o archivos asociados que se perderán
+            from django.db.models import Count, Q
+            phases_with_data = project.phases.annotate(
+                task_count=Count('tasks'),
+                file_count=Count('files')
+            ).filter(Q(task_count__gt=0) | Q(file_count__gt=0))
+            
+            total_tasks = sum(p.task_count for p in phases_with_data)
+            total_files = sum(p.file_count for p in phases_with_data)
+            
+            # Si hay datos y no se confirma explícitamente, rechazar la operación
+            confirmed = payload.get('confirmed', False)
+            if (total_tasks > 0 or total_files > 0) and not confirmed:
+                # Retornar información para que el frontend muestre advertencia
+                return JsonResponse({
+                    'success': False,
+                    'error': 'confirmation_required',
+                    'data': {
+                        'total_tasks': total_tasks,
+                        'total_files': total_files,
+                        'affected_phases': list(phases_with_data.values('id', 'name', 'task_count', 'file_count'))
+                    }
+                }, status=400)
+
             from django.db import transaction
             try:
                 with transaction.atomic():
-                    # Eliminar fases existentes del proyecto
+                    # Eliminar fases existentes del proyecto (CASCADE eliminará las tareas)
                     project.phases.all().delete()
                     # Crear nuevas fases según la plantilla
                     ordered = sorted(template.phases or [], key=lambda x: x.get('order', 0))
@@ -759,7 +783,24 @@ class ProjectPhasesEditView(LoginRequiredMixin, OrganizationAdminMixin, View):
 
                 from .cache_utils import invalidate_project_cache
                 invalidate_project_cache(project.organization.id, project.id)
-                return JsonResponse({'success': True})
+                
+                # Log de operación crítica
+                logger.warning(
+                    f"Phase template applied to project {project.id} - {total_tasks} tasks and {total_files} files were deleted",
+                    extra={
+                        'project_id': project.id,
+                        'template_id': template_id,
+                        'tasks_deleted': total_tasks,
+                        'files_deleted': total_files,
+                        'user': request.user.email
+                    }
+                )
+                
+                return JsonResponse({
+                    'success': True, 
+                    'tasks_deleted': total_tasks,
+                    'files_deleted': total_files
+                })
             except Exception as e:
                 logger.error(f"Failed to apply phase template for project {project.id}: {e}", exc_info=True)
                 return JsonResponse({'success': False, 'error': 'unexpected_error'}, status=500)
@@ -825,6 +866,33 @@ class ProjectPhasesEditView(LoginRequiredMixin, OrganizationAdminMixin, View):
         except Exception as e:
             logger.error(f"Failed to update phases for project {project.id}: {e}", exc_info=True)
             return JsonResponse({'success': False, 'error': 'unexpected_error'}, status=500)
+
+
+@login_required
+def check_phase_data(request, phase_id):
+    """
+    Verifica cuántas tareas y archivos tiene una fase.
+    Usado para mostrar advertencia antes de eliminar una fase individual.
+    """
+    try:
+        phase = get_object_or_404(Phase, pk=phase_id, project__organization=request.user.organization)
+        
+        from django.db.models import Count
+        
+        # Contar tareas y archivos de la fase
+        task_count = phase.tasks.count()
+        file_count = phase.files.count()
+        
+        return JsonResponse({
+            'phase_id': phase_id,
+            'phase_name': phase.name,
+            'task_count': task_count,
+            'file_count': file_count,
+            'has_data': task_count > 0 or file_count > 0
+        })
+    except Exception as e:
+        logger.error(f"Failed to check phase data for phase {phase_id}: {e}", exc_info=True)
+        return JsonResponse({'error': 'unexpected_error'}, status=500)
 
 
 @login_required
