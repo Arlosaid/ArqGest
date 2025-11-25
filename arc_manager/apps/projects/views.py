@@ -16,6 +16,13 @@ from datetime import datetime
 import os
 from django.core.files.storage import default_storage
 from .models import Project, Task, Phase, PhaseTemplate, ProjectPayment
+from .permissions import (
+    task_create_permission_required,
+    task_edit_permission_required,
+    task_status_change_permission_required,
+    task_move_permission_required,
+    is_organization_admin,
+)
 from core.error_codes import TaskErrorCodes, ProjectErrorCodes
 from core.structured_logging import log_error, log_warning, log_info, log_slow_operation
 
@@ -269,9 +276,18 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         context['can_view_finance'] = is_admin  # Solo admins ven finanzas
         
         # Obtener fases del proyecto con sus archivos y tareas (optimizado)
+        # SEGURIDAD: Filtrar tareas según permisos del usuario
+        from django.db.models import Prefetch
+        if is_admin:
+            # Admins ven todas las tareas
+            tasks_prefetch = Prefetch('tasks', queryset=Task.objects.select_related('assigned_to'))
+        else:
+            # Usuarios normales solo ven sus tareas asignadas
+            tasks_prefetch = Prefetch('tasks', queryset=Task.objects.filter(assigned_to=self.request.user).select_related('assigned_to'))
+        
         phases = project.phases.prefetch_related(
             'files__uploaded_by',
-            'tasks', 'tasks__assigned_to'
+            tasks_prefetch
         ).order_by('order')
         
         # Archivos del proyecto
@@ -303,6 +319,11 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         # Centro de tareas: métricas y listas rápidas (optimizado con agregaciones)
         from django.db.models import Count, Q
         tasks_qs = Task.objects.filter(phase__project=project).select_related('phase', 'assigned_to')
+        
+        # SEGURIDAD: Usuarios no-admin solo ven sus tareas asignadas
+        if not is_admin:
+            tasks_qs = tasks_qs.filter(assigned_to=self.request.user)
+        
         agg = tasks_qs.aggregate(
             total=Count('id'),
             todo=Count('id', filter=Q(status='TODO')),
@@ -609,6 +630,11 @@ def project_kanban(request, pk):
     # Estadísticas detalladas del proyecto (optimizado)
     from django.db.models import Count, Q
     all_tasks = Task.objects.filter(phase__project=project)
+    
+    # UX: Mostrar todas las tareas en Kanban para contexto del proyecto
+    # Los usuarios solo podrán interactuar con sus tareas asignadas (validado en frontend y permisos)
+    is_org_admin = request.user.is_org_admin
+    
     stats = all_tasks.aggregate(
         total=Count('id'),
         todo=Count('id', filter=Q(status='TODO')),
@@ -669,6 +695,7 @@ def project_kanban(request, pk):
         'tasks_done': tasks_done,
         'project_progress': project_progress,
         'today': timezone.now().date(),
+        'is_org_admin': is_organization_admin(request.user),
     }
 
     return render(request, 'projects/kanban_board.html', context)
@@ -841,6 +868,7 @@ def phase_create(request, project_pk):
 
 # Task Views
 @login_required
+@task_create_permission_required
 def task_create(request, project_pk):
     """Crear una nueva tarea."""
     project = get_object_or_404(Project, pk=project_pk, organization=request.user.organization)
@@ -986,6 +1014,10 @@ class TaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
             phase__project__status='ARCHIVED'
         ).select_related('phase__project', 'assigned_to').order_by('due_date', 'priority')
         
+        # SEGURIDAD: Usuarios no-admin solo ven sus tareas asignadas
+        if not self.request.user.is_org_admin:
+            queryset = queryset.filter(assigned_to=self.request.user)
+        
         query_time = time.time() - start_time
         task_count = queryset.count()
         
@@ -1016,6 +1048,11 @@ class TaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
         all_tasks = Task.objects.filter(
             phase__project__organization=self.request.user.organization
         ).exclude(phase__project__status='ARCHIVED')
+        
+        # SEGURIDAD: Usuarios no-admin solo ven sus tareas asignadas
+        if not self.request.user.is_org_admin:
+            all_tasks = all_tasks.filter(assigned_to=self.request.user)
+        
         context['total_tasks'] = all_tasks.count()
         context['tasks_todo'] = all_tasks.filter(status='TODO').count()
         context['tasks_in_progress'] = all_tasks.filter(status='IN_PROGRESS').count()
@@ -1131,6 +1168,7 @@ class MyTaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
 
 @login_required
 @require_POST
+@task_status_change_permission_required
 def update_task_status(request, task_pk):
     """Actualizar el estado de una tarea."""
     try:
@@ -1184,6 +1222,7 @@ def update_task_status(request, task_pk):
 
 @login_required
 @require_POST
+@task_move_permission_required
 def move_task(request, task_pk):
     """Mover una tarea a otra fase."""
     try:
@@ -1239,6 +1278,7 @@ def move_task(request, task_pk):
         return JsonResponse({'success': False, 'error': 'Error inesperado', 'error_code': TaskErrorCodes.TASK_UPDATE_UNEXPECTED_ERROR})
 
 @login_required
+@task_edit_permission_required
 def task_edit(request, pk):
     """Editar una tarea."""
     try:
@@ -1394,6 +1434,10 @@ def project_tasks_paginated(request, project_pk):
 
     # Queryset base
     tasks_qs = Task.objects.filter(phase__project=project).select_related('phase', 'assigned_to')
+    
+    # SEGURIDAD: Usuarios no-admin solo ven sus tareas asignadas
+    if not request.user.is_org_admin:
+        tasks_qs = tasks_qs.filter(assigned_to=request.user)
     
     # Aplicar filtro de fase
     if phase_filter:

@@ -144,11 +144,13 @@
                                     title="{% trans 'Ver detalles' %}">
                                 <i class="fas fa-eye"></i>
                             </button>
+                            {% if user.is_org_admin %}
                             <button type="button" class="action-btn action-edit" 
                                     onclick="openTaskModal('edit', {{ task.pk }})"
                                     title="{% trans 'Editar tarea' %}">
                                 <i class="fas fa-edit"></i>
                             </button>
+                            {% endif %}
                             
                             {% if task.status == 'TODO' %}
                                 <button type="button" class="action-btn action-start" 

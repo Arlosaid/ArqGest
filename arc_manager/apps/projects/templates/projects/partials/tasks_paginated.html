@@ -32,12 +32,14 @@
                     <i class="fas fa-eye"></i>
                     <span>Ver detalles</span>
                 </button>
+                {% if user.is_org_admin %}
                 <button type="button" class="btn-action btn-edit" 
                         onclick="openTaskModal('edit', {{ task.pk }})"
                         title="Editar">
                     <i class="fas fa-edit"></i>
                     <span>Editar</span>
                 </button>
+                {% endif %}
                 {% if user.is_org_admin %}
                 <button type="button" class="btn-action btn-delete" 
                         data-action="delete-task" 

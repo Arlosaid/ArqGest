@@ -150,9 +150,11 @@
                                 <button type="button" class="task-action-btn secondary task-detail-btn" title="{% trans 'Ver detalles' %}">
                                     <i class="fas fa-eye"></i> {% trans "Detalles" %}
                                 </button>
+                                {% if user.is_org_admin %}
                                 <button type="button" class="task-action-btn primary" onclick="openTaskModal('edit', {{ task.pk }})" title="{% trans 'Editar tarea' %}">
                                     <i class="fas fa-edit"></i> {% trans "Editar" %}
                                 </button>
+                                {% endif %}
                                 
                                 {% if task.status == 'TODO' %}
                                     <button type="button" class="task-action-btn primary" onclick="updateTaskStatus('{{ task.pk }}', 'IN_PROGRESS')">

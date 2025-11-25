@@ -159,6 +159,17 @@ class KanbanManager {
             return;
         }
 
+        // Verificar permisos: admins O usuarios asignados pueden hacer drag & drop
+        const isOrgAdmin = document.body.dataset.isOrgAdmin === 'true';
+        const currentUserId = parseInt(document.body.dataset.currentUserId || '0');
+        const taskAssignedToId = parseInt(e.target.dataset.assignedToId || '0');
+        
+        // Permitir solo si es admin O si es el usuario asignado
+        if (!isOrgAdmin && currentUserId !== taskAssignedToId) {
+            e.preventDefault();
+            return;
+        }
+
         // Feedback visual mínimo y eficiente
         e.target.classList.add('dragging');
         e.dataTransfer.setData('text/plain', e.target.dataset.taskId);

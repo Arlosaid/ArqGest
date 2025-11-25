@@ -1662,4 +1662,92 @@
     transform: scale(1.1);
 }
 
+/* ========================================
+   ESTILOS PARA TAREAS DE OTROS USUARIOS
+   Diferenciación visual para UX mejorada
+   ======================================== */
+
+/* Tarjetas de tareas que NO son del usuario actual */
+.kanban-card.other-user-task {
+    opacity: 0.6;
+    cursor: default !important;
+    border-style: dashed;
+    border-color: rgba(203, 213, 225, 0.5);
+    background: linear-gradient(135deg, rgba(248, 250, 252, 0.4) 0%, rgba(241, 245, 249, 0.6) 100%);
+    pointer-events: auto; /* Permitir ver detalles */
+}
+
+.kanban-card.other-user-task:hover {
+    opacity: 0.7;
+    transform: none;
+    box-shadow: var(--arc-shadow-sm);
+    border-color: rgba(203, 213, 225, 0.6);
+}
+
+.kanban-card.other-user-task::before {
+    display: none;
+}
+
+.kanban-card.other-user-task::after {
+    background: var(--arc-text-tertiary);
+    opacity: 0.15;
+}
+
+/* Overlay sutil para indicar que no es interactiva */
+.kanban-card.other-user-task .card-body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.3);
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+/* Deshabilitar todos los botones de acción en tareas de otros excepto "Ver detalles" */
+.kanban-card.other-user-task .task-action-buttons button:not(.btn-outline-secondary) {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* El botón de ver detalles sigue funcionando */
+.kanban-card.other-user-task .btn-outline-secondary {
+    opacity: 0.8;
+    pointer-events: auto;
+}
+
+.kanban-card.other-user-task .btn-outline-secondary:hover {
+    opacity: 1;
+    background: rgba(100, 116, 139, 0.1);
+}
+
+/* Tarjetas del usuario actual - destacadas */
+.kanban-card.my-task {
+    border: 2px solid transparent;
+    background: var(--kanban-card-bg);
+}
+
+.kanban-card.my-task:hover {
+    border-color: rgba(59, 130, 246, 0.4);
+    box-shadow: 0 8px 16px -4px rgba(59, 130, 246, 0.15);
+}
+
+.kanban-card.my-task::after {
+    background: linear-gradient(180deg, var(--arc-color-primary), var(--status-progress-600));
+    opacity: 0.5;
+}
+
+.kanban-card.my-task:hover::after {
+    opacity: 0.8;
+}
+
+/* Indicador visual en el título para tareas de otros */
+.kanban-card.other-user-task .task-title::after {
+    content: '🔒';
+    margin-left: 0.5rem;
+    font-size: 0.75rem;
+    opacity: 0.5;
+}
+
+
 
