@@ -283,10 +283,11 @@ if DATABASES['default']['ENGINE'] == 'django.db.backends.postgresql':
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+    {'NAME': 'core.password_validators.CustomUserAttributeSimilarityValidator'},
+    {'NAME': 'core.password_validators.CustomMinimumLengthValidator'},
+    {'NAME': 'core.password_validators.PasswordComplexityValidator'},
+    {'NAME': 'core.password_validators.CustomNumericPasswordValidator'},
+    {'NAME': 'core.password_validators.WeakPasswordValidator'},
 ]
 
 
