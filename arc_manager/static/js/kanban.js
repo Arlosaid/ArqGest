@@ -24,13 +24,13 @@ class KanbanManager {
     bindEvents() {
         // Eventos de filtros
         this.bindFilterEvents();
-        
+
         // Eventos de formularios
         this.bindFormEvents();
-        
+
         // Eventos de modales
         this.bindModalEvents();
-        
+
         // Eventos de botones de acción
         this.bindActionEvents();
     }
@@ -93,7 +93,7 @@ class KanbanManager {
                 const btn = e.target.closest('.task-actions .btn');
                 const action = btn.getAttribute('data-action');
                 const taskId = btn.closest('.kanban-card').dataset.taskId;
-                
+
                 if (action === 'edit') {
                     this.editTask(taskId);
                 } else if (action === 'view') {
@@ -139,12 +139,12 @@ class KanbanManager {
         // Inicializar modales de Bootstrap si están disponibles
         if (typeof bootstrap !== 'undefined') {
             this.modals = {};
-            
+
             // Solo inicializar modales que existen en el DOM
             if (this.addTaskModal) {
                 this.modals.addTask = new bootstrap.Modal(this.addTaskModal);
             }
-            
+
             if (this.taskModal) {
                 this.modals.task = new bootstrap.Modal(this.taskModal);
             }
@@ -158,12 +158,12 @@ class KanbanManager {
             e.preventDefault();
             return;
         }
-        
+
         // Feedback visual mínimo y eficiente
         e.target.classList.add('dragging');
         e.dataTransfer.setData('text/plain', e.target.dataset.taskId);
         e.dataTransfer.effectAllowed = 'move';
-        
+
         // Usar una imagen de arrastre más simple y pequeña
         const dragImage = document.createElement('div');
         dragImage.style.width = '200px';
@@ -181,10 +181,10 @@ class KanbanManager {
         dragImage.style.position = 'absolute';
         dragImage.style.top = '-1000px';
         dragImage.style.left = '-1000px';
-        
+
         document.body.appendChild(dragImage);
         e.dataTransfer.setDragImage(dragImage, 100, 30);
-        
+
         // Limpiar inmediatamente
         setTimeout(() => {
             if (document.body.contains(dragImage)) {
@@ -201,7 +201,7 @@ class KanbanManager {
     handleDragOver(e) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
-        
+
         // Detectar la columna más cercana de forma optimizada
         const column = this.getClosestColumn(e.clientX, e.clientY);
         if (column) {
@@ -231,28 +231,28 @@ class KanbanManager {
         const columns = document.querySelectorAll('.kanban-column-body');
         let closestColumn = null;
         let minDistance = Infinity;
-        
+
         for (let col of columns) {
             const rect = col.getBoundingClientRect();
-            
+
             // Verificar si está dentro del área de la columna (con margen de 100px)
-            if (x >= rect.left - 100 && 
-                x <= rect.right + 100 && 
-                y >= rect.top - 100 && 
+            if (x >= rect.left - 100 &&
+                x <= rect.right + 100 &&
+                y >= rect.top - 100 &&
                 y <= rect.bottom + 100) {
-                
+
                 const distance = Math.sqrt(
-                    Math.pow(x - (rect.left + rect.width / 2), 2) + 
+                    Math.pow(x - (rect.left + rect.width / 2), 2) +
                     Math.pow(y - (rect.top + rect.height / 2), 2)
                 );
-                
+
                 if (distance < minDistance) {
                     minDistance = distance;
                     closestColumn = col;
                 }
             }
         }
-        
+
         return closestColumn;
     }
 
@@ -260,18 +260,18 @@ class KanbanManager {
         e.preventDefault();
         e.stopPropagation();
         if (this.isUpdating) return;
-        
+
         // Usar la función optimizada para encontrar la columna de destino
         const column = this.getClosestColumn(e.clientX, e.clientY);
-        
+
         if (!column) return;
 
         const taskId = e.dataTransfer.getData('text/plain');
         const newStatus = column.dataset.statusCode;
-        
+
         // Limpiar todas las clases de drag-over
         this.removeDragOverClasses();
-        
+
         // Actualizar el estado de la tarea
         this.updateTaskStatusSilently(taskId, newStatus);
     }
@@ -296,12 +296,12 @@ class KanbanManager {
 
     async updateTaskStatusSilently(taskId, newStatus) {
         if (this.isUpdating) return;
-        
+
         this.isUpdating = true;
-        
+
         // Mover la tarjeta visualmente INMEDIATAMENTE para mejor UX
         this.moveCardVisually(taskId, newStatus);
-        
+
         try {
             const response = await fetch(`/projects/tasks/${taskId}/update_status/`, {
                 method: 'POST',
@@ -315,10 +315,13 @@ class KanbanManager {
             });
 
             const data = await response.json();
-            
+
             if (data.success) {
                 // Actualizar estadísticas en segundo plano
                 this.updateStatisticsSilently();
+
+                // CRÍTICO: Broadcast el cambio a otras pestañas/ventanas (ej: Mis Tareas)
+                this.broadcastTaskStatusChange(taskId, newStatus);
             } else {
                 // Revertir el movimiento si falla
                 console.error('Error al actualizar tarea:', data.error);
@@ -328,6 +331,29 @@ class KanbanManager {
             console.error('Error:', error);
         } finally {
             this.isUpdating = false;
+        }
+    }
+
+    // Función para broadcast cambios de estado a otras pestañas/ventanas
+    broadcastTaskStatusChange(taskId, newStatus) {
+        try {
+            const event = {
+                type: 'TASK_STATUS_UPDATED',
+                taskId: taskId,
+                status: newStatus,
+                timestamp: Date.now(),
+                source: 'kanban'
+            };
+
+            // Usar localStorage para comunicación entre pestañas
+            localStorage.setItem('task_update_event', JSON.stringify(event));
+
+            // Limpiar inmediatamente para permitir eventos duplicados
+            setTimeout(() => {
+                localStorage.removeItem('task_update_event');
+            }, 100);
+        } catch (error) {
+            console.error('Error broadcasting task update:', error);
         }
     }
 
@@ -343,19 +369,19 @@ class KanbanManager {
         card.style.transition = 'all 0.1s ease-out';
         card.style.opacity = '0.6';
         card.style.transform = 'scale(0.95)';
-        
+
         // Mover inmediatamente sin animación compleja
         setTimeout(() => {
             targetColumn.appendChild(card);
-            
+
             // Restaurar estilos
             card.style.opacity = '1';
             card.style.transform = 'none';
             card.style.transition = 'all 0.1s ease-out';
-            
+
             // Actualizar botones de estado en la tarjeta (importante para móvil)
             this.updateCardStatusButtons(card, newStatus);
-            
+
             // Actualizar contadores
             this.updateColumnCounts();
         }, 100);
@@ -368,14 +394,14 @@ class KanbanManager {
 
         // Generar los nuevos botones basados en el nuevo estado
         const newButtons = this.generateStatusButtons(card.dataset.taskId, newStatus);
-        
+
         // Reemplazar el contenido HTML
         statusButtonsContainer.innerHTML = newButtons;
     }
 
     generateStatusButtons(taskId, status) {
         // Generar los botones HTML basados en el estado actual
-        switch(status) {
+        switch (status) {
             case 'TODO':
                 return `
                     <button class="btn btn-sm btn-primary" 
@@ -420,15 +446,15 @@ class KanbanManager {
 
     updateColumnCounts() {
         const columns = document.querySelectorAll('.kanban-column');
-        
+
         columns.forEach(column => {
             const columnBody = column.querySelector('.kanban-column-body');
             const countElement = column.querySelector('.task-count');
-            
+
             if (columnBody && countElement) {
                 const taskCount = columnBody.querySelectorAll('.kanban-card').length;
                 const statusCode = columnBody.dataset.statusCode;
-                
+
                 // Actualizar el contador
                 if (taskCount === 1) {
                     countElement.textContent = '1 tarea';
@@ -442,9 +468,9 @@ class KanbanManager {
     updateStatisticsSilently() {
         // Actualizar estadísticas en tiempo real sin recargar
         const statCards = document.querySelectorAll('.stat-card');
-        
+
         // Efectos de actualización deshabilitados
-        
+
         // Actualizar números reales de las estadísticas
         this.updateStatisticsInRealTime();
     }
@@ -455,7 +481,7 @@ class KanbanManager {
             const projectId = this.getProjectIdFromUrl();
             const response = await fetch(`/projects/${projectId}/statistics/`);
             const data = await response.json();
-            
+
             if (data.success) {
                 // Actualizar cada tarjeta de estadística con los nuevos números
                 this.updateStatCard('total-tasks', data.total_tasks);
@@ -493,19 +519,19 @@ class KanbanManager {
 
     async handleTaskSubmit(e) {
         e.preventDefault();
-        
+
         const formData = new FormData(this.taskForm);
         // El botón de submit está fuera del <form> (usa atributo form="taskForm").
         // Buscar primero por el botón vinculado al form y, si no existe, buscar dentro del form.
         const submitBtn = document.querySelector('button[type="submit"][form="taskForm"]') || this.taskForm.querySelector('button[type="submit"]');
         const originalHTML = submitBtn ? submitBtn.innerHTML : null;
-        
+
         // Deshabilitar botón y mostrar loading (si existe)
         if (submitBtn) {
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando...';
         }
-        
+
         try {
             const response = await fetch(this.taskForm.action, {
                 method: 'POST',
@@ -552,7 +578,7 @@ class KanbanManager {
                 try {
                     const data = contentType.includes('application/json') ? await response.json() : null;
                     msg = (data && (data.message || data.error)) || msg;
-                } catch (_) {}
+                } catch (_) { }
                 this.showNotification(msg, 'error');
             }
         } catch (error) {
@@ -612,10 +638,10 @@ class KanbanManager {
                     taskCard.style.transition = 'all 0.3s ease';
                     taskCard.style.opacity = '0';
                     taskCard.style.transform = 'scale(0.8)';
-                    
+
                     setTimeout(() => {
                         taskCard.remove();
-                        
+
                         // Verificar si la columna está vacía y mostrar mensaje
                         const column = taskCard.closest('.kanban-column-body');
                         if (column && column.children.length === 0) {
@@ -623,9 +649,9 @@ class KanbanManager {
                         }
                     }, 300);
                 }
-                
+
                 this.showNotification('Tarea eliminada correctamente', 'success');
-                
+
                 // Disparar evento para que otras partes de la app se actualicen
                 document.dispatchEvent(new CustomEvent('taskDeleted', { detail: { taskId } }));
             } else {
@@ -710,46 +736,65 @@ class KanbanManager {
 
 // ===== INITIALIZATION =====
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Inicializar KanbanManager
     window.kanbanManager = new KanbanManager();
-    
+
     // Funciones globales para compatibilidad
-    window.clearFilters = function() {
+    window.clearFilters = function () {
         window.kanbanManager.clearFilters();
     };
-    
-    window.refreshKanban = function() {
+
+    window.refreshKanban = function () {
         window.kanbanManager.refreshKanban();
     };
-    
+
     if (typeof window.showTaskDetails !== 'function') {
-        window.showTaskDetails = function(taskId) {
+        window.showTaskDetails = function (taskId) {
             window.kanbanManager.viewTask(taskId);
         };
     }
-    
-    window.updateTaskStatus = function(taskId, newStatus) {
+
+    window.updateTaskStatus = function (taskId, newStatus) {
         window.kanbanManager.updateTaskStatusSilently(taskId, newStatus);
     };
-    
-    window.deleteKanbanTask = function(taskId) {
+
+    window.deleteKanbanTask = function (taskId) {
         window.kanbanManager.deleteTask(taskId);
     };
-    
+
     // Función para mover tareas usando botones (alternativa al drag and drop)
-    window.moveTaskToStatus = function(taskId, newStatus) {
+    window.moveTaskToStatus = function (taskId, newStatus) {
         if (window.kanbanManager) {
             window.kanbanManager.updateTaskStatusSilently(taskId, newStatus);
         }
     };
 
     // Función mejorada para actualizar estado de tareas (compatible con Mis Tareas)
-    window.updateTaskStatus = function(taskId, newStatus) {
+    window.updateTaskStatus = function (taskId, newStatus) {
         if (window.kanbanManager) {
             window.kanbanManager.updateTaskStatusSilently(taskId, newStatus);
         }
     };
+
+    // CRÍTICO: Escuchar cambios de estado de tareas desde otras pestañas
+    window.addEventListener('storage', function (e) {
+        if (e.key === 'task_update_event' && e.newValue) {
+            try {
+                const event = JSON.parse(e.newValue);
+
+                // Solo procesar eventos de actualización de tareas
+                if (event.type === 'TASK_STATUS_UPDATED' && window.kanbanManager) {
+                    // Actualizar la UI si la tarea está visible en esta página
+                    window.kanbanManager.moveCardVisually(event.taskId, event.status);
+
+                    console.log(`[Sync] Task ${event.taskId} updated to ${event.status} from ${event.source}`);
+                }
+            } catch (error) {
+                console.error('Error processing storage event:', error);
+            }
+        }
+    });
 });
 
 // ===== EXPORT FOR MODULE SYSTEMS =====

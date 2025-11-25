@@ -1986,14 +1986,34 @@ class PaymentCreateView(LoginRequiredMixin, OrganizationAdminMixin, CreateView):
             form.add_error('description', f'Error al procesar el archivo: {str(e)}')
             return super().form_invalid(form)
         
-        # Validar que no exceda el presupuesto
-        if self.project.total_budget:
-            new_total = self.project.total_paid + form.instance.amount
+        # VALIDACIÓN CRÍTICA: Validar que el monto sea positivo
+        from decimal import Decimal, InvalidOperation
+        new_amount = Decimal(str(form.instance.amount))
+        
+        if new_amount <= Decimal('0'):
+            logger.warning(f"[TC-52] CREATE REJECTED: Non-positive amount (${new_amount})")
+            form.add_error(
+                'amount',
+                'El monto del pago debe ser mayor a cero.'
+            )
+            return super().form_invalid(form)
+        
+        # VALIDACIÓN CRÍTICA: Validar que no exceda el presupuesto (si está configurado)
+        if self.project.total_budget and self.project.total_budget > Decimal('0'):
+            new_total = self.project.total_paid + new_amount
+            
             if new_total > self.project.total_budget:
+                max_available = self.project.remaining_amount
+                logger.warning(
+                    f"[TC-52] CREATE REJECTED: Exceeds budget. "
+                    f"Project: {self.project.name} (ID: {self.project.id}), "
+                    f"New total: ${new_total:,.2f}, Budget: ${self.project.total_budget:,.2f}, "
+                    f"Max allowed: ${max_available:,.2f}"
+                )
                 form.add_error(
                     'amount', 
                     f"Este pago excedería el presupuesto total. "
-                    f"Máximo disponible: ${self.project.remaining_amount:,.2f}"
+                    f"Máximo disponible: ${max_available:,.2f}"
                 )
                 return super().form_invalid(form)
         
@@ -2046,20 +2066,52 @@ class PaymentUpdateView(LoginRequiredMixin, OrganizationAdminMixin, UpdateView):
     
     def form_valid(self, form):
         """Validar que no exceda el presupuesto."""
-        # Calcular el monto que se restaría del total actual
-        old_amount = self.object.amount
-        new_amount = form.instance.amount
-        difference = new_amount - old_amount
-        # Guardar referencia del archivo anterior para limpieza post-guardado
-        old_receipt_name = self.object.receipt_file.name if getattr(self.object, 'receipt_file', None) else None
+        from decimal import Decimal, InvalidOperation
         
-        if self.project.total_budget:
-            new_total = self.project.total_paid + difference
+        uploaded = None  # Inicializar variable
+        
+        # IMPORTANTE: Usar self.payment (cargado en dispatch) en lugar de self.object
+        # para asegurar que tenemos la versión correcta del pago
+        old_amount = Decimal(str(self.payment.amount))
+        
+        # El formulario ya convierte automáticamente a Decimal si el campo es DecimalField
+        new_amount = form.cleaned_data.get('amount')
+        if new_amount is None:
+            new_amount = Decimal(str(form.instance.amount))
+        else:
+            new_amount = Decimal(str(new_amount))
+        
+        # Guardar referencia del archivo anterior para limpieza post-guardado
+        old_receipt_name = self.payment.receipt_file.name if getattr(self.payment, 'receipt_file', None) else None
+        
+        # VALIDACIÓN CRÍTICA: Validar que el monto sea positivo
+        if new_amount <= Decimal('0'):
+            logger.warning(f"[TC-52] EDIT REJECTED: Non-positive amount (${new_amount}) in {self.project.name} (ID: {self.project.id})")
+            form.add_error(
+                'amount',
+                'El monto del pago debe ser mayor a cero.'
+            )
+            return super().form_invalid(form)
+        
+        # VALIDACIÓN CRÍTICA: Validar que no exceda el presupuesto (si está configurado)
+        if self.project.total_budget and self.project.total_budget > Decimal('0'):
+            # Calcular el nuevo total considerando el cambio
+            new_total = (self.project.total_paid - old_amount) + new_amount
+            
             if new_total > self.project.total_budget:
+                # Máximo permitido = presupuesto - (total_paid - old_amount)
+                max_allowed = self.project.total_budget - (self.project.total_paid - old_amount)
+                logger.warning(
+                    f"[TC-52] EDIT REJECTED: Exceeds budget. "
+                    f"Project: {self.project.name} (ID: {self.project.id}), "
+                    f"Old amount: ${old_amount:,.2f}, New amount: ${new_amount:,.2f}, "
+                    f"New total: ${new_total:,.2f}, Budget: ${self.project.total_budget:,.2f}, "
+                    f"Max allowed: ${max_allowed:,.2f}"
+                )
                 form.add_error(
                     'amount', 
                     f"Este cambio excedería el presupuesto total. "
-                    f"Máximo disponible: ${self.project.remaining_amount + old_amount:,.2f}"
+                    f"Máximo permitido: ${max_allowed:,.2f}"
                 )
                 return super().form_invalid(form)
         

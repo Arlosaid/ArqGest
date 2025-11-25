@@ -1,12 +1,12 @@
 // ===== MIS TAREAS - FUNCIONALIDADES COMPLETAS =====
 
 // Función optimizada para cambio de estado instantáneo sin notificaciones
-window.updateTaskStatus = function(taskId, status) {
+window.updateTaskStatus = function (taskId, status) {
     updateTaskStatusInstant(taskId, status);
 };
 
 // Función global para confirmar eliminación de tareas
-window.confirmDeleteTask = function(taskId, taskTitle) {
+window.confirmDeleteTask = function (taskId, taskTitle) {
     // Crear modal de confirmación personalizado
     const modalHtml = `
         <div class="modal fade" id="deleteTaskModal" tabindex="-1" aria-labelledby="deleteTaskModalLabel" aria-hidden="true">
@@ -46,30 +46,30 @@ window.confirmDeleteTask = function(taskId, taskTitle) {
             </div>
         </div>
     `;
-    
+
     // Remover modal anterior si existe
     const existingModal = document.getElementById('deleteTaskModal');
     if (existingModal) {
         existingModal.remove();
     }
-    
+
     // Agregar modal al DOM
     document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
+
     // Mostrar modal
     const modal = new bootstrap.Modal(document.getElementById('deleteTaskModal'));
     modal.show();
-    
+
     // Limpiar modal después de cerrarlo
-    document.getElementById('deleteTaskModal').addEventListener('hidden.bs.modal', function() {
+    document.getElementById('deleteTaskModal').addEventListener('hidden.bs.modal', function () {
         this.remove();
     });
 };
 
 // Función para eliminar la tarea
-window.deleteTask = function(taskId) {
+window.deleteTask = function (taskId) {
     const url = `/projects/tasks/${taskId}/delete/`;
-    
+
     fetch(url, {
         method: 'POST',
         headers: {
@@ -77,59 +77,59 @@ window.deleteTask = function(taskId) {
             'X-CSRFToken': getCookie('csrftoken') || ''
         }
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Cerrar modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteTaskModal'));
-            if (modal) {
-                modal.hide();
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Cerrar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('deleteTaskModal'));
+                if (modal) {
+                    modal.hide();
+                }
+
+                // Remover tarjeta de la UI
+                const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
+                if (taskCard) {
+                    // Animación de salida
+                    taskCard.style.transition = 'all 0.3s ease';
+                    taskCard.style.transform = 'scale(0.8)';
+                    taskCard.style.opacity = '0';
+
+                    setTimeout(() => {
+                        taskCard.remove();
+
+                        // Actualizar contadores
+                        const taskStatus = taskCard.dataset.status;
+                        updateTaskDeleteCounter(taskStatus);
+
+                        // Verificar si no hay más tareas
+                        const remainingTasks = document.querySelectorAll('.task-card-compact');
+                        if (remainingTasks.length === 0) {
+                            showEmptyState();
+                        }
+                    }, 300);
+                }
+
+                // Mostrar notificación de éxito
+                showSuccessNotification('Tarea eliminada correctamente');
+            } else {
+                // Mostrar error
+                showErrorNotification(data.error || 'Error al eliminar la tarea');
             }
-            
-            // Remover tarjeta de la UI
-            const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
-            if (taskCard) {
-                // Animación de salida
-                taskCard.style.transition = 'all 0.3s ease';
-                taskCard.style.transform = 'scale(0.8)';
-                taskCard.style.opacity = '0';
-                
-                setTimeout(() => {
-                    taskCard.remove();
-                    
-                    // Actualizar contadores
-                    const taskStatus = taskCard.dataset.status;
-                    updateTaskDeleteCounter(taskStatus);
-                    
-                    // Verificar si no hay más tareas
-                    const remainingTasks = document.querySelectorAll('.task-card-compact');
-                    if (remainingTasks.length === 0) {
-                        showEmptyState();
-                    }
-                }, 300);
-            }
-            
-            // Mostrar notificación de éxito
-            showSuccessNotification('Tarea eliminada correctamente');
-        } else {
-            // Mostrar error
-            showErrorNotification(data.error || 'Error al eliminar la tarea');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showErrorNotification('Error de conexión al eliminar la tarea');
-    });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showErrorNotification('Error de conexión al eliminar la tarea');
+        });
 };
 
 // Función instantánea sin notificaciones ni recargas
 function updateTaskStatusInstant(taskId, status) {
     // Primero actualizar la UI inmediatamente
     updateTaskUIInstant(taskId, status);
-    
+
     // Luego enviar al servidor en background
     const url = `/projects/tasks/${taskId}/update_status/`;
-    
+
     fetch(url, {
         method: 'POST',
         headers: {
@@ -138,38 +138,64 @@ function updateTaskStatusInstant(taskId, status) {
         },
         body: `status=${status}`
     })
-    .then(response => response.json())
-    .then(data => {
-        if (!data.success) {
-            // Solo si falla, revertir la UI y mostrar error discreto
-            console.error('Error al actualizar tarea:', data.error);
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // CRÍTICO: Broadcast el cambio a otras pestañas/ventanas (ej: Kanban)
+                broadcastTaskStatusChange(taskId, status);
+            } else {
+                // Solo si falla, revertir la UI y mostrar error discreto
+                console.error('Error al actualizar tarea:', data.error);
+                // Podrías revertir la UI aquí si quisieras
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
             // Podrías revertir la UI aquí si quisieras
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        // Podrías revertir la UI aquí si quisieras
-    });
+        });
+}
+
+// Función para broadcast cambios de estado a otras pestañas/ventanas
+function broadcastTaskStatusChange(taskId, newStatus) {
+    try {
+        const event = {
+            type: 'TASK_STATUS_UPDATED',
+            taskId: taskId,
+            status: newStatus,
+            timestamp: Date.now(),
+            source: 'my_tasks'
+        };
+
+        // Usar localStorage para comunicación entre pestañas
+        localStorage.setItem('task_update_event', JSON.stringify(event));
+
+        // Limpiar inmediatamente para permitir eventos duplicados
+        setTimeout(() => {
+            localStorage.removeItem('task_update_event');
+        }, 100);
+    } catch (error) {
+        console.error('Error broadcasting task update:', error);
+    }
 }
 
 // Función para actualizar la UI instantáneamente
 function updateTaskUIInstant(taskId, newStatus) {
     const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
     if (!taskCard) return;
-    
+
     // Guardar el estado anterior
     const oldStatus = taskCard.dataset.status;
-    
+
     // Actualizar el dataset
     taskCard.dataset.status = newStatus;
-    
+
     // Actualizar el badge de estado
     const statusBadge = taskCard.querySelector('.badge-status');
     if (statusBadge) {
         // Remover clases anteriores
         statusBadge.className = statusBadge.className.replace(/badge-\w+/g, '');
         statusBadge.classList.add('badge-status', `badge-${newStatus.toLowerCase()}`);
-        
+
         // Actualizar texto
         const statusTexts = {
             'TODO': 'Pendiente',
@@ -179,10 +205,10 @@ function updateTaskUIInstant(taskId, newStatus) {
         };
         statusBadge.textContent = statusTexts[newStatus] || newStatus;
     }
-    
+
     // Actualizar botones de acción
     updateTaskActions(taskCard, newStatus);
-    
+
     // Actualizar contadores específicamente para este cambio de estado
     updateTaskStatusCounter(oldStatus, newStatus);
 }
@@ -191,20 +217,20 @@ function updateTaskUIInstant(taskId, newStatus) {
 function updateTaskActions(taskCard, status) {
     const actionsContainer = taskCard.querySelector('.status-actions');
     if (!actionsContainer) return;
-    
+
     const taskId = taskCard.dataset.taskId;
-    
+
     // Guardar el botón de kanban antes de reemplazar
     const kanbanBtn = actionsContainer.querySelector('.action-kanban');
     const kanbanUrl = kanbanBtn?.href || '#';
-    
+
     // Limpiar solo los botones de estado (no todos los botones)
     const stateButtons = actionsContainer.querySelectorAll('.action-start, .action-pause, .action-complete, .action-resume, .action-reopen');
     stateButtons.forEach(btn => btn.remove());
-    
+
     // Crear nuevos botones según estado
     let newButtonsHTML = '';
-    
+
     if (status === 'TODO') {
         newButtonsHTML = `
             <button type="button" class="action-btn action-start" 
@@ -243,7 +269,7 @@ function updateTaskActions(taskCard, status) {
             </button>
         `;
     }
-    
+
     // Insertar los nuevos botones antes del botón de kanban
     if (kanbanBtn) {
         kanbanBtn.insertAdjacentHTML('beforebegin', newButtonsHTML);
@@ -283,7 +309,7 @@ function initializeServerCounters() {
     const progressEl = document.querySelector('.stat-progress .stat-number');
     const pausedEl = document.querySelector('.stat-paused .stat-number');
     const doneEl = document.querySelector('.stat-done .stat-number');
-    
+
     // Guardar los valores originales del servidor
     if (totalEl) serverCounters.total = parseInt(totalEl.textContent) || 0;
     if (todoEl) serverCounters.todo = parseInt(todoEl.textContent) || 0;
@@ -299,13 +325,13 @@ function updateTaskStatusCounter(oldStatus, newStatus) {
     else if (oldStatus === 'IN_PROGRESS') serverCounters.in_progress--;
     else if (oldStatus === 'PAUSED') serverCounters.paused--;
     else if (oldStatus === 'DONE') serverCounters.done--;
-    
+
     // Incrementar el nuevo contador
     if (newStatus === 'TODO') serverCounters.todo++;
     else if (newStatus === 'IN_PROGRESS') serverCounters.in_progress++;
     else if (newStatus === 'PAUSED') serverCounters.paused++;
     else if (newStatus === 'DONE') serverCounters.done++;
-    
+
     // Actualizar la UI con los valores actualizados
     refreshCountersUI();
 }
@@ -314,13 +340,13 @@ function updateTaskStatusCounter(oldStatus, newStatus) {
 function updateTaskDeleteCounter(taskStatus) {
     // Decrementar el total
     serverCounters.total--;
-    
+
     // Decrementar el contador específico
     if (taskStatus === 'TODO') serverCounters.todo--;
     else if (taskStatus === 'IN_PROGRESS') serverCounters.in_progress--;
     else if (taskStatus === 'PAUSED') serverCounters.paused--;
     else if (taskStatus === 'DONE') serverCounters.done--;
-    
+
     // Actualizar la UI
     refreshCountersUI();
 }
@@ -332,7 +358,7 @@ function refreshCountersUI() {
     const progressEl = document.querySelector('.stat-progress .stat-number');
     const pausedEl = document.querySelector('.stat-paused .stat-number');
     const doneEl = document.querySelector('.stat-done .stat-number');
-    
+
     if (totalEl) totalEl.textContent = serverCounters.total;
     if (todoEl) todoEl.textContent = serverCounters.todo;
     if (progressEl) progressEl.textContent = serverCounters.in_progress;
@@ -387,7 +413,7 @@ function showNotification(message, type = 'success') {
             </div>
         </div>
     `;
-    
+
     // Buscar o crear contenedor de toasts
     let toastContainer = document.querySelector('.toast-container');
     if (!toastContainer) {
@@ -396,17 +422,17 @@ function showNotification(message, type = 'success') {
         toastContainer.style.zIndex = '1055';
         document.body.appendChild(toastContainer);
     }
-    
+
     // Agregar toast
     toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-    
+
     // Mostrar toast
     const toastElement = toastContainer.lastElementChild;
     const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
     toast.show();
-    
+
     // Limpiar después de ocultar
-    toastElement.addEventListener('hidden.bs.toast', function() {
+    toastElement.addEventListener('hidden.bs.toast', function () {
         this.remove();
     });
 }
@@ -419,30 +445,30 @@ function filterTasks() {
     const searchInput = document.getElementById('taskSearch');
     const statusFilter = document.getElementById('statusFilter');
     const priorityFilter = document.getElementById('priorityFilter');
-    
+
     const searchTerm = searchInput ? searchInput.value.trim() : '';
     const statusValue = statusFilter ? statusFilter.value : '';
     const priorityValue = priorityFilter ? priorityFilter.value : '';
-    
+
     // Construir URL con parámetros de filtro
     const currentUrl = new URL(window.location);
     const params = new URLSearchParams();
-    
+
     if (searchTerm) {
         params.set('search', searchTerm);
     }
-    
+
     if (statusValue) {
         params.set('status', statusValue);
     }
-    
+
     if (priorityValue) {
         params.set('priority', priorityValue);
     }
-    
+
     // Navegar a la nueva URL con filtros
     const newUrl = currentUrl.pathname + (params.toString() ? '?' + params.toString() : '');
-    
+
     // Si no hay cambios en la URL, no recargar
     if (newUrl !== window.location.pathname + window.location.search) {
         window.location.href = newUrl;
@@ -450,7 +476,7 @@ function filterTasks() {
 }
 
 // Función global para limpiar filtros
-window.clearAllFilters = function() {
+window.clearAllFilters = function () {
     // Simplemente redirigir a la URL base sin parámetros
     window.location.href = window.location.pathname;
 };
@@ -462,7 +488,7 @@ function setFiltersFromURL() {
     const statusFilter = document.getElementById('statusFilter');
     const priorityFilter = document.getElementById('priorityFilter');
     const clearSearch = document.getElementById('clearSearch');
-    
+
     // Establecer valor de búsqueda
     const searchValue = urlParams.get('search') || '';
     if (searchInput) {
@@ -471,13 +497,13 @@ function setFiltersFromURL() {
             clearSearch.style.display = 'block';
         }
     }
-    
+
     // Establecer filtro de estado
     const statusValue = urlParams.get('status') || '';
     if (statusFilter) {
         statusFilter.value = statusValue;
     }
-    
+
     // Establecer filtro de prioridad
     const priorityValue = urlParams.get('priority') || '';
     if (priorityFilter) {
@@ -499,21 +525,21 @@ function debounce(func, wait) {
 }
 
 // Inicialización cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const searchInput = document.getElementById('taskSearch');
     const clearSearch = document.getElementById('clearSearch');
     const statusFilter = document.getElementById('statusFilter');
     const priorityFilter = document.getElementById('priorityFilter');
     const clearFiltersBtn = document.getElementById('clearFiltersBtn');
-    
+
     // Establecer valores de filtros desde URL
     setFiltersFromURL();
-    
+
     // Event listeners para búsqueda con debounce
     if (searchInput) {
         const debouncedFilter = debounce(filterTasks, 500);
-        
-        searchInput.addEventListener('input', function() {
+
+        searchInput.addEventListener('input', function () {
             if (this.value.length > 0) {
                 if (clearSearch) clearSearch.style.display = 'block';
             } else {
@@ -522,31 +548,50 @@ document.addEventListener('DOMContentLoaded', function() {
             debouncedFilter();
         });
     }
-    
+
     // Event listener para limpiar búsqueda
     if (clearSearch) {
-        clearSearch.addEventListener('click', function() {
+        clearSearch.addEventListener('click', function () {
             if (searchInput) searchInput.value = '';
             this.style.display = 'none';
             filterTasks();
         });
     }
-    
+
     // Event listeners para filtros
     if (statusFilter) {
         statusFilter.addEventListener('change', filterTasks);
     }
-    
+
     if (priorityFilter) {
         priorityFilter.addEventListener('change', filterTasks);
     }
-    
+
     // Event listener para botón de limpiar filtros
     if (clearFiltersBtn) {
         clearFiltersBtn.addEventListener('click', window.clearAllFilters);
     }
-    
+
     // Inicializar contadores del servidor (preservar valores originales)
     initializeServerCounters();
+
+    // CRÍTICO: Escuchar cambios de estado de tareas desde otras pestañas
+    window.addEventListener('storage', function (e) {
+        if (e.key === 'task_update_event' && e.newValue) {
+            try {
+                const event = JSON.parse(e.newValue);
+
+                // Solo procesar eventos de actualización de tareas
+                if (event.type === 'TASK_STATUS_UPDATED') {
+                    // Actualizar la UI si la tarea está visible en esta página
+                    updateTaskUIInstant(event.taskId, event.status);
+
+                    console.log(`[Sync] Task ${event.taskId} updated to ${event.status} from ${event.source}`);
+                }
+            } catch (error) {
+                console.error('Error processing storage event:', error);
+            }
+        }
+    });
 });
 

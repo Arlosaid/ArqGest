@@ -122,6 +122,8 @@ services:
       - /app/arc_manager/**/__pycache__
       - /app/arc_manager/logs
       - /app/arc_manager/staticfiles/admin
+      - /app/tests/__pycache__
+      - /app/tests/**/__pycache__
     
     ports:
       - "${WEB_PORT:-8000}:8000"
