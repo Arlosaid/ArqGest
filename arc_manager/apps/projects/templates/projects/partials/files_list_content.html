@@ -1,36 +1,32 @@
 {% load i18n %}
 {% load humanize %}
 
-{% with phase_files=phase.files.all %}
-{% if phase_files %}
-
 <div class="mb-3">
     <div class="row g-2">
         <div class="col-12 col-md-auto">
             <select class="form-select form-select-sm" id="fileTypeFilter-{{ phase.id }}">
                 <option value="">{% trans "Todos los tipos" %}</option>
-                <option value="PDF">📄 PDF</option>
-                <option value="JPG,JPEG,PNG,GIF,TIFF">🖼️ {% trans "Imágenes" %}</option>
-                <option value="DWG,DXF,RVT,SKP">📐 {% trans "CAD/Diseño" %}</option>
-                <option value="DOC,DOCX">📝 Word</option>
-                <option value="XLS,XLSX">📊 Excel</option>
-                <option value="PPT,PPTX">📊 PowerPoint</option>
-                <option value="ZIP,RAR">📦 {% trans "Comprimidos" %}</option>
-                <option value="TXT,MD">📋 {% trans "Texto" %}</option>
+                <option value="PDF">PDF</option>
+                <option value="JPG,JPEG,PNG,GIF,TIFF">{% trans "Imágenes" %}</option>
+                <option value="DWG,DXF,RVT,SKP">{% trans "CAD/Diseño" %}</option>
+                <option value="DOC,DOCX">Word</option>
+                <option value="XLS,XLSX">Excel</option>
+                <option value="PPT,PPTX">PowerPoint</option>
+                <option value="ZIP,RAR">{% trans "Comprimidos" %}</option>
+                <option value="TXT,MD">{% trans "Texto" %}</option>
             </select>
         </div>
         <div class="col-12 col-md-auto">
             <select class="form-select form-select-sm" id="fileDateFilter-{{ phase.id }}">
                 <option value="">{% trans "Todas las fechas" %}</option>
-                <option value="today">📅 {% trans "Hoy" %}</option>
-                <option value="week">📅 {% trans "Esta semana" %}</option>
-                <option value="month">📅 {% trans "Este mes" %}</option>
-                <option value="older">📅 {% trans "Más antiguo" %}</option>
+                <option value="today">{% trans "Hoy" %}</option>
+                <option value="week">{% trans "Esta semana" %}</option>
+                <option value="month">{% trans "Este mes" %}</option>
+                <option value="older">{% trans "Más antiguo" %}</option>
             </select>
         </div>
         <div class="col-12 col-md-auto">
-            <button type="button" class="btn btn-outline-secondary btn-sm" 
-                    id="clearFilters-{{ phase.id }}">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="clearFilters-{{ phase.id }}">
                 <i class="fas fa-times"></i> {% trans "Limpiar" %}
             </button>
         </div>
@@ -42,18 +38,13 @@
     </div>
 </div>
 
-<div id="files-container-{{ phase.id }}" 
-     hx-get="{% url 'projects:phase-files-paginated' project_id=phase.project.id phase_id=phase.id %}?offset=0&limit=20"
-     hx-trigger="load, fileUploaded from:body"
-     hx-swap="innerHTML">
-    
+<div id="files-container-{{ phase.id }}"
+    hx-get="{% url 'projects:phase-files-paginated' project_id=phase.project.id phase_id=phase.id %}?offset=0&limit=20"
+    hx-trigger="load, fileUploaded from:body" hx-swap="innerHTML">
+
     <div class="text-center py-4">
         <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">{% trans "Cargando archivos..." %}</span>
         </div>
     </div>
 </div>
-{% else %}
-    <div class="text-muted">{% trans "Aún no se han subido archivos para esta fase." %}</div>
-{% endif %}
-{% endwith %}

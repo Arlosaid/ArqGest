@@ -11,7 +11,7 @@
 <link href="{% static 'css/kanban.css' %}?v=1.6" rel="stylesheet">
 <link href="{% static 'css/tasks.css' %}?v=1.2" rel="stylesheet">
 <!-- Modal de Detalles de Tareas con Estilos Mejorados -->
-<link href="{% static 'css/task_detail_modal.css' %}?v=3.0" rel="stylesheet">
+<link href="{% static 'css/task_detail_modal.css' %}?v=4.0" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -645,10 +645,10 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/kanban.js' %}?v=1.7"></script>
+<script src="{% static 'js/kanban.js' %}?v=1.8"></script>
 <script>
 document.body.dataset.taskDetailUrlTemplate = `{% url 'projects:task-detail' 0 %}`;
 document.body.dataset.updateTaskStatusUrlTemplate = `{% url 'projects:update-task-status' 0 %}`;
 </script>
-<script src="{% static 'js/kanban_board_page.js' %}?v=1.1"></script>
+<script src="{% static 'js/kanban_board_page.js' %}?v=1.2"></script>
 {% endblock %}

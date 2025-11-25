@@ -184,11 +184,33 @@
 <script src="{% static 'js/projects.js' %}?v=1.3"></script>
 <script src="{% static 'js/project_detail.js' %}?v=1.1"></script>
 <script src="{% static 'js/kanban.js' %}?v=1.7"></script>
-<script src="{% static 'js/files_filtering.js' %}?v=1.1"></script>
+<script src="{% static 'js/files_filtering.js' %}?v=1.3"></script>
 
 <script>
 document.body.dataset.taskDetailUrlTemplate = `{% url 'projects:task-detail' 0 %}`;
 document.body.dataset.updateTaskStatusUrlTemplate = `{% url 'projects:update-task-status' 0 %}`;
+
+// Verificar que los filtros están cargados
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== VERIFICACION DE FILTROS ===');
+    console.log('setupFileFilters:', typeof setupFileFilters);
+    console.log('applyFileFilters:', typeof window.applyFileFilters);
+    console.log('clearFileFilters:', typeof window.clearFileFilters);
+    
+    // Contar elementos de filtros
+    const typeFilters = document.querySelectorAll('[id^="fileTypeFilter-"]');
+    const dateFilters = document.querySelectorAll('[id^="fileDateFilter-"]');
+    const clearButtons = document.querySelectorAll('[id^="clearFilters-"]');
+    
+    console.log('Filtros de tipo encontrados:', typeFilters.length);
+    console.log('Filtros de fecha encontrados:', dateFilters.length);
+    console.log('Botones de limpiar encontrados:', clearButtons.length);
+    
+    if (typeFilters.length === 0) {
+        console.warn('NO SE ENCONTRARON FILTROS. Posiblemente estás en una pestaña sin archivos o los elementos no están en el DOM todavía.');
+    }
+    console.log('=== FIN VERIFICACION ===');
+});
 </script>
 
 <!-- Modal para crear/editar tareas (reutilizado del kanban) -->
