@@ -19,11 +19,10 @@
                 <small class="text-muted">{{ file.size|filesizeformat }}</small>
             </div>
             <div class="card-footer text-end">
-                <button class="btn btn-sm btn-outline-danger" 
-                        hx-post="{% url 'files:delete_file' file.id %}" 
-                        hx-target="#file-{{ file.id }}" 
-                        hx-swap="outerHTML" 
-                        hx-confirm="{% trans 'Are you sure you want to delete this file?' %}">
+                <button class="btn btn-sm btn-outline-danger file-delete-btn" 
+                        data-delete-url="{% url 'files:delete_file' file.id %}" 
+                        data-file-id="{{ file.id }}"
+                        type="button">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>

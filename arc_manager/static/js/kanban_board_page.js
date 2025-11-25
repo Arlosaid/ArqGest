@@ -2,24 +2,7 @@
 function clearFilters() { window.location.href = window.location.pathname; }
 function refreshKanban() { location.reload(); }
 
-function openTaskModal(type, taskId) {
-  const modal = new bootstrap.Modal(document.getElementById('taskUniversalModal'));
-  const modalContent = document.getElementById('taskUniversalContent');
-  const modalTitle = document.getElementById('taskUniversalModalLabel');
-  if (type === 'detail') modalTitle.textContent = 'Detalles de la Tarea';
-  else if (type === 'edit') modalTitle.textContent = 'Editar Tarea';
-  modalContent.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><p class="mt-2 text-muted">Cargando...</p></div>';
-  modal.show();
-  let url = '';
-  try {
-    if (type === 'detail') url = (document.body.dataset.taskDetailUrlTemplate || '').replace('0', taskId);
-    else if (type === 'edit') url = `/projects/tasks/${taskId}/edit/`;
-  } catch (_) {}
-  if (!url) return;
-  fetch(url).then(r => { if (!r.ok) throw new Error('Network response was not ok'); return r.text(); })
-    .then(html => { modalContent.innerHTML = html; })
-    .catch(() => { modalContent.innerHTML = '<div class="text-center p-4 text-danger"><i class="fas fa-exclamation-triangle fa-2x mb-3"></i><h5>Error al cargar</h5><p class="text-muted">No se pudo cargar el contenido. Inténtalo de nuevo.</p></div>'; });
-}
+// La función openTaskModal está definida globalmente en base.js
 
 document.addEventListener('DOMContentLoaded', function() {
   const cards = document.querySelectorAll('.kanban-card');
@@ -121,4 +104,3 @@ function updateTaskStatus(taskId, newStatus) {
       }
     });
 }
-

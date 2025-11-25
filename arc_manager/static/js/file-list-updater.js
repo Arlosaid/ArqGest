@@ -16,6 +16,11 @@ class FileListUpdater {
             // Escuchar eventos de archivo subido
             document.body.addEventListener('fileUploaded', (e) => {
                 this.updateAllFileLists();
+                
+                // Si el evento incluye phaseId, incrementar el contador
+                if (e.detail && e.detail.phaseId) {
+                    this.incrementFileCounter(e.detail.phaseId);
+                }
             });
 
             // Escuchar eventos de archivo eliminado
@@ -38,10 +43,19 @@ class FileListUpdater {
         
         // Si es un upload exitoso
         if (xhr.status === 200 && requestConfig.path && requestConfig.path.includes('/files/upload/')) {
+            // Extraer phaseId de la URL
+            const phaseIdMatch = requestConfig.path.match(/\/phases\/(\d+)\//);
+            const phaseId = phaseIdMatch ? phaseIdMatch[1] : null;
+            
             // Dar un pequeño delay para que el servidor procese
             setTimeout(() => {
                 this.updateAllFileLists();
                 this.clearFormSelection(event.target);
+                
+                // Incrementar contador
+                if (phaseId) {
+                    this.incrementFileCounter(phaseId);
+                }
             }, 200);
         }
         
@@ -180,6 +194,33 @@ class FileListUpdater {
                 this.clearFileSelectionUI(form, phaseId);
             }
         }
+    }
+
+    // Incrementar contador de archivos al subir
+    incrementFileCounter(phaseId) {
+        const counterBadge = document.getElementById(`file-count-${phaseId}`);
+        if (!counterBadge) {
+            console.warn('No se encontró el badge del contador para incrementar (Fase:', phaseId, ')');
+            return;
+        }
+
+        // Extraer el número actual e incrementarlo
+        const counterText = counterBadge.textContent.trim();
+        const currentCountMatch = counterText.match(/\d+/);
+        
+        if (!currentCountMatch) {
+            console.warn('No se pudo extraer el número del contador:', counterText);
+            return;
+        }
+        
+        const currentCount = parseInt(currentCountMatch[0]);
+        const newCount = currentCount + 1;
+        
+        // Actualizar el texto manteniendo la traducción "documentos"
+        const documentosText = counterText.includes('documento') ? counterText.match(/\d+\s+(.+)/)[1] : 'documentos';
+        counterBadge.textContent = `${newCount} ${documentosText}`;
+        
+        console.log(`✅ Contador incrementado: ${currentCount} → ${newCount} documentos (Fase ${phaseId})`);
     }
 }
 

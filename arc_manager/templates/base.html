@@ -161,6 +161,8 @@
     
     <script src="{% static 'js/file-list-updater.js' %}?v={{ STATIC_VERSION }}"></script>
     
+    <script src="{% static 'js/file-delete.js' %}?v={{ STATIC_VERSION }}"></script>
+    
     <script src="{% static 'js/base.js' %}?v={{ STATIC_VERSION }}"></script>
     <script src="{% static 'js/navbar.js' %}?v={{ STATIC_VERSION }}"></script>
     <script src="{% static 'js/sidebar.js' %}?v={{ STATIC_VERSION }}"></script>
@@ -168,6 +170,10 @@
     <script src="{% static 'js/char-counter.js' %}?v={{ STATIC_VERSION }}"></script>
     
     <script src="{% static 'js/subscription-notifications.js' %}?v={{ STATIC_VERSION }}"></script>
+    
+    {% if debug %}
+    <script src="{% static 'js/validate-file-system.js' %}?v={{ STATIC_VERSION }}"></script>
+    {% endif %}
     {% block extra_js %}{% endblock %}
 
     <div class="modal fade task-modal" id="appModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
@@ -184,11 +190,12 @@
       </div>
     </div>
 
-    <div class="modal fade" id="taskUniversalModal" tabindex="-1" aria-labelledby="taskUniversalModalLabel" aria-hidden="true">
+    <div class="modal fade" id="taskUniversalModal" tabindex="-1" aria-labelledby="taskUniversalModalLabel" aria-hidden="true" data-bs-backdrop="true" data-bs-keyboard="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="taskUniversalModalLabel">Tarea</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" id="taskUniversalContent">
                 </div>

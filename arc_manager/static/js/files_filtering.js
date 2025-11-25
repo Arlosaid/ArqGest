@@ -1,24 +1,46 @@
 // Filtrado de archivos optimizado con HTMX
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🗂️ Filtros de archivos inicializados');
+    console.log('Filtros de archivos: Script cargado');
     
-    // Configurar filtros para todas las fases
+    // Configurar filtros inmediatamente
     setupFileFilters();
     
-    // Reconfigurar filtros cuando se actualiza contenido dinámico
+    // IMPORTANTE: Reconfigurar cuando se carga contenido dinámico (accordions, tabs)
     document.body.addEventListener('htmx:afterSettle', function(event) {
-        if (event.target.id && event.target.id.includes('files-container')) {
+        console.log('HTMX afterSettle detectado:', event.target.id);
+        // Esperar un momento para que el DOM se actualice
+        setTimeout(() => {
             setupFileFilters();
-        }
+        }, 100);
+    });
+    
+    // También configurar cuando se hace swap de contenido
+    document.body.addEventListener('htmx:afterSwap', function(event) {
+        console.log('HTMX afterSwap detectado:', event.target.id);
+        setTimeout(() => {
+            setupFileFilters();
+        }, 100);
+    });
+    
+    // Configurar cuando se abre un accordion
+    document.addEventListener('shown.bs.collapse', function(event) {
+        console.log('Accordion abierto:', event.target.id);
+        setTimeout(() => {
+            setupFileFilters();
+        }, 100);
     });
 });
 
 function setupFileFilters() {
-    console.log('🔧 Configurando filtros de archivos...');
+    console.log('Configurando filtros de archivos...');
     
     // Configurar filtros por tipo
-    document.querySelectorAll('[id^="fileTypeFilter-"]').forEach(filter => {
+    const typeFilters = document.querySelectorAll('[id^="fileTypeFilter-"]');
+    console.log(`Encontrados ${typeFilters.length} filtros de tipo`);
+    
+    typeFilters.forEach(filter => {
         const phaseId = filter.id.replace('fileTypeFilter-', '');
+        console.log(`Registrando filtro de tipo para fase ${phaseId}`);
         
         // Remover listeners anteriores para evitar duplicados
         if (filter._filterHandler) {
@@ -26,37 +48,54 @@ function setupFileFilters() {
         }
         
         // Crear y asignar nuevo handler
-        filter._filterHandler = () => applyFilters(phaseId);
+        filter._filterHandler = () => {
+            console.log(`FILTRO DE TIPO CAMBIADO - Fase ${phaseId}, Valor: ${filter.value}`);
+            applyFilters(phaseId);
+        };
         filter.addEventListener('change', filter._filterHandler);
     });
     
     // Configurar filtros por fecha
-    document.querySelectorAll('[id^="fileDateFilter-"]').forEach(filter => {
+    const dateFilters = document.querySelectorAll('[id^="fileDateFilter-"]');
+    console.log(`Encontrados ${dateFilters.length} filtros de fecha`);
+    
+    dateFilters.forEach(filter => {
         const phaseId = filter.id.replace('fileDateFilter-', '');
+        console.log(`Registrando filtro de fecha para fase ${phaseId}`);
         
         // Remover listeners anteriores para evitar duplicados
         if (filter._filterHandler) {
             filter.removeEventListener('change', filter._filterHandler);
         }
         
-        filter._filterHandler = () => applyFilters(phaseId);
+        filter._filterHandler = () => {
+            console.log(`FILTRO DE FECHA CAMBIADO - Fase ${phaseId}, Valor: ${filter.value}`);
+            applyFilters(phaseId);
+        };
         filter.addEventListener('change', filter._filterHandler);
     });
     
     // Configurar botones de limpiar
-    document.querySelectorAll('[id^="clearFilters-"]').forEach(button => {
+    const clearButtons = document.querySelectorAll('[id^="clearFilters-"]');
+    console.log(`Encontrados ${clearButtons.length} botones de limpiar`);
+    
+    clearButtons.forEach(button => {
         const phaseId = button.id.replace('clearFilters-', '');
+        console.log(`Registrando botón limpiar para fase ${phaseId}`);
         
         // Remover listeners anteriores para evitar duplicados
         if (button._clearHandler) {
             button.removeEventListener('click', button._clearHandler);
         }
         
-        button._clearHandler = () => clearFilters(phaseId);
+        button._clearHandler = () => {
+            console.log(`LIMPIANDO FILTROS - Fase ${phaseId}`);
+            clearFilters(phaseId);
+        };
         button.addEventListener('click', button._clearHandler);
     });
     
-    console.log('✅ Filtros de archivos configurados');
+    console.log('Filtros de archivos configurados exitosamente');
 }
 
 function applyFilters(phaseId) {
@@ -72,8 +111,16 @@ function applyFilters(phaseId) {
     const typeValue = typeFilter.value;
     const dateValue = dateFilter.value;
     
+    // Obtener la URL base del contenedor
+    const hxGetAttr = container.getAttribute('hx-get');
+    if (!hxGetAttr) {
+        console.error(`No se encontró hx-get en el contenedor para fase ${phaseId}`);
+        return;
+    }
+    
+    const baseUrl = hxGetAttr.split('?')[0];
+    
     // Construir URL con filtros
-    const baseUrl = container.getAttribute('hx-get').split('?')[0];
     let url = `${baseUrl}?offset=0&limit=20`;
     
     if (typeValue) {
@@ -84,13 +131,87 @@ function applyFilters(phaseId) {
         url += `&date=${encodeURIComponent(dateValue)}`;
     }
     
-    console.log(`🔍 Aplicando filtros para fase ${phaseId}:`, { type: typeValue, date: dateValue });
+    console.log(`Aplicando filtros para fase ${phaseId}:`, { type: typeValue, date: dateValue, url: url });
     
-    // Actualizar el atributo hx-get del contenedor
+    // Actualizar el atributo hx-get del contenedor para futuros reloads
     container.setAttribute('hx-get', url);
     
-    // Trigger HTMX reload
-    htmx.trigger(container, 'load');
+    // Mostrar indicador de carga
+    showFilterLoadingIndicator(container);
+    
+    // Usar fetch para cargar los archivos filtrados (compatible con HTMX 1.9.x)
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'HX-Request': 'true',
+            'HX-Target': `files-container-${phaseId}`
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.text();
+    })
+    .then(html => {
+        // Reemplazar contenido del contenedor
+        container.innerHTML = html;
+        
+        console.log(`Filtros aplicados exitosamente para fase ${phaseId}`);
+        hideFilterLoadingIndicator(container);
+        
+        // Reinicializar event listeners en el nuevo contenido
+        if (window.htmx) {
+            htmx.process(container);
+        }
+    })
+    .catch((error) => {
+        console.error(`Error al aplicar filtros para fase ${phaseId}:`, error);
+        hideFilterLoadingIndicator(container);
+        
+        // Mostrar notificación de error
+        if (window.notifications) {
+            window.notifications.error('Error al aplicar filtros');
+        } else {
+            alert('Error al aplicar filtros. Por favor, intenta de nuevo.');
+        }
+    });
+}
+
+function showFilterLoadingIndicator(container) {
+    // Remover indicador previo si existe
+    const existingIndicator = container.querySelector('.filter-loading-indicator');
+    if (existingIndicator) {
+        existingIndicator.remove();
+    }
+    
+    // Crear indicador de carga
+    const indicator = document.createElement('div');
+    indicator.className = 'filter-loading-indicator';
+    indicator.innerHTML = `
+        <div class="d-flex align-items-center justify-content-center py-3">
+            <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                <span class="visually-hidden">Aplicando filtros...</span>
+            </div>
+            <small class="text-muted">Aplicando filtros...</small>
+        </div>
+    `;
+    
+    // Insertar al inicio del contenedor
+    const grid = container.querySelector('[id^="files-grid-"]');
+    if (grid) {
+        grid.insertBefore(indicator, grid.firstChild);
+    } else {
+        container.insertBefore(indicator, container.firstChild);
+    }
+}
+
+function hideFilterLoadingIndicator(container) {
+    const indicator = container.querySelector('.filter-loading-indicator');
+    if (indicator) {
+        indicator.remove();
+    }
 }
 
 function clearFilters(phaseId) {

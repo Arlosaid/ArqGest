@@ -495,17 +495,26 @@ class LargeFileUploader {
     }
 
     reloadFilesList(form) {
-        // Trigger para recargar archivos usando HTMX
-        const event = new CustomEvent('fileUploaded');
+        // Extraer phaseId
+        const phaseId = this.extractPhaseId(form.action) || form.dataset.phaseId;
+        
+        // Trigger para recargar archivos usando HTMX con phaseId
+        const event = new CustomEvent('fileUploaded', { 
+            detail: { phaseId: phaseId }
+        });
         document.body.dispatchEvent(event);
         
         // También intentar recargar contenedores específicos
-        const phaseId = this.extractPhaseId(form.action);
         if (phaseId) {
             const container = document.getElementById(`files-container-${phaseId}`);
             if (container && window.htmx) {
                 htmx.trigger(container, 'fileUploaded');
             }
+            
+            // Incrementar contador si el updater está disponible
+            // if (window.fileListUpdater) {
+            //    window.fileListUpdater.incrementFileCounter(phaseId);
+            // }
         }
         
         // Limpiar formulario y selección de archivos

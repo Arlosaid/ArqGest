@@ -44,11 +44,10 @@
             <a href="{{ file.file.url }}" class="btn btn-sm btn-primary" download>
                 <i class="fas fa-download"></i>
             </a>
-            <button class="btn btn-sm btn-outline-danger"
-                    hx-post="{% url 'files:delete_file' file.id %}"
-                    hx-confirm="{% trans '¿Seguro que deseas eliminar este archivo?' %}"
-                    hx-target="#file-{{ file.id }}"
-                    hx-swap="outerHTML">
+            <button class="btn btn-sm btn-outline-danger file-delete-btn"
+                    data-delete-url="{% url 'files:delete_file' file.id %}"
+                    data-file-id="{{ file.id }}"
+                    type="button">
                 <i class="fas fa-trash"></i>
             </button>
         </div>
