@@ -83,6 +83,11 @@ class TaskDeleteManager {
 
                 // Broadcast para sincronización entre pestañas
                 this.broadcastTaskDeletion(taskId);
+                
+                // Disparar evento local para actualizar la UI actual (ej: paginación)
+                document.dispatchEvent(new CustomEvent('taskDeleted', { 
+                    detail: { taskId: taskId } 
+                }));
 
             } else {
                 this.showErrorMessage(data.error || 'Error al eliminar la tarea');
@@ -172,6 +177,22 @@ class TaskDeleteManager {
     }
 
     showToast(message, type = 'success') {
+        // Intentar usar el sistema de notificaciones global primero
+        if (window.notifications) {
+            if (type === 'success') {
+                window.notifications.success(message);
+            } else {
+                window.notifications.error(message);
+            }
+            return;
+        }
+        
+        if (typeof window.showToast === 'function') {
+            window.showToast(message, type);
+            return;
+        }
+
+        // Fallback a la implementación local si no hay sistema global
         const toastHtml = `
             <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="d-flex">

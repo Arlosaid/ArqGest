@@ -472,9 +472,9 @@
 @media (max-width: 768px) {
   .sidebar {
       transform: translateX(-100%);
-      width: 75vw; /* Más ancho para mejor usabilidad en móvil */
-      max-width: 320px;
-      min-width: 280px;
+      width: 65vw; /* Reducido de 75vw */
+      max-width: 280px; /* Reducido de 320px */
+      min-width: 240px; /* Reducido de 280px */
       box-shadow: none;
       /* Eliminar efectos problemáticos */
       backdrop-filter: none;
@@ -504,9 +504,9 @@
 
 @media (max-width: 480px) {
   .sidebar {
-      width: 85vw; /* Casi toda la pantalla en dispositivos pequeños */
-      max-width: 300px;
-      min-width: 260px;
+      width: 75vw; /* Reducido de 85vw */
+      max-width: 260px; /* Reducido de 300px */
+      min-width: 220px; /* Reducido de 260px */
   }
   
   .sidebar-brand {
@@ -605,9 +605,9 @@
 @media (max-width: 991.98px) {
   .sidebar {
     transform: translateX(-100%);
-    width: 70vw; /* Ancho optimizado para móviles */
-    max-width: 320px;
-    min-width: 280px;
+    width: 60vw; /* Reducido de 70vw */
+    max-width: 280px; /* Reducido de 320px */
+    min-width: 240px; /* Reducido de 280px */
     border-radius: 0;
     z-index: 1050; /* Z-index consistente */
     box-shadow: none; /* Sin sombra inicial */

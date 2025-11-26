@@ -3,51 +3,54 @@
 
 {% for file in files %}
 <div class="file-item" id="file-{{ file.id }}">
-    <div class="file-card">
+    <div class="file-compact-card">
         
         <a href="{{ file.file_url }}" target="_blank" class="text-decoration-none">
             {% if file.extension == 'JPG' or file.extension == 'JPEG' or file.extension == 'PNG' or file.extension == 'GIF' or file.extension == 'TIFF' %}
-                <div class="file-icon file-image"><i class="fas fa-image"></i></div>
+                <div class="file-compact-icon file-icon-img"><i class="fas fa-image"></i></div>
             {% elif file.extension == 'PDF' %}
-                <div class="file-icon file-pdf"><i class="fas fa-file-pdf"></i></div>
+                <div class="file-compact-icon file-icon-pdf"><i class="fas fa-file-pdf"></i></div>
             {% elif file.extension == 'DWG' or file.extension == 'DXF' or file.extension == 'RVT' or file.extension == 'SKP' %}
-                <div class="file-icon file-cad"><i class="fas fa-drafting-compass"></i></div>
+                <div class="file-compact-icon file-icon-cad"><i class="fas fa-drafting-compass"></i></div>
             {% elif file.extension == 'DOC' or file.extension == 'DOCX' %}
-                <div class="file-icon file-doc"><i class="fas fa-file-word"></i></div>
+                <div class="file-compact-icon file-icon-doc"><i class="fas fa-file-word"></i></div>
             {% elif file.extension == 'XLS' or file.extension == 'XLSX' %}
-                <div class="file-icon file-excel"><i class="fas fa-file-excel"></i></div>
+                <div class="file-compact-icon file-icon-xls"><i class="fas fa-file-excel"></i></div>
             {% elif file.extension == 'PPT' or file.extension == 'PPTX' %}
-                <div class="file-icon file-ppt"><i class="fas fa-file-powerpoint"></i></div>
+                <div class="file-compact-icon file-icon-ppt"><i class="fas fa-file-powerpoint"></i></div>
             {% elif file.extension == 'ZIP' or file.extension == 'RAR' %}
-                <div class="file-icon file-archive"><i class="fas fa-file-archive"></i></div>
-            {% elif file.extension == 'TXT' or file.extension == 'MD' %}
-                <div class="file-icon file-text"><i class="fas fa-file-alt"></i></div>
+                <div class="file-compact-icon file-icon-zip"><i class="fas fa-file-archive"></i></div>
             {% else %}
-                <div class="file-icon file-default"><i class="fas fa-file"></i></div>
+                <div class="file-compact-icon file-icon-default"><i class="fas fa-file"></i></div>
             {% endif %}
         </a>
 
-        <div class="file-info">
-            <div class="file-name" title="{{ file.filename }}">
-                <span class="file-name-full d-none d-md-block">{{ file.filename|truncatechars:20 }}</span>
-                <span class="file-name-short d-md-none">{{ file.filename|truncatechars:15 }}</span>
+        <div class="file-compact-info">
+            <div class="file-compact-name" title="{{ file.filename }}">
+                {{ file.filename|truncatechars:60 }}
+            </div>
+            <div class="file-compact-meta">
+                <div class="d-flex align-items-center">
+                    <span>{{ file.size|filesizeformat }}</span>
+                    <span class="mx-1">•</span>
+                    <span>{{ file.uploaded_at|date:"d/m/Y" }}</span>
+                </div>
+                <div class="d-none d-sm-flex align-items-center text-truncate ms-2" style="max-width: 120px;">
+                    <i class="fas fa-user-circle me-1 text-muted" style="font-size: 0.75rem;"></i>
+                    <span class="text-truncate" title="{{ file.uploaded_by_name }}">{{ file.uploaded_by_name }}</span>
+                </div>
             </div>
         </div>
-        <div class="file-meta">
-            <span class="file-size">{{ file.size|filesizeformat }}</span>
-            <span class="file-type">{{ file.extension }}</span>
-        </div>
-        <div class="file-date">{{ file.uploaded_at|date:"d/m/Y" }}</div>
-        <div class="file-uploader">{{ file.uploaded_by_name|truncatechars:12 }}</div>
 
-        <div class="file-actions">
-            <a href="{{ file.file_url }}" class="btn btn-sm btn-primary" download>
+        <div class="file-compact-actions">
+            <a href="{{ file.file_url }}" class="btn-icon-action view" download title="{% trans 'Descargar' %}">
                 <i class="fas fa-download"></i>
             </a>
-            <button class="btn btn-sm btn-outline-danger file-delete-btn"
+            <button class="btn-icon-action delete file-delete-btn"
                     data-delete-url="{% url 'files:delete_file' file.id %}"
                     data-file-id="{{ file.id }}"
-                    type="button">
+                    type="button"
+                    title="{% trans 'Eliminar' %}">
                 <i class="fas fa-trash"></i>
             </button>
         </div>
@@ -55,65 +58,17 @@
 </div>
 {% endfor %}
 
-{% if has_more %}
-<div class="infinite-scroll-trigger" 
-     data-next-offset="{{ next_offset }}"
-     data-phase-id="{{ phase.id }}"
-     data-project-id="{{ phase.project.id }}"
-     data-type-filter="{{ current_filters.type }}"
-     data-date-filter="{{ current_filters.date }}"
-     style="height: 20px; margin-top: 20px;">
-    <div class="text-center">
-        <div class="spinner-border spinner-border-sm text-primary" role="status">
-            <span class="visually-hidden">{% trans "Cargando más archivos..." %}</span>
-        </div>
+<div id="load-more-wrapper-{{ phase.id }}" hx-swap-oob="true" class="text-center mt-4 mb-3">
+    {% if has_more %}
+    <button class="btn btn-outline-primary btn-sm"
+            hx-get="{% url 'projects:phase-files-paginated' project_id=phase.project.id phase_id=phase.id %}?offset={{ next_offset }}&load_more=true{% if current_filters.type %}&type={{ current_filters.type }}{% endif %}{% if current_filters.date %}&date={{ current_filters.date }}{% endif %}"
+            hx-target="#files-grid-{{ phase.id }}"
+            hx-swap="beforeend"
+            hx-indicator="#spinner-{{ phase.id }}">
+        <i class="fas fa-plus-circle me-1"></i> {% trans "Cargar más archivos" %}
+    </button>
+    <div id="spinner-{{ phase.id }}" class="htmx-indicator spinner-border spinner-border-sm text-primary ms-2" role="status">
+        <span class="visually-hidden">{% trans "Cargando..." %}</span>
     </div>
+    {% endif %}
 </div>
-
-<script>
-// Reasignar observer al nuevo trigger
-document.addEventListener('DOMContentLoaded', function() {
-    const triggers = document.querySelectorAll('.infinite-scroll-trigger');
-    const newTrigger = triggers[triggers.length - 1]; // El último trigger
-    if (!newTrigger) return;
-    
-    let isLoading = false;
-    
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting && !isLoading) {
-                isLoading = true;
-                
-                const nextOffset = newTrigger.dataset.nextOffset;
-                const phaseId = newTrigger.dataset.phaseId;
-                const projectId = newTrigger.dataset.projectId;
-                const typeFilter = newTrigger.dataset.typeFilter;
-                const dateFilter = newTrigger.dataset.dateFilter;
-                
-                // Construir URL con filtros
-                let url = `/projects/${projectId}/phases/${phaseId}/files/?offset=${nextOffset}&load_more=true`;
-                if (typeFilter) url += `&type=${typeFilter}`;
-                if (dateFilter) url += `&date=${dateFilter}`;
-                
-                // Cargar más archivos con HTMX
-                htmx.ajax('GET', url, {
-                    target: `#files-grid-${phaseId}`,
-                    swap: 'beforeend'
-                }).then(() => {
-                    isLoading = false;
-                    // Remover trigger actual
-                    newTrigger.remove();
-                }).catch(() => {
-                    isLoading = false;
-                });
-            }
-        });
-    }, {
-        threshold: 0.1,
-        rootMargin: '50px'
-    });
-    
-    observer.observe(newTrigger);
-});
-</script>
-{% endif %}

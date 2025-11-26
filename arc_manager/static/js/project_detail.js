@@ -154,6 +154,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!btn) return;
     const id = btn.getAttribute('data-bs-target').replace('#', '');
     showTabById(id);
+    
+    // Actualizar URL sin recargar para mantener la pestaña activa al refrescar
+    history.replaceState(null, null, `#${id}`);
   });
 
   tabContainer.addEventListener('shown.bs.tab', (e) => {
@@ -296,6 +299,9 @@ document.addEventListener('DOMContentLoaded', function () {
   
   // Recargar tareas después de actualizar una tarea
   document.addEventListener('taskUpdated', reloadTasks);
+  
+  // Recargar tareas después de eliminar una tarea
+  document.addEventListener('taskDeleted', reloadTasks);
 });
 
 // Función global para actualizar el estado de las tareas

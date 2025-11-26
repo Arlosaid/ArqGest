@@ -9,6 +9,7 @@
 <link href="{% static 'css/projects.css' %}?v=3.0" rel="stylesheet">
 <link href="{% static 'css/tasks.css' %}?v=1.2" rel="stylesheet">
 <link href="{% static 'css/project_detail.css' %}?v=2.3" rel="stylesheet">
+<link href="{% static 'css/project_detail_enhanced.css' %}?v=1.0" rel="stylesheet">
 <!-- Modal de Detalles de Tareas con Estilos Mejorados -->
     <link href="{% static 'css/task_detail_modal.css' %}?v=5.2" rel="stylesheet">
 {% endblock %}
@@ -96,107 +97,113 @@
         <div class="tab-content" id="projectTabContent">
             
             <div class="tab-pane fade show active" id="details" role="tabpanel" aria-labelledby="details-tab" data-tab="details">
-                <div class="card mt-3 border-0 shadow-sm">
-                    <div class="card-body p-4">
-                        <h3 class="mb-4" style="font-weight: 700; font-size: 1.25rem; color: #1e293b;">
-                            <i class="fas fa-info-circle text-primary me-2"></i>{% trans "Información del Proyecto" %}
-                        </h3>
-                        
-                        <!-- Progreso del Proyecto -->
-                        <div class="mb-4 p-3 rounded" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-left: 4px solid #3b82f6;">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted" style="font-size: 0.875rem; font-weight: 600;">{% trans "Progreso general del proyecto" %}</span>
-                                <span class="badge bg-primary" style="font-size: 0.9rem; padding: 0.35rem 0.75rem;">{{ project.progress_percentage|default:"0" }}%</span>
+                <div class="project-details-container">
+                    
+                    <!-- Progress Section -->
+                    <div class="progress-card">
+                        <div class="progress-header">
+                            <span class="progress-label">{% trans "Progreso General" %}</span>
+                            <span class="progress-badge">{{ project.progress_percentage|default:"0" }}%</span>
+                        </div>
+                        <div class="custom-progress-bar">
+                            <div class="custom-progress-fill" style="width: {{ project.progress_percentage|default:'0' }}%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Key Information Grid -->
+                    <h3 class="details-section-title">
+                        <i class="fas fa-info-circle"></i> {% trans "Información Clave" %}
+                    </h3>
+                    
+                    <div class="info-grid">
+                        <!-- Client -->
+                        <div class="detail-card">
+                            <div class="detail-icon icon-client">
+                                <i class="fas fa-building"></i>
                             </div>
-                            <div class="progress" style="height: 12px; border-radius: 8px; background-color: #e2e8f0;">
-                                <div class="progress-bar" role="progressbar" 
-                                     style="width: {{ project.progress_percentage|default:'0' }}%; background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%); border-radius: 8px;" 
-                                     aria-valuenow="{{ project.progress_percentage|default:'0' }}" 
-                                     aria-valuemin="0" 
-                                     aria-valuemax="100">
+                            <div class="detail-content">
+                                <div class="detail-label">{% trans "Cliente" %}</div>
+                                <div class="detail-value">
+                                    {% if project.client %}{{ project.client.name }}{% else %}<span class="text-muted">{% trans "No asignado" %}</span>{% endif %}
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Información en Grid Mejorado -->
-                        <div class="row g-4">
-                            <div class="col-md-6">
-                                <div class="info-card p-3 rounded h-100" style="background: white; border: 1px solid #e2e8f0; transition: all 0.3s;">
-                                    <div class="d-flex align-items-start gap-3">
-                                        <div class="info-icon-wrapper" style="width: 40px; height: 40px; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                            <i class="fas fa-building" style="color: #3b82f6; font-size: 1.1rem;"></i>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <div class="text-muted small mb-1" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">{% trans "Cliente" %}</div>
-                                            <div class="fw-semibold" style="color: #1e293b; font-size: 1rem; word-wrap: break-word;">
-                                                {% if project.client %}{{ project.client.name }}{% else %}<span class="text-muted">No asignado</span>{% endif %}
-                                            </div>
-                                        </div>
-                                    </div>
+                        <!-- Status -->
+                        <div class="detail-card">
+                            <div class="detail-icon icon-status">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="detail-content">
+                                <div class="detail-label">{% trans "Estado" %}</div>
+                                <div class="detail-value">{{ project.get_status_display }}</div>
+                            </div>
+                        </div>
+
+                        <!-- Start Date -->
+                        <div class="detail-card">
+                            <div class="detail-icon icon-date">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="detail-content">
+                                <div class="detail-label">{% trans "Fecha de Inicio" %}</div>
+                                <div class="detail-value">{{ project.created_at|date:"d/m/Y" }}</div>
+                            </div>
+                        </div>
+
+                        <!-- Budget (if available) -->
+                        {% if project.total_budget %}
+                        <div class="detail-card">
+                            <div class="detail-icon icon-budget">
+                                <i class="fas fa-sack-dollar"></i>
+                            </div>
+                            <div class="detail-content">
+                                <div class="detail-label">{% trans "Presupuesto" %}</div>
+                                <div class="detail-value">${{ project.total_budget|floatformat:2 }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Description Section -->
+                    {% if project.description %}
+                    <h3 class="details-section-title">
+                        <i class="fas fa-align-left"></i> {% trans "Descripción del Proyecto" %}
+                    </h3>
+                    <div class="description-section">
+                        <div class="description-text">
+                            {{ project.description|linebreaks }}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Team Section (Optional - if users are available) -->
+                    {% if users %}
+                    <div class="team-section">
+                        <h3 class="details-section-title">
+                            <i class="fas fa-users"></i> {% trans "Equipo Asignado" %}
+                        </h3>
+                        <div class="team-grid">
+                            {% for user in users|slice:":6" %}
+                            <div class="team-member-card">
+                                <div class="member-avatar">
+                                    {{ user.first_name|first|default:user.email|first|upper }}
+                                </div>
+                                <div class="member-info">
+                                    <span class="member-name">{{ user.get_full_name|default:user.email }}</span>
+                                    <span class="member-role">{% if user == project.owner %}{% trans "Propietario" %}{% else %}{% trans "Miembro" %}{% endif %}</span>
                                 </div>
                             </div>
-                            
-                            <div class="col-md-6">
-                                <div class="info-card p-3 rounded h-100" style="background: white; border: 1px solid #e2e8f0; transition: all 0.3s;">
-                                    <div class="d-flex align-items-start gap-3">
-                                        <div class="info-icon-wrapper" style="width: 40px; height: 40px; background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                            <i class="fas fa-check-circle" style="color: #10b981; font-size: 1.1rem;"></i>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <div class="text-muted small mb-1" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">{% trans "Estado" %}</div>
-                                            <div class="fw-semibold" style="color: #1e293b; font-size: 1rem;">{{ project.get_status_display }}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="info-card p-3 rounded h-100" style="background: white; border: 1px solid #e2e8f0; transition: all 0.3s;">
-                                    <div class="d-flex align-items-start gap-3">
-                                        <div class="info-icon-wrapper" style="width: 40px; height: 40px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                            <i class="fas fa-calendar-alt" style="color: #f59e0b; font-size: 1.1rem;"></i>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <div class="text-muted small mb-1" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">{% trans "Fecha de inicio" %}</div>
-                                            <div class="fw-semibold" style="color: #1e293b; font-size: 1rem;">{{ project.created_at|date:"d/m/Y" }}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            {% if project.total_budget %}
-                            <div class="col-md-6">
-                                <div class="info-card p-3 rounded h-100" style="background: white; border: 1px solid #e2e8f0; transition: all 0.3s;">
-                                    <div class="d-flex align-items-start gap-3">
-                                        <div class="info-icon-wrapper" style="width: 40px; height: 40px; background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                            <i class="fas fa-sack-dollar" style="color: #059669; font-size: 1.1rem;"></i>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <div class="text-muted small mb-1" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">{% trans "Presupuesto" %}</div>
-                                            <div class="fw-semibold" style="color: #1e293b; font-size: 1rem;">${{ project.total_budget|floatformat:2 }}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endif %}
-                            
-                            {% if project.description %}
-                            <div class="col-12">
-                                <div class="info-card p-3 rounded" style="background: white; border: 1px solid #e2e8f0;">
-                                    <div class="d-flex align-items-start gap-3">
-                                        <div class="info-icon-wrapper" style="width: 40px; height: 40px; background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                            <i class="fas fa-align-left" style="color: #8b5cf6; font-size: 1.1rem;"></i>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <div class="text-muted small mb-1" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">{% trans "Descripción" %}</div>
-                                            <div class="text-secondary" style="color: #475569; font-size: 0.95rem; line-height: 1.6;">{{ project.description }}</div>
-                                        </div>
-                                    </div>
-                                </div>
+                            {% endfor %}
+                            {% if users.count > 6 %}
+                            <div class="team-member-card" style="justify-content: center; color: var(--pd-primary); font-weight: 600; cursor: pointer;">
+                                +{{ users.count|add:"-6" }} {% trans "más" %}
                             </div>
                             {% endif %}
                         </div>
                     </div>
+                    {% endif %}
+
                 </div>
             </div>
 

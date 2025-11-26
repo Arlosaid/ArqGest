@@ -13,17 +13,37 @@
             <div class="row g-4">
 				{% for phase in phases_page_obj.object_list %}
                     <div class="col-md-6 col-lg-4">
-                        <div class="phase-card-simple" 
-                             data-phase-id="{{ phase.id }}">
-                            <div class="phase-number">{{ forloop.counter }}</div>
-                            <h3 class="phase-name">{{ phase.name }}</h3>
-                            <div class="phase-stats">
-                                <span class="stat">
+                        <div class="phase-compact-card" onclick="window.location.href='{% url 'projects:phase-detail' project.pk phase.id %}'" style="cursor: pointer;">
+                            <div class="phase-compact-header">
+                                <h3 class="phase-compact-title">
+                                    <span class="text-muted me-2">#{{ forloop.counter }}</span>
+                                    {{ phase.name }}
+                                </h3>
+                            </div>
+                            
+                            <div class="phase-compact-body">
+                                {% if phase.notes %}
+                                <p class="phase-compact-description">{{ phase.notes|truncatechars:100 }}</p>
+                                {% else %}
+                                <p class="phase-compact-description text-muted fst-italic" style="font-size: 0.8rem;">{% trans "Sin descripción" %}</p>
+                                {% endif %}
+                            </div>
+
+                            <div class="phase-compact-meta">
+                                <div class="phase-stat-badge">
                                     <i class="fas fa-tasks"></i> {{ phase.tasks.count }}
-                                </span>
-                                <span class="stat">
+                                </div>
+                                <div class="phase-stat-badge">
                                     <i class="fas fa-file-alt"></i> {{ phase.files.count }}
-                                </span>
+                                </div>
+                            </div>
+                            
+                            <div class="phase-compact-footer">
+                                <div class="task-compact-actions">
+                                     <a href="{% url 'projects:phase-detail' project.pk phase.id %}" class="btn-icon-action view" title="{% trans 'Ver detalles' %}" onclick="event.stopPropagation();">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>

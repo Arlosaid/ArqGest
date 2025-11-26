@@ -1085,7 +1085,8 @@ def task_create(request, project_pk):
                 messages.success(request, f'Tarea "{title}" creada exitosamente.')
 
                 # Redirecciones para peticiones normales
-                if 'kanban' in request.META.get('HTTP_REFERER', ''):
+                referer = request.META.get('HTTP_REFERER', '')
+                if 'kanban' in referer or '/tasks/' in referer:
                     return redirect('projects:project-kanban', pk=project_pk)
                 return redirect('projects:project-detail', pk=project_pk)
                     
@@ -1485,6 +1486,13 @@ def task_edit(request, pk):
                 return HttpResponse('Tarea actualizada correctamente', status=200)
             else:
                 messages.success(request, 'Tarea actualizada correctamente')
+                
+                # Redirección inteligente basada en el referer
+                referer = request.META.get('HTTP_REFERER', '')
+                if f'/projects/{project.id}/' in referer and 'kanban' not in referer and 'tasks' not in referer:
+                    # Si viene del detalle del proyecto, volver allí
+                    return redirect('projects:project-detail', pk=project.id)
+                
                 return redirect('projects:project-kanban', pk=project.id)
                 
         except Exception as e:
