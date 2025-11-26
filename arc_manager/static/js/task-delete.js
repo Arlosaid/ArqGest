@@ -13,6 +13,16 @@ class TaskDeleteManager {
         document.addEventListener('click', (e) => {
             const deleteBtn = e.target.closest('[data-action="delete-task"]');
             if (deleteBtn) {
+                // Ignorar si el botón está dentro del Kanban (kanban.js maneja su propia eliminación)
+                const isInKanban = deleteBtn.closest('.kanban-board') || 
+                                   deleteBtn.closest('.kanban-card') ||
+                                   deleteBtn.closest('.kanban-column');
+                
+                if (isInKanban) {
+                    // Dejar que kanban.js maneje la eliminación
+                    return;
+                }
+                
                 e.preventDefault();
                 e.stopPropagation();
                 

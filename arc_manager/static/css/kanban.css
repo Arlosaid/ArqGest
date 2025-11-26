@@ -537,43 +537,11 @@
     flex-direction: column;
 }
 
-.kanban-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-/* Indicador de estado en el borde izquierdo */
-.kanban-card::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 4px;
-    height: 100%;
-    background: var(--status-progress-600);
-    opacity: 0.3;
-    transition: opacity 0.3s ease;
-}
-
-.kanban-card:hover::before {
-    opacity: 1;
-}
-
-.kanban-card:hover::after {
-    opacity: 0.7;
-}
-
+/* Hover limpio y profesional - solo elevación sutil */
 .kanban-card:hover {
     transform: translateY(-2px);
-    box-shadow: var(--kanban-shadow-hover);
-    border-color: rgba(59, 130, 246, 0.3);
+    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.12), 0 4px 8px -2px rgba(0, 0, 0, 0.08);
+    border-color: rgba(59, 130, 246, 0.2);
 }
 
 .kanban-card:active {
@@ -803,38 +771,84 @@
 
 .task-status-buttons .btn {
     flex: 1;
-    padding: 0.375rem 0.5rem !important;
-    border: 1px solid var(--arc-border-color) !important;
-    border-radius: 6px !important;
-    background: var(--arc-bg-primary, #ffffff) !important;
-    color: var(--arc-text-primary, #333333) !important;
-    font-size: 0.75rem !important;
-    font-weight: 500 !important;
+    padding: 0.5rem 0.75rem !important;
+    border: 2px solid !important;
+    border-radius: 8px !important;
+    font-size: 0.8125rem !important;
+    font-weight: 600 !important;
     cursor: pointer !important;
-    transition: var(--arc-transition, all 0.2s ease) !important;
+    transition: all 0.2s ease !important;
     text-decoration: none !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    min-height: 36px !important;
+    min-height: 38px !important;
     min-width: auto !important;
     height: auto !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
-    gap: 0.375rem !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    gap: 0.5rem !important;
     white-space: nowrap !important;
 }
 
-.task-status-buttons .btn:hover {
+/* Botón INICIAR/REANUDAR - Azul vibrante */
+.task-status-buttons .btn.btn-primary {
+    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+    border-color: #2563eb !important;
     color: white !important;
-    border-color: transparent !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
 }
 
-.task-status-buttons .btn.btn-primary:hover { background: var(--arc-color-primary, #4285f4) !important; }
-.task-status-buttons .btn.btn-warning:hover { background: var(--arc-color-warning, #ffc107) !important; }
-.task-status-buttons .btn.btn-success:hover { background: var(--arc-color-success, #28a745) !important; }
-.task-status-buttons .btn.btn-info:hover { background: var(--arc-color-info, #17a2b8) !important; }
+.task-status-buttons .btn.btn-primary:hover {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+    border-color: #1d4ed8 !important;
+    color: white !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4) !important;
+}
+
+/* Botón PAUSAR - Amarillo/Naranja vibrante */
+.task-status-buttons .btn.btn-warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    border-color: #d97706 !important;
+    color: white !important;
+}
+
+.task-status-buttons .btn.btn-warning:hover {
+    background: linear-gradient(135deg, #d97706, #b45309) !important;
+    border-color: #b45309 !important;
+    color: white !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4) !important;
+}
+
+/* Botón COMPLETAR - Verde vibrante */
+.task-status-buttons .btn.btn-success {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    border-color: #059669 !important;
+    color: white !important;
+}
+
+.task-status-buttons .btn.btn-success:hover {
+    background: linear-gradient(135deg, #059669, #047857) !important;
+    border-color: #047857 !important;
+    color: white !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4) !important;
+}
+
+/* Botón INFO (volver a en progreso) - Cyan vibrante */
+.task-status-buttons .btn.btn-info {
+    background: linear-gradient(135deg, #06b6d4, #0891b2) !important;
+    border-color: #0891b2 !important;
+    color: white !important;
+}
+
+.task-status-buttons .btn.btn-info:hover {
+    background: linear-gradient(135deg, #0891b2, #0e7490) !important;
+    border-color: #0e7490 !important;
+    color: white !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4) !important;
+}
 
 .task-status-buttons .btn:disabled {
     opacity: 0.5 !important;
@@ -1200,14 +1214,6 @@
     background: var(--kanban-card-bg);
 }
 
-/* Feedback visual mínimo durante el arrastre */
-.kanban-card.dragging::after {
-    opacity: 1;
-    background: var(--arc-color-primary);
-    width: 3px;
-    box-shadow: 0 0 6px rgba(59, 130, 246, 0.3);
-}
-
 /* Indicador de drop zone activa - SIMPLIFICADO */
 .kanban-column-body.drag-over {
     position: relative;
@@ -1237,45 +1243,20 @@
         transform: none; /* Sin efectos de presión */
     }
     
-    /* Ocultar indicadores de drag */
-    .kanban-card::after {
-        display: none !important;
-    }
-    
     /* Remover cursor de grab en móvil */
     .kanban-card:hover {
         cursor: default !important;
     }
 }
 
-/* Indicador de drag and drop en desktop */
+/* Cursor de drag and drop en desktop */
 @media (min-width: 769px) {
     .kanban-card {
         cursor: grab;
     }
     
-    .kanban-card:hover::after {
-        content: 'Arrastra para mover';
-        position: absolute;
-        top: -25px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(0, 0, 0, 0.8);
-        color: white;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        white-space: nowrap;
-        z-index: 1000;
-        pointer-events: none;
-        opacity: 0;
-        animation: fadeInTooltip 0.3s ease forwards;
-    }
-    
-    @keyframes fadeInTooltip {
-        to {
-            opacity: 1;
-        }
+    .kanban-card:active {
+        cursor: grabbing;
     }
 }
 
@@ -1532,23 +1513,6 @@
     border: 1px solid var(--status-done-200);
 }
 
-/* Indicadores de estado en tarjetas según la columna */
-.kanban-column[data-status="todo"] .kanban-card::after {
-    background: var(--status-todo-600);
-}
-
-.kanban-column[data-status="in_progress"] .kanban-card::after {
-    background: var(--status-progress-600);
-}
-
-.kanban-column[data-status="paused"] .kanban-card::after {
-    background: var(--status-paused-600);
-}
-
-.kanban-column[data-status="done"] .kanban-card::after {
-    background: var(--status-done-600);
-}
-
 /* ========================================
    FILTROS Y CONTROLES - MEJORADOS Y ESTÉTICOS
    ======================================== */
@@ -1684,15 +1648,6 @@
     border-color: rgba(203, 213, 225, 0.6);
 }
 
-.kanban-card.other-user-task::before {
-    display: none;
-}
-
-.kanban-card.other-user-task::after {
-    background: var(--arc-text-tertiary);
-    opacity: 0.15;
-}
-
 /* Overlay sutil para indicar que no es interactiva */
 .kanban-card.other-user-task .card-body::before {
     content: '';
@@ -1730,15 +1685,6 @@
 .kanban-card.my-task:hover {
     border-color: rgba(59, 130, 246, 0.4);
     box-shadow: 0 8px 16px -4px rgba(59, 130, 246, 0.15);
-}
-
-.kanban-card.my-task::after {
-    background: linear-gradient(180deg, var(--arc-color-primary), var(--status-progress-600));
-    opacity: 0.5;
-}
-
-.kanban-card.my-task:hover::after {
-    opacity: 0.8;
 }
 
 /* Indicador visual en el título para tareas de otros */
