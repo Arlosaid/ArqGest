@@ -10,36 +10,20 @@
     </div>
     <div class="card-body">
 		{% if phases_page_obj %}
-            <div class="row">
+            <div class="row g-4">
 				{% for phase in phases_page_obj.object_list %}
-                    <div class="col-md-6 col-lg-4 mb-3">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h6 class="card-title mb-0">{{ phase.name }}</h6>
-                                    <span class="badge 
-                                        {% if phase.status == 'COMPLETED' %}bg-success
-                                        {% elif phase.status == 'IN_PROGRESS' %}bg-primary
-                                        {% else %}bg-secondary{% endif %}">
-                                        {{ phase.get_status_display }}
-                                    </span>
-                                </div>
-                                <p class="card-text small text-muted">
-                                    {% if phase.notes %}
-                                        {{ phase.notes|truncatewords:10 }}
-                                    {% else %}
-                                        {% trans "Sin descripción" %}
-                                    {% endif %}
-                                </p>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <small class="text-muted">
-                                        {{ phase.tasks.count }} {% trans "tareas" %}
-                                    </small>
-                                    <a href="{% url 'projects:phase-detail' project_pk=project.pk pk=phase.pk %}" 
-                                       class="btn btn-sm btn-outline-primary">
-                                        {% trans "Ver Detalles" %}
-                                    </a>
-                                </div>
+                    <div class="col-md-6 col-lg-4">
+                        <div class="phase-card-simple" 
+                             data-phase-id="{{ phase.id }}">
+                            <div class="phase-number">{{ forloop.counter }}</div>
+                            <h3 class="phase-name">{{ phase.name }}</h3>
+                            <div class="phase-stats">
+                                <span class="stat">
+                                    <i class="fas fa-tasks"></i> {{ phase.tasks.count }}
+                                </span>
+                                <span class="stat">
+                                    <i class="fas fa-file-alt"></i> {{ phase.files.count }}
+                                </span>
                             </div>
                         </div>
                     </div>
