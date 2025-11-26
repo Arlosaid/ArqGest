@@ -42,7 +42,6 @@ class LargeFileUploader {
         // Evitar inicializar el mismo formulario múltiples veces
         const formId = form.getAttribute('data-phase-id') || form.action;
         if (this.initializedForms.has(formId)) {
-            console.log(`⚠️ Formulario ${formId} ya inicializado, saltando...`);
             return;
         }
         
@@ -578,11 +577,9 @@ let largeFileUploaderInstance = null;
 function initializeLargeFileUploader() {
     if (!largeFileUploaderInstance) {
         largeFileUploaderInstance = new LargeFileUploader();
-        console.log('✅ LargeFileUploader inicializado (singleton)');
     } else {
         // Solo reinicializar formularios nuevos sin crear nueva instancia
         largeFileUploaderInstance.init();
-        console.log('🔄 LargeFileUploader reinicializado (reutilizando instancia)');
     }
 }
 

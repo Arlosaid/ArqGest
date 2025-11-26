@@ -346,9 +346,9 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         )
         context['tasks_recent'] = list(tasks_qs.order_by('-created_at')[:8])
 
-        # Centro de tareas (pestaña interna): paginar 9 por página
-        # El responsive se manejará con CSS/JS para mostrar 5 en mobile
-        tasks_page_obj = build_page(tasks_qs.order_by('due_date', 'priority'), 9, 'tasks_page')
+        # Centro de tareas (pestaña interna): paginar 12 por página (desktop)
+        # El responsive se manejará con CSS/JS para mostrar 6 en mobile
+        tasks_page_obj = build_page(tasks_qs.order_by('due_date', 'priority'), 12, 'tasks_page')
         context['tasks_page_obj'] = tasks_page_obj
 
         # Obtener usuarios de la organización para asignación (excluir solo superusuarios)
@@ -1555,7 +1555,7 @@ def project_tasks_paginated(request, project_pk):
     
     # Parámetros de paginación
     page = int(request.GET.get('page', 1))
-    per_page = int(request.GET.get('per_page', 9))  # 9 desktop, 5 mobile desde JS
+    per_page = int(request.GET.get('per_page', 12))  # 12 desktop (más espacio con padding reducido), 6 mobile desde JS
     
     # Filtros
     phase_filter = request.GET.get('phase', '')

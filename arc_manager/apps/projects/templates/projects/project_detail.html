@@ -32,38 +32,29 @@
                     </div>
                 </div>
             </div>
-            <div class="d-flex gap-2 align-items-center">
-                <a href="{% url 'projects:project-kanban' project.pk %}" class="btn btn-primary" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: none; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);">
-                    <i class="fas fa-columns"></i> {% trans "Gestionar Tareas" %}
+            <div class="d-flex gap-2 align-items-center flex-wrap justify-content-end">
+                <!-- Botón Principal (Kanban) -->
+                <a href="{% url 'projects:project-kanban' project.pk %}" class="btn btn-primary" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: none; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3); white-space: nowrap;">
+                    <i class="fas fa-columns"></i> <span class="d-none d-sm-inline">{% trans "Gestionar Tareas" %}</span>
                 </a>
+                
                 {% if user.is_org_admin %}
-                <div class="dropdown">
-                    <button class="btn btn-light border dropdown-toggle" type="button" id="projectActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="background: white; border-color: #dee2e6; color: #495057;">
-                        <i class="fas fa-cog"></i> {% trans "Más acciones" %}
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="projectActionsDropdown" style="border-radius: 8px; border: 1px solid #e0e0e0;">
-                        <li>
-                            <a class="dropdown-item" href="{% url 'projects:project-update' project.pk %}">
-                                <i class="fas fa-edit text-primary"></i> {% trans "Editar Proyecto" %}
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{% url 'projects:project-phases-edit' project.pk %}">
-                                <i class="fas fa-layer-group text-info"></i> {% trans "Editar Fases" %}
-                            </a>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                            <a class="dropdown-item text-danger" href="{% url 'projects:project-delete' project.pk %}"
-                               data-project-name="{{ project.name }}"
-                               data-phase-count="{{ project.phases.count }}"
-                               data-task-count="{{ project.phases.all|sum_tasks }}"
-                               data-file-count="{{ project.phases.all|sum_files }}">
-                                <i class="fas fa-trash"></i> {% trans "Eliminar Proyecto" %}
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+                <!-- Botones de Acción estilo blanco -->
+                <a href="{% url 'projects:project-update' project.pk %}" class="btn" style="background: white; border: 1px solid #e0e0e0; color: #666; box-shadow: 0 1px 3px rgba(0,0,0,0.1); white-space: nowrap;">
+                    <i class="fas fa-edit"></i> <span class="d-none d-md-inline">{% trans "Editar Proyecto" %}</span>
+                </a>
+                <a href="{% url 'projects:project-phases-edit' project.pk %}" class="btn" style="background: white; border: 1px solid #e0e0e0; color: #666; box-shadow: 0 1px 3px rgba(0,0,0,0.1); white-space: nowrap;">
+                    <i class="fas fa-layer-group"></i> <span class="d-none d-md-inline">{% trans "Editar Fases" %}</span>
+                </a>
+                <a href="{% url 'projects:project-delete' project.pk %}" 
+                   class="btn" 
+                   style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border: none; color: white; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3); white-space: nowrap;"
+                   data-project-name="{{ project.name }}"
+                   data-phase-count="{{ project.phases.count }}"
+                   data-task-count="{{ project.phases.all|sum_tasks }}"
+                   data-file-count="{{ project.phases.all|sum_files }}">
+                    <i class="fas fa-trash"></i> <span class="d-none d-md-inline">{% trans "Eliminar" %}</span>
+                </a>
                 {% endif %}
             </div>
         </div>
@@ -148,20 +139,6 @@
                             <div class="col-md-6">
                                 <div class="info-card p-3 rounded h-100" style="background: white; border: 1px solid #e2e8f0; transition: all 0.3s;">
                                     <div class="d-flex align-items-start gap-3">
-                                        <div class="info-icon-wrapper" style="width: 40px; height: 40px; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                            <i class="fas fa-user-tie" style="color: #3b82f6; font-size: 1.1rem;"></i>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <div class="text-muted small mb-1" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">{% trans "Propietario" %}</div>
-                                            <div class="fw-semibold" style="color: #1e293b; font-size: 1rem;">{{ project.owner.get_full_name|default:"No asignado" }}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="info-card p-3 rounded h-100" style="background: white; border: 1px solid #e2e8f0; transition: all 0.3s;">
-                                    <div class="d-flex align-items-start gap-3">
                                         <div class="info-icon-wrapper" style="width: 40px; height: 40px; background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
                                             <i class="fas fa-check-circle" style="color: #10b981; font-size: 1.1rem;"></i>
                                         </div>
@@ -219,21 +196,6 @@
                             </div>
                             {% endif %}
                         </div>
-
-                        <!-- Botones de Acción -->
-                        {% if user.is_org_admin %}
-                        <div class="d-flex gap-2 flex-wrap mt-4 pt-3" style="border-top: 1px solid #e2e8f0;">
-                            <a href="{% url 'projects:project-update' project.pk %}" class="btn-kanban-secondary">
-                                <i class="fas fa-edit"></i> {% trans "Editar Proyecto" %}
-                            </a>
-                            <a href="{% url 'projects:project-phases-edit' project.pk %}" class="btn-kanban-secondary">
-                                <i class="fas fa-layer-group"></i> {% trans "Editar Fases" %}
-                            </a>
-                            <a href="{% url 'projects:project-kanban' project.pk %}" class="btn btn-primary" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: none; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);">
-                                <i class="fas fa-columns"></i> {% trans "Gestionar Tareas en Kanban" %}
-                            </a>
-                        </div>
-                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -257,8 +219,9 @@
                             </select>
                           </div>
                           <div class="ms-auto">
-                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addTaskModal">{% trans "Nueva Tarea" %}</button>
-                            <a href="{% url 'projects:project-kanban' project.pk %}" class="btn btn-outline-secondary btn-sm">{% trans "Kanban Completo" %}</a>
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                              <i class="fas fa-plus"></i> {% trans "Nueva Tarea" %}
+                            </button>
                           </div>
                         </div>
 
@@ -292,24 +255,120 @@ document.body.dataset.updateTaskStatusUrlTemplate = `{% url 'projects:update-tas
 
 // Verificar que los filtros están cargados
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('=== VERIFICACION DE FILTROS ===');
-    console.log('setupFileFilters:', typeof setupFileFilters);
-    console.log('applyFileFilters:', typeof window.applyFileFilters);
-    console.log('clearFileFilters:', typeof window.clearFileFilters);
-    
-    // Contar elementos de filtros
-    const typeFilters = document.querySelectorAll('[id^="fileTypeFilter-"]');
-    const dateFilters = document.querySelectorAll('[id^="fileDateFilter-"]');
-    const clearButtons = document.querySelectorAll('[id^="clearFilters-"]');
-    
-    console.log('Filtros de tipo encontrados:', typeFilters.length);
-    console.log('Filtros de fecha encontrados:', dateFilters.length);
-    console.log('Botones de limpiar encontrados:', clearButtons.length);
-    
-    if (typeFilters.length === 0) {
-        console.warn('NO SE ENCONTRARON FILTROS. Posiblemente estás en una pestaña sin archivos o los elementos no están en el DOM todavía.');
+    // Manejar creación de tareas con AJAX para actualización automática
+    const taskForm = document.getElementById('taskForm');
+    if (taskForm) {
+        taskForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(taskForm);
+            const submitBtn = taskForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            
+            try {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando...';
+                
+                const response = await fetch(taskForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Limpiar formulario
+                    taskForm.reset();
+                    
+                    // Función para recargar las tareas de forma segura
+                    const reloadTasks = async () => {
+                        const tasksContainer = document.getElementById('tasksContainer');
+                        if (!tasksContainer || !tasksContainer.dataset.paginatedUrl) {
+                            console.warn('Contenedor de tareas no disponible, recargando página...');
+                            window.location.reload();
+                            return;
+                        }
+                        
+                        try {
+                            const paginatedUrl = tasksContainer.dataset.paginatedUrl;
+                            const phaseFilter = document.getElementById('phaseFilter');
+                            const selectedPhase = phaseFilter ? phaseFilter.value : '';
+                            const url = selectedPhase ? `${paginatedUrl}?phase=${selectedPhase}` : paginatedUrl;
+                            
+                            const tasksResponse = await fetch(url, {
+                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                            });
+                            
+                            if (tasksResponse.ok) {
+                                const html = await tasksResponse.text();
+                                // Verificación robusta justo antes de actualizar
+                                const container = document.getElementById('tasksContainer');
+                                if (container && html) {
+                                    try {
+                                        container.innerHTML = html;
+                                        document.dispatchEvent(new CustomEvent('taskCreated', { detail: { html } }));
+                                    } catch (e) {
+                                        // Si falla el innerHTML, recargar página
+                                        window.location.reload();
+                                    }
+                                } else {
+                                    window.location.reload();
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error recargando tareas:', error);
+                            window.location.reload();
+                        }
+                    };
+                    
+                    // Cerrar modal y esperar a que Bootstrap termine completamente
+                    const modalElement = document.getElementById('addTaskModal');
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    
+                    if (modal) {
+                        // Usar evento de Bootstrap para saber cuándo el modal está completamente cerrado
+                        modalElement.addEventListener('hidden.bs.modal', function onModalHidden() {
+                            // Remover el listener para evitar duplicados
+                            modalElement.removeEventListener('hidden.bs.modal', onModalHidden);
+                            // Esperar un frame adicional para asegurar que el DOM está estable
+                            requestAnimationFrame(() => {
+                                setTimeout(reloadTasks, 50);
+                            });
+                        }, { once: true });
+                        
+                        modal.hide();
+                    } else {
+                        // Si no hay modal, recargar directamente
+                        await reloadTasks();
+                    }
+                    
+                    // Mostrar mensaje de éxito
+                    if (typeof showToast === 'function') {
+                        showToast('Tarea creada exitosamente', 'success');
+                    } else if (window.notifications) {
+                        window.notifications.success('Tarea creada exitosamente');
+                    }
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || 'Error al crear la tarea');
+                }
+            } catch (error) {
+                console.error('Error al crear tarea:', error);
+                if (typeof showToast === 'function') {
+                    showToast('Error al crear la tarea', 'error');
+                } else {
+                    alert('Error al crear la tarea: ' + error.message);
+                }
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        });
     }
-    console.log('=== FIN VERIFICACION ===');
 });
 </script>
 

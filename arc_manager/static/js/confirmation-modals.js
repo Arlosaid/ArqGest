@@ -224,7 +224,21 @@ class ConfirmationModal {
             confirmBtn.addEventListener('click', () => this.handleConfirm());
         }
         
-        // Limpiar al cerrar
+        // Guardar referencia al elemento que tenía el foco antes del modal
+        this.previouslyFocusedElement = document.activeElement;
+        
+        // Manejar cierre del modal (tanto por cancelar como por ESC)
+        this.modalElement.addEventListener('hide.bs.modal', () => {
+            // Devolver foco al elemento anterior para evitar warning de aria-hidden
+            if (this.previouslyFocusedElement && this.previouslyFocusedElement !== document.body) {
+                // Usar setTimeout para asegurar que el modal se cierre primero
+                setTimeout(() => {
+                    this.previouslyFocusedElement.focus();
+                }, 100);
+            }
+        });
+        
+        // Limpiar al cerrar completamente
         this.modalElement.addEventListener('hidden.bs.modal', () => {
             if (!this.isProcessing) {
                 this.cleanup();
@@ -306,9 +320,14 @@ class ConfirmationModal {
         
         // Limpiar backdrops huérfanos
         document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
-        document.body.classList.remove('modal-open');
-        document.body.style.overflow = '';
-        document.body.style.paddingRight = '';
+        
+        // Restaurar estado del body solo si no hay otros modales abiertos
+        const openModals = document.querySelectorAll('.modal.show');
+        if (openModals.length === 0) {
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        }
     }
 }
 

@@ -123,7 +123,7 @@ body.modal-open {
 .page-container {
     max-width: 1600px; /* Aumentado de 1400px */
     margin: 0 auto;
-    padding: 2.5rem; /* Aumentado de 32px a 40px */
+    padding: 1.5rem 0.5rem; /* Padding lateral mínimo para que coincida con project_list */
     background: #ffffff;
     min-height: calc(100vh - var(--arc-layout-navbar-height));
 }
@@ -876,7 +876,7 @@ body.modal-open {
 @media (max-width: 1400px) {
     .page-container {
         max-width: 1200px;
-        padding: 2rem;
+        padding: 1.25rem 0.5rem;
     }
     .main-content-grid {
         grid-template-columns: 1fr 280px;
@@ -890,7 +890,7 @@ body.modal-open {
         gap: 1.5rem;
     }
     .page-container {
-        padding: 1.5rem;
+        padding: 1rem 0.75rem;
     }
 }
 

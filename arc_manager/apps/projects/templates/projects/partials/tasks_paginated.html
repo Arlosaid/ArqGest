@@ -44,6 +44,8 @@
                 <button type="button" class="btn-action btn-delete" 
                         data-action="delete-task" 
                         data-task-id="{{ task.id }}"
+                        data-task-title="{{ task.title }}"
+                        data-task-description="{{ task.description|default:''|truncatewords:20 }}"
                         title="Eliminar">
                     <i class="fas fa-trash-alt"></i>
                     <span>Eliminar</span>
