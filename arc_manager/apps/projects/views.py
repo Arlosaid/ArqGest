@@ -1891,28 +1891,45 @@ class ProjectKanbanSelectorView(LoginRequiredMixin, View):
         organization_id = request.user.organization.id
         is_admin = request.user.is_org_admin
         
-        # SOLUCIÓN ÓPTIMA: Obtener solo proyectos accesibles desde cache
-        accessible_data = get_or_set_user_accessible_projects(
-            request.user.id, 
-            organization_id, 
-            is_admin
-        )
-        
-        # OPTIMIZACIÓN: Construir QuerySets con datos completos para evitar N+1
-        # No mostrar proyectos archivados
-        active_projects = Project.objects.with_complete_data().filter(
-            id__in=accessible_data['active_ids']
-        ).order_by('-created_at')
-        
-        completed_projects = Project.objects.with_complete_data().filter(
-            id__in=accessible_data['completed_ids']
-        ).order_by('-created_at')
-
         # Paginación por sección (8 por página por solicitud)
         try:
             page_size = int(request.GET.get('page_size', 8))
         except Exception:
             page_size = 8
+
+        if is_admin:
+            # Admins ven todo directamente (evita problemas de cache stale por usuario)
+            active_projects = Project.objects.select_related('client').filter(
+                organization_id=organization_id,
+                status='ACTIVE'
+            ).order_by('-created_at')
+            
+            completed_projects = Project.objects.select_related('client').filter(
+                organization_id=organization_id,
+                status='COMPLETED'
+            ).order_by('-created_at')
+            
+            total_projects = active_projects.count() + completed_projects.count()
+        else:
+            # SOLUCIÓN ÓPTIMA: Obtener solo proyectos accesibles desde cache
+            accessible_data = get_or_set_user_accessible_projects(
+                request.user.id, 
+                organization_id, 
+                is_admin
+            )
+            
+            # OPTIMIZACIÓN: Usar select_related para evitar N+1 pero sin cargar datos pesados
+            # No mostrar proyectos archivados
+            active_projects = Project.objects.select_related('client').filter(
+                id__in=accessible_data['active_ids']
+            ).order_by('-created_at')
+            
+            completed_projects = Project.objects.select_related('client').filter(
+                id__in=accessible_data['completed_ids']
+            ).order_by('-created_at')
+            
+            # Total sin contar archivados
+            total_projects = accessible_data['active_count'] + accessible_data['completed_count']
 
         def build_page(qs, page_param_name):
             paginator = Paginator(qs, page_size)
@@ -1926,9 +1943,6 @@ class ProjectKanbanSelectorView(LoginRequiredMixin, View):
         active_page_obj = build_page(active_projects, 'active_page')
         completed_page_obj = build_page(completed_projects, 'completed_page')
         
-        # Total sin contar archivados
-        total_projects = accessible_data['active_count'] + accessible_data['completed_count']
-        
         context = {
             'active_projects': active_projects,
             'completed_projects': completed_projects,
@@ -1936,7 +1950,7 @@ class ProjectKanbanSelectorView(LoginRequiredMixin, View):
             # Page objects
             'active_page_obj': active_page_obj,
             'completed_page_obj': completed_page_obj,
-            'page_size': page_size,
+            'page_size': str(page_size),
             # Todos los proyectos mostrados son accesibles
             'all_projects_accessible': True,
         }
