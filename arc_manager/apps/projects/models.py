@@ -87,6 +87,12 @@ class Project(models.Model):
         db_index=True,
         help_text=_("Máximo 100 caracteres. Sea claro y específico.")
     )
+    description = models.TextField(
+        _("Descripción"),
+        blank=True,
+        null=True,
+        help_text=_("Descripción detallada del proyecto")
+    )
     status = models.CharField(
         _("Estado"),
         max_length=20,

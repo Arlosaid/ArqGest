@@ -7,7 +7,7 @@
 
 {% block extra_css %}
 <link href="{% static 'css/status-toggle.css' %}" rel="stylesheet">
-<link href="{% static 'css/project_list.css' %}?v=5.3" rel="stylesheet">
+<link href="{% static 'css/project_list.css' %}?v=6.0" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -19,8 +19,10 @@
                 <div class="header-icon">
                     <i class="fas fa-project-diagram"></i>
                 </div>
-                <h1>{% trans "Mis Proyectos" %}</h1>
-                <div class="text-muted">{% trans "Gestiona y organiza tus proyectos arquitectónicos" %}</div>
+                <div>
+                    <h1>{% trans "Mis Proyectos" %}</h1>
+                    <div class="text-muted">{% trans "Gestiona y organiza tus proyectos arquitectónicos" %}</div>
+                </div>
             </div>
             <div class="d-flex gap-2">
                 {% if user.is_org_admin %}
@@ -32,53 +34,56 @@
         </div>
     </div>
 
-    <div class="stats-grid-mini">
-        <div class="stat-card-mini">
-            <div class="stat-icon-mini total">
-                <i class="fas fa-folder"></i>
+    <!-- Stats compactas y controles en una fila -->
+    <div class="stats-and-controls-row">
+        <!-- Stats compactas -->
+        <div class="stats-inline">
+            <div class="stat-inline-item">
+                <div class="stat-icon-compact total">
+                    <i class="fas fa-folder"></i>
+                </div>
+                <div class="stat-content-compact">
+                    <div class="stat-number-compact">{% if is_paginated %}{{ page_obj.paginator.count }}{% else %}{{ projects|length }}{% endif %}</div>
+                    <div class="stat-label-compact">{% if current_filters.status or current_filters.search %}Filtrados{% else %}{% if is_limited_view %}Mis Proyectos{% else %}Total{% endif %}{% endif %}</div>
+                </div>
             </div>
-            <div class="stat-number-mini">{% if is_paginated %}{{ page_obj.paginator.count }}{% else %}{{ projects|length }}{% endif %}</div>
-            <div class="stat-label-mini">{% if current_filters.status or current_filters.search %}Filtrados{% else %}{% if is_limited_view %}Mis Proyectos{% else %}Total Proyectos{% endif %}{% endif %}</div>
-        </div>
-        <div class="stat-card-mini">
-            <div class="stat-icon-mini active">
-                <i class="fas fa-play-circle"></i>
+            <div class="stat-inline-item">
+                <div class="stat-icon-compact active">
+                    <i class="fas fa-play-circle"></i>
+                </div>
+                <div class="stat-content-compact">
+                    <div class="stat-number-compact">{{ active_projects_count|default:"0" }}</div>
+                    <div class="stat-label-compact">Activos</div>
+                </div>
             </div>
-            <div class="stat-number-mini">{{ active_projects_count|default:"0" }}</div>
-            <div class="stat-label-mini">Activos</div>
         </div>
-    </div>
 
-    {% if is_limited_view %}
-    <div class="alert alert-info mb-3" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border: 1px solid #64b5f6; border-radius: 8px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-        <i class="fas fa-info-circle" style="color: #1976d2; font-size: 20px;"></i>
-        <span style="color: #0d47a1; font-size: 14px; font-weight: 500;">
-            Estás viendo solo los proyectos donde estás asignado o eres propietario
-        </span>
-    </div>
-    {% endif %}
-
-    <div class="table-search-container">
-        <div class="table-search-box">
-            <i class="fas fa-search table-search-icon"></i>
-            <input type="text" 
-                   class="table-search-input" 
-                   placeholder="{% trans 'Buscar proyectos por nombre, cliente...' %}" 
-                   name="search">
-            <a href="#" class="clear-search-btn" style="display: none;">
-                <i class="fas fa-times"></i>
-            </a>
-        </div>
-        <div class="status-filter-buttons">
-            <button type="button" class="filter-btn" data-filter="all">
-                <i class="fas fa-list"></i> Todos
-            </button>
-            <button type="button" class="filter-btn" data-filter="active">
-                <i class="fas fa-check-circle"></i> Activos
-            </button>
-            <button type="button" class="filter-btn" data-filter="archived">
-                <i class="fas fa-archive"></i> Archivados
-            </button>
+        <!-- Controles de búsqueda y filtros en línea -->
+        <div class="controls-inline">
+            <div class="search-box-inline">
+                <i class="fas fa-search search-icon-inline"></i>
+                <input type="text" 
+                       class="search-input-inline" 
+                       placeholder="{% trans 'Buscar...' %}" 
+                       name="search">
+                <a href="#" class="clear-search-btn" style="display: none;">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+            <div class="filter-buttons-inline">
+                <button type="button" class="filter-btn-compact active" data-filter="all" title="Todos los proyectos">
+                    <i class="fas fa-list"></i>
+                    <span class="filter-text">Todos</span>
+                </button>
+                <button type="button" class="filter-btn-compact" data-filter="active" title="Proyectos activos">
+                    <i class="fas fa-check-circle"></i>
+                    <span class="filter-text">Activos</span>
+                </button>
+                <button type="button" class="filter-btn-compact" data-filter="archived" title="Proyectos archivados">
+                    <i class="fas fa-archive"></i>
+                    <span class="filter-text">Archivados</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -201,6 +206,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/projects.js' %}?v=5.1" defer></script>
+<script src="{% static 'js/projects.js' %}?v=6.0" defer></script>
 <script src="{% static 'js/status-toggle.js' %}?v=2.1" defer></script>
 {% endblock %}

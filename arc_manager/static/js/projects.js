@@ -29,7 +29,7 @@ class ProjectsManager {
     }
 
     setupSearchAndFilters() {
-        const searchInput = document.querySelector('.table-search-input');
+        const searchInput = document.querySelector('.search-input-inline, .table-search-input');
         const clearBtn = document.querySelector('.clear-search-btn');
         
         if (searchInput) {
@@ -74,7 +74,7 @@ class ProjectsManager {
     }
 
     setupStatusFilters() {
-        const filterButtons = document.querySelectorAll('.filter-btn');
+        const filterButtons = document.querySelectorAll('.filter-btn, .filter-btn-compact');
         
         if (!filterButtons.length) {
             return;
