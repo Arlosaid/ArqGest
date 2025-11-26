@@ -41,6 +41,7 @@
     <link href="{% static 'css/task_detail_modal.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
     <link href="{% static 'css/file-updates.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
     <link href="{% static 'css/char-counter.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
+    <link href="{% static 'css/confirmation_modals.css' %}?v={{ STATIC_VERSION }}" rel="stylesheet">
     
     {% comment %}{% mobile_css 'css/mobile_ios_fixes.css' 'screen and (max-width: 991.98px)' %}{% endcomment %}
     
@@ -161,7 +162,10 @@
     
     <script src="{% static 'js/file-list-updater.js' %}?v={{ STATIC_VERSION }}"></script>
     
+    <script src="{% static 'js/confirmation-modals.js' %}?v={{ STATIC_VERSION }}"></script>
     <script src="{% static 'js/file-delete.js' %}?v={{ STATIC_VERSION }}"></script>
+    <script src="{% static 'js/task-delete.js' %}?v={{ STATIC_VERSION }}"></script>
+    <script src="{% static 'js/project-delete.js' %}?v={{ STATIC_VERSION }}"></script>
     
     <script src="{% static 'js/base.js' %}?v={{ STATIC_VERSION }}"></script>
     <script src="{% static 'js/navbar.js' %}?v={{ STATIC_VERSION }}"></script>

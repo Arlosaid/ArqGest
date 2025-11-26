@@ -75,10 +75,8 @@ class ProjectsManager {
 
     setupStatusFilters() {
         const filterButtons = document.querySelectorAll('.filter-btn');
-        console.log('🔍 Configurando filtros de estado. Botones encontrados:', filterButtons.length);
         
-        if (filterButtons.length === 0) {
-            console.warn('⚠️ No se encontraron botones de filtro');
+        if (!filterButtons.length) {
             return;
         }
         

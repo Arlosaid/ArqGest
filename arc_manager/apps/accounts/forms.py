@@ -1,10 +1,10 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, SetPasswordForm
 from django.contrib.auth import get_user_model
-from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.db import models
 import logging
+from core.validators import validate_password_spanish
 
 logger = logging.getLogger('apps.accounts')
 
@@ -151,9 +151,9 @@ class ForcePasswordChangeForm(forms.Form):
         
         logger.debug(f"Validando nueva contraseña para usuario: {self.user.email}")
         
-        # Usar validadores de Django (incluye CommonPasswordValidator)
+        # Usar nuestro validador personalizado que traduce mensajes al español
         try:
-            validate_password(password, user=self.user)
+            validate_password_spanish(password, user=self.user)
         except ValidationError as e:
             logger.warning(f"Nueva contraseña rechazada para {self.user.email}: {e.messages}")
             raise ValidationError(e.messages)
@@ -193,9 +193,9 @@ class SecureSetPasswordForm(SetPasswordForm):
         """Validar que la nueva contraseña sea diferente a la anterior y cumpla requisitos"""
         password = self.cleaned_data.get('new_password1')
         
-        # Usar validadores de Django (incluye CommonPasswordValidator)
+        # Usar nuestro validador personalizado que traduce mensajes al español
         try:
-            validate_password(password, user=self.user)
+            validate_password_spanish(password, user=self.user)
         except ValidationError as e:
             logger.warning(f"Password reset rechazado para {self.user.email}: {e.messages}")
             raise ValidationError(e.messages)

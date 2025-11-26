@@ -4,6 +4,7 @@ Validadores personalizados para toda la aplicación.
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import EmailValidator
+from django.contrib.auth.password_validation import validate_password as django_validate_password
 from decimal import Decimal, InvalidOperation
 import re
 from datetime import date, datetime
@@ -466,3 +467,64 @@ def validate_order_number(value, max_order=1000):
             _(f"El orden no puede ser mayor a {max_order}."),
             code='order_too_large'
         )
+
+
+# ============================================
+# VALIDADORES DE CONTRASEÑA (CON TRADUCCIONES)
+# ============================================
+
+def validate_password_spanish(password, user=None):
+    """
+    Valida contraseña usando los validadores de Django,
+    pero traduce los mensajes de error al español.
+    
+    Args:
+        password: La contraseña a validar
+        user: El usuario (opcional, para validaciones personalizadas)
+    
+    Raises:
+        ValidationError: Si la contraseña no cumple los requisitos
+    """
+    # Traducciones de mensajes de Django al español
+    translations_map = {
+        'This password is too short. It must contain at least 8 characters.': 
+            'La contraseña es demasiado corta. Debe contener al menos 8 caracteres.',
+        'This password is entirely numeric.':
+            'La contraseña no puede ser completamente numérica.',
+        'Esta contraseña es completamente numérica.':
+            'La contraseña no puede ser completamente numérica.',
+        'This password is too common.':
+            'Esta contraseña es demasiado común. Elige una más segura.',
+        'The password is too similar to the username.':
+            'La contraseña es demasiado similar al nombre de usuario.',
+        'The password is too similar to the user email.':
+            'La contraseña es demasiado similar a tu correo electrónico.',
+        'Your password must contain at least 8 characters.':
+            'Tu contraseña debe contener al menos 8 caracteres.',
+        'This password is not commonly used.':
+            'Esta contraseña es muy común. Por favor, elige una más segura.',
+    }
+    
+    try:
+        # Usar el validador de Django
+        django_validate_password(password, user=user)
+    except ValidationError as e:
+        # Traducir los mensajes de error
+        translated_messages = []
+        
+        if hasattr(e, 'messages'):
+            # Si es una lista de mensajes
+            for message in e.messages:
+                translated = translations_map.get(str(message), str(message))
+                translated_messages.append(translated)
+        elif hasattr(e, 'message'):
+            # Si es un solo mensaje
+            message = e.message
+            translated = translations_map.get(str(message), str(message))
+            translated_messages.append(translated)
+        else:
+            # En cualquier otro caso
+            translated_messages.append(str(e))
+        
+        # Re-lanzar con mensajes traducidos
+        raise ValidationError(translated_messages, code=getattr(e, 'code', 'invalid_password'))

@@ -137,8 +137,5 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     };
 
-    // Log de inicialización (solo en desarrollo)
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        console.log('HTMX Error Handler inicializado');
-    }
+    // Inicialización silenciosa
 });

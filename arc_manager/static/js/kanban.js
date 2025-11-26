@@ -159,6 +159,17 @@ class KanbanManager {
             return;
         }
 
+        // Verificar permisos: admins O usuarios asignados pueden hacer drag & drop
+        const isOrgAdmin = document.body.dataset.isOrgAdmin === 'true';
+        const currentUserId = parseInt(document.body.dataset.currentUserId || '0');
+        const taskAssignedToId = parseInt(e.target.dataset.assignedToId || '0');
+        
+        // Permitir solo si es admin O si es el usuario asignado
+        if (!isOrgAdmin && currentUserId !== taskAssignedToId) {
+            e.preventDefault();
+            return;
+        }
+
         // Feedback visual mínimo y eficiente
         e.target.classList.add('dragging');
         e.dataTransfer.setData('text/plain', e.target.dataset.taskId);
@@ -618,10 +629,23 @@ class KanbanManager {
     }
 
     async deleteTask(taskId) {
-        if (!confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
-            return;
-        }
+        // Obtener información de la tarea para el modal
+        const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
+        const taskTitle = taskCard ? taskCard.querySelector('.task-title')?.textContent?.trim() || 'esta tarea' : 'esta tarea';
+        const taskDescription = taskCard ? taskCard.querySelector('.task-description')?.textContent?.trim() || '' : '';
 
+        // Mostrar modal de confirmación usando el sistema unificado
+        ConfirmationModals.deleteTask({
+            taskId: taskId,
+            taskTitle: taskTitle,
+            taskDescription: taskDescription,
+            onConfirm: async () => {
+                await this.performTaskDeletion(taskId);
+            }
+        });
+    }
+
+    async performTaskDeletion(taskId) {
         try {
             const response = await fetch(`/projects/tasks/${taskId}/delete/`, {
                 method: 'POST',

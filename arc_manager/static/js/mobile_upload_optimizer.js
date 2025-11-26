@@ -24,7 +24,10 @@ class MobileUploadOptimizer {
         
         this.maxMobileFileSize = maxFileSizeMB * 1024 * 1024;
         
-        console.log(`📱 Upload Optimizer - Límite: ${maxFileSizeMB}MB (${this.isMobile ? 'Mobile' : 'Desktop'})`);
+        // Solo loguear en modo debug
+        if (window.location.search.includes('debug=upload')) {
+            console.log(`📱 Upload Optimizer - Límite: ${maxFileSizeMB}MB (${this.isMobile ? 'Mobile' : 'Desktop'})`);
+        }
         
         this.mobileChunkSize = this.isMobile 
             ? ((config.MOBILE_CHUNK_SIZE_MB || 1) * 1024 * 1024)
@@ -50,8 +53,8 @@ class MobileUploadOptimizer {
         // Interceptar uploads del upload_progress.js existente
         this.interceptExistingUploads();
         
-        // Log solo en desarrollo
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // Log solo en modo debug explícito
+        if (window.location.search.includes('debug=upload')) {
             console.log(`📱 Mobile Upload Optimizer: ${this.isMobile ? 'ENABLED' : 'DISABLED'}`);
         }
     }
@@ -399,7 +402,10 @@ class MobileUploadOptimizer {
         // Limpiar referencias no utilizadas
         this.uploadQueue = this.uploadQueue.filter(item => item.status !== 'completed');
         
-        console.log('📱 Mobile memory cleanup completed');
+        // Solo loguear en modo debug
+        if (window.location.search.includes('debug=true')) {
+            console.log('📱 Mobile memory cleanup completed');
+        }
     }
 
     sleep(ms) {

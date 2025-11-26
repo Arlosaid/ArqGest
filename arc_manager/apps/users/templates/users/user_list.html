@@ -80,35 +80,71 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ Búsqueda de usuarios configurada correctamente');
 });
 
-// Confirmación nativa y eliminación directa
+// Función mejorada de confirmación y eliminación con modal visual
 function confirmAndDelete(userId) {
     const row = document.querySelector(`tr[data-user-id="${userId}"]`) || document.querySelector(`.mobile-user-card[data-user-id="${userId}"]`);
-    const nameEl = row ? row.querySelector('.user-name') : null;
-    const nameText = nameEl ? nameEl.textContent.trim() : 'este usuario';
-    if (!confirm(`¿Seguro que deseas eliminar a ${nameText}?`)) return;
-    const formData = new FormData();
-    formData.append('confirm_delete', 'yes');
-    const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-    fetch(`/users/${userId}/delete-ajax/`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': csrf },
-        body: formData
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (!data.success) throw new Error(data.error || 'Error al eliminar usuario');
-        const tableRow = document.querySelector(`tr[data-user-id="${userId}"]`);
-        if (tableRow && tableRow.parentNode) tableRow.parentNode.removeChild(tableRow);
-        const card = document.querySelector(`.mobile-user-card[data-user-id="${userId}"]`);
-        if (card && card.parentNode) card.parentNode.removeChild(card);
-        const remainingRows = document.querySelectorAll('tbody tr').length;
-        const remainingCards = document.querySelectorAll('.mobile-user-card').length;
-        if (remainingRows === 0 && remainingCards === 0) window.location.reload();
-    })
-    .catch(err => {
-        alert('Error al eliminar usuario');
-        console.error(err);
+    
+    if (!row) {
+        console.error('No se encontró el elemento del usuario');
+        return;
+    }
+    
+    // Extraer información del usuario
+    const nameEl = row.querySelector('.user-name');
+    const emailEl = row.querySelector('.user-email');
+    const statusEl = row.querySelector('.status-badge');
+    
+    const fullName = nameEl ? nameEl.textContent.trim() : 'Usuario';
+    const email = emailEl ? emailEl.textContent.trim() : '';
+    const isActive = statusEl ? statusEl.classList.contains('active') : false;
+    
+    // Crear modal de confirmación usando el sistema unificado
+    const modal = ConfirmationModals.deleteUser({
+        fullName: fullName,
+        username: fullName,
+        email: email
     });
+    
+    modal.config.onConfirm = async () => {
+        const formData = new FormData();
+        formData.append('confirm_delete', 'yes');
+        const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+        
+        const response = await fetch(`/users/${userId}/delete-ajax/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrf },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error || 'Error al eliminar usuario');
+        }
+        
+        // Remover elemento de la UI con animación
+        row.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        row.style.opacity = '0';
+        row.style.transform = 'scale(0.95)';
+        
+        setTimeout(() => {
+            row.remove();
+            
+            // Recargar si no quedan usuarios
+            const remainingRows = document.querySelectorAll('tbody tr').length;
+            const remainingCards = document.querySelectorAll('.mobile-user-card').length;
+            if (remainingRows === 0 && remainingCards === 0) {
+                window.location.reload();
+            }
+            
+            // Mostrar notificación de éxito
+            if (window.notifications) {
+                window.notifications.success('Usuario eliminado correctamente');
+            }
+        }, 300);
+    };
+    
+    modal.show();
 }
 </script>
 {% endblock %}

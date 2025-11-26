@@ -8,7 +8,9 @@ from .views import (
     PhaseDetailView,
     project_kanban,
     project_statistics,
+    get_project_stats,
     phase_create,
+    check_phase_data,
     task_create,
     TaskListView,
     MyTaskListView,
@@ -45,6 +47,7 @@ urlpatterns = [
     path('<int:pk>/', ProjectDetailView.as_view(), name='project-detail'),
     path('<int:pk>/edit/', ProjectUpdateView.as_view(), name='project-update'),
     path('<int:pk>/delete/', ProjectDeleteView.as_view(), name='project-delete'),
+    path('<int:pk>/stats/', get_project_stats, name='project-stats'),
     path('<int:pk>/toggle-status/', ProjectToggleStatusView.as_view(), name='project-toggle-status'),
     
     # Kanban y gestión de tareas (vista principal)
@@ -67,6 +70,7 @@ urlpatterns = [
     path('<int:project_pk>/phases/<int:pk>/', PhaseDetailView.as_view(), name='phase-detail'),
     path('<int:project_pk>/phases/create/', phase_create, name='phase-create'),
     path('<int:pk>/phases/edit/', ProjectPhasesEditView.as_view(), name='project-phases-edit'),
+    path('phases/<int:phase_id>/check-data/', check_phase_data, name='phase-check-data'),
     path('<int:project_id>/phases/<int:phase_id>/files/', phase_files_paginated, name='phase-files-paginated'),
     
     # Paginación AJAX de tareas

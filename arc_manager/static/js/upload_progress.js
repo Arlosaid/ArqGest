@@ -9,10 +9,6 @@ class UploadProgressManager {
     }
 
     init() {
-        // Log solo en desarrollo
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            console.log('🚀 Upload Progress Manager initialized');
-        }
         this.setupEventListeners();
     }
 

@@ -5,9 +5,9 @@ from django.views.generic import (
 )
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import get_object_or_404, redirect, render
-from django.http import Http404, HttpResponse, HttpResponseBadRequest
+from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.contrib import messages
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 import logging
@@ -16,6 +16,13 @@ from datetime import datetime
 import os
 from django.core.files.storage import default_storage
 from .models import Project, Task, Phase, PhaseTemplate, ProjectPayment
+from .permissions import (
+    task_create_permission_required,
+    task_edit_permission_required,
+    task_status_change_permission_required,
+    task_move_permission_required,
+    is_organization_admin,
+)
 from core.error_codes import TaskErrorCodes, ProjectErrorCodes
 from core.structured_logging import log_error, log_warning, log_info, log_slow_operation
 
@@ -269,9 +276,18 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         context['can_view_finance'] = is_admin  # Solo admins ven finanzas
         
         # Obtener fases del proyecto con sus archivos y tareas (optimizado)
+        # SEGURIDAD: Filtrar tareas según permisos del usuario
+        from django.db.models import Prefetch
+        if is_admin:
+            # Admins ven todas las tareas
+            tasks_prefetch = Prefetch('tasks', queryset=Task.objects.select_related('assigned_to'))
+        else:
+            # Usuarios normales solo ven sus tareas asignadas
+            tasks_prefetch = Prefetch('tasks', queryset=Task.objects.filter(assigned_to=self.request.user).select_related('assigned_to'))
+        
         phases = project.phases.prefetch_related(
             'files__uploaded_by',
-            'tasks', 'tasks__assigned_to'
+            tasks_prefetch
         ).order_by('order')
         
         # Archivos del proyecto
@@ -303,6 +319,11 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         # Centro de tareas: métricas y listas rápidas (optimizado con agregaciones)
         from django.db.models import Count, Q
         tasks_qs = Task.objects.filter(phase__project=project).select_related('phase', 'assigned_to')
+        
+        # SEGURIDAD: Usuarios no-admin solo ven sus tareas asignadas
+        if not is_admin:
+            tasks_qs = tasks_qs.filter(assigned_to=self.request.user)
+        
         agg = tasks_qs.aggregate(
             total=Count('id'),
             todo=Count('id', filter=Q(status='TODO')),
@@ -527,6 +548,66 @@ class ProjectDeleteView(LoginRequiredMixin, OrganizationAdminMixin, DeleteView):
             logger.error(f"Failed to delete project {project_id}: {str(e)}", exc_info=True)
             raise
 
+
+@login_required
+@require_http_methods(["GET"])
+def get_project_stats(request, pk):
+    """
+    Vista AJAX para obtener estadísticas del proyecto antes de eliminarlo
+    """
+    try:
+        # Verificar que sea una petición AJAX
+        if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            logger.warning(f"Non-AJAX request to get_project_stats from {request.user.email}")
+        
+        project = get_object_or_404(
+            Project.objects.filter(organization=request.user.organization),
+            pk=pk
+        )
+        
+        logger.info(f"Getting stats for project {pk}: {project.name}")
+        
+        # Contar elementos asociados
+        phase_count = project.phases.count()
+        task_count = Task.objects.filter(phase__project=project).count()
+        
+        # Contar archivos: los archivos están en las fases, no directamente en el proyecto
+        from apps.files.models import ProjectFile
+        file_count = ProjectFile.objects.filter(phase__project=project).count()
+        
+        logger.info(f"Project stats - Phases: {phase_count}, Tasks: {task_count}, Files: {file_count}")
+        
+        response_data = {
+            'name': project.name,
+            'phase_count': phase_count,
+            'task_count': task_count,
+            'file_count': file_count
+        }
+        
+        logger.info(f"Returning project stats: {response_data}")
+        
+        return JsonResponse(response_data)
+        
+    except Project.DoesNotExist:
+        logger.error(f"Project {pk} not found for user {request.user.email}")
+        return JsonResponse({
+            'error': 'Proyecto no encontrado',
+            'name': 'el proyecto',
+            'phase_count': 0,
+            'task_count': 0,
+            'file_count': 0
+        }, status=404)
+    except Exception as e:
+        logger.error(f"Error getting project stats for {pk}: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'error': str(e),
+            'name': 'el proyecto',
+            'phase_count': 0,
+            'task_count': 0,
+            'file_count': 0
+        }, status=500)
+
+
 # Phase Views
 class PhaseDetailView(LoginRequiredMixin, DetailView):
     model = Phase
@@ -609,6 +690,11 @@ def project_kanban(request, pk):
     # Estadísticas detalladas del proyecto (optimizado)
     from django.db.models import Count, Q
     all_tasks = Task.objects.filter(phase__project=project)
+    
+    # UX: Mostrar todas las tareas en Kanban para contexto del proyecto
+    # Los usuarios solo podrán interactuar con sus tareas asignadas (validado en frontend y permisos)
+    is_org_admin = request.user.is_org_admin
+    
     stats = all_tasks.aggregate(
         total=Count('id'),
         todo=Count('id', filter=Q(status='TODO')),
@@ -669,6 +755,7 @@ def project_kanban(request, pk):
         'tasks_done': tasks_done,
         'project_progress': project_progress,
         'today': timezone.now().date(),
+        'is_org_admin': is_organization_admin(request.user),
     }
 
     return render(request, 'projects/kanban_board.html', context)
@@ -717,10 +804,34 @@ class ProjectPhasesEditView(LoginRequiredMixin, OrganizationAdminMixin, View):
             except PhaseTemplate.DoesNotExist:
                 return JsonResponse({'success': False, 'error': 'template_not_found'}, status=404)
 
+            # CRÍTICO: Verificar si hay tareas o archivos asociados que se perderán
+            from django.db.models import Count, Q
+            phases_with_data = project.phases.annotate(
+                task_count=Count('tasks'),
+                file_count=Count('files')
+            ).filter(Q(task_count__gt=0) | Q(file_count__gt=0))
+            
+            total_tasks = sum(p.task_count for p in phases_with_data)
+            total_files = sum(p.file_count for p in phases_with_data)
+            
+            # Si hay datos y no se confirma explícitamente, rechazar la operación
+            confirmed = payload.get('confirmed', False)
+            if (total_tasks > 0 or total_files > 0) and not confirmed:
+                # Retornar información para que el frontend muestre advertencia
+                return JsonResponse({
+                    'success': False,
+                    'error': 'confirmation_required',
+                    'data': {
+                        'total_tasks': total_tasks,
+                        'total_files': total_files,
+                        'affected_phases': list(phases_with_data.values('id', 'name', 'task_count', 'file_count'))
+                    }
+                }, status=400)
+
             from django.db import transaction
             try:
                 with transaction.atomic():
-                    # Eliminar fases existentes del proyecto
+                    # Eliminar fases existentes del proyecto (CASCADE eliminará las tareas)
                     project.phases.all().delete()
                     # Crear nuevas fases según la plantilla
                     ordered = sorted(template.phases or [], key=lambda x: x.get('order', 0))
@@ -732,7 +843,24 @@ class ProjectPhasesEditView(LoginRequiredMixin, OrganizationAdminMixin, View):
 
                 from .cache_utils import invalidate_project_cache
                 invalidate_project_cache(project.organization.id, project.id)
-                return JsonResponse({'success': True})
+                
+                # Log de operación crítica
+                logger.warning(
+                    f"Phase template applied to project {project.id} - {total_tasks} tasks and {total_files} files were deleted",
+                    extra={
+                        'project_id': project.id,
+                        'template_id': template_id,
+                        'tasks_deleted': total_tasks,
+                        'files_deleted': total_files,
+                        'user': request.user.email
+                    }
+                )
+                
+                return JsonResponse({
+                    'success': True, 
+                    'tasks_deleted': total_tasks,
+                    'files_deleted': total_files
+                })
             except Exception as e:
                 logger.error(f"Failed to apply phase template for project {project.id}: {e}", exc_info=True)
                 return JsonResponse({'success': False, 'error': 'unexpected_error'}, status=500)
@@ -801,6 +929,33 @@ class ProjectPhasesEditView(LoginRequiredMixin, OrganizationAdminMixin, View):
 
 
 @login_required
+def check_phase_data(request, phase_id):
+    """
+    Verifica cuántas tareas y archivos tiene una fase.
+    Usado para mostrar advertencia antes de eliminar una fase individual.
+    """
+    try:
+        phase = get_object_or_404(Phase, pk=phase_id, project__organization=request.user.organization)
+        
+        from django.db.models import Count
+        
+        # Contar tareas y archivos de la fase
+        task_count = phase.tasks.count()
+        file_count = phase.files.count()
+        
+        return JsonResponse({
+            'phase_id': phase_id,
+            'phase_name': phase.name,
+            'task_count': task_count,
+            'file_count': file_count,
+            'has_data': task_count > 0 or file_count > 0
+        })
+    except Exception as e:
+        logger.error(f"Failed to check phase data for phase {phase_id}: {e}", exc_info=True)
+        return JsonResponse({'error': 'unexpected_error'}, status=500)
+
+
+@login_required
 def project_statistics(request, pk):
     """Devuelve estadísticas simples de tareas del proyecto en JSON."""
     project = get_object_or_404(Project, pk=pk, organization=request.user.organization)
@@ -841,6 +996,7 @@ def phase_create(request, project_pk):
 
 # Task Views
 @login_required
+@task_create_permission_required
 def task_create(request, project_pk):
     """Crear una nueva tarea."""
     project = get_object_or_404(Project, pk=project_pk, organization=request.user.organization)
@@ -986,6 +1142,10 @@ class TaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
             phase__project__status='ARCHIVED'
         ).select_related('phase__project', 'assigned_to').order_by('due_date', 'priority')
         
+        # SEGURIDAD: Usuarios no-admin solo ven sus tareas asignadas
+        if not self.request.user.is_org_admin:
+            queryset = queryset.filter(assigned_to=self.request.user)
+        
         query_time = time.time() - start_time
         task_count = queryset.count()
         
@@ -1016,6 +1176,11 @@ class TaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
         all_tasks = Task.objects.filter(
             phase__project__organization=self.request.user.organization
         ).exclude(phase__project__status='ARCHIVED')
+        
+        # SEGURIDAD: Usuarios no-admin solo ven sus tareas asignadas
+        if not self.request.user.is_org_admin:
+            all_tasks = all_tasks.filter(assigned_to=self.request.user)
+        
         context['total_tasks'] = all_tasks.count()
         context['tasks_todo'] = all_tasks.filter(status='TODO').count()
         context['tasks_in_progress'] = all_tasks.filter(status='IN_PROGRESS').count()
@@ -1131,6 +1296,7 @@ class MyTaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
 
 @login_required
 @require_POST
+@task_status_change_permission_required
 def update_task_status(request, task_pk):
     """Actualizar el estado de una tarea."""
     try:
@@ -1184,6 +1350,7 @@ def update_task_status(request, task_pk):
 
 @login_required
 @require_POST
+@task_move_permission_required
 def move_task(request, task_pk):
     """Mover una tarea a otra fase."""
     try:
@@ -1239,6 +1406,7 @@ def move_task(request, task_pk):
         return JsonResponse({'success': False, 'error': 'Error inesperado', 'error_code': TaskErrorCodes.TASK_UPDATE_UNEXPECTED_ERROR})
 
 @login_required
+@task_edit_permission_required
 def task_edit(request, pk):
     """Editar una tarea."""
     try:
@@ -1394,6 +1562,10 @@ def project_tasks_paginated(request, project_pk):
 
     # Queryset base
     tasks_qs = Task.objects.filter(phase__project=project).select_related('phase', 'assigned_to')
+    
+    # SEGURIDAD: Usuarios no-admin solo ven sus tareas asignadas
+    if not request.user.is_org_admin:
+        tasks_qs = tasks_qs.filter(assigned_to=request.user)
     
     # Aplicar filtro de fase
     if phase_filter:

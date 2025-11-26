@@ -1,0 +1,559 @@
+/* ===================================
+   SISTEMA UNIFICADO DE MODALES DE CONFIRMACIÓN
+   Diseño consistente, centrado y visualmente atractivo
+   ================================== */
+
+/* ===== ESTILOS BASE DE MODALES ===== */
+
+/* Modal overlay - centrado perfecto */
+.confirmation-modal .modal-dialog {
+    display: flex;
+    align-items: center;
+    min-height: calc(100% - 3.5rem);
+    margin: 1.75rem auto;
+    max-width: 540px;
+}
+
+.confirmation-modal .modal-content {
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    border: none;
+    overflow: hidden;
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* ===== HEADERS DE MODALES ===== */
+
+/* Header de peligro (eliminación) */
+.confirmation-modal .modal-header.bg-danger {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+    color: white !important;
+    border: none;
+    padding: 1.5rem 1.75rem;
+}
+
+/* Header de advertencia */
+.confirmation-modal .modal-header.bg-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important;
+    color: #212529 !important;
+    border: none;
+    padding: 1.5rem 1.75rem;
+}
+
+/* Header de información */
+.confirmation-modal .modal-header.bg-info {
+    background: linear-gradient(135deg, #0dcaf0 0%, #0891b2 100%) !important;
+    color: white !important;
+    border: none;
+    padding: 1.5rem 1.75rem;
+}
+
+.confirmation-modal .modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.confirmation-modal .modal-title i {
+    font-size: 1.5rem;
+}
+
+/* Botón cerrar del header */
+.confirmation-modal .btn-close {
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.confirmation-modal .btn-close:hover {
+    opacity: 1;
+}
+
+/* ===== BODY DEL MODAL ===== */
+
+.confirmation-modal .modal-body {
+    padding: 2rem 1.75rem;
+    background: #ffffff;
+}
+
+/* Icono central decorativo */
+.confirmation-modal .modal-icon-center {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.confirmation-modal .modal-icon-center i {
+    font-size: 4rem;
+    opacity: 0.15;
+    animation: iconPulse 2s ease-in-out infinite;
+}
+
+@keyframes iconPulse {
+    0%, 100% { 
+        opacity: 0.15;
+        transform: scale(1);
+    }
+    50% { 
+        opacity: 0.25;
+        transform: scale(1.05);
+    }
+}
+
+.confirmation-modal .modal-icon-center.danger i {
+    color: #dc3545;
+}
+
+.confirmation-modal .modal-icon-center.warning i {
+    color: #ffc107;
+}
+
+.confirmation-modal .modal-icon-center.info i {
+    color: #0dcaf0;
+}
+
+/* Contenido del mensaje */
+.confirmation-modal .confirmation-message {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #495057;
+    margin-bottom: 1.25rem;
+}
+
+.confirmation-modal .confirmation-message strong {
+    color: #212529;
+}
+
+/* Detalles del item a eliminar */
+.confirmation-modal .item-details-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 2px solid #dee2e6;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin: 1.25rem 0;
+}
+
+.confirmation-modal .item-details-card .item-icon {
+    width: 48px;
+    height: 48px;
+    background: white;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.confirmation-modal .item-details-card .item-icon i {
+    font-size: 1.5rem;
+    color: #6c757d;
+}
+
+.confirmation-modal .item-details-card .item-name {
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: #212529;
+    margin-bottom: 0.25rem;
+}
+
+.confirmation-modal .item-details-card .item-meta {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+/* Alertas dentro del modal */
+.confirmation-modal .alert {
+    border-radius: 10px;
+    border: none;
+    margin-bottom: 1rem;
+    padding: 1rem 1.25rem;
+}
+
+.confirmation-modal .alert-danger {
+    background: linear-gradient(135deg, #f8d7da 0%, #f1aeb5 100%);
+    color: #721c24;
+    border-left: 4px solid #dc3545;
+}
+
+.confirmation-modal .alert-warning {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    color: #856404;
+    border-left: 4px solid #ffc107;
+}
+
+.confirmation-modal .alert-info {
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+    color: #0c5460;
+    border-left: 4px solid #0dcaf0;
+}
+
+/* Estadísticas de eliminación */
+.confirmation-modal .deletion-stats {
+    display: flex;
+    gap: 1rem;
+    margin: 1.25rem 0;
+    padding: 1rem;
+    background: #fff;
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+}
+
+.confirmation-modal .deletion-stat {
+    flex: 1;
+    text-align: center;
+    padding: 0.75rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 8px;
+}
+
+.confirmation-modal .deletion-stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #dc3545;
+    display: block;
+    line-height: 1;
+}
+
+.confirmation-modal .deletion-stat-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 0.5rem;
+    display: block;
+}
+
+/* Lista de items afectados */
+.confirmation-modal .affected-items-list {
+    max-height: 200px;
+    overflow-y: auto;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+}
+
+.confirmation-modal .affected-items-list ul {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
+.confirmation-modal .affected-items-list li {
+    padding: 0.25rem 0;
+    color: #495057;
+}
+
+/* Mensaje de advertencia final */
+.confirmation-modal .final-warning {
+    text-align: center;
+    padding: 1rem;
+    margin: 1.25rem 0 0.5rem;
+    background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%);
+    border-radius: 10px;
+    border: 2px dashed #dc3545;
+}
+
+.confirmation-modal .final-warning .warning-icon {
+    font-size: 2rem;
+    color: #dc3545;
+    margin-bottom: 0.5rem;
+}
+
+.confirmation-modal .final-warning .warning-text {
+    font-weight: 600;
+    color: #721c24;
+    margin-bottom: 0.25rem;
+}
+
+.confirmation-modal .final-warning .warning-subtext {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin: 0;
+}
+
+/* ===== FOOTER DEL MODAL ===== */
+
+.confirmation-modal .modal-footer {
+    background: #f8f9fa;
+    border: none;
+    padding: 1.25rem 1.75rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.confirmation-modal .modal-footer .btn {
+    border-radius: 8px;
+    padding: 0.625rem 1.5rem;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.confirmation-modal .modal-footer .btn i {
+    margin-right: 0.5rem;
+}
+
+/* Botón secundario (cancelar) */
+.confirmation-modal .modal-footer .btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.confirmation-modal .modal-footer .btn-secondary:hover {
+    background: #5a6268;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.2);
+}
+
+/* Botón de peligro (confirmar eliminación) */
+.confirmation-modal .modal-footer .btn-danger {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+}
+
+.confirmation-modal .modal-footer .btn-danger:hover:not(:disabled) {
+    background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(220, 53, 69, 0.3);
+}
+
+.confirmation-modal .modal-footer .btn-danger:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Botón de advertencia */
+.confirmation-modal .modal-footer .btn-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+    color: #212529;
+}
+
+.confirmation-modal .modal-footer .btn-warning:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(255, 193, 7, 0.3);
+}
+
+/* Estado de carga en botones */
+.confirmation-modal .btn-loading {
+    position: relative;
+    pointer-events: none;
+}
+
+.confirmation-modal .btn-loading::after {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 50%;
+    left: 50%;
+    margin-left: -8px;
+    margin-top: -8px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spinner 0.6s linear infinite;
+}
+
+@keyframes spinner {
+    to { transform: rotate(360deg); }
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+
+@media (max-width: 576px) {
+    .confirmation-modal .modal-dialog {
+        max-width: calc(100% - 1rem);
+        margin: 0.5rem;
+    }
+    
+    .confirmation-modal .modal-header,
+    .confirmation-modal .modal-body,
+    .confirmation-modal .modal-footer {
+        padding: 1rem;
+    }
+    
+    .confirmation-modal .modal-title {
+        font-size: 1rem;
+    }
+    
+    .confirmation-modal .modal-title i {
+        font-size: 1.1rem;
+    }
+    
+    .confirmation-modal .modal-icon-center i {
+        font-size: 2.5rem;
+    }
+    
+    /* Estadísticas en mobile: mantener en fila pero más compacto */
+    .confirmation-modal .deletion-stats {
+        gap: 0.5rem;
+        padding: 0.75rem;
+        margin: 1rem 0;
+        flex-wrap: nowrap; /* Mantener en una sola fila */
+        overflow-x: auto; /* Scroll horizontal si es necesario */
+    }
+    
+    .confirmation-modal .deletion-stat {
+        flex: 1 1 auto; /* Ajustar al contenido */
+        min-width: 80px; /* Ancho mínimo más pequeño */
+        padding: 0.5rem;
+    }
+    
+    .confirmation-modal .deletion-stat-value {
+        font-size: 1.5rem;
+    }
+    
+    .confirmation-modal .deletion-stat-label {
+        font-size: 0.7rem;
+        white-space: nowrap; /* Evitar saltos de línea */
+    }
+    
+    /* Mensaje de confirmación más compacto */
+    .confirmation-modal .confirmation-message {
+        font-size: 0.9rem;
+    }
+    
+    /* Detalles del item más compactos */
+    .confirmation-modal .item-details-card {
+        padding: 0.75rem;
+    }
+    
+    .confirmation-modal .item-name {
+        font-size: 0.95rem;
+    }
+    
+    .confirmation-modal .item-meta {
+        font-size: 0.75rem;
+    }
+    
+    /* Advertencia final más compacta */
+    .confirmation-modal .final-warning {
+        padding: 0.75rem;
+        margin: 1rem 0 0.5rem;
+    }
+    
+    .confirmation-modal .final-warning .warning-icon {
+        font-size: 1.5rem;
+    }
+    
+    .confirmation-modal .final-warning .warning-text {
+        font-size: 0.9rem;
+    }
+    
+    .confirmation-modal .final-warning .warning-subtext {
+        font-size: 0.8rem;
+    }
+    
+    /* Botones en columna */
+    .confirmation-modal .modal-footer {
+        flex-direction: column-reverse;
+        gap: 0.5rem;
+    }
+    
+    .confirmation-modal .modal-footer .btn {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Tablets y pantallas medianas */
+@media (min-width: 577px) and (max-width: 768px) {
+    .confirmation-modal .modal-dialog {
+        max-width: 500px;
+    }
+    
+    .confirmation-modal .deletion-stats {
+        gap: 0.75rem;
+    }
+    
+    .confirmation-modal .deletion-stat {
+        padding: 0.625rem;
+    }
+    
+    .confirmation-modal .deletion-stat-value {
+        font-size: 1.75rem;
+    }
+}
+
+/* ===== ACCESIBILIDAD ===== */
+
+.confirmation-modal .modal-content:focus {
+    outline: 2px solid #0d6efd;
+    outline-offset: 2px;
+}
+
+.confirmation-modal .btn:focus {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* ===== ANIMACIONES DE TRANSICIÓN ===== */
+
+.confirmation-modal.fade .modal-dialog {
+    transition: transform 0.3s ease-out;
+}
+
+.confirmation-modal.show .modal-dialog {
+    transform: none;
+}
+
+/* ===== TEMAS ESPECÍFICOS ===== */
+
+/* Modal de eliminación de archivos */
+.file-delete-modal .item-details-card .item-icon {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+}
+
+.file-delete-modal .item-details-card .item-icon i {
+    color: #1976d2;
+}
+
+/* Modal de eliminación de tareas */
+.task-delete-modal .item-details-card .item-icon {
+    background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+}
+
+.task-delete-modal .item-details-card .item-icon i {
+    color: #7b1fa2;
+}
+
+/* Modal de eliminación de usuarios */
+.user-delete-modal .item-details-card .item-icon {
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+}
+
+.user-delete-modal .item-details-card .item-icon i {
+    color: #388e3c;
+}
+
+/* Modal de eliminación de proyectos */
+.project-delete-modal .item-details-card .item-icon {
+    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+}
+
+.project-delete-modal .item-details-card .item-icon i {
+    color: #f57c00;
+}
+
+/* Modal de eliminación de pagos */
+.payment-delete-modal .item-details-card .item-icon {
+    background: linear-gradient(135deg, #e0f2f1 0%, #b2dfdb 100%);
+}
+
+.payment-delete-modal .item-details-card .item-icon i {
+    color: #00796b;
+}

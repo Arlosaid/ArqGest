@@ -32,9 +32,11 @@
                 <a href="{% url 'projects:project-detail' project.pk %}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> {% trans "Volver al Proyecto" %}
                 </a>
+                {% if is_org_admin %}
                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTaskModal">
                     <i class="fas fa-plus"></i> {% trans "Nueva Tarea" %}
                 </button>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -91,7 +93,7 @@
                     </div>
                     <div class="kanban-column-body" data-status-code="TODO">
                         {% for task in tasks_by_status.TODO.tasks %}
-                        <div class="kanban-card" data-task-id="{{ task.id }}" draggable="true">
+                        <div class="kanban-card {% if is_org_admin or task.assigned_to.id|default:0 == user.id %}my-task{% else %}other-user-task{% endif %}" data-task-id="{{ task.id }}" draggable="{% if is_org_admin or task.assigned_to.id|default:0 == user.id %}true{% else %}false{% endif %}" data-assigned-to-id="{{ task.assigned_to.id|default:0 }}">
                             <div class="card-body">
                                 <!-- Contenido principal de la tarjeta -->
                                 <div class="task-content-main">
@@ -139,6 +141,7 @@
                                 <!-- Acciones mejoradas y bien alineadas -->
                                 <div class="task-actions">
                                     <!-- Botones de cambio de estado para móvil (simplificados) -->
+                                    {% if is_org_admin or task.assigned_to.id|default:0 == user.id %}
                                     <div class="task-status-buttons d-md-none">
                                         {% if task.status == 'TODO' %}
                                             <button class="btn btn-sm btn-primary" 
@@ -171,18 +174,21 @@
                                             </button>
                                         {% endif %}
                                     </div>
-                                    
+                                    {% endif %}
+
                                     <!-- Botones de acción tradicionales -->
                                     <div class="task-action-buttons">
-                                        <button class="btn btn-outline-secondary" onclick="openTaskModal('detail', {{ task.pk }})"
+                                        <button class="btn btn-outline-secondary" onclick="openTaskModal('detail', {{ task.pk }})" 
                                                 title="{% trans 'Ver detalles' %}">
                                             <i class="fas fa-eye"></i>
                                         </button>
+                                        {% if is_org_admin %}
                                         <button class="btn btn-outline-primary" onclick="openTaskModal('edit', {{ task.pk }})"
                                                 title="{% trans 'Editar tarea' %}">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        {% if user.is_org_admin %}
+                                        {% endif %}
+                                        {% if is_org_admin %}
                                         <button class="btn btn-outline-danger" 
                                                 data-action="delete-task" 
                                                 data-task-id="{{ task.pk }}"
@@ -215,7 +221,7 @@
                     </div>
                     <div class="kanban-column-body" data-status-code="IN_PROGRESS">
                         {% for task in tasks_by_status.IN_PROGRESS.tasks %}
-                        <div class="kanban-card" data-task-id="{{ task.id }}" draggable="true">
+                        <div class="kanban-card {% if is_org_admin or task.assigned_to.id|default:0 == user.id %}my-task{% else %}other-user-task{% endif %}" data-task-id="{{ task.id }}" draggable="{% if is_org_admin or task.assigned_to.id|default:0 == user.id %}true{% else %}false{% endif %}" data-assigned-to-id="{{ task.assigned_to.id|default:0 }}">
                             <div class="card-body">
                                 <!-- Contenido principal de la tarjeta -->
                                 <div class="task-content-main">
@@ -263,6 +269,7 @@
                                 <!-- Acciones mejoradas y bien alineadas -->
                                 <div class="task-actions">
                                     <!-- Botones de cambio de estado para móvil (simplificados) -->
+                                    {% if is_org_admin or task.assigned_to.id|default:0 == user.id %}
                                     <div class="task-status-buttons d-md-none">
                                         {% if task.status == 'TODO' %}
                                             <button class="btn btn-sm btn-primary" 
@@ -295,18 +302,21 @@
                                             </button>
                                         {% endif %}
                                     </div>
-                                    
+                                    {% endif %}
+
                                     <!-- Botones de acción tradicionales -->
                                     <div class="task-action-buttons">
                                         <button class="btn btn-outline-secondary" onclick="openTaskModal('detail', {{ task.pk }})"
                                                 title="{% trans 'Ver detalles' %}">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="btn btn-outline-primary" onclick="openTaskModal('edit', {{ task.pk }})"
+                                        {% if is_org_admin %}
+                        <button class="btn btn-outline-primary" onclick="openTaskModal('edit', {{ task.pk }})"
                                                 title="{% trans 'Editar tarea' %}">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        {% if user.is_org_admin %}
+                                        {% endif %}
+                                        {% if is_org_admin %}
                                         <button class="btn btn-outline-danger" 
                                                 data-action="delete-task" 
                                                 data-task-id="{{ task.pk }}"
@@ -339,7 +349,7 @@
                     </div>
                     <div class="kanban-column-body" data-status-code="PAUSED">
                         {% for task in tasks_by_status.PAUSED.tasks %}
-                        <div class="kanban-card" data-task-id="{{ task.id }}" draggable="true">
+                        <div class="kanban-card {% if is_org_admin or task.assigned_to.id|default:0 == user.id %}my-task{% else %}other-user-task{% endif %}" data-task-id="{{ task.id }}" draggable="{% if is_org_admin or task.assigned_to.id|default:0 == user.id %}true{% else %}false{% endif %}" data-assigned-to-id="{{ task.assigned_to.id|default:0 }}">
                             <div class="card-body">
                                 <!-- Contenido principal de la tarjeta -->
                                 <div class="task-content-main">
@@ -387,6 +397,7 @@
                                 <!-- Acciones mejoradas y bien alineadas -->
                                 <div class="task-actions">
                                     <!-- Botones de cambio de estado para móvil (simplificados) -->
+                                    {% if is_org_admin or task.assigned_to.id|default:0 == user.id %}
                                     <div class="task-status-buttons d-md-none">
                                         {% if task.status == 'TODO' %}
                                             <button class="btn btn-sm btn-primary" 
@@ -419,18 +430,21 @@
                                             </button>
                                         {% endif %}
                                     </div>
-                                    
+                                    {% endif %}
+
                                     <!-- Botones de acción tradicionales -->
                                     <div class="task-action-buttons">
                                         <button class="btn btn-outline-secondary" onclick="openTaskModal('detail', {{ task.pk }})"
                                                 title="{% trans 'Ver detalles' %}">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="btn btn-outline-primary" onclick="openTaskModal('edit', {{ task.pk }})"
+                                        {% if is_org_admin %}
+                        <button class="btn btn-outline-primary" onclick="openTaskModal('edit', {{ task.pk }})"
                                                 title="{% trans 'Editar tarea' %}">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        {% if user.is_org_admin %}
+                                        {% endif %}
+                                        {% if is_org_admin %}
                                         <button class="btn btn-outline-danger" 
                                                 data-action="delete-task" 
                                                 data-task-id="{{ task.pk }}"
@@ -445,7 +459,7 @@
                         {% empty %}
                         <div class="empty-column">
                             <div class="empty-state">
-                                <i class="fas fa-drafting-compass"></i>
+                                <i class="fas fa-pause-circle"></i>
                                 <p>{% trans "No hay tareas" %}</p>
                             </div>
                         </div>
@@ -463,7 +477,7 @@
                     </div>
                     <div class="kanban-column-body" data-status-code="DONE">
                         {% for task in tasks_by_status.DONE.tasks %}
-                        <div class="kanban-card" data-task-id="{{ task.id }}" draggable="true">
+                        <div class="kanban-card {% if is_org_admin or task.assigned_to.id|default:0 == user.id %}my-task{% else %}other-user-task{% endif %}" data-task-id="{{ task.id }}" draggable="{% if is_org_admin or task.assigned_to.id|default:0 == user.id %}true{% else %}false{% endif %}" data-assigned-to-id="{{ task.assigned_to.id|default:0 }}">
                             <div class="card-body">
                                 <!-- Contenido principal de la tarjeta -->
                                 <div class="task-content-main">
@@ -511,6 +525,7 @@
                                 <!-- Acciones mejoradas y bien alineadas -->
                                 <div class="task-actions">
                                     <!-- Botones de cambio de estado para móvil (simplificados) -->
+                                    {% if is_org_admin or task.assigned_to.id|default:0 == user.id %}
                                     <div class="task-status-buttons d-md-none">
                                         {% if task.status == 'TODO' %}
                                             <button class="btn btn-sm btn-primary" 
@@ -543,18 +558,21 @@
                                             </button>
                                         {% endif %}
                                     </div>
-                                    
+                                    {% endif %}
+
                                     <!-- Botones de acción tradicionales -->
                                     <div class="task-action-buttons">
                                         <button class="btn btn-outline-secondary" onclick="openTaskModal('detail', {{ task.pk }})"
                                                 title="{% trans 'Ver detalles' %}">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="btn btn-outline-primary" onclick="openTaskModal('edit', {{ task.pk }})"
+                                        {% if is_org_admin %}
+                        <button class="btn btn-outline-primary" onclick="openTaskModal('edit', {{ task.pk }})"
                                                 title="{% trans 'Editar tarea' %}">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        {% if user.is_org_admin %}
+                                        {% endif %}
+                                        {% if is_org_admin %}
                                         <button class="btn btn-outline-danger" 
                                                 data-action="delete-task" 
                                                 data-task-id="{{ task.pk }}"
@@ -581,7 +599,8 @@
     </div>
 </div>
 
-<!-- Modal para crear/editar tareas -->
+<!-- Modal para crear/editar tareas - Solo admins -->
+{% if is_org_admin %}
 <div class="modal fade" id="addTaskModal" tabindex="-1" aria-labelledby="addTaskModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
@@ -641,6 +660,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 {% endblock %}
 
@@ -649,6 +669,10 @@
 <script>
 document.body.dataset.taskDetailUrlTemplate = `{% url 'projects:task-detail' 0 %}`;
 document.body.dataset.updateTaskStatusUrlTemplate = `{% url 'projects:update-task-status' 0 %}`;
+document.body.dataset.isOrgAdmin = '{{ is_org_admin|lower }}';
+document.body.dataset.currentUserId = '{{ user.id }}';
 </script>
 <script src="{% static 'js/kanban_board_page.js' %}?v=1.2"></script>
 {% endblock %}
+
+

@@ -119,7 +119,7 @@
                             <div class="priority-dot {{ task.priority }}"></div>
                             <div class="item-content-mini">
                                 <h5>{{ task.title }}</h5>
-                                <p>{{ task.phase.name }} • {{ task.phase.project.name }} • Vence {{ task.due_date|naturalday }}</p>
+                                <p>{{ task.phase.name }} • {{ task.phase.project.name }} • {% if task.due_date %}Vence {{ task.due_date|naturalday }}{% else %}Sin fecha de vencimiento{% endif %}</p>
                             </div>
                              <div class="assignee-mini">
                                 {% if task.assigned_to.profile.avatar %}

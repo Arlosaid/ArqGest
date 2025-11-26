@@ -484,14 +484,16 @@
 
 .task-action-btn.primary {
     background: var(--task-primary);
-    color: white;
+    color: white !important;
     border-color: var(--task-primary);
 }
 
 .task-action-btn.primary:hover {
-    background: var(--task-primary-dark);
-    border-color: var(--task-primary-dark);
-    color: white;
+    background: var(--task-primary-dark) !important;
+    border-color: var(--task-primary-dark) !important;
+    color: white !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .task-action-btn.success {

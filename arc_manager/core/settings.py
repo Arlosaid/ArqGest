@@ -283,10 +283,11 @@ if DATABASES['default']['ENGINE'] == 'django.db.backends.postgresql':
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+    {'NAME': 'core.password_validators.CustomUserAttributeSimilarityValidator'},
+    {'NAME': 'core.password_validators.CustomMinimumLengthValidator'},
+    {'NAME': 'core.password_validators.PasswordComplexityValidator'},
+    {'NAME': 'core.password_validators.CustomNumericPasswordValidator'},
+    {'NAME': 'core.password_validators.WeakPasswordValidator'},
 ]
 
 
@@ -912,7 +913,9 @@ if not DEBUG:
 # SESSION HIJACKING PREVENTION
 # ========================================
 # Validar User-Agent para detectar sesiones robadas
-SESSION_VALIDATE_USER_AGENT = os.environ.get('SESSION_VALIDATE_USER_AGENT', 'True').lower() == 'true'
+# Validación de User-Agent deshabilitada por defecto para permitir múltiples dispositivos
+# Los usuarios pueden trabajar desde PC, móvil, tablet sin problemas
+SESSION_VALIDATE_USER_AGENT = os.environ.get('SESSION_VALIDATE_USER_AGENT', 'False').lower() == 'true'
 
 # Rutas exentas de validación de sesión
 SESSION_VALIDATION_EXEMPTS = [

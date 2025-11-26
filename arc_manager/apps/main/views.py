@@ -40,14 +40,30 @@ def dashboard(request):
     # Obtener contadores con cache (10 minutos)
     from django.db.models import Count, Q
     
-    cache_key = f"dashboard_stats:{organization.id}"
+    cache_key = f"dashboard_stats:{organization.id}:user:{current_user.id}"
     dashboard_stats = cache.get(cache_key)
     
     if dashboard_stats is None:
-        # Contar proyectos y clientes de la organización (excluir archivados)
-        total_projects = Project.objects.filter(
-            organization=organization
-        ).exclude(status='ARCHIVED').count()
+        # SEGURIDAD: Contar proyectos según permisos del usuario
+        if current_user.is_org_admin:
+            # Admins ven todos los proyectos (excluir archivados)
+            total_projects = Project.objects.filter(
+                organization=organization
+            ).exclude(status='ARCHIVED').count()
+        else:
+            # Usuarios normales solo cuentan proyectos accesibles
+            from apps.projects.cache_utils import get_or_set_user_accessible_projects
+            
+            accessible_data = get_or_set_user_accessible_projects(
+                current_user.id,
+                organization.id,
+                is_admin=False
+            )
+            
+            # Combinar IDs accesibles (activos + completados, sin archivados)
+            all_accessible_ids = accessible_data['active_ids'] | accessible_data['completed_ids']
+            total_projects = len(all_accessible_ids)
+        
         total_clients = Client.objects.filter(organization=organization).count()
         
         dashboard_stats = {
@@ -82,10 +98,28 @@ def dashboard(request):
     ).count()
 
     # 2. Widget "Proyectos Activos" - optimizado con cache de progreso
-    active_projects = Project.objects.filter(
-        organization=organization,
-        status='ACTIVE'
-    ).select_related('client').order_by('-created_at')[:6]
+    # SEGURIDAD: Filtrar proyectos según permisos del usuario
+    if current_user.is_org_admin:
+        # Admins ven todos los proyectos activos
+        active_projects = Project.objects.filter(
+            organization=organization,
+            status='ACTIVE'
+        ).select_related('client').order_by('-created_at')[:6]
+    else:
+        # Usuarios normales solo ven proyectos donde están asignados
+        from apps.projects.cache_utils import get_or_set_user_accessible_projects
+        
+        accessible_data = get_or_set_user_accessible_projects(
+            current_user.id,
+            organization.id,
+            is_admin=False
+        )
+        
+        # Solo mostrar proyectos activos accesibles
+        active_projects = Project.objects.filter(
+            id__in=accessible_data['active_ids'],
+            organization=organization
+        ).select_related('client').order_by('-created_at')[:6]
     
     # Obtener progreso desde cache para todos los proyectos del dashboard
     if active_projects:

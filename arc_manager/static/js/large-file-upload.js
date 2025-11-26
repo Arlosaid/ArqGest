@@ -9,8 +9,6 @@ class LargeFileUploader {
         const config = window.FILE_UPLOAD_CONFIG || {};
         const maxFileSize = config.MAX_FILE_SIZE_MB || 1500;
         
-        console.log(`✅ Límite de archivo: ${maxFileSize}MB`);
-        
         this.options = {
             maxFileSize: maxFileSize,
             allowedExtensions: config.ALLOWED_EXTENSIONS || [],
@@ -70,7 +68,6 @@ class LargeFileUploader {
         
         // Marcar como inicializado
         this.initializedForms.add(formId);
-        console.log(`✅ Formulario ${formId} inicializado`);
     }
 
     enhanceFileInput(fileInput, form) {
