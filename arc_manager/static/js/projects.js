@@ -74,7 +74,7 @@ class ProjectsManager {
     }
 
     setupStatusFilters() {
-        const filterButtons = document.querySelectorAll('.status-filter-btn');
+        const filterButtons = document.querySelectorAll('.filter-btn');
         
         if (!filterButtons.length) {
             return;

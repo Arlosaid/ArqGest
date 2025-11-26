@@ -6,8 +6,8 @@
 {% block title %}{% trans "Mis Proyectos" %} - ArqGest{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/project_list.css' %}?v=4.2" rel="stylesheet">
 <link href="{% static 'css/status-toggle.css' %}" rel="stylesheet">
+<link href="{% static 'css/project_list.css' %}?v=5.3" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -46,13 +46,6 @@
             </div>
             <div class="stat-number-mini">{{ active_projects_count|default:"0" }}</div>
             <div class="stat-label-mini">Activos</div>
-        </div>
-        <div class="stat-card-mini">
-            <div class="stat-icon-mini completed">
-                <i class="fas fa-check-circle"></i>
-            </div>
-            <div class="stat-number-mini">{% if total_projects %}{% widthratio completed_projects_count|default:0 total_projects 100 %}{% else %}0{% endif %}%</div>
-            <div class="stat-label-mini">Completado</div>
         </div>
     </div>
 
@@ -208,6 +201,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/projects.js' %}?v=5.0" defer></script>
+<script src="{% static 'js/projects.js' %}?v=5.1" defer></script>
 <script src="{% static 'js/status-toggle.js' %}?v=2.1" defer></script>
 {% endblock %}

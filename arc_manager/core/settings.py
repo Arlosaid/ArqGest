@@ -913,7 +913,9 @@ if not DEBUG:
 # SESSION HIJACKING PREVENTION
 # ========================================
 # Validar User-Agent para detectar sesiones robadas
-SESSION_VALIDATE_USER_AGENT = os.environ.get('SESSION_VALIDATE_USER_AGENT', 'True').lower() == 'true'
+# Validación de User-Agent deshabilitada por defecto para permitir múltiples dispositivos
+# Los usuarios pueden trabajar desde PC, móvil, tablet sin problemas
+SESSION_VALIDATE_USER_AGENT = os.environ.get('SESSION_VALIDATE_USER_AGENT', 'False').lower() == 'true'
 
 # Rutas exentas de validación de sesión
 SESSION_VALIDATION_EXEMPTS = [

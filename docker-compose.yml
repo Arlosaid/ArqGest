@@ -206,6 +206,9 @@ services:
       - LOG_SLOW_REQUESTS=false
       - SAMPLE_RATE=0
       - SLOW_REQUEST_THRESHOLD=5000
+      
+      # Session validation deshabilitada por defecto (permite múltiples dispositivos)
+      # - SESSION_VALIDATE_USER_AGENT=false  # Ya es false por defecto en settings.py
     
     restart: unless-stopped
 
