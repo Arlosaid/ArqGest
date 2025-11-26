@@ -34,56 +34,76 @@
         </div>
     </div>
 
-    <!-- Stats compactas y controles en una fila -->
-    <div class="stats-and-controls-row">
-        <!-- Stats compactas -->
-        <div class="stats-inline">
-            <div class="stat-inline-item">
-                <div class="stat-icon-compact total">
-                    <i class="fas fa-folder"></i>
-                </div>
-                <div class="stat-content-compact">
-                    <div class="stat-number-compact">{% if is_paginated %}{{ page_obj.paginator.count }}{% else %}{{ projects|length }}{% endif %}</div>
-                    <div class="stat-label-compact">{% if current_filters.status or current_filters.search %}Filtrados{% else %}{% if is_limited_view %}Mis Proyectos{% else %}Total{% endif %}{% endif %}</div>
-                </div>
+    <!-- Stats Section -->
+    <div class="stats-overview-section">
+        <div class="stat-card-modern total">
+            <div class="stat-icon-wrapper">
+                <i class="fas fa-folder"></i>
             </div>
-            <div class="stat-inline-item">
-                <div class="stat-icon-compact active">
-                    <i class="fas fa-play-circle"></i>
-                </div>
-                <div class="stat-content-compact">
-                    <div class="stat-number-compact">{{ active_projects_count|default:"0" }}</div>
-                    <div class="stat-label-compact">Activos</div>
-                </div>
+            <div class="stat-info">
+                <span class="stat-value">{{ total_projects|default:"0" }}</span>
+                <span class="stat-label">{% trans "Total" %}</span>
+            </div>
+        </div>
+        
+        <div class="stat-card-modern active-projects">
+            <div class="stat-icon-wrapper">
+                <i class="fas fa-play-circle"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">{{ active_projects_count|default:"0" }}</span>
+                <span class="stat-label">{% trans "Activos" %}</span>
             </div>
         </div>
 
-        <!-- Controles de búsqueda y filtros en línea -->
-        <div class="controls-inline">
-            <div class="search-box-inline">
-                <i class="fas fa-search search-icon-inline"></i>
-                <input type="text" 
-                       class="search-input-inline" 
-                       placeholder="{% trans 'Buscar...' %}" 
-                       name="search">
-                <a href="#" class="clear-search-btn" style="display: none;">
-                    <i class="fas fa-times"></i>
-                </a>
+        <div class="stat-card-modern completed">
+            <div class="stat-icon-wrapper">
+                <i class="fas fa-check-circle"></i>
             </div>
-            <div class="filter-buttons-inline">
-                <button type="button" class="filter-btn-compact active" data-filter="all" title="Todos los proyectos">
-                    <i class="fas fa-list"></i>
-                    <span class="filter-text">Todos</span>
-                </button>
-                <button type="button" class="filter-btn-compact" data-filter="active" title="Proyectos activos">
-                    <i class="fas fa-check-circle"></i>
-                    <span class="filter-text">Activos</span>
-                </button>
-                <button type="button" class="filter-btn-compact" data-filter="archived" title="Proyectos archivados">
-                    <i class="fas fa-archive"></i>
-                    <span class="filter-text">Archivados</span>
-                </button>
+            <div class="stat-info">
+                <span class="stat-value">{{ completed_projects_count|default:"0" }}</span>
+                <span class="stat-label">{% trans "Completados" %}</span>
             </div>
+        </div>
+
+        <div class="stat-card-modern archived">
+            <div class="stat-icon-wrapper">
+                <i class="fas fa-archive"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">{{ archived_projects_count|default:"0" }}</span>
+                <span class="stat-label">{% trans "Archivados" %}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controls Section -->
+    <div class="controls-toolbar-section">
+        <div class="search-box-wrapper">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" 
+                   class="search-input-modern" 
+                   placeholder="{% trans 'Buscar proyectos...' %}" 
+                   name="search"
+                   value="{{ current_filters.search|default:'' }}">
+            <a href="#" class="clear-search-btn" style="display: none;">
+                <i class="fas fa-times"></i>
+            </a>
+        </div>
+        
+        <div class="filters-wrapper">
+            <button type="button" class="filter-btn-modern {% if not current_filters.status %}active{% endif %}" data-filter="all">
+                <i class="fas fa-list"></i>
+                <span>{% trans "Todos" %}</span>
+            </button>
+            <button type="button" class="filter-btn-modern {% if current_filters.status == 'active' %}active{% endif %}" data-filter="active">
+                <i class="fas fa-play-circle"></i>
+                <span>{% trans "Activos" %}</span>
+            </button>
+            <button type="button" class="filter-btn-modern {% if current_filters.status == 'archived' %}active{% endif %}" data-filter="archived">
+                <i class="fas fa-archive"></i>
+                <span>{% trans "Archivados" %}</span>
+            </button>
         </div>
     </div>
 

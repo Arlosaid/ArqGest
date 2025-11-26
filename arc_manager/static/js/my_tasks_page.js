@@ -42,11 +42,24 @@ function updateTaskUIInstant(taskId, newStatus) {
     taskCard.dataset.status = newStatus;
 
     // Actualizar el badge de estado
-    const statusBadge = taskCard.querySelector('.badge-status');
+    const statusBadge = taskCard.querySelector('.task-compact-status');
     if (statusBadge) {
-        // Remover clases anteriores
-        statusBadge.className = statusBadge.className.replace(/badge-\w+/g, '');
-        statusBadge.classList.add('badge-status', `badge-${newStatus.toLowerCase()}`);
+        // Remover clases de estado anteriores
+        statusBadge.classList.remove('todo', 'in-progress', 'paused', 'done');
+        
+        // Mapear estado a clase CSS
+        const statusClassMap = {
+            'TODO': 'todo',
+            'IN_PROGRESS': 'in-progress',
+            'PAUSED': 'paused',
+            'DONE': 'done'
+        };
+        
+        // Agregar nueva clase
+        const newClass = statusClassMap[newStatus];
+        if (newClass) {
+            statusBadge.classList.add(newClass);
+        }
 
         // Actualizar texto
         const statusTexts = {
@@ -85,7 +98,7 @@ function updateTaskActions(taskCard, status) {
 
     if (status === 'TODO') {
         newButtonsHTML = `
-            <button type="button" class="action-btn action-start" 
+            <button type="button" class="btn-icon-action edit action-start" 
                     onclick="updateTaskStatus(${taskId}, 'IN_PROGRESS')"
                     title="Iniciar tarea">
                 <i class="fas fa-play"></i>
@@ -93,12 +106,12 @@ function updateTaskActions(taskCard, status) {
         `;
     } else if (status === 'IN_PROGRESS') {
         newButtonsHTML = `
-            <button type="button" class="action-btn action-pause" 
+            <button type="button" class="btn-icon-action edit action-pause" 
                     onclick="updateTaskStatus(${taskId}, 'PAUSED')"
                     title="Pausar tarea">
                 <i class="fas fa-pause"></i>
             </button>
-            <button type="button" class="action-btn action-complete" 
+            <button type="button" class="btn-icon-action delete action-complete" 
                     onclick="updateTaskStatus(${taskId}, 'DONE')"
                     title="Completar tarea">
                 <i class="fas fa-check"></i>
@@ -106,7 +119,7 @@ function updateTaskActions(taskCard, status) {
         `;
     } else if (status === 'PAUSED') {
         newButtonsHTML = `
-            <button type="button" class="action-btn action-resume" 
+            <button type="button" class="btn-icon-action edit action-resume" 
                     onclick="updateTaskStatus(${taskId}, 'IN_PROGRESS')"
                     title="Reanudar tarea">
                 <i class="fas fa-play"></i>
@@ -114,7 +127,7 @@ function updateTaskActions(taskCard, status) {
         `;
     } else if (status === 'DONE') {
         newButtonsHTML = `
-            <button type="button" class="action-btn action-reopen" 
+            <button type="button" class="btn-icon-action edit action-reopen" 
                     onclick="updateTaskStatus(${taskId}, 'IN_PROGRESS')"
                     title="Reabrir tarea">
                 <i class="fas fa-undo"></i>
@@ -130,7 +143,7 @@ function updateTaskActions(taskCard, status) {
         actionsContainer.insertAdjacentHTML('beforeend', newButtonsHTML);
         actionsContainer.insertAdjacentHTML('beforeend', `
             <a href="${kanbanUrl}" 
-               class="action-btn action-kanban"
+               class="btn-icon-action view action-kanban"
                title="Ir al Kanban">
                 <i class="fas fa-columns"></i>
             </a>
@@ -299,12 +312,12 @@ let serverCounters = {
 
 // Función para inicializar contadores del servidor
 function initializeServerCounters() {
-    const totalEl = document.querySelector('.stat-total .stat-number');
-    const todoEl = document.querySelector('.stat-todo .stat-number');
-    const progressEl = document.querySelector('.stat-progress .stat-number');
-    const pausedEl = document.querySelector('.stat-paused .stat-number');
-    const doneEl = document.querySelector('.stat-done .stat-number');
-
+    const totalEl = document.getElementById('stat-total');
+    const todoEl = document.getElementById('stat-todo');
+    const progressEl = document.getElementById('stat-in-progress');
+    const pausedEl = document.getElementById('stat-paused');
+    const doneEl = document.getElementById('stat-done');
+    
     // Guardar los valores originales del servidor
     if (totalEl) serverCounters.total = parseInt(totalEl.textContent) || 0;
     if (todoEl) serverCounters.todo = parseInt(todoEl.textContent) || 0;
@@ -348,11 +361,11 @@ function updateTaskDeleteCounter(taskStatus) {
 
 // Función para refrescar la UI con los contadores actuales
 function refreshCountersUI() {
-    const totalEl = document.querySelector('.stat-total .stat-number');
-    const todoEl = document.querySelector('.stat-todo .stat-number');
-    const progressEl = document.querySelector('.stat-progress .stat-number');
-    const pausedEl = document.querySelector('.stat-paused .stat-number');
-    const doneEl = document.querySelector('.stat-done .stat-number');
+    const totalEl = document.getElementById('stat-total');
+    const todoEl = document.getElementById('stat-todo');
+    const progressEl = document.getElementById('stat-in-progress');
+    const pausedEl = document.getElementById('stat-paused');
+    const doneEl = document.getElementById('stat-done');
 
     if (totalEl) totalEl.textContent = serverCounters.total;
     if (todoEl) todoEl.textContent = serverCounters.todo;
