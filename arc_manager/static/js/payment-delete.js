@@ -52,19 +52,42 @@ class PaymentDeleteManager {
      * Manejar click en botón que dispara un form
      */
     handleDeleteButtonClick(btn) {
-        const formId = btn.dataset.formId;
+        const formId = btn.getAttribute('data-form-id');
         const form = document.getElementById(formId);
         
         if (!form) {
             console.error('Form no encontrado:', formId);
+            // Intentar encontrar el form hermano si el ID falla
+            const siblingForm = btn.nextElementSibling;
+            if (siblingForm && siblingForm.tagName === 'FORM') {
+                console.log('Usando form hermano encontrado');
+                this.processDelete(btn, siblingForm);
+                return;
+            }
+            alert('Error: No se encontró el formulario de eliminación.');
             return;
         }
         
-        const paymentId = btn.dataset.paymentId;
-        const amount = btn.dataset.paymentAmount || 'Monto no especificado';
-        const date = btn.dataset.paymentDate || '';
-        const description = btn.dataset.paymentDescription || `Pago de ${amount}`;
+        this.processDelete(btn, form);
+    }
+
+    processDelete(btn, form) {
+        const paymentId = btn.getAttribute('data-payment-id');
+        const amount = btn.getAttribute('data-payment-amount') || 'Monto no especificado';
+        const date = btn.getAttribute('data-payment-date') || '';
+        const description = btn.getAttribute('data-payment-description') || `Pago de ${amount}`;
         
+        console.log('Procesando eliminación de pago:', { paymentId, amount, date, description });
+
+        // Verificar si ConfirmationModals está disponible
+        if (typeof ConfirmationModals === 'undefined') {
+            console.warn('ConfirmationModals no está definido. Usando confirmación nativa.');
+            if (confirm(`¿Estás seguro de que deseas eliminar este pago?\n\n${description}\n${amount}`)) {
+                form.submit();
+            }
+            return;
+        }
+
         this.showDeleteModal({
             paymentId,
             amount,

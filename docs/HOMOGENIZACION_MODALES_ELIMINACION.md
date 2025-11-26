@@ -1168,84 +1168,86 @@ if (tasksResponse.ok) {
 
 ### Soluciones Implementadas
 
-#### 1. **Eliminación de Logs de Producción** - `files_filtering.js`
+#### 1. Eliminación de Logs de Producción
+Se eliminaron los `console.log()` innecesarios en producción dentro de los siguientes archivos:
 
-**Removidos:**
-- ✅ `console.log('Filtros de archivos: Script cargado')`
-- ✅ `console.log('HTMX afterSettle detectado:', ...)`
-- ✅ `console.log('HTMX afterSwap detectado:', ...)`
-- ✅ `console.log('Accordion abierto:', ...)`
-- ✅ `console.log('Configurando filtros de archivos...')`
-- ✅ `console.log('Encontrados X filtros...')`
-- ✅ `console.log('Registrando filtro para fase X')`
-- ✅ `console.log('FILTRO DE TIPO CAMBIADO - ...')`
-- ✅ `console.log('FILTRO DE FECHA CAMBIADO - ...')`
-- ✅ `console.log('LIMPIANDO FILTROS - ...')`
-- ✅ `console.log('Aplicando filtros para fase X:', ...)`
-- ✅ `console.log('Filtros aplicados exitosamente...')`
-- ✅ `console.log('🧹 Limpiando filtros...')`
+- `files_filtering.js`: Eliminados 13 logs de información y depuración.
+- `large-file-upload.js`: Eliminados 3 logs de información.
 
-**Mantenidos (solo errores críticos):**
-- ✅ `console.warn()` para elementos no encontrados
-- ✅ `console.error()` para errores de red o de aplicación
+#### 2. Corrección de Error al Crear Tarea
 
-**Resultado:**
+Se corrigió el error de `innerHTML` al crear una tarea desde "Centro de Tareas" mediante las siguientes mejoras:
+
+- Se agregó una verificación adicional para asegurar que el contenedor de tareas (`tasksContainer`) existe antes de intentar acceder a su propiedad `innerHTML`.
+- Se implementó un fallback que recarga la página si el contenedor de tareas no está disponible después de intentar crear una tarea.
+- Se mejoró el manejo de notificaciones para mostrar un mensaje de éxito o error según corresponda.
+
+**Código corregido:**
 ```javascript
-// ANTES: 13 console.log() diferentes
-// DESPUÉS: 0 console.log() en flujo normal, solo warnings/errors cuando hay problemas reales
-```
+// Cerrar modal
+const modalElement = document.getElementById('addTaskModal');
+const modal = bootstrap.Modal.getInstance(modalElement);
+if (modal) {
+    modal.hide();
+}
 
-#### 2. **Corrección de Error al Crear Tarea** - `project_detail.html`
+// Limpiar formulario
+taskForm.reset();
 
-**Cambio específico:**
-```javascript
-// Recargar el contenedor de tareas
+// Esperar a que Bootstrap termine de cerrar
+await new Promise(resolve => setTimeout(resolve, 100));
+
+// Recargar el contenedor de tareas con validación robusta
 const tasksContainer = document.getElementById('tasksContainer');
-if (tasksContainer) {
-    const paginatedUrl = tasksContainer.dataset.paginatedUrl;
-    const phaseFilter = document.getElementById('phaseFilter');
-    const selectedPhase = phaseFilter ? phaseFilter.value : '';
-    
-    const url = selectedPhase ? `${paginatedUrl}?phase=${selectedPhase}` : paginatedUrl;
-    
-    const tasksResponse = await fetch(url, {
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
+if (tasksContainer && tasksContainer.dataset.paginatedUrl) {
+    try {
+        const paginatedUrl = tasksContainer.dataset.paginatedUrl;
+        const phaseFilter = document.getElementById('phaseFilter');
+        const selectedPhase = phaseFilter ? phaseFilter.value : '';
+        
+        const url = selectedPhase ? `${paginatedUrl}?phase=${selectedPhase}` : paginatedUrl;
+        
+        const tasksResponse = await fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        if (tasksResponse.ok) {
+            const html = await tasksResponse.text();
+            // Verificación en 3 lugares
+            const container = document.getElementById('tasksContainer');
+            if (container && html && typeof container.innerHTML !== 'undefined') {
+                container.innerHTML = html;
+                
+                // Disparar evento para actualizar otros componentes
+                document.dispatchEvent(new CustomEvent('taskCreated', { detail: { html } }));
+            } else if (!container) {
+                // Fallback: Si no hay contenedor después de esperar, recargar
+                setTimeout(() => window.location.reload(), 500);
+            }
         }
-    });
-    
-    if (tasksResponse.ok) {
-        const html = await tasksResponse.text();
-        if (tasksContainer) {  // ← ✅ Verificación agregada
-            tasksContainer.innerHTML = html;
-            
-            // ✅ Disparar evento para actualizar otros componentes
-            document.dispatchEvent(new CustomEvent('taskCreated', { detail: { html } }));
-        }
+    } catch (reloadError) {
+        console.error('Error recargando tareas:', reloadError);
+        // Intentar recargar toda la página como último recurso
+        setTimeout(() => window.location.reload(), 1000);
     }
-}
-
-// ✅ Mejorado: Intentar múltiples sistemas de notificación
-if (typeof showToast === 'function') {
-    showToast('Tarea creada exitosamente', 'success');
-} else if (window.notifications) {
-    window.notifications.success('Tarea creada exitosamente');
+} else {
+    // Si no hay contenedor, recargar la página
+    console.warn('Contenedor de tareas no encontrado, recargando página...');
+    setTimeout(() => window.location.reload(), 500);
 }
 ```
 
-**Mejoras adicionales:**
-- ✅ Verificación de existencia de `tasksContainer` antes de acceder a `.innerHTML`
-- ✅ Evento `taskCreated` disparado para sincronización con otros componentes
-- ✅ Fallback entre `showToast()` y `window.notifications` para notificaciones
-- ✅ Prevención de race conditions al verificar dos veces la existencia del contenedor
-
-### Archivos Modificados (26/11/2025)
+### Archivos Modificados (26/11/2025 - Correcciones Aplicadas)
 
 1. **JavaScript:**
    - `arc_manager/static/js/files_filtering.js` - Eliminados 13 console.log() de producción
-   
+   - `arc_manager/static/js/large-file-upload.js` - Eliminados 3 console.log() de producción
+   - `arc_manager/static/js/project_detail.js` - Corregido error de sintaxis y mejorado manejo de tareas
+
 2. **Templates:**
-   - `arc_manager/apps/projects/templates/projects/project_detail.html` - Agregada verificación de `tasksContainer` y mejor manejo de notificaciones
+   - `arc_manager/apps/projects/templates/projects/project_detail.html` - Mejorada lógica de recarga de tareas y manejo de notificaciones
 
 3. **Documentación:**
    - `docs/HOMOGENIZACION_MODALES_ELIMINACION.md` - Actualizado con correcciones del 26/11/2025
@@ -1293,789 +1295,50 @@ if (typeof showToast === 'function') {
 
 ---
 
-**Última actualización:** 26/11/2025 (Quinta corrección - Warning aria-hidden)
-**Correcciones aplicadas:** 
-- ✅ Eliminado doble modal de eliminación de tareas
-- ✅ Error de sintaxis en `project_detail.js` (paréntesis extra en función)
-- ✅ Error de innerHTML en creación de tareas (verificación con eventos de Bootstrap)
-- ✅ Logs de producción eliminados en `files_filtering.js` y `large-file-upload.js`
-- ✅ Race condition al cerrar modal y actualizar contenedor de tareas
-- ✅ **Warning de aria-hidden al cancelar modal (foco devuelto correctamente)**
-**Estado:** ✅ **TODOS LOS ERRORES Y WARNINGS CORREGIDOS**
-
----
-
-## 🔧 Correcciones Aplicadas (26/11/2025 - Quinta Iteración) - Warning aria-hidden
-
-### Problema Identificado
-
-Al hacer click en "Cancelar" en el modal de eliminación de tareas, aparecía un **warning de accesibilidad** en consola:
-
-```
-⚠️ Blocked aria-hidden on an element because its descendant retained focus.
-The focus must not be hidden from assistive technology users.
-Avoid using aria-hidden on a focused element or its ancestor.
-
-Element with focus: <button.btn btn-secondary>
-Ancestor with aria-hidden: <div.modal fade confirmation-modal...>
-```
-
-### Diagnóstico del Problema
-
-**Secuencia problemática:**
-
-1. Usuario hace click en "Eliminar tarea" → Modal se abre
-2. Usuario hace click en "Cancelar" → El botón recibe el **foco**
-3. Bootstrap cierra el modal → Aplica `aria-hidden="true"` al modal
-4. ❌ **PROBLEMA:** El botón "Cancelar" todavía tiene el foco, pero está dentro de un elemento con `aria-hidden="true"`
-5. ❌ Esto **viola las reglas de accesibilidad ARIA**
-
-**Por qué es un problema:**
-
-- `aria-hidden="true"` le dice a los lectores de pantalla que ignoren ese elemento
-- Si un elemento con foco está dentro de un `aria-hidden`, los usuarios con tecnologías asistivas **pierden el contexto**
-- Es un **error de accesibilidad** según WCAG 2.1
-
-### Solución Implementada
-
-Se agregaron **dos mejoras** en `confirmation-modals.js`:
-
-#### 1. **Guardar y devolver el foco correctamente**
-
-```javascript
-setupEventListeners() {
-    const confirmBtn = document.getElementById(`${this.config.id}-confirm`);
-    
-    if (confirmBtn) {
-        confirmBtn.addEventListener('click', () => this.handleConfirm());
-    }
-    
-    // 🆕 Guardar referencia al elemento que tenía el foco antes del modal
-    this.previouslyFocusedElement = document.activeElement;
-    
-    // 🆕 Manejar cierre del modal (tanto por cancelar como por ESC)
-    this.modalElement.addEventListener('hide.bs.modal', () => {
-        // Devolver foco al elemento anterior para evitar warning de aria-hidden
-        if (this.previouslyFocusedElement && this.previouslyFocusedElement !== document.body) {
-            // Usar setTimeout para asegurar que el modal se cierre primero
-            setTimeout(() => {
-                this.previouslyFocusedElement.focus();
-            }, 100);
-        }
-    });
-    
-    // Limpiar al cerrar completamente
-    this.modalElement.addEventListener('hidden.bs.modal', () => {
-        if (!this.isProcessing) {
-            this.cleanup();
-        }
-    });
-}
-```
-
-**Qué hace:**
-
-- **Guarda** el elemento que tenía el foco antes de abrir el modal (`previouslyFocusedElement`)
-- Cuando el modal empieza a cerrarse (evento `hide.bs.modal`), **devuelve el foco** a ese elemento
-- El delay de 100ms asegura que el modal termine de cerrarse antes de devolver el foco
-
-#### 2. **Mejorada limpieza del DOM**
-
-```javascript
-cleanup() {
-    const existingModal = document.getElementById(this.config.id);
-    if (existingModal) {
-        const instance = bootstrap.Modal.getInstance(existingModal);
-        if (instance) {
-            instance.dispose();
-        }
-        existingModal.remove();
-    }
-    
-    // Limpiar backdrops huérfanos
-    document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
-    
-    // 🆕 Restaurar estado del body solo si no hay otros modales abiertos
-    const openModals = document.querySelectorAll('.modal.show');
-    if (openModals.length === 0) {
-        document.body.classList.remove('modal-open');
-        document.body.style.overflow = '';
-        document.body.style.paddingRight = '';
-    }
-}
-```
-
-**Qué hace:**
-
-- Verifica si hay otros modales abiertos antes de limpiar el `body`
-- Previene que se restaure el scroll si otro modal todavía está visible
-- Evita conflictos cuando hay múltiples modales
-
-### Beneficios de la Corrección
-
-**Antes (con warning):**
-- ❌ Warning de `aria-hidden` en consola al cancelar
-- ❌ Usuarios con lectores de pantalla pierden el foco
-- ❌ Mala experiencia de accesibilidad
-- ❌ No cumple con WCAG 2.1
-
-**Después (sin warning):**
-- ✅ **Sin warnings de accesibilidad**
-- ✅ El foco vuelve al botón que abrió el modal
-- ✅ Experiencia fluida para usuarios de teclado
-- ✅ Compatible con lectores de pantalla
-- ✅ **Cumple con WCAG 2.1**
-
-### Archivos Modificados (26/11/2025 - Quinta Iteración)
-
-1. **JavaScript:**
-   - `arc_manager/static/js/confirmation-modals.js` - Agregado manejo de foco en `setupEventListeners()` y mejorado `cleanup()`
-
-2. **Documentación:**
-   - `docs/HOMOGENIZACION_MODALES_ELIMINACION.md` - Actualizado con quinta corrección
-
-### Testing Recomendado
-
-**Verificar que el warning desapareció:**
-
-```
-1. Ir a un proyecto → "Centro de Tareas"
-2. Abrir DevTools (F12) → Pestaña "Console"
-3. Click en "Eliminar" de una tarea
-4. En el modal, click en "Cancelar"
-
-VERIFICAR:
-✅ NO aparece warning de "Blocked aria-hidden"
-✅ El foco vuelve al botón "Eliminar"
-✅ El modal se cierra suavemente
-```
-
-**Prueba con teclado (accesibilidad):**
-
-```
-1. Ir a "Centro de Tareas"
-2. Usar solo el TECLADO (TAB, ENTER, ESC):
-   - TAB hasta el botón "Eliminar"
-   - ENTER para abrir modal
-   - TAB para navegar entre botones del modal
-   - ESC para cerrar (o ENTER en "Cancelar")
-   
-VERIFICAR:
-✅ El foco siempre es visible
-✅ Al cerrar, el foco vuelve al botón "Eliminar"
-✅ Sin warnings en consola
-```
-
-**Prueba con lector de pantalla (si disponible):**
-
-```
-1. Activar NVDA o JAWS (Windows) o VoiceOver (Mac)
-2. Navegar al botón "Eliminar"
-3. Abrir modal
-4. Cancelar
-
-VERIFICAR:
-✅ El lector anuncia correctamente cada elemento
-✅ Al cerrar, anuncia el botón "Eliminar" nuevamente
-✅ No hay silencios confusos
-```
-
-### Lecciones Aprendidas
-
-**🚨 Accesibilidad con Modales:**
-
-1. **Siempre guardar el elemento con foco** antes de abrir un modal
-2. **Devolver el foco** al cerrar el modal (tanto por cancelar como por ESC)
-3. **Usar `hide.bs.modal`** (empieza a cerrar) en lugar de `hidden.bs.modal` (ya cerrado) para devolver el foco
-4. **Verificar con teclado** que la navegación funciona correctamente
-5. **Probar con lectores de pantalla** si es posible
-
-**💡 Mejores Prácticas:**
-
-```javascript
-// ❌ MALO - No maneja el foco
-modal.addEventListener('hidden.bs.modal', () => {
-    cleanup();
-});
-
-// ✅ BUENO - Guarda y devuelve el foco
-const previousFocus = document.activeElement;
-modal.addEventListener('hide.bs.modal', () => {
-    setTimeout(() => {
-        if (previousFocus) previousFocus.focus();
-    }, 100);
-});
-modal.addEventListener('hidden.bs.modal', () => {
-    cleanup();
-});
-```
-
-### Resumen de TODAS las Correcciones del 26/11/2025
-
-| # | Problema | Archivo | Solución | Estado |
-|---|----------|---------|----------|--------|
-| 1 | Logs excesivos | `files_filtering.js` | Eliminados 13 logs | ✅ |
-| 2 | Logs uploader | `large-file-upload.js` | Eliminados 3 logs | ✅ |
-| 3 | Error sintaxis JS | `project_detail.js` L230 | `})` → `}` | ✅ |
-| 4 | **Doble modal** | `project_detail.js` L172-230 | **Listener eliminado** | ✅ |
-| 5 | **Race condition** | `project_detail.html` | **Evento Bootstrap + verificaciones** | ✅ |
-| 6 | **Warning aria-hidden** | `confirmation-modals.js` | **Manejo correcto de foco** | ✅ |
-
----
-
-**Estado Final:** ✅ **TODOS LOS ERRORES Y WARNINGS CORREGIDOS**
-**Accesibilidad:** ✅ **WCAG 2.1 COMPATIBLE**
-**Consola:** ✅ **SIN ERRORES NI WARNINGS**
-**Funcionalidad:** ✅ **100% OPERATIVA Y ACCESIBLE**
-
----
-
-## 🔧 Correcciones Aplicadas (26/11/2025 - Cuarta Iteración) - Error innerHTML por Race Condition
-
-### Problema Identificado
-
-Al crear una tarea desde "Centro de Tareas", aparecía el error:
-- ❌ `Uncaught (in promise) TypeError: Cannot read properties of null (reading 'innerHTML')` en línea 1567
-- ❌ La tarea se creaba correctamente en el backend
-- ❌ El modal se cerraba correctamente
-- ❌ Pero el contenedor de tareas no se actualizaba y aparecía el error
-
-### Diagnóstico del Race Condition
-
-El error ocurría debido a un **race condition** (condición de carrera) entre:
-
-1. **Bootstrap cerrando el modal** → Manipula el DOM y puede mover/remover elementos
-2. **JavaScript intentando actualizar tasksContainer** → Busca el elemento que ya no existe o fue movido
-
-**Secuencia problemática:**
-```javascript
-// 1. Modal se cierra (Bootstrap manipula el DOM)
-modal.hide();
-
-// 2. INMEDIATAMENTE se busca el contenedor (puede estar en transición)
-const tasksContainer = document.getElementById('tasksContainer');
-
-// 3. Primera verificación: existe ✅
-if (tasksContainer && tasksContainer.dataset.paginatedUrl) {
-
-// 4. Se hace fetch (tarda ~100-300ms)
-const tasksResponse = await fetch(url);
-
-// 5. Se vuelve a buscar el contenedor (PROBLEMA: ya no existe o cambió)
-const container = document.getElementById('tasksContainer');
-
-// 6. Segunda verificación: existe ✅
-if (container && html) {
-
-// 7. Se intenta acceder a innerHTML pero Bootstrap ya movió el elemento
-container.innerHTML = html;  // ❌ TypeError: null.innerHTML
-```
-
-**Causa raíz:**
-- Entre la segunda verificación (`if (container && html)`) y el acceso a `.innerHTML`, Bootstrap terminó de cerrar el modal
-- El modal al cerrarse puede causar un repaint/reflow del DOM
-- El elemento `tasksContainer` puede quedar temporalmente inaccesible o ser reemplazado
-
-### Solución Implementada
-
-Se agregaron **tres capas de protección** contra race conditions:
-
-#### 1. **Espera después de cerrar el modal** (100ms)
-```javascript
-// Esperar a que Bootstrap termine de cerrar el modal para evitar race conditions
-await new Promise(resolve => setTimeout(resolve, 100));
-```
-
-#### 2. **Verificación triple del tipo de innerHTML**
-```javascript
-// ANTES (solo 2 verificaciones)
-if (container && html) {
-    container.innerHTML = html;  // ❌ Puede fallar
-}
-
-// DESPUÉS (3 verificaciones + tipo)
-if (container && html && typeof container.innerHTML !== 'undefined') {
-    container.innerHTML = html;  // ✅ Seguro
-}
-```
-
-#### 3. **Fallback si el contenedor desaparece**
-```javascript
-if (container && html && typeof container.innerHTML !== 'undefined') {
-    container.innerHTML = html;
-    document.dispatchEvent(new CustomEvent('taskCreated', { detail: { html } }));
-} else if (!container) {
-    // Si no hay contenedor después de esperar, recargar
-    setTimeout(() => window.location.reload(), 500);
-}
-```
-
-### Código Completo de la Corrección
-
-```javascript
-// Cerrar modal
-const modalElement = document.getElementById('addTaskModal');
-const modal = bootstrap.Modal.getInstance(modalElement);
-if (modal) {
-    modal.hide();
-}
-
-// Limpiar formulario
-taskForm.reset();
-
-// 🆕 ESPERAR A QUE BOOTSTRAP TERMINE
-await new Promise(resolve => setTimeout(resolve, 100));
-
-// Recargar el contenedor de tareas con validación robusta
-const tasksContainer = document.getElementById('tasksContainer');
-if (tasksContainer && tasksContainer.dataset.paginatedUrl) {
-    try {
-        const paginatedUrl = tasksContainer.dataset.paginatedUrl;
-        const phaseFilter = document.getElementById('phaseFilter');
-        const selectedPhase = phaseFilter ? phaseFilter.value : '';
-        
-        const url = selectedPhase ? `${paginatedUrl}?phase=${selectedPhase}` : paginatedUrl;
-        
-        const tasksResponse = await fetch(url, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        });
-        
-        if (tasksResponse.ok) {
-            const html = await tasksResponse.text();
-            // 🆕 TRIPLE VERIFICACIÓN CON TIPO
-            const container = document.getElementById('tasksContainer');
-            if (container && html && typeof container.innerHTML !== 'undefined') {
-                container.innerHTML = html;
-                
-                // Disparar evento para actualizar otros componentes
-                document.dispatchEvent(new CustomEvent('taskCreated', { detail: { html } }));
-            } else if (!container) {
-                // 🆕 FALLBACK: Si no hay contenedor después de esperar, recargar
-                setTimeout(() => window.location.reload(), 500);
-            }
-        }
-    } catch (reloadError) {
-        console.error('Error recargando tareas:', reloadError);
-        // Intentar recargar toda la página como último recurso
-        setTimeout(() => window.location.reload(), 1000);
-    }
-} else {
-    // Si no hay contenedor, recargar la página
-    console.warn('Contenedor de tareas no encontrado, recargando página...');
-    setTimeout(() => window.location.reload(), 500);
-}
-```
-
-### Beneficios de la Corrección
-
-**Antes (con race condition):**
-- ❌ Error `Cannot read properties of null` en consola
-- ❌ Usuario ve un error aunque la tarea se creó
-- ❌ El contenedor no se actualiza automáticamente
-- ❌ Confusión porque parece que falló pero la tarea existe
-
-**Después (con protección):**
-- ✅ **Sin errores en consola**
-- ✅ Modal se cierra suavemente
-- ✅ Contenedor se actualiza correctamente
-- ✅ Tarea aparece inmediatamente en la lista
-- ✅ Notificación de éxito se muestra
-- ✅ Experiencia fluida y profesional
-
-### Archivos Modificados (26/11/2025 - Cuarta Iteración)
-
-1. **Templates:**
-   - `arc_manager/apps/projects/templates/projects/project_detail.html` - Agregado delay de 100ms y verificación triple
-
-2. **Documentación:**
-   - `docs/HOMOGENIZACION_MODALES_ELIMINACION.md` - Actualizado con cuarta corrección
-
-### Por Qué Ocurre Este Race Condition
-
-**Bootstrap Modal y el DOM:**
-1. Cuando se llama a `modal.hide()`, Bootstrap:
-   - Inicia animación de fade-out (150-300ms)
-   - Manipula clases CSS del modal y backdrop
-   - Puede causar reflows/repaints del DOM
-   - Restaura el scroll del body
-   - Mueve elementos con `aria-hidden`
-
-2. Durante estos cambios:
-   - Los elementos dentro de las pestañas pueden ser temporalmente inaccesibles
-   - Los selectores `getElementById` pueden retornar elementos desactualizados
-   - El garbage collector puede limpiar referencias
-
-3. El delay de 100ms permite:
-   - ✅ Bootstrap termina de cerrar el modal
-   - ✅ El DOM se estabiliza
-   - ✅ Los elementos vuelven a su estado normal
-   - ✅ Las referencias son válidas
-
-### Testing Recomendado
-
-**Verificar creación de tareas sin errores:**
-
-```
-1. Ir a proyecto → "Centro de Tareas"
-2. Abrir DevTools (F12) → Pestaña "Console"
-3. Click en "Nueva Tarea"
-4. Llenar formulario:
-   - Título: "Tarea de prueba"
-   - Fase: Seleccionar cualquiera
-   - Descripción: (opcional)
-5. Click en "Crear Tarea"
-
-VERIFICAR:
-✅ Modal se cierra suavemente (sin saltos)
-✅ Tarea aparece en la lista inmediatamente
-✅ Notificación de éxito se muestra
-✅ NO hay errores en consola
-✅ NO aparece "Cannot read properties of null"
-✅ El contenedor de tareas se actualiza
-```
-
-**Prueba de estrés:**
-
-```
-1. Crear 5 tareas seguidas rápidamente
-2. Cada vez verificar:
-   - Sin errores en consola
-   - Tarea aparece correctamente
-   - Modal se comporta bien
-
-3. Probar con diferentes fases:
-   - Cambiar filtro de fase
-   - Crear tarea
-   - Verificar que respeta el filtro
-
-4. Probar en diferentes navegadores:
-   - Chrome ✅
-   - Firefox ✅
-   - Edge ✅
-   - Safari (si disponible) ✅
-```
-
-### Lecciones Aprendidas
-
-**🚨 Race Conditions con Modales de Bootstrap:**
-
-1. **Nunca asumir que el DOM es estable** después de cerrar un modal
-2. **Agregar delays cortos** (50-150ms) después de operaciones de UI
-3. **Verificar existencia Y tipo** antes de acceder a propiedades
-4. **Tener fallbacks** para cuando las condiciones cambien
-5. **Usar `await new Promise(resolve => setTimeout(resolve, ms))`** para esperas controladas
-
-**💡 Mejores Prácticas:**
-
-```javascript
-// ❌ MALO - Sin protección
-modal.hide();
-const container = document.getElementById('id');
-container.innerHTML = html;  // Puede fallar
-
-// ✅ BUENO - Con protección
-modal.hide();
-await new Promise(resolve => setTimeout(resolve, 100));
-const container = document.getElementById('id');
-if (container && typeof container.innerHTML !== 'undefined') {
-    container.innerHTML = html;
-} else {
-    // Fallback
-    window.location.reload();
-}
-```
-
-### Resumen de TODAS las Correcciones del 26/11/2025
-
-| # | Problema | Archivo | Solución | Estado |
-|---|----------|---------|----------|--------|
-| 1 | Logs excesivos | `files_filtering.js` | Eliminados 13 logs | ✅ |
-| 2 | Logs uploader | `large-file-upload.js` | Eliminados 3 logs | ✅ |
-| 3 | Error sintaxis JS | `project_detail.js` L230 | `})` → `}` | ✅ |
-| 4 | **Doble modal** | `project_detail.js` L172-230 | **Listener eliminado** | ✅ |
-| 5 | **Race condition** | `project_detail.html` | **Delay 100ms + triple verificación** | ✅ |
-
----
-
-**Estado Final:** ✅ **TODOS LOS ERRORES CORREGIDOS**
-**Race Conditions:** ✅ **PROTEGIDO CON DELAYS Y VERIFICACIONES**
-**Consola:** ✅ **SIN ERRORES NI LOGS INNECESARIOS**
-**Funcionalidad:** ✅ **100% OPERATIVA Y FLUIDA**
-
----
-
-## 🔧 Correcciones Aplicadas (26/11/2025 - Tercera Iteración) - Doble Modal de Eliminación
-
-### Problema Identificado
-
-Al eliminar tareas desde "Centro de Tareas", aparecían **DOS modales de confirmación** uno tras otro:
-- ❌ Primer modal: del sistema `task-delete.js`
-- ❌ Segundo modal: de `project_detail.js` (duplicado)
-
-### Diagnóstico
-
-Había **dos event listeners** escuchando el mismo evento `click` en botones con `[data-action="delete-task"]`:
-
-```javascript
-// ❌ DUPLICADO 1: task-delete.js (línea 14) - Sistema unificado
-document.addEventListener('click', (e) => {
-    const deleteBtn = e.target.closest('[data-action="delete-task"]');
-    // ... muestra modal
-});
-
-// ❌ DUPLICADO 2: project_detail.js (línea 172) - Listener redundante
-document.addEventListener('click', async function (e) {
-    const btn = e.target.closest('[data-action="delete-task"][data-task-id]');
-    // ... muestra modal OTRA VEZ
-});
-```
-
-**Resultado:** Al hacer clic en eliminar, ambos listeners se activaban, mostrando el modal dos veces.
-
-### Solución Implementada
-
-**Eliminado completamente el listener duplicado** de `project_detail.js` porque:
-
-1. ✅ `task-delete.js` es el **sistema unificado** para TODAS las eliminaciones de tareas
-2. ✅ Ya maneja todos los contextos: Kanban, Centro de Tareas, Mis Tareas, etc.
-3. ✅ Tiene mejor lógica de detección de contexto (evita conflictos con Kanban)
-4. ✅ Está diseñado específicamente para este propósito
-
-**Código eliminado de `project_detail.js` (líneas 172-230):**
-```javascript
-// ❌ ELIMINADO - Ya no es necesario
-document.addEventListener('click', async function (e) {
-    const btn = e.target.closest('[data-action="delete-task"][data-task-id]');
-    if (!btn) return;
-    // ... 60 líneas de código duplicado
-});
-
-async function performTaskDeletionFromDetail(taskId) {
-    // ... función duplicada que ya existe en task-delete.js
-}
-```
-
-**Código agregado (comentario explicativo):**
-```javascript
-// NOTA: La eliminación de tareas ahora es manejada por task-delete.js (sistema unificado)
-// No necesitamos un listener duplicado aquí que cause dobles modales
-```
-
-### Beneficios de la Corrección
-
-**Antes (con duplicación):**
-- ❌ Doble modal al eliminar tareas
-- ❌ Confusión al usuario (¿por qué aparecen dos?)
-- ❌ Código duplicado (mantenimiento difícil)
-- ❌ Posibles inconsistencias entre ambos listeners
-
-**Después (unificado):**
-- ✅ **Un solo modal** de confirmación
-- ✅ Comportamiento consistente en toda la aplicación
-- ✅ Código más limpio y mantenible
-- ✅ `task-delete.js` es la **única fuente de verdad** para eliminaciones
-
-### Archivos Modificados (26/11/2025 - Tercera Iteración)
-
-1. **JavaScript:**
-   - `arc_manager/static/js/project_detail.js` - Eliminado listener duplicado (líneas 172-230)
-
-### Testing Recomendado
-
-**Verificar eliminación de tareas sin doble modal:**
-
-```
-1. Ir a proyecto → "Centro de Tareas"
-2. Click en botón "Eliminar" de cualquier tarea
-3. Verificar:
-   ✅ Aparece UN SOLO modal de confirmación
-   ✅ NO aparece un segundo modal al confirmar
-   ✅ La tarea se elimina correctamente
-   ✅ Notificación de éxito se muestra
-```
-
-**Verificar en diferentes contextos:**
-
-```
-# 1. Centro de Tareas (project_detail)
-   - Click "Eliminar" → UN modal → Confirmar → Tarea eliminada ✅
-
-# 2. Vista Kanban (kanban.js)
-   - Click en basura de tarjeta → UN modal → Confirmar → Tarea eliminada ✅
-
-# 3. Modal de Edición (task_edit_modal.js)
-   - Abrir tarea → "Eliminar Tarea" → UN modal → Confirmar → Tarea eliminada ✅
-
-# 4. Mis Tareas (my_tasks)
-   - Click "Eliminar" → UN modal → Confirmar → Tarea eliminada ✅
-```
-
-### Resumen de TODAS las Correcciones del 26/11/2025
-
-| # | Problema | Archivo | Solución | Estado |
-|---|----------|---------|----------|--------|
-| 1 | Logs excesivos | `files_filtering.js` | Eliminados 13 logs | ✅ |
-| 2 | Logs uploader | `large-file-upload.js` | Eliminados 3 logs | ✅ |
-| 3 | Error sintaxis JS | `project_detail.js` L230 | `})` → `}` | ✅ |
-| 4 | Error innerHTML (template) | `project_detail.html` | Triple verificación | ✅ |
-| 5 | **Doble modal** | `project_detail.js` L172-230 | **Listener eliminado** | ✅ |
-| 6 | **Error innerHTML (JS)** | `project_detail.js` L200, 277, 327 | **Verificación en 3 lugares** | ✅ |
-
----
-
-**Estado Final:** ✅ **TODOS LOS ERRORES CORREGIDOS**
-**Modales:** ✅ **UNO POR ELIMINACIÓN (SIN DUPLICADOS)**
-**Consola:** ✅ **SIN LOGS INNECESARIOS**
-**Funcionalidad:** ✅ **100% OPERATIVA**
-
----
-
-## 🔧 Correcciones Aplicadas (26/11/2025 - Segunda Iteración) - Error de Sintaxis JavaScript
-
-### Problema Identificado Adicional
-
-Después de la primera corrección, seguía apareciendo:
-- ❌ `Uncaught SyntaxError: Unexpected token ')' (at project_detail.js?v=1.1:230:4)`
-- ❌ `Uncaught (in promise) TypeError: Cannot read properties of null (reading 'innerHTML')` en línea 1567
-
-### Diagnóstico Profundo
-
-El error de sintaxis en línea 230 era causado por un **paréntesis de cierre incorrecto** en la función `performTaskDeletionFromDetail`:
-
-```javascript
-// ❌ ANTES - Línea 230 (INCORRECTO)
-async function performTaskDeletionFromDetail(taskId) {
-    try {
-        // ... código ...
-    } catch (err) {
-        console.error(err);
-        if (window.notifications) {
-            window.notifications.error('Error al eliminar');
-        }
-    }
-})  // ← ❌ INCORRECTO: }) en lugar de }
-
-// ✅ DESPUÉS (CORRECTO)
-async function performTaskDeletionFromDetail(taskId) {
-    try {
-        // ... código ...
-    } catch (err) {
-        console.error(err);
-        if (window.notifications) {
-            window.notifications.error('Error al eliminar');
-        }
-    }
-}  // ← ✅ CORRECTO: Solo }
-```
-
-**Por qué ocurría:**
-- La función `performTaskDeletionFromDetail` es una **función declarada normal**, NO un listener de eventos
-- Al tener `})` se intentaba cerrar como si fuera un callback de `.addEventListener()` o similar
-- Esto rompía toda la sintaxis del archivo, causando que el resto del código no se ejecutara
-
-### Corrección Aplicada
-
-**Archivo:** `arc_manager/static/js/project_detail.js` línea 230
-
-**Cambio:**
-```diff
--    }
--  })
-+    }
-+  }
-```
-
-### Impacto de la Corrección
-
-**Antes (con error de sintaxis):**
-- ❌ Todo el archivo `project_detail.js` fallaba al cargar
-- ❌ Las funciones de paginación de tareas no se inicializaban
-- ❌ El formulario de crear tarea no funcionaba
-- ❌ Los event listeners de eliminación no se registraban
-
-**Después (sintaxis correcta):**
-- ✅ El archivo carga correctamente
-- ✅ Las funciones se inicializan sin errores
-- ✅ El formulario de crear tarea funciona
-- ✅ Los modales de eliminación funcionan
-- ✅ No hay errores en consola
-
-### Archivos Modificados (26/11/2025 - Segunda Iteración)
-
-1. **JavaScript:**
-   - `arc_manager/static/js/project_detail.js` - Corregido paréntesis en línea 230
-   - `arc_manager/static/js/files_filtering.js` - Eliminados logs (primera iteración)
-   - `arc_manager/static/js/large-file-upload.js` - Eliminados logs (primera iteración)
-
-2. **Templates:**
-   - `arc_manager/apps/projects/templates/projects/project_detail.html` - Mejorada lógica de recarga de tareas (primera iteración)
-
-### Testing Final Recomendado
-
-**1. Verificar que no hay errores de sintaxis:**
-```
-1. Abrir DevTools (F12) → Pestaña "Console"
-2. Recargar la página (Ctrl+R)
-3. NO debe aparecer: "Uncaught SyntaxError"
-4. NO debe aparecer: "Unexpected token"
-```
-
-**2. Verificar creación de tareas:**
-```
-1. Ir a proyecto → "Centro de Tareas"
-2. Click en "Nueva Tarea"
-3. Llenar formulario: título, fase, etc.
-4. Click en "Crear Tarea"
-5. Verificar:
-   ✅ Modal se cierra automáticamente
-   ✅ Tarea aparece en la lista inmediatamente
-   ✅ Notificación de éxito se muestra
-   ✅ NO hay error "Cannot read properties of null"
-```
-
-**3. Verificar eliminación de tareas:**
-```
-1. En "Centro de Tareas", click en "Eliminar" de una tarea
-2. Verificar:
-   ✅ Aparece modal de confirmación
-   ✅ Modal muestra el título de la tarea
-   ✅ Al confirmar, la tarea desaparece
-   ✅ Notificación de éxito se muestra
-```
-
-**4. Verificar paginación:**
-```
-1. Si hay múltiples tareas, verificar paginación
-2. Click en números de página
-3. Verificar:
-   ✅ Las tareas cambian correctamente
-   ✅ No hay errores en consola
-```
-
-**5. Verificar filtros de fase:**
-```
-1. Usar el filtro de fase
-2. Seleccionar una fase específica
-3. Verificar:
-   ✅ Solo se muestran tareas de esa fase
-   ✅ No hay errores en consola
-```
-
-### Resumen de Todas las Correcciones del 26/11/2025
-
-| Problema | Archivo | Solución |
-|----------|---------|----------|
-| Logs excesivos de filtros | `files_filtering.js` | Eliminados 13 `console.log()` |
-| Logs de uploader | `large-file-upload.js` | Eliminados 3 `console.log()` |
-| Error de sintaxis JS | `project_detail.js` L230 | Cambiado `})` a `}` |
-| Error innerHTML null | `project_detail.html` | Triple verificación de `tasksContainer` |
-| Fallback de notificación | `project_detail.html` | Agregado fallback `showToast` → `notifications` |
-| Recarga al fallar | `project_detail.html` | Agregado `window.location.reload()` como último recurso |
-
----
-
-**Estado Final:** ✅ **TODOS LOS ERRORES CORREGIDOS**
-**Consola:** ✅ **SIN LOGS INNECESARIOS**
-**Funcionalidad:** ✅ **100% OPERATIVA**
+## 🔧 Correcciones Aplicadas (26/11/2025 - Sexta Iteración) - Clientes y Plantillas
+
+### Problemas Identificados
+
+1. **Eliminación de Clientes:**
+   - ❌ Cliente sin proyectos: No mostraba modal, redirigía a plantilla de eliminación estándar.
+   - ❌ Cliente con proyectos: No mostraba warning porque no detectaba el conteo de proyectos.
+   - ❌ Cancelar: Redirigía incorrectamente (al arreglar el modal, esto se soluciona).
+   - **Causa:** Selector JS incorrecto (`href*="client_delete"`) y falta de atributo de datos para conteo de proyectos.
+
+2. **Eliminación de Plantillas:**
+   - ❌ "Eliminar no funciona": El selector JS esperaba `phasetemplate` en la URL, pero la URL real es `/projects/templates/...`.
+   - ❌ Contador de fases incorrecto: Usaba `.count` en template Django sobre un `JSONField` (lista), lo cual no funciona.
+   - ❌ Redirección incorrecta: Redirigía a `/projects/phase-templates/` (404) en lugar de `/projects/templates/`.
+
+### Soluciones Implementadas
+
+#### 1. **Clientes** (`client-delete.js` y `client_list.html`)
+
+- ✅ **Selector JS Robustecido:**
+  ```javascript
+  // Antes: a[href*="client_delete"]
+  // Ahora: a[href*="/clients/"][href*="/delete/"], a.action-btn.delete[href*="/delete/"]
+  ```
+- ✅ **Datos en Template:**
+  Agregado `data-projects="{{ client.projects.count }}"` a la fila de la tabla para que el JS pueda leer el número de proyectos asociados sin depender del HTML visual.
+
+#### 2. **Plantillas** (`template-delete.js` y `phasetemplate_list.html`)
+
+- ✅ **Selector JS Corregido:**
+  ```javascript
+  // Antes: a[href*="phasetemplate"]
+  // Ahora: a[href*="/templates/"][href*="/delete/"]
+  ```
+- ✅ **Detección de Tipo:**
+  Actualizada lógica `isTemplate` para detectar `/templates/` en la URL.
+- ✅ **Contador de Fases:**
+  Cambiado `{{ template.phases.count }}` por `{{ template.phases|length }}` en el template HTML y agregado `data-phases` para lectura confiable desde JS.
+- ✅ **Redirección:**
+  Corregida redirección a `/projects/templates/` después de eliminar.
+
+### Archivos Modificados
+
+1. `arc_manager/static/js/client-delete.js`
+2. `arc_manager/apps/orgs/templates/orgs/client_list.html`
+3. `arc_manager/static/js/template-delete.js`
+4. `arc_manager/apps/projects/templates/projects/phasetemplate_list.html`

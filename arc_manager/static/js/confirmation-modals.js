@@ -400,13 +400,26 @@ const ConfirmationModals = {
      * Modal de eliminación de pago
      */
     deletePayment: (paymentInfo) => {
+        // Construir nombre compuesto: "Descripción de Monto"
+        // Ej: "Pago de $5,000.00" o "Anticipo de $5,000.00"
+        let name = paymentInfo.description || 'Pago';
+        if (paymentInfo.amount && paymentInfo.amount !== 'Monto no especificado') {
+            // Evitar duplicar si la descripción ya contiene el monto
+            if (!name.includes(paymentInfo.amount)) {
+                name = `${name} de ${paymentInfo.amount}`;
+            }
+        }
+
+        // Meta solo con la fecha
+        const meta = paymentInfo.date ? `Fecha: ${paymentInfo.date}` : null;
+
         const modal = new ConfirmationModal({
             type: 'danger',
             title: 'Confirmar eliminación de pago',
             icon: 'fa-exclamation-triangle',
             message: '¿Estás seguro de que deseas eliminar este pago?',
-            itemName: paymentInfo.description || `Pago de ${paymentInfo.amount}`,
-            itemMeta: paymentInfo.date ? `Fecha: ${paymentInfo.date}` : null,
+            itemName: name,
+            itemMeta: meta,
             itemIcon: 'fa-dollar-sign',
             confirmText: 'Eliminar pago',
             confirmIcon: 'fa-trash-alt',

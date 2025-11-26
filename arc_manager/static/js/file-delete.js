@@ -246,7 +246,8 @@ class FileDeleteManager {
         // Intentar obtener de varios lugares
         const nameElement = fileElement.querySelector('.file-name, .file-name-full, [title]');
         if (nameElement) {
-            return nameElement.textContent.trim() || nameElement.getAttribute('title');
+            // Usar innerText para evitar texto oculto duplicado
+            return nameElement.innerText.trim() || nameElement.getAttribute('title');
         }
         return 'Archivo sin nombre';
     }
