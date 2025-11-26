@@ -1,158 +1,10 @@
 // ===== MIS TAREAS - FUNCIONALIDADES COMPLETAS =====
 
-// Función optimizada para cambio de estado instantáneo sin notificaciones
-window.updateTaskStatus = function (taskId, status) {
-    updateTaskStatusInstant(taskId, status);
-};
-
-// Función global para confirmar eliminación de tareas
-window.confirmDeleteTask = function (taskId, taskTitle) {
-    // Crear modal de confirmación personalizado
-    const modalHtml = `
-        <div class="modal fade" id="deleteTaskModal" tabindex="-1" aria-labelledby="deleteTaskModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title" id="deleteTaskModalLabel">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            Confirmar eliminación
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="text-center mb-3">
-                            <i class="fas fa-trash-alt text-danger" style="font-size: 3rem; opacity: 0.7;"></i>
-                        </div>
-                        <p class="mb-3">¿Estás seguro de que deseas eliminar la siguiente tarea?</p>
-                        <div class="alert alert-light border">
-                            <strong>"${taskTitle}"</strong>
-                        </div>
-                        <p class="text-muted small mb-0">
-                            <i class="fas fa-info-circle me-1"></i>
-                            Esta acción no se puede deshacer.
-                        </p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                            <i class="fas fa-times me-1"></i>
-                            Cancelar
-                        </button>
-                        <button type="button" class="btn btn-danger" onclick="deleteTask(${taskId})">
-                            <i class="fas fa-trash-alt me-1"></i>
-                            Eliminar tarea
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    // Remover modal anterior si existe
-    const existingModal = document.getElementById('deleteTaskModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
-
-    // Agregar modal al DOM
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-    // Mostrar modal
-    const modal = new bootstrap.Modal(document.getElementById('deleteTaskModal'));
-    modal.show();
-
-    // Limpiar modal después de cerrarlo
-    document.getElementById('deleteTaskModal').addEventListener('hidden.bs.modal', function () {
-        this.remove();
-    });
-};
-
-// Función para eliminar la tarea
-window.deleteTask = function (taskId) {
-    const url = `/projects/tasks/${taskId}/delete/`;
-
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFToken': getCookie('csrftoken') || ''
-        }
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Cerrar modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('deleteTaskModal'));
-                if (modal) {
-                    modal.hide();
-                }
-
-                // Remover tarjeta de la UI
-                const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
-                if (taskCard) {
-                    // Animación de salida
-                    taskCard.style.transition = 'all 0.3s ease';
-                    taskCard.style.transform = 'scale(0.8)';
-                    taskCard.style.opacity = '0';
-
-                    setTimeout(() => {
-                        taskCard.remove();
-
-                        // Actualizar contadores
-                        const taskStatus = taskCard.dataset.status;
-                        updateTaskDeleteCounter(taskStatus);
-
-                        // Verificar si no hay más tareas
-                        const remainingTasks = document.querySelectorAll('.task-card-compact');
-                        if (remainingTasks.length === 0) {
-                            showEmptyState();
-                        }
-                    }, 300);
-                }
-
-                // Mostrar notificación de éxito
-                showSuccessNotification('Tarea eliminada correctamente');
-            } else {
-                // Mostrar error
-                showErrorNotification(data.error || 'Error al eliminar la tarea');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showErrorNotification('Error de conexión al eliminar la tarea');
-        });
-};
-
-// Función instantánea sin notificaciones ni recargas
-function updateTaskStatusInstant(taskId, status) {
-    // Primero actualizar la UI inmediatamente
-    updateTaskUIInstant(taskId, status);
-
-    // Luego enviar al servidor en background
-    const url = `/projects/tasks/${taskId}/update_status/`;
-
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFToken': getCookie('csrftoken') || ''
-        },
-        body: `status=${status}`
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // CRÍTICO: Broadcast el cambio a otras pestañas/ventanas (ej: Kanban)
-                broadcastTaskStatusChange(taskId, status);
-            } else {
-                // Solo si falla, revertir la UI y mostrar error discreto
-                console.error('Error al actualizar tarea:', data.error);
-                // Podrías revertir la UI aquí si quisieras
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            // Podrías revertir la UI aquí si quisieras
-        });
+// Función para obtener cookie CSRF (debe estar primero)
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
 }
 
 // Función para broadcast cambios de estado a otras pestañas/ventanas
@@ -286,12 +138,155 @@ function updateTaskActions(taskCard, status) {
     }
 }
 
-// Función para obtener cookie CSRF
-function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-}
+// Función optimizada para cambio de estado instantáneo sin notificaciones
+window.updateTaskStatus = function (taskId, status) {
+    // Primero actualizar la UI inmediatamente
+    updateTaskUIInstant(taskId, status);
+
+    // Luego enviar al servidor en background
+    const url = `/projects/tasks/${taskId}/update_status/`;
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken') || ''
+        },
+        body: `status=${status}`
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // CRÍTICO: Broadcast el cambio a otras pestañas/ventanas (ej: Kanban)
+                broadcastTaskStatusChange(taskId, status);
+            } else {
+                // Solo si falla, mostrar error discreto
+                console.error('Error al actualizar tarea:', data.error);
+                // Podrías revertir la UI aquí si quisieras
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Podrías revertir la UI aquí si quisieras
+        });
+};
+
+// Función global para confirmar eliminación de tareas
+window.confirmDeleteTask = function (taskId, taskTitle) {
+    // Crear modal de confirmación personalizado
+    const modalHtml = `
+        <div class="modal fade" id="deleteTaskModal" tabindex="-1" aria-labelledby="deleteTaskModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title" id="deleteTaskModalLabel">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Confirmar eliminación
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="text-center mb-3">
+                            <i class="fas fa-trash-alt text-danger" style="font-size: 3rem; opacity: 0.7;"></i>
+                        </div>
+                        <p class="mb-3">¿Estás seguro de que deseas eliminar la siguiente tarea?</p>
+                        <div class="alert alert-light border">
+                            <strong>"${taskTitle}"</strong>
+                        </div>
+                        <p class="text-muted small mb-0">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Esta acción no se puede deshacer.
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>
+                            Cancelar
+                        </button>
+                        <button type="button" class="btn btn-danger" onclick="deleteTask(${taskId})">
+                            <i class="fas fa-trash-alt me-1"></i>
+                            Eliminar tarea
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Remover modal anterior si existe
+    const existingModal = document.getElementById('deleteTaskModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // Agregar modal al DOM
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('deleteTaskModal'));
+    modal.show();
+
+    // Limpiar modal después de cerrarlo
+    document.getElementById('deleteTaskModal').addEventListener('hidden.bs.modal', function () {
+        this.remove();
+    });
+};
+
+// Función para eliminar la tarea
+window.deleteTask = function (taskId) {
+    const url = `/projects/tasks/${taskId}/delete/`;
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken') || ''
+        }
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Cerrar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('deleteTaskModal'));
+                if (modal) {
+                    modal.hide();
+                }
+
+                // Remover tarjeta de la UI
+                const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
+                if (taskCard) {
+                    // Animación de salida
+                    taskCard.style.transition = 'all 0.3s ease';
+                    taskCard.style.transform = 'scale(0.8)';
+                    taskCard.style.opacity = '0';
+
+                    setTimeout(() => {
+                        taskCard.remove();
+
+                        // Actualizar contadores
+                        const taskStatus = taskCard.dataset.status;
+                        updateTaskDeleteCounter(taskStatus);
+
+                        // Verificar si no hay más tareas
+                        const remainingTasks = document.querySelectorAll('.task-card-compact');
+                        if (remainingTasks.length === 0) {
+                            showEmptyState();
+                        }
+                    }, 300);
+                }
+
+                // Mostrar notificación de éxito
+                showSuccessNotification('Tarea eliminada correctamente');
+            } else {
+                // Mostrar error
+                showErrorNotification(data.error || 'Error al eliminar la tarea');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showErrorNotification('Error de conexión al eliminar la tarea');
+        });
+};
 
 // Variables globales para guardar los valores reales del servidor
 let serverCounters = {

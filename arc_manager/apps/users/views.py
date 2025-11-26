@@ -70,6 +70,7 @@ class UserListView(LoginRequiredMixin, PageSizeMixin, ListView):
         # Obtener límites de la organización
         max_users = user.organization.get_max_users() if user.organization else 0
         remaining_slots = max(0, max_users - total_users) if max_users > 0 else 0
+        at_limit = total_users >= max_users if max_users > 0 else False
         
         context['total_users'] = total_users
         context['active_users'] = active_users
@@ -77,6 +78,7 @@ class UserListView(LoginRequiredMixin, PageSizeMixin, ListView):
         context['percentage_active'] = percentage_active
         context['max_users'] = max_users
         context['remaining_slots'] = remaining_slots
+        context['at_user_limit'] = at_limit  # Nuevo: indica si está en el límite
         
         # Pasar búsqueda al contexto
         context['search'] = self.request.GET.get('search', '')

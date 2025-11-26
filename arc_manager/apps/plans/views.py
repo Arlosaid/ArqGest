@@ -329,9 +329,10 @@ class SubscriptionInfoAPIView(LoginRequiredMixin, View):
             if not subscription:
                 return JsonResponse({'error': 'No se pudo obtener la suscripción'}, status=500)
             
-            # Obtener estadísticas de uso
+            # Obtener estadísticas de uso usando los métodos de la organización
             organization = request.user.organization
-            current_users = organization.users.filter(is_active=True, is_superuser=False).count()
+            # Usar el total de usuarios (activos + inactivos) para validar el límite
+            current_users = organization.get_user_count()
             current_projects = organization.projects.count() if hasattr(organization, 'projects') else 0
             
             # Preparar respuesta
@@ -347,7 +348,7 @@ class SubscriptionInfoAPIView(LoginRequiredMixin, View):
                 'expires_soon': subscription.days_remaining <= 7 and subscription.days_remaining > 0,
                 'needs_attention': subscription.is_expired or subscription.is_in_grace_period,
                 
-                # Información de uso
+                # Información de uso (total de usuarios, no solo activos)
                 'user_usage': current_users,
                 'user_limit': subscription.plan.max_users,
                 'user_percentage': subscription.plan.get_usage_percentage(current_users, 'users'),

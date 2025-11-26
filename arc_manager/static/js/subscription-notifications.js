@@ -233,13 +233,25 @@ class SubscriptionNotifications {
 
     /**
      * Verifica límites de usuarios
+     * Muestra notificación cuando se alcanza el límite (100%)
+     * Solo en páginas relevantes, como complemento al mensaje en la página
      */
     checkUserLimits(info) {
+        // Solo verificar en páginas relevantes (lista de usuarios, creación de usuarios)
+        const currentPath = window.location.pathname;
+        const relevantPages = ['/usuarios/', '/users/'];
+        const isRelevantPage = relevantPages.some(path => currentPath.includes(path));
+        
+        // No mostrar en login ni en páginas no relevantes
+        if (!isRelevantPage) {
+            return;
+        }
+        
         if (info.user_usage && info.user_limit) {
             const percentage = (info.user_usage / info.user_limit) * 100;
             
-            if (percentage >= 90) {
-                const remaining = info.user_limit - info.user_usage;
+            // SOLO mostrar cuando se alcanza el 100% del límite
+            if (percentage >= 100) {
                 const limitKey = `${info.user_usage}_${info.user_limit}`;
                 
                 // Verificar si ya se mostró esta notificación
@@ -247,13 +259,11 @@ class SubscriptionNotifications {
                     return;
                 }
                 
-                const message = remaining > 0 
-                    ? `Solo puedes agregar ${remaining} usuario${remaining !== 1 ? 's' : ''} más. Considera actualizar tu plan.`
-                    : 'Has alcanzado el límite de usuarios de tu plan. Actualiza para agregar más usuarios.';
+                const message = `Has alcanzado el límite de ${info.user_limit} usuario${info.user_limit !== 1 ? 's' : ''} de tu plan.`;
 
                 window.notifications.warning(message, {
-                    title: 'Límite de Usuarios',
-                    duration: 7000,
+                    title: 'Límite Alcanzado',
+                    duration: 6000,
                     onClick: () => {
                         window.location.href = '/plans/solicitar-actualizacion/';
                     }
@@ -267,13 +277,24 @@ class SubscriptionNotifications {
 
     /**
      * Verifica límites de proyectos
+     * SOLO muestra notificación cuando se alcanza exactamente el límite (100%)
      */
     checkProjectLimits(info) {
-        if (info.project_usage && info.project_limit) {
+        // Solo verificar en páginas relevantes (lista de proyectos, creación de proyectos)
+        const currentPath = window.location.pathname;
+        const relevantPages = ['/proyectos/', '/projects/'];
+        const isRelevantPage = relevantPages.some(path => currentPath.includes(path));
+        
+        // No mostrar en login ni en páginas no relevantes
+        if (!isRelevantPage) {
+            return;
+        }
+        
+        if (info.project_usage && info.project_limit && info.project_limit < 999) {
             const percentage = (info.project_usage / info.project_limit) * 100;
             
-            if (percentage >= 90) {
-                const remaining = info.project_limit - info.project_usage;
+            // SOLO mostrar cuando se alcanza el 100% del límite
+            if (percentage >= 100) {
                 const limitKey = `${info.project_usage}_${info.project_limit}`;
                 
                 // Verificar si ya se mostró esta notificación
@@ -281,12 +302,10 @@ class SubscriptionNotifications {
                     return;
                 }
                 
-                const message = remaining > 0 
-                    ? `Solo puedes crear ${remaining} proyecto${remaining !== 1 ? 's' : ''} más. Considera actualizar tu plan.`
-                    : 'Has alcanzado el límite de proyectos de tu plan. Actualiza para crear más proyectos.';
+                const message = 'Has alcanzado el límite de proyectos de tu plan. Actualiza para crear más proyectos.';
 
                 window.notifications.warning(message, {
-                    title: 'Límite de Proyectos',
+                    title: 'Límite de Proyectos Alcanzado',
                     duration: 7000,
                     onClick: () => {
                         window.location.href = '/plans/solicitar-actualizacion/';
