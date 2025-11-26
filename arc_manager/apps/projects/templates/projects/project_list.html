@@ -171,7 +171,13 @@
                     <a href="{% url 'projects:project-update' project.pk %}" class="action-btn edit" title="Editar">
                         <i class="fas fa-edit"></i>
                     </a>
-                    <a href="{% url 'projects:project-delete' project.pk %}" class="action-btn delete" title="Eliminar">
+                    <a href="{% url 'projects:project-delete' project.pk %}" 
+                       class="action-btn delete" 
+                       title="Eliminar"
+                       data-project-name="{{ project.name }}"
+                       data-phase-count="{{ project.phases.count }}"
+                       data-task-count="{{ project.phases.all|sum_tasks }}"
+                       data-file-count="{{ project.phases.all|sum_files }}">
                         <i class="fas fa-trash"></i>
                     </a>
                 </div>

@@ -8,6 +8,7 @@ from .views import (
     PhaseDetailView,
     project_kanban,
     project_statistics,
+    get_project_stats,
     phase_create,
     check_phase_data,
     task_create,
@@ -46,6 +47,7 @@ urlpatterns = [
     path('<int:pk>/', ProjectDetailView.as_view(), name='project-detail'),
     path('<int:pk>/edit/', ProjectUpdateView.as_view(), name='project-update'),
     path('<int:pk>/delete/', ProjectDeleteView.as_view(), name='project-delete'),
+    path('<int:pk>/stats/', get_project_stats, name='project-stats'),
     path('<int:pk>/toggle-status/', ProjectToggleStatusView.as_view(), name='project-toggle-status'),
     
     # Kanban y gestión de tareas (vista principal)

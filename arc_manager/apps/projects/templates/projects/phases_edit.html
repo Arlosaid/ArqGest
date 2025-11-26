@@ -75,44 +75,51 @@
 </div>
 
 <!-- Modal de Confirmación de Pérdida de Datos -->
-<div class="modal fade" id="confirmReplaceModal" tabindex="-1" aria-labelledby="confirmReplaceModalLabel" aria-hidden="true">
+<div class="modal fade confirmation-modal" id="confirmReplaceModal" tabindex="-1" aria-labelledby="confirmReplaceModalLabel" aria-hidden="true" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <div class="modal-header bg-danger text-white">
+      <div class="modal-header bg-danger">
         <h5 class="modal-title" id="confirmReplaceModalLabel">
-          <i class="fas fa-exclamation-triangle me-2"></i>
+          <i class="fas fa-exclamation-triangle"></i>
           {% trans "¡ADVERTENCIA! Pérdida de Datos" %}
         </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <div class="alert alert-danger mb-3">
+        <div class="modal-icon-center danger">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        
+        <div class="alert alert-danger">
           <strong>{% trans "RIESGO CRÍTICO:" %}</strong> {% trans "Al reemplazar las fases con una plantilla, se eliminarán permanentemente todas las tareas y archivos asociados." %}
         </div>
         
-        <div id="taskLossDetails" class="mb-3">
-          <h6 class="fw-bold">{% trans "Se perderán:" %}</h6>
-          
-          <div class="row mb-2">
-            <div class="col-6">
-              <div class="text-danger fw-bold fs-5">
-                <i class="fas fa-tasks"></i> <span id="totalTasksToLose">0</span> {% trans "tarea(s)" %}
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="text-danger fw-bold fs-5">
-                <i class="fas fa-file"></i> <span id="totalFilesToLose">0</span> {% trans "archivo(s)" %}
-              </div>
-            </div>
+        <div class="deletion-stats">
+          <div class="deletion-stat">
+            <span class="deletion-stat-value" id="totalTasksToLose">0</span>
+            <span class="deletion-stat-label">
+              <i class="fas fa-tasks"></i> {% trans "tarea(s)" %}
+            </span>
           </div>
-          
-          <div id="affectedPhasesList" class="small">
-            <!-- Se llenará dinámicamente con JavaScript -->
+          <div class="deletion-stat">
+            <span class="deletion-stat-value" id="totalFilesToLose">0</span>
+            <span class="deletion-stat-label">
+              <i class="fas fa-file"></i> {% trans "archivo(s)" %}
+            </span>
           </div>
         </div>
         
-        <p class="mb-2">{% trans "Esta acción NO SE PUEDE DESHACER." %}</p>
-        <p class="mb-0 text-muted small">{% trans "¿Está seguro de que desea continuar?" %}</p>
+        <div class="affected-items-list" id="affectedPhasesList">
+          <!-- Se llenará dinámicamente con JavaScript -->
+        </div>
+        
+        <div class="final-warning">
+          <div class="warning-icon">
+            <i class="fas fa-exclamation-circle"></i>
+          </div>
+          <div class="warning-text">{% trans "Esta acción NO SE PUEDE DESHACER" %}</div>
+          <p class="warning-subtext">{% trans "¿Está seguro de que desea continuar?" %}</p>
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
@@ -127,41 +134,57 @@
 </div>
 
 <!-- Modal de Confirmación para Eliminar Fase Individual -->
-<div class="modal fade" id="confirmDeletePhaseModal" tabindex="-1" aria-labelledby="confirmDeletePhaseModalLabel" aria-hidden="true">
+<div class="modal fade confirmation-modal" id="confirmDeletePhaseModal" tabindex="-1" aria-labelledby="confirmDeletePhaseModalLabel" aria-hidden="true" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <div class="modal-header bg-warning text-dark">
+      <div class="modal-header bg-warning">
         <h5 class="modal-title" id="confirmDeletePhaseModalLabel">
-          <i class="fas fa-exclamation-triangle me-2"></i>
+          <i class="fas fa-exclamation-triangle"></i>
           {% trans "¡ADVERTENCIA! Eliminar Fases" %}
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <div class="alert alert-warning mb-3">
+        <div class="modal-icon-center warning">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        
+        <div class="alert alert-warning">
           <strong>{% trans "ATENCIÓN:" %}</strong> {% trans "Vas a eliminar" %} <strong><span id="deletePhaseCount">0</span> fase(s)</strong> {% trans "que contienen datos:" %}
         </div>
         
-        <div id="deletePhaseList" class="mb-3">
+        <div class="affected-items-list" id="deletePhaseList">
           <!-- Se llenará dinámicamente con la lista de fases -->
         </div>
         
-        <div class="alert alert-danger mb-3">
-          <p class="mb-1"><strong>{% trans "Se eliminarán PERMANENTEMENTE:" %}</strong></p>
-          <ul class="mb-0">
-            <li><strong><span id="deleteTaskCount">0</span> tarea(s)</strong></li>
-            <li><strong><span id="deleteFileCount">0</span> archivo(s)</strong></li>
-          </ul>
+        <div class="deletion-stats">
+          <div class="deletion-stat">
+            <span class="deletion-stat-value" id="deleteTaskCount">0</span>
+            <span class="deletion-stat-label">
+              <i class="fas fa-tasks"></i> {% trans "tarea(s)" %}
+            </span>
+          </div>
+          <div class="deletion-stat">
+            <span class="deletion-stat-value" id="deleteFileCount">0</span>
+            <span class="deletion-stat-label">
+              <i class="fas fa-file"></i> {% trans "archivo(s)" %}
+            </span>
+          </div>
         </div>
         
-        <p class="mb-2">{% trans "Esta acción NO SE PUEDE DESHACER." %}</p>
-        <p class="mb-0 text-muted small">{% trans "¿Está seguro de que desea continuar?" %}</p>
+        <div class="final-warning">
+          <div class="warning-icon">
+            <i class="fas fa-exclamation-circle"></i>
+          </div>
+          <div class="warning-text">{% trans "Esta acción NO SE PUEDE DESHACER" %}</div>
+          <p class="warning-subtext">{% trans "¿Está seguro de que desea continuar?" %}</p>
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
           <i class="fas fa-times"></i> {% trans "Cancelar" %}
         </button>
-        <button type="button" class="btn btn-warning text-dark" id="confirmDeletePhaseBtn">
+        <button type="button" class="btn btn-warning" id="confirmDeletePhaseBtn">
           <i class="fas fa-trash-alt"></i> {% trans "Sí, Eliminar Fases y sus Datos" %}
         </button>
       </div>

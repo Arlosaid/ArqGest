@@ -174,7 +174,25 @@ document.addEventListener('DOMContentLoaded', function () {
     e.preventDefault();
     const taskId = btn.getAttribute('data-task-id');
     if (!taskId) return;
-    if (!confirm('¿Eliminar esta tarea?')) return;
+
+    // Obtener información de la tarea para el modal
+    const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
+    const taskTitle = taskElement?.querySelector('.task-title')?.textContent?.trim() || 
+                      taskElement?.textContent?.trim() || 
+                      'esta tarea';
+
+    // Mostrar modal de confirmación usando el sistema unificado
+    ConfirmationModals.deleteTask({
+        taskId: taskId,
+        taskTitle: taskTitle,
+        taskDescription: '',
+        onConfirm: async () => {
+            await performTaskDeletionFromDetail(taskId);
+        }
+    });
+  });
+
+  async function performTaskDeletionFromDetail(taskId) {
     try {
       const res = await fetch(`/projects/tasks/${taskId}/delete/`, {
         method: 'POST',

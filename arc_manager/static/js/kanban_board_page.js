@@ -34,7 +34,25 @@ document.addEventListener('DOMContentLoaded', function() {
     e.preventDefault();
     const taskId = btn.getAttribute('data-task-id');
     if (!taskId) return;
-    if (!confirm('¿Eliminar esta tarea?')) return;
+
+    // Obtener información de la tarea para el modal
+    const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
+    const taskTitle = taskElement?.querySelector('.task-title')?.textContent?.trim() || 
+                      taskElement?.textContent?.trim() || 
+                      'esta tarea';
+
+    // Mostrar modal de confirmación usando el sistema unificado
+    ConfirmationModals.deleteTask({
+        taskId: taskId,
+        taskTitle: taskTitle,
+        taskDescription: '',
+        onConfirm: async () => {
+            await performTaskDeletionFromKanban(taskId);
+        }
+    });
+  });
+
+  async function performTaskDeletionFromKanban(taskId) {
     try {
       const res = await fetch(`/projects/tasks/${taskId}/delete/`, {
         method: 'POST',
@@ -77,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function() {
         window.notifications.error('Error al eliminar');
       }
     }
-  });
+  }
 });
 
 function handleDragStart(e) { e.target.classList.add('dragging'); e.dataTransfer.setData('text/plain', e.target.dataset.taskId); }

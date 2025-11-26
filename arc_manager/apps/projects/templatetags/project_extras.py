@@ -125,3 +125,47 @@ def mul(value, arg):
         return float(value) * float(arg)
     except (ValueError, TypeError):
         return 0
+
+
+@register.filter(name='sum_tasks')
+def sum_tasks(phases):
+    """
+    Cuenta el total de tareas en una lista de fases.
+    Uso: {{ project.phases.all|sum_tasks }}
+    """
+    try:
+        from apps.projects.models import Task
+        if not phases:
+            return 0
+        # Obtener IDs de las fases
+        phase_ids = [phase.id for phase in phases if hasattr(phase, 'id')]
+        if not phase_ids:
+            return 0
+        return Task.objects.filter(phase_id__in=phase_ids).count()
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error counting tasks: {e}")
+        return 0
+
+
+@register.filter(name='sum_files')
+def sum_files(phases):
+    """
+    Cuenta el total de archivos en una lista de fases.
+    Uso: {{ project.phases.all|sum_files }}
+    """
+    try:
+        from apps.files.models import ProjectFile
+        if not phases:
+            return 0
+        # Obtener IDs de las fases
+        phase_ids = [phase.id for phase in phases if hasattr(phase, 'id')]
+        if not phase_ids:
+            return 0
+        return ProjectFile.objects.filter(phase_id__in=phase_ids).count()
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error counting files: {e}")
+        return 0

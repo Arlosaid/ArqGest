@@ -126,7 +126,18 @@
             <div class="form-actions-simple">
                 {% if is_edit %}
                     <button type="submit" class="btn-simple primary">Actualizar</button>
-                    <a href="{% url 'projects:payment-delete' object.pk %}" class="btn-simple" onclick="return confirm('¿Eliminar este pago? Esta acción no se puede deshacer.');">Eliminar</a>
+                    <button type="button" 
+                            class="btn-simple delete-payment-btn" 
+                            data-form-id="delete-payment-form-{{ object.pk }}"
+                            data-payment-id="{{ object.pk }}"
+                            data-payment-amount="{{ object.amount }}"
+                            data-payment-date="{{ object.date|date:'d/m/Y' }}"
+                            data-payment-description="{{ object.description|default:'Pago' }}">
+                        Eliminar
+                    </button>
+                    <form id="delete-payment-form-{{ object.pk }}" method="post" action="{% url 'projects:payment-delete' object.pk %}" style="display:none;">
+                        {% csrf_token %}
+                    </form>
                 {% else %}
                     <button type="submit" class="btn-simple primary">Registrar</button>
                 {% endif %}
@@ -137,6 +148,7 @@
 </div>
 
 {% block extra_js %}
+<script src="{% static 'js/payment-delete.js' %}"></script>
 <script src="{% static 'js/finance.js' %}"></script>
 {% endblock %}
 {% endblock %}

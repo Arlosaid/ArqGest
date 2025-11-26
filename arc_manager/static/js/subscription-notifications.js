@@ -125,10 +125,18 @@ class SubscriptionNotifications {
             });
 
             if (response.ok) {
-                return await response.json();
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return await response.json();
+                }
+                // Si no es JSON, probablemente es una redirección o error HTML
+                return null;
             }
         } catch (error) {
-            console.error('Error fetching subscription info:', error);
+            // Solo loguear en modo debug
+            if (window.location.search.includes('debug=true')) {
+                console.error('Error fetching subscription info:', error);
+            }
         }
         return null;
     }

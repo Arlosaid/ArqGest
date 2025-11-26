@@ -34,7 +34,6 @@ class FileListUpdater {
             });
             
             this.listenersInitialized = true;
-            console.log('✅ FileListUpdater listeners inicializados');
         }
     }
 
@@ -219,8 +218,6 @@ class FileListUpdater {
         // Actualizar el texto manteniendo la traducción "documentos"
         const documentosText = counterText.includes('documento') ? counterText.match(/\d+\s+(.+)/)[1] : 'documentos';
         counterBadge.textContent = `${newCount} ${documentosText}`;
-        
-        console.log(`✅ Contador incrementado: ${currentCount} → ${newCount} documentos (Fase ${phaseId})`);
     }
 }
 
@@ -230,7 +227,6 @@ if (!window.fileListUpdater) {
     document.addEventListener('DOMContentLoaded', () => {
         if (!window.fileListUpdater) {
             window.fileListUpdater = new FileListUpdater();
-            console.log('✅ FileListUpdater inicializado (singleton)');
         }
     });
 
@@ -238,7 +234,6 @@ if (!window.fileListUpdater) {
     document.addEventListener('htmx:afterSwap', () => {
         if (!window.fileListUpdater) {
             window.fileListUpdater = new FileListUpdater();
-            console.log('✅ FileListUpdater inicializado en HTMX swap (singleton)');
         }
     });
 }

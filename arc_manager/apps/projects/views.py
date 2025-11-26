@@ -5,9 +5,9 @@ from django.views.generic import (
 )
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import get_object_or_404, redirect, render
-from django.http import Http404, HttpResponse, HttpResponseBadRequest
+from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.contrib import messages
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 import logging
@@ -547,6 +547,66 @@ class ProjectDeleteView(LoginRequiredMixin, OrganizationAdminMixin, DeleteView):
         except Exception as e:
             logger.error(f"Failed to delete project {project_id}: {str(e)}", exc_info=True)
             raise
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_project_stats(request, pk):
+    """
+    Vista AJAX para obtener estadísticas del proyecto antes de eliminarlo
+    """
+    try:
+        # Verificar que sea una petición AJAX
+        if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            logger.warning(f"Non-AJAX request to get_project_stats from {request.user.email}")
+        
+        project = get_object_or_404(
+            Project.objects.filter(organization=request.user.organization),
+            pk=pk
+        )
+        
+        logger.info(f"Getting stats for project {pk}: {project.name}")
+        
+        # Contar elementos asociados
+        phase_count = project.phases.count()
+        task_count = Task.objects.filter(phase__project=project).count()
+        
+        # Contar archivos: los archivos están en las fases, no directamente en el proyecto
+        from apps.files.models import ProjectFile
+        file_count = ProjectFile.objects.filter(phase__project=project).count()
+        
+        logger.info(f"Project stats - Phases: {phase_count}, Tasks: {task_count}, Files: {file_count}")
+        
+        response_data = {
+            'name': project.name,
+            'phase_count': phase_count,
+            'task_count': task_count,
+            'file_count': file_count
+        }
+        
+        logger.info(f"Returning project stats: {response_data}")
+        
+        return JsonResponse(response_data)
+        
+    except Project.DoesNotExist:
+        logger.error(f"Project {pk} not found for user {request.user.email}")
+        return JsonResponse({
+            'error': 'Proyecto no encontrado',
+            'name': 'el proyecto',
+            'phase_count': 0,
+            'task_count': 0,
+            'file_count': 0
+        }, status=404)
+    except Exception as e:
+        logger.error(f"Error getting project stats for {pk}: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'error': str(e),
+            'name': 'el proyecto',
+            'phase_count': 0,
+            'task_count': 0,
+            'file_count': 0
+        }, status=500)
+
 
 # Phase Views
 class PhaseDetailView(LoginRequiredMixin, DetailView):

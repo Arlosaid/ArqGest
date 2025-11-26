@@ -145,9 +145,16 @@
                                 <a href="{% url 'projects:payment-edit' payment.pk %}" class="btn-payment-action edit" title="Editar pago">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <a href="#" class="btn-payment-action delete" title="Eliminar pago" onclick="if(confirm('¿Eliminar este pago?')) { document.getElementById('del-form-{{ payment.pk }}').submit(); } return false;">
+                                <button type="button"
+                                        class="btn-payment-action delete delete-payment-btn" 
+                                        title="Eliminar pago"
+                                        data-form-id="del-form-{{ payment.pk }}"
+                                        data-payment-id="{{ payment.pk }}"
+                                        data-payment-amount="{{ payment.amount }}"
+                                        data-payment-date="{{ payment.date|date:'d/m/Y' }}"
+                                        data-payment-description="{{ payment.description|default:'Pago' }}">
                                     <i class="fas fa-trash"></i>
-                                </a>
+                                </button>
                                 <form id="del-form-{{ payment.pk }}" method="post" action="{% url 'projects:payment-delete' payment.pk %}" style="display:none;">
                                     {% csrf_token %}
                                 </form>
@@ -244,4 +251,8 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/payment-delete.js' %}"></script>
 {% endblock %}

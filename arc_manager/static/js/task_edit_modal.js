@@ -1,27 +1,37 @@
 // ===== TASK EDIT MODAL - FUNCIONALIDADES MEJORADAS =====
 
 // Función global para manejar la eliminación de tareas desde el modal
-window.deleteTaskFromModal = function(taskId) {
-    if (!confirm('¿Estás seguro de que deseas eliminar esta tarea?')) {
-        return;
-    }
-    
+window.deleteTaskFromModal = function(taskId, taskTitle = 'esta tarea') {
+    // Mostrar modal de confirmación usando el sistema unificado
+    ConfirmationModals.deleteTask({
+        taskId: taskId,
+        taskTitle: taskTitle,
+        taskDescription: '',
+        onConfirm: async () => {
+            await performTaskDeletionFromModal(taskId);
+        }
+    });
+};
+
+// Función interna para realizar la eliminación
+async function performTaskDeletionFromModal(taskId) {
     const deleteBtn = document.getElementById('deleteTaskBtn');
     if (deleteBtn) {
         deleteBtn.disabled = true;
         deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Eliminando...';
     }
     
-    // Realizar petición de eliminación
-    fetch(`/projects/tasks/${taskId}/delete/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
+    try {
+        const response = await fetch(`/projects/tasks/${taskId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const data = await response.json();
+
         if (data.success) {
             // Cerrar modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('taskUniversalModal'));
@@ -41,20 +51,19 @@ window.deleteTaskFromModal = function(taskId) {
         } else {
             throw new Error(data.error || 'Error al eliminar la tarea');
         }
-    })
-    .catch(error => {
+    } catch (error) {
         console.error('Error:', error);
         if (window.notifications) {
             window.notifications.error('Error al eliminar la tarea');
         }
-    })
-    .finally(() => {
+    } finally {
         if (deleteBtn) {
             deleteBtn.disabled = false;
             deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Eliminar';
         }
-    });
-};
+    }
+}
+
 
 // Manejo de respuesta HTMX para cerrar el modal universal y refrescar UI
 document.addEventListener('htmx:afterRequest', function (e) {

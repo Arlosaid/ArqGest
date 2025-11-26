@@ -24,8 +24,6 @@ class FileDeleteManager {
                 this.handleDeleteClick(deleteBtn);
             }
         });
-        
-        console.log('Sistema de eliminación de archivos inicializado');
     }
 
     createConfirmationModal() {
@@ -390,14 +388,12 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         if (!window.fileDeleteManager) {
             window.fileDeleteManager = new FileDeleteManager();
-            console.log('FileDeleteManager inicializado (DOMContentLoaded)');
         }
     });
 } else {
     // DOM ya está listo
     if (!window.fileDeleteManager) {
         window.fileDeleteManager = new FileDeleteManager();
-        console.log('FileDeleteManager inicializado (immediate)');
     }
 }
 
@@ -405,7 +401,6 @@ if (document.readyState === 'loading') {
 document.addEventListener('htmx:afterSwap', () => {
     if (!window.fileDeleteManager) {
         window.fileDeleteManager = new FileDeleteManager();
-        console.log('FileDeleteManager inicializado (htmx:afterSwap)');
     }
 });
 
