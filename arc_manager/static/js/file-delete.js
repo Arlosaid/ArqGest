@@ -359,14 +359,24 @@ class FileDeleteManager {
     }
 
     getCSRFToken() {
-        // Intentar obtener del cookie primero
+        // 1. Try to get from meta tag (most reliable for SPA/AJAX)
+        const metaToken = document.querySelector('meta[name="csrf-token"]');
+        if (metaToken && metaToken.content) {
+            return metaToken.content;
+        }
+        
+        // 2. Try to get from hidden input (standard Django form)
+        const inputToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (inputToken && inputToken.value) {
+            return inputToken.value;
+        }
+
+        // 3. Fallback to cookie (might fail with HttpOnly)
         const value = `; ${document.cookie}`;
         const parts = value.split(`; csrftoken=`);
         if (parts.length === 2) return parts.pop().split(';').shift();
         
-        // Fallback: buscar en el DOM
-        const token = document.querySelector('[name=csrfmiddlewaretoken]');
-        return token ? token.value : '';
+        return '';
     }
 
     showNotification(message, type = 'info') {
