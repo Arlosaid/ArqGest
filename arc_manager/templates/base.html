@@ -18,6 +18,7 @@
     <meta name="theme-color" content="#3B82F6">
     <meta name="android-app-installable" content="no">
     <meta name="mobile-web-status-bar-style" content="default">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -50,6 +51,9 @@
 </head>
 <body data-task-detail-url-template="{% url 'projects:task-detail' 0 %}"
       data-task-edit-url-template="{% url 'projects:task-edit' 0 %}">
+    {# Hidden CSRF token for JS access if meta tag fails #}
+    <div style="display:none;">{% csrf_token %}</div>
+
     {% include 'includes/sidebar.html' %}
     
     <div class="main-content">
