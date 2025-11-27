@@ -1582,25 +1582,32 @@ def get_project_color(project_id):
 @require_POST
 def task_delete(request, pk):
     """Eliminar una tarea (JSON) - Solo admin de organización."""
-    task = get_object_or_404(Task, pk=pk, phase__project__organization=request.user.organization)
-    
-    # Verificar que el usuario es admin de la organización
-    if not hasattr(request.user, 'is_org_admin') or not request.user.is_org_admin:
-        log_msg, log_data = log_task_operation(
-            'DELETE_TASK_UNAUTHORIZED',
-            request.user.email,
-            task_id=pk,
-            error_code=TaskErrorCodes.TASK_DELETE_PERMISSION_DENIED
-        )
-        logger.warning(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_DELETE_PERMISSION_DENIED}")
-        return JsonResponse({'success': False, 'error': 'No tienes permisos para eliminar tareas', 'error_code': TaskErrorCodes.TASK_DELETE_PERMISSION_DENIED}, status=403)
-    
-    task_title = task.title
-    project_id = task.phase.project.id
-    
     try:
+        # Verificar que el usuario tiene organización
+        if not hasattr(request.user, 'organization') or not request.user.organization:
+            return JsonResponse({'success': False, 'error': 'Usuario no asociado a una organización'}, status=403)
+
+        task = get_object_or_404(Task, pk=pk, phase__project__organization=request.user.organization)
+        
+        # Verificar que el usuario es admin de la organización
+        if not hasattr(request.user, 'is_org_admin') or not request.user.is_org_admin:
+            log_msg, log_data = log_task_operation(
+                'DELETE_TASK_UNAUTHORIZED',
+                request.user.email,
+                task_id=pk,
+                error_code=TaskErrorCodes.TASK_DELETE_PERMISSION_DENIED
+            )
+            logger.warning(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_DELETE_PERMISSION_DENIED}")
+            return JsonResponse({'success': False, 'error': 'No tienes permisos para eliminar tareas', 'error_code': TaskErrorCodes.TASK_DELETE_PERMISSION_DENIED}, status=403)
+        
+        task_title = task.title
+        project_id = task.phase.project.id
+        
         task.delete()
         return JsonResponse({'success': True})
+
+    except Http404:
+        return JsonResponse({'success': False, 'error': 'Tarea no encontrada o no tienes acceso'}, status=404)
     except Exception as e:
         log_msg, log_data = log_task_operation(
             'DELETE_TASK_ERROR',
@@ -1610,7 +1617,7 @@ def task_delete(request, pk):
             exception=str(e)
         )
         logger.error(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_DELETE_UNEXPECTED_ERROR}", exc_info=True)
-        return JsonResponse({'success': False, 'error': 'Error al eliminar tarea', 'error_code': TaskErrorCodes.TASK_DELETE_UNEXPECTED_ERROR})
+        return JsonResponse({'success': False, 'error': 'Error al eliminar tarea', 'error_code': TaskErrorCodes.TASK_DELETE_UNEXPECTED_ERROR}, status=500)
 
 @login_required
 def project_tasks_paginated(request, project_pk):

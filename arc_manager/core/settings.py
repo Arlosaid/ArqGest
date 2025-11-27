@@ -133,6 +133,8 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    # Cache Control - Prevenir botón atrás después de logout
+    'core.middleware.cache_control.NoCacheMiddleware',
     # Session Hijacking Prevention - debe ir DESPUÉS de MessageMiddleware
     'core.middleware.session_validation.SessionValidationMiddleware',
     'core.middleware.session_validation.SessionMetadataMiddleware',

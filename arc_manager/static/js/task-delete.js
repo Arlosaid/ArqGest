@@ -224,9 +224,15 @@ class TaskDeleteManager {
     }
 
     getCsrfToken() {
+        // Intentar obtener del cookie primero
         const value = `; ${document.cookie}`;
         const parts = value.split(`; csrftoken=`);
         if (parts.length === 2) return parts.pop().split(';').shift();
+        
+        // Fallback: buscar en el DOM (input hidden generado por {% csrf_token %})
+        const input = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (input) return input.value;
+        
         return '';
     }
 }
