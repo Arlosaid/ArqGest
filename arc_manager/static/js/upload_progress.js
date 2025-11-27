@@ -253,7 +253,7 @@ class UploadProgressManager {
         }
 
         if (progressBar) {
-            progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+            progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated', 'bg-primary', 'bg-gradient-primary');
             progressBar.classList.add('bg-danger');
         }
 

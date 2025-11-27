@@ -88,7 +88,7 @@ class LargeFileUploader {
             
             progressContainer.innerHTML = `
                 <div class="progress mb-2">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
                          role="progressbar" style="width: 0%"></div>
                 </div>
                 <div class="upload-status text-muted small"></div>
@@ -267,7 +267,7 @@ class LargeFileUploader {
             await this.confirmUpload(presignedData.key, projectId, phaseId, file.size, file.type);
             
             this.updateProgress(progressBar, statusDiv, 100, '¡Upload completado exitosamente!');
-            progressBar.classList.remove('progress-bar-animated');
+            progressBar.classList.remove('progress-bar-animated', 'bg-primary', 'bg-gradient-primary');
             progressBar.classList.add('bg-success');
             
             // Mostrar notificación de éxito
@@ -290,6 +290,7 @@ class LargeFileUploader {
             
         } catch (error) {
             console.error('❌ Error en upload:', error);
+            progressBar.classList.remove('bg-primary', 'bg-gradient-primary');
             progressBar.classList.add('bg-danger');
             
             // Mensaje de error más descriptivo
@@ -312,7 +313,7 @@ class LargeFileUploader {
         const detailsDiv = progressContainer.querySelector('.upload-details');
         
         progressContainer.style.display = 'block';
-        this.updateProgress(progressBar, statusDiv, 10, 'Subiendo archivo al servidor...');
+        this.updateProgress(progressBar, statusDiv, 0, 'Iniciando subida...');
         
         // Obtener info del archivo para mostrar
         const fileInput = form.querySelector('input[type="file"]');
@@ -324,65 +325,77 @@ class LargeFileUploader {
             }
         }
         
-        try {
-            // Usar fetch para enviar el formulario
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
             const formData = new FormData(form);
-            const response = await fetch(form.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': this.getCsrfToken(),
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'HX-Request': 'true'  // Marcar como petición HTMX
+            
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    this.updateProgress(progressBar, statusDiv, percentComplete, `Subiendo: ${Math.round(percentComplete)}%`);
                 }
             });
-            
-            if (response.ok) {
-                this.updateProgress(progressBar, statusDiv, 100, '¡Upload completado!');
-                progressBar.classList.add('bg-success');
-                
-                this.showNotification('¡Archivo subido exitosamente!', 'success');
-                
-                setTimeout(() => {
-                    this.reloadFilesList(form);
-                    progressContainer.style.display = 'none';
+
+            xhr.addEventListener('load', () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    this.updateProgress(progressBar, statusDiv, 100, '¡Upload completado!');
+                    progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated', 'bg-primary', 'bg-gradient-primary');
+                    progressBar.classList.add('bg-success');
                     
-                    // Usar el actualizador global si está disponible
-                    if (window.fileListUpdater) {
-                        const phaseId = this.extractPhaseId(form.action);
-                        window.fileListUpdater.clearFormByPhase(phaseId);
-                    } else {
-                        form.reset();
-                        form.querySelector('.file-info-container').style.display = 'none';
-                    }
-                }, 1500);
-            } else {
-                // Intentar obtener mensaje de error específico del servidor
-                let errorMessage = 'Error en el servidor';
-                try {
-                    const errorData = await response.json();
-                    // Buscar mensaje en formatos comunes de Django/DRF
-                    if (errorData.error) errorMessage = errorData.error;
-                    else if (errorData.detail) errorMessage = errorData.detail;
-                    else if (errorData.message) errorMessage = errorData.message;
-                    else if (typeof errorData === 'object') {
-                        // Si es un objeto de errores de formulario, tomar el primero
-                        const firstKey = Object.keys(errorData)[0];
-                        const firstError = errorData[firstKey];
-                        errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
-                    }
-                } catch (e) {
-                    // Si no es JSON, usar status text
-                    errorMessage = `Error ${response.status}: ${response.statusText}`;
+                    this.showNotification('¡Archivo subido exitosamente!', 'success');
+                    
+                    setTimeout(() => {
+                        this.reloadFilesList(form);
+                        progressContainer.style.display = 'none';
+                        
+                        // Usar el actualizador global si está disponible
+                        if (window.fileListUpdater) {
+                            const phaseId = this.extractPhaseId(form.action);
+                            window.fileListUpdater.clearFormByPhase(phaseId);
+                        } else {
+                            form.reset();
+                            const fileInfo = form.querySelector('.file-info-container');
+                            if (fileInfo) fileInfo.style.display = 'none';
+                        }
+                        // Reset progress bar
+                        progressBar.classList.remove('bg-success');
+                        progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
+                        progressBar.style.width = '0%';
+                    }, 1500);
+                    resolve();
+                } else {
+                    // Intentar obtener mensaje de error específico del servidor
+                    let errorMessage = `Error ${xhr.status}: ${xhr.statusText}`;
+                    try {
+                        const errorData = JSON.parse(xhr.responseText);
+                        if (errorData.error) errorMessage = errorData.error;
+                        else if (errorData.detail) errorMessage = errorData.detail;
+                        else if (errorData.message) errorMessage = errorData.message;
+                        else if (typeof errorData === 'object') {
+                            const firstKey = Object.keys(errorData)[0];
+                            const firstError = errorData[firstKey];
+                            errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
+                        }
+                    } catch (e) {}
+                    reject(new Error(errorMessage));
                 }
-                throw new Error(errorMessage);
-            }
+            });
+
+            xhr.addEventListener('error', () => reject(new Error('Error de red al subir el archivo')));
+            xhr.addEventListener('abort', () => reject(new Error('Subida cancelada')));
             
-        } catch (error) {
+            xhr.open('POST', form.action);
+            xhr.setRequestHeader('X-CSRFToken', this.getCsrfToken());
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.setRequestHeader('HX-Request', 'true');
+            
+            xhr.send(formData);
+        }).catch(error => {
+            progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated', 'bg-primary', 'bg-gradient-primary');
             progressBar.classList.add('bg-danger');
-            this.updateProgress(progressBar, statusDiv, 0, 'Error: ' + error.message);
+            this.updateProgress(progressBar, statusDiv, 100, 'Error: ' + error.message);
             this.showNotification(error.message, 'error');
-        }
+        });
     }
 
     async getPresignedUrl(projectId, phaseId, file) {
