@@ -1,10 +1,25 @@
 // ===== MIS TAREAS - FUNCIONALIDADES COMPLETAS =====
 
 // Función para obtener cookie CSRF (debe estar primero)
-function getCookie(name) {
+function getCsrfToken() {
+    // 1. Try to get from meta tag (most reliable for SPA/AJAX)
+    const metaToken = document.querySelector('meta[name="csrf-token"]');
+    if (metaToken && metaToken.content) {
+        return metaToken.content;
+    }
+    
+    // 2. Try to get from hidden input (standard Django form)
+    const inputToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (inputToken && inputToken.value) {
+        return inputToken.value;
+    }
+
+    // 3. Fallback to cookie (might fail with HttpOnly)
     const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
+    const parts = value.split(`; csrftoken=`);
     if (parts.length === 2) return parts.pop().split(';').shift();
+    
+    return '';
 }
 
 // Función para broadcast cambios de estado a otras pestañas/ventanas
@@ -163,7 +178,7 @@ window.updateTaskStatus = function (taskId, status) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFToken': getCookie('csrftoken') || ''
+            'X-CSRFToken': getCsrfToken()
         },
         body: `status=${status}`
     })
@@ -253,7 +268,7 @@ window.deleteTask = function (taskId) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFToken': getCookie('csrftoken') || ''
+            'X-CSRFToken': getCsrfToken()
         }
     })
         .then(response => response.json())
