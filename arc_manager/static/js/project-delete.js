@@ -186,6 +186,11 @@ class ProjectDeleteManager {
     }
 
     async deleteProject(projectId, deleteUrl) {
+        // Ensure trailing slash to avoid 301 redirects that convert POST to GET
+        if (!deleteUrl.endsWith('/')) {
+            deleteUrl += '/';
+        }
+
         try {
             const response = await fetch(deleteUrl, {
                 method: 'POST',
@@ -194,6 +199,13 @@ class ProjectDeleteManager {
                     'X-CSRFToken': this.getCsrfToken()
                 }
             });
+
+            // Check if we were redirected to the confirmation page (meaning it was treated as GET)
+            if (response.url && response.url.includes('/delete/') && !response.url.includes('/login/')) {
+                 console.error('Redirected back to delete page, likely POST converted to GET');
+                 this.showErrorMessage('Error: La solicitud de eliminación no se procesó correctamente.');
+                 return;
+            }
 
             if (response.ok) {
                 this.showSuccessMessage('Proyecto eliminado correctamente');
@@ -223,6 +235,21 @@ class ProjectDeleteManager {
     }
 
     showToast(message, type = 'success') {
+        // Intentar usar el sistema de notificaciones global primero
+        if (window.notifications) {
+            if (type === 'success') {
+                window.notifications.success(message);
+            } else {
+                window.notifications.error(message);
+            }
+            return;
+        }
+
+        if (typeof window.showToast === 'function') {
+            window.showToast(message, type);
+            return;
+        }
+
         const toastHtml = `
             <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="d-flex">
@@ -254,9 +281,15 @@ class ProjectDeleteManager {
     }
 
     getCsrfToken() {
+        // Intentar obtener del cookie primero
         const value = `; ${document.cookie}`;
         const parts = value.split(`; csrftoken=`);
         if (parts.length === 2) return parts.pop().split(';').shift();
+        
+        // Fallback: buscar en el DOM (input hidden generado por {% csrf_token %})
+        const input = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (input) return input.value;
+        
         return '';
     }
 }

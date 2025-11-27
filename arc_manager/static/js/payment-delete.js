@@ -124,6 +124,11 @@ class PaymentDeleteManager {
      * Eliminar pago vía AJAX
      */
     async deletePayment(paymentId, deleteUrl) {
+        // Ensure trailing slash to avoid 301 redirects
+        if (!deleteUrl.endsWith('/')) {
+            deleteUrl += '/';
+        }
+
         try {
             const response = await fetch(deleteUrl, {
                 method: 'POST',
@@ -132,6 +137,12 @@ class PaymentDeleteManager {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 }
             });
+
+            // Check for redirects
+            if (response.redirected && response.url.includes('/login/')) {
+                window.location.href = response.url;
+                return;
+            }
 
             if (response.ok) {
                 // Redirigir a la página de éxito
@@ -149,14 +160,14 @@ class PaymentDeleteManager {
      * Obtener CSRF token
      */
     getCSRFToken() {
-        const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
-        if (csrfInput) return csrfInput.value;
-
-        const csrfCookie = document.cookie
-            .split('; ')
-            .find(row => row.startsWith('csrftoken='));
+        // Intentar obtener del cookie primero
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; csrftoken=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
         
-        return csrfCookie ? csrfCookie.split('=')[1] : '';
+        // Fallback: buscar en el DOM
+        const token = document.querySelector('[name=csrfmiddlewaretoken]');
+        return token ? token.value : '';
     }
 
     /**
@@ -164,7 +175,13 @@ class PaymentDeleteManager {
      */
     showNotification(message, type = 'info') {
         if (window.notifications) {
-            window.notifications[type](message);
+            if (type === 'success') {
+                window.notifications.success(message);
+            } else if (type === 'error') {
+                window.notifications.error(message);
+            } else {
+                window.notifications.show(message, type);
+            }
         } else {
             console.log(`[${type.toUpperCase()}] ${message}`);
         }
