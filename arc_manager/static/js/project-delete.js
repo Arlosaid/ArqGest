@@ -189,28 +189,39 @@ class ProjectDeleteManager {
     }
 
     async deleteProject(projectId, deleteUrl) {
-        // Ensure trailing slash to avoid 301 redirects that convert POST to GET
-        if (!deleteUrl.endsWith('/')) {
-            deleteUrl += '/';
-        }
+        // Construct URL explicitly to ensure it's correct and has trailing slash
+        // We ignore the passed deleteUrl to avoid issues with query params or missing slashes
+        const finalUrl = `/projects/${projectId}/delete/`;
+        console.log('🗑️ Attempting to delete project:', projectId, 'at URL:', finalUrl);
 
         try {
-            const response = await fetch(deleteUrl, {
+            const csrfToken = this.getCsrfToken();
+            if (!csrfToken) {
+                console.error('❌ CSRF token not found!');
+                this.showErrorMessage('Error de seguridad: Token CSRF no encontrado');
+                return;
+            }
+
+            const response = await fetch(finalUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': this.getCsrfToken()
+                    'X-CSRFToken': csrfToken
                 }
             });
 
+            console.log('📨 Delete response status:', response.status);
+            console.log('📨 Delete response URL:', response.url);
+
             // Check if we were redirected to the confirmation page (meaning it was treated as GET)
             if (response.url && response.url.includes('/delete/') && !response.url.includes('/login/')) {
-                 console.error('Redirected back to delete page, likely POST converted to GET');
+                 console.error('❌ Redirected back to delete page, likely POST converted to GET');
                  this.showErrorMessage('Error: La solicitud de eliminación no se procesó correctamente.');
                  return;
             }
 
             if (response.ok) {
+                console.log('✅ Project deleted successfully');
                 this.showSuccessMessage('Proyecto eliminado correctamente');
                 
                 // Redirigir a la lista de proyectos después de un delay
@@ -219,12 +230,13 @@ class ProjectDeleteManager {
                 }, 1500);
 
             } else {
+                console.error('❌ Delete failed with status:', response.status);
                 const data = await response.json().catch(() => ({}));
                 this.showErrorMessage(data.error || 'Error al eliminar el proyecto');
             }
 
         } catch (error) {
-            console.error('Error deleting project:', error);
+            console.error('❌ Error deleting project:', error);
             this.showErrorMessage('Error de conexión al eliminar el proyecto');
         }
     }
