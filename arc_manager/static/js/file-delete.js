@@ -155,6 +155,12 @@ class FileDeleteManager {
 
         const { id, url, element, button } = this.currentFileData;
 
+        // Ensure trailing slash to avoid 301 redirects
+        let deleteUrl = url;
+        if (!deleteUrl.endsWith('/')) {
+            deleteUrl += '/';
+        }
+
         // Marcar como en proceso de eliminación
         this.deletingFiles.add(id);
 
@@ -166,7 +172,7 @@ class FileDeleteManager {
 
         try {
             // Realizar petición de eliminación
-            const response = await fetch(url, {
+            const response = await fetch(deleteUrl, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': this.getCSRFToken(),
@@ -175,6 +181,12 @@ class FileDeleteManager {
                     'HX-Request': 'true'
                 }
             });
+
+            // Check for redirects
+            if (response.redirected && response.url.includes('/login/')) {
+                window.location.href = response.url;
+                return;
+            }
 
             if (!response.ok) {
                 throw new Error(`Error del servidor: ${response.status}`);
@@ -347,20 +359,26 @@ class FileDeleteManager {
     }
 
     getCSRFToken() {
-        const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
-        if (csrfInput) return csrfInput.value;
-
-        const csrfCookie = document.cookie
-            .split('; ')
-            .find(row => row.startsWith('csrftoken='));
+        // Intentar obtener del cookie primero
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; csrftoken=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
         
-        return csrfCookie ? csrfCookie.split('=')[1] : '';
+        // Fallback: buscar en el DOM
+        const token = document.querySelector('[name=csrfmiddlewaretoken]');
+        return token ? token.value : '';
     }
 
     showNotification(message, type = 'info') {
-        // Usar el sistema de notificaciones existente
+        // Usar el sistema de notificaciones global
         if (window.notifications) {
-            window.notifications[type](message);
+            if (type === 'success') {
+                window.notifications.success(message);
+            } else if (type === 'error') {
+                window.notifications.error(message);
+            } else {
+                window.notifications.show(message, type);
+            }
         } else if (window.showGlobalNotification) {
             window.showGlobalNotification(message, type);
         } else {

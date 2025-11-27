@@ -251,10 +251,6 @@
     <div class="kanban-board-grid px-2">
         <!-- TODO Column -->
         <div class="kanban-column column-todo" 
-             ondrop="drop(event)" 
-             ondragover="allowDrop(event)" 
-             ondragenter="dragEnter(event)"
-             ondragleave="dragLeave(event)"
              data-status="TODO">
             <div class="kanban-column-header">
                 <span class="text-uppercase ls-1"><i class="far fa-circle me-2"></i>{% trans "Por Hacer" %}</span>
@@ -274,10 +270,6 @@
 
         <!-- IN_PROGRESS Column -->
         <div class="kanban-column column-in-progress" 
-             ondrop="drop(event)" 
-             ondragover="allowDrop(event)" 
-             ondragenter="dragEnter(event)"
-             ondragleave="dragLeave(event)"
              data-status="IN_PROGRESS">
             <div class="kanban-column-header">
                 <span class="text-uppercase ls-1"><i class="fas fa-play me-2"></i>{% trans "En Progreso" %}</span>
@@ -297,10 +289,6 @@
 
         <!-- PAUSED Column -->
         <div class="kanban-column column-paused" 
-             ondrop="drop(event)" 
-             ondragover="allowDrop(event)" 
-             ondragenter="dragEnter(event)"
-             ondragleave="dragLeave(event)"
              data-status="PAUSED">
             <div class="kanban-column-header">
                 <span class="text-uppercase ls-1"><i class="fas fa-pause me-2"></i>{% trans "Pausadas" %}</span>
@@ -320,10 +308,6 @@
 
         <!-- DONE Column -->
         <div class="kanban-column column-done" 
-             ondrop="drop(event)" 
-             ondragover="allowDrop(event)" 
-             ondragenter="dragEnter(event)"
-             ondragleave="dragLeave(event)"
              data-status="DONE">
             <div class="kanban-column-header">
                 <span class="text-uppercase ls-1"><i class="fas fa-check me-2"></i>{% trans "Completadas" %}</span>
@@ -418,264 +402,10 @@
         </div>
     </div>
 </div>
-<script>
-    // Global drag state
-    let draggedItem = null;
+{% endblock %}
 
-    function allowDrop(ev) {
-        ev.preventDefault();
-        ev.dataTransfer.dropEffect = "move";
-    }
-
-    function drag(ev) {
-        // Ensure we are dragging the card, not a child
-        const card = ev.target.closest('.task-card');
-        if (!card) return;
-
-        draggedItem = card;
-        ev.dataTransfer.setData("text/plain", card.id);
-        ev.dataTransfer.effectAllowed = "move";
-        
-        // Add dragging class with a slight delay to keep the element visible for the drag image
-        setTimeout(() => {
-            card.classList.add('dragging');
-        }, 0);
-    }
-    
-    function dragEnd(ev) {
-        const card = ev.target.closest('.task-card');
-        if (card) {
-            card.classList.remove('dragging');
-        }
-        draggedItem = null;
-        
-        // Clean up all drag-over classes
-        document.querySelectorAll('.kanban-column').forEach(col => {
-            col.classList.remove('drag-over');
-        });
-    }
-
-    function dragEnter(ev) {
-        ev.preventDefault();
-        const column = ev.target.closest('.kanban-column');
-        if (column) {
-            column.classList.add('drag-over');
-        }
-    }
-
-    function dragLeave(ev) {
-        const column = ev.target.closest('.kanban-column');
-        // Check if we are really leaving the column (and not just entering a child)
-        if (column && !column.contains(ev.relatedTarget)) {
-            column.classList.remove('drag-over');
-        }
-    }
-
-    function drop(ev) {
-        ev.preventDefault();
-        
-        // Find the closest column container
-        const column = ev.target.closest('.kanban-column');
-        if (!column) return;
-        
-        // Remove highlight
-        column.classList.remove('drag-over');
-        
-        const data = ev.dataTransfer.getData("text/plain");
-        const taskCard = document.getElementById(data);
-        
-        if (!taskCard) return;
-        
-        taskCard.classList.remove('dragging');
-        
-        const newStatus = column.getAttribute('data-status');
-        const container = column.querySelector('.kanban-column-body');
-        
-        // Don't do anything if dropped in the same column
-        // (Unless we implement reordering, but for now let's just handle status change)
-        // Actually, we should allow dropping in same column to just re-append (simple reorder to bottom)
-        
-        // Move element visually
-        // Remove empty state if present
-        const emptyState = container.querySelector('.empty-state');
-        if (emptyState) emptyState.style.display = 'none';
-        
-        container.appendChild(taskCard);
-        
-        // Check if old column is now empty
-        checkEmptyColumns();
-
-        // Update via AJAX
-        const taskId = taskCard.getAttribute('data-task-id');
-        updateTaskStatus(taskId, newStatus);
-    }
-
-    function checkEmptyColumns() {
-        document.querySelectorAll('.kanban-column-body').forEach(body => {
-            const hasCards = body.querySelectorAll('.task-card').length > 0;
-            const emptyState = body.querySelector('.empty-state');
-            if (emptyState) {
-                emptyState.style.display = hasCards ? 'none' : 'block';
-            }
-        });
-    }
-
-    function updateTaskStatus(taskId, status) {
-        const url = "{% url 'projects:update-task-status' 0 %}".replace('0', taskId);
-        
-        // Optimistic UI update
-        const card = document.getElementById('task-' + taskId);
-        const targetColumn = document.querySelector(`.kanban-column[data-status="${status}"]`);
-        
-        if (card && targetColumn) {
-            const container = targetColumn.querySelector('.kanban-column-body');
-            
-            // 1. Move card if needed
-            if (card.parentElement !== container) {
-                // Remove empty state from target if present
-                const emptyState = container.querySelector('.empty-state');
-                if (emptyState) emptyState.style.display = 'none';
-                
-                container.appendChild(card);
-                checkEmptyColumns();
-            }
-            
-            // 2. Update buttons visibility
-            const mobileActions = card.querySelector('.mobile-actions');
-            if (mobileActions) {
-                // Show all buttons first
-                mobileActions.querySelectorAll('button').forEach(btn => btn.classList.remove('d-none'));
-                
-                // Hide the button for the new status
-                const statusClassMap = {
-                    'TODO': '.btn-status-todo',
-                    'IN_PROGRESS': '.btn-status-in-progress',
-                    'PAUSED': '.btn-status-paused',
-                    'DONE': '.btn-status-done'
-                };
-                
-                const btnToHide = mobileActions.querySelector(statusClassMap[status]);
-                if (btnToHide) {
-                    btnToHide.classList.add('d-none');
-                }
-            }
-        }
-        
-        fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({ status: status })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (!data.success) {
-                // Revert change if failed
-                alert('Error updating task status: ' + (data.error || 'Unknown error'));
-                window.location.reload();
-            } else {
-                // Update counters from data.stats
-                if (data.stats) {
-                    const countTodo = document.getElementById('count-TODO');
-                    const countInProgress = document.getElementById('count-IN_PROGRESS');
-                    const countPaused = document.getElementById('count-PAUSED');
-                    const countDone = document.getElementById('count-DONE');
-
-                    if (countTodo) countTodo.textContent = data.stats.todo || 0;
-                    if (countInProgress) countInProgress.textContent = data.stats.in_progress || 0;
-                    if (countPaused) countPaused.textContent = data.stats.paused || 0;
-                    if (countDone) countDone.textContent = data.stats.done || 0;
-                }
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error updating task status');
-            window.location.reload();
-        });
-    }
-    
-    // Add dragend listener to all cards on load
-    document.addEventListener('DOMContentLoaded', function() {
-        const cards = document.querySelectorAll('.task-card');
-        cards.forEach(card => {
-            card.addEventListener('dragend', dragEnd);
-        });
-    });
-
-    // KanbanManager compatibility for delete task
-    window.kanbanManager = {
-        deleteTask: function(taskId) {
-            // Get task info for the modal
-            const card = document.getElementById('task-' + taskId);
-            const taskTitle = card ? card.querySelector('.task-title').textContent.trim() : '{% trans "This task" %}';
-            
-            // Use the unified modal system
-            if (typeof ConfirmationModals !== 'undefined') {
-                ConfirmationModals.deleteTask({
-                    taskId: taskId,
-                    taskTitle: taskTitle,
-                    onConfirm: async () => {
-                        const url = "{% url 'projects:task-delete' 0 %}".replace('0', taskId);
-                        
-                        // 1. Add loading state
-                        if (card) card.style.opacity = '0.5';
-
-                        try {
-                            const response = await fetch(url, {
-                                method: 'POST',
-                                headers: {
-                                    'X-CSRFToken': '{{ csrf_token }}',
-                                    'Content-Type': 'application/json'
-                                }
-                            });
-                            
-                            if (response.ok) {
-                                // Remove card from DOM
-                                if (card) {
-                                    // Get column reference before removing card
-                                    const column = card.closest('.kanban-column');
-                                    
-                                    // Animation
-                                    card.style.transition = 'all 0.3s ease';
-                                    card.style.opacity = '0';
-                                    card.style.transform = 'scale(0.8)';
-                                    
-                                    setTimeout(() => {
-                                        card.remove();
-                                        checkEmptyColumns();
-                                        
-                                        // 3. Robust Counter Update (Recount DOM)
-                                        if (column) {
-                                            const status = column.getAttribute('data-status');
-                                            const counterId = 'count-' + status;
-                                            const counter = document.getElementById(counterId);
-                                            // Count actual cards in the DOM
-                                            const newCount = column.querySelectorAll('.task-card').length;
-                                            if (counter) counter.textContent = newCount;
-                                        }
-                                    }, 300);
-                                }
-                            } else {
-                                // Revert loading state on error
-                                if (card) card.style.opacity = '1';
-                                console.error('Error deleting task: Server responded with ' + response.status);
-                            }
-                        } catch (error) {
-                            // Revert loading state on error
-                            if (card) card.style.opacity = '1';
-                            console.error('Error deleting task:', error);
-                        }
-                    }
-                });
-            } else {
-                console.error('ConfirmationModals is not defined. Cannot delete task.');
-            }
-        }
-    };
-</script>
+{% block extra_js %}
+<script src="{% static 'js/kanban.js' %}?v={{ STATIC_VERSION }}"></script>
 {% endblock %}
 
 

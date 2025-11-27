@@ -278,7 +278,7 @@ class KanbanManager {
         if (!column) return;
 
         const taskId = e.dataTransfer.getData('text/plain');
-        const newStatus = column.dataset.statusCode;
+        const newStatus = column.dataset.status;
 
         // Limpiar todas las clases de drag-over
         this.removeDragOverClasses();
@@ -318,16 +318,36 @@ class KanbanManager {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': this.getCSRFToken()
+                    'X-CSRFToken': this.getCSRFToken(),
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: JSON.stringify({
                     status: newStatus
                 })
             });
 
-            const data = await response.json();
+            // Check for redirects
+            if (response.redirected && response.url.includes('/login/')) {
+                window.location.href = response.url;
+                return;
+            }
 
-            if (data.success) {
+            const contentType = response.headers.get("content-type");
+            let success = false;
+            let errorMsg = 'Error desconocido';
+
+            if (response.ok && contentType && contentType.includes("application/json")) {
+                const data = await response.json();
+                if (data.success) {
+                    success = true;
+                } else {
+                    errorMsg = data.error || 'Error del servidor';
+                }
+            } else {
+                errorMsg = `Error ${response.status}`;
+            }
+
+            if (success) {
                 // Actualizar estadísticas en segundo plano
                 this.updateStatisticsSilently();
 
@@ -335,11 +355,16 @@ class KanbanManager {
                 this.broadcastTaskStatusChange(taskId, newStatus);
             } else {
                 // Revertir el movimiento si falla
-                console.error('Error al actualizar tarea:', data.error);
+                console.error('Error al actualizar tarea:', errorMsg);
+                this.showNotification('Error al actualizar estado: ' + errorMsg, 'error');
                 // Aquí podrías revertir el movimiento visual si es necesario
+                // this.revertCardMove(taskId); // Implementar si es crítico
+                setTimeout(() => location.reload(), 1000); // Recargar para sincronizar estado real
             }
         } catch (error) {
             console.error('Error:', error);
+            this.showNotification('Error de conexión', 'error');
+            setTimeout(() => location.reload(), 1000);
         } finally {
             this.isUpdating = false;
         }
@@ -373,7 +398,12 @@ class KanbanManager {
         if (!card) return;
 
         // Encontrar la columna de destino
-        const targetColumn = document.querySelector(`[data-status-code="${newStatus}"]`);
+        // targetColumn is the .kanban-column-body inside the column with data-status
+        // The template structure is: .kanban-column[data-status] > .kanban-column-body
+        const targetColumnWrapper = document.querySelector(`.kanban-column[data-status="${newStatus}"]`);
+        if (!targetColumnWrapper) return;
+        
+        const targetColumn = targetColumnWrapper.querySelector('.kanban-column-body');
         if (!targetColumn) return;
 
         // Animación ultra rápida y simple
@@ -395,7 +425,61 @@ class KanbanManager {
 
             // Actualizar contadores
             this.updateColumnCounts();
+            
+            // Verificar columnas vacías
+            this.checkEmptyColumns();
         }, 100);
+    }
+
+    checkEmptyColumns() {
+        document.querySelectorAll('.kanban-column').forEach(column => {
+            const body = column.querySelector('.kanban-column-body');
+            if (!body) return;
+            
+            const hasCards = body.querySelectorAll('.kanban-card').length > 0;
+            const emptyState = body.querySelector('.empty-state');
+            
+            if (hasCards) {
+                if (emptyState) emptyState.remove();
+            } else {
+                if (!emptyState) {
+                    const status = column.dataset.status;
+                    const emptyHtml = this.getEmptyStateHtml(status);
+                    body.insertAdjacentHTML('beforeend', emptyHtml);
+                }
+            }
+        });
+    }
+
+    getEmptyStateHtml(status) {
+        let icon = 'fa-clipboard';
+        let text = 'Sin tareas';
+        
+        switch(status) {
+            case 'TODO':
+                icon = 'fa-clipboard';
+                text = 'Sin tareas';
+                break;
+            case 'IN_PROGRESS':
+                icon = 'fa-running';
+                text = 'Nada en curso';
+                break;
+            case 'PAUSED':
+                icon = 'fa-clock';
+                text = 'Sin pausas';
+                break;
+            case 'DONE':
+                icon = 'fa-check-double';
+                text = 'Sin finalizar';
+                break;
+        }
+        
+        return `
+            <div class="text-center py-5 empty-state mt-2">
+                <i class="far ${icon} fa-2x mb-2 opacity-50"></i>
+                <p class="small mb-0 fw-medium">${text}</p>
+            </div>
+        `;
     }
 
     updateCardStatusButtons(card, newStatus) {
@@ -460,17 +544,21 @@ class KanbanManager {
 
         columns.forEach(column => {
             const columnBody = column.querySelector('.kanban-column-body');
-            const countElement = column.querySelector('.task-count');
+            // Selector actualizado para coincidir con el template (badge-counter o task-count)
+            const countElement = column.querySelector('.badge-counter') || column.querySelector('.task-count');
 
             if (columnBody && countElement) {
                 const taskCount = columnBody.querySelectorAll('.kanban-card').length;
-                const statusCode = columnBody.dataset.statusCode;
-
-                // Actualizar el contador
-                if (taskCount === 1) {
-                    countElement.textContent = '1 tarea';
+                
+                // Actualizar solo el número si es un badge, o texto completo si es task-count
+                if (countElement.classList.contains('badge-counter')) {
+                    countElement.textContent = taskCount;
                 } else {
-                    countElement.textContent = `${taskCount} tareas`;
+                    if (taskCount === 1) {
+                        countElement.textContent = '1 tarea';
+                    } else {
+                        countElement.textContent = `${taskCount} tareas`;
+                    }
                 }
             }
         });
@@ -554,6 +642,12 @@ class KanbanManager {
                 }
             });
 
+            // Check for redirects
+            if (response.redirected && response.url.includes('/login/')) {
+                window.location.href = response.url;
+                return;
+            }
+
             const contentType = response.headers.get('content-type') || '';
             if (response.ok) {
                 if (contentType.includes('application/json')) {
@@ -569,20 +663,30 @@ class KanbanManager {
                         document.dispatchEvent(new CustomEvent('taskCreated'));
                         // Recargar solo si estamos en la página del kanban
                         if (window.location.pathname.includes('/kanban/')) {
-                            setTimeout(() => location.reload(), 300);
+                            setTimeout(() => location.reload(), 1500);
                         }
                     } else {
                         this.showNotification((data && (data.message || data.error)) || 'Error al crear la tarea', 'error');
                     }
                 } else {
-                    // Fallback: servidor devolvió HTML por redirección; considerarlo éxito
+                    // Fallback: servidor devolvió HTML.
+                    // Si es un 200 OK HTML, podría ser la página de éxito renderizada.
+                    // Pero para AJAX, esto suele ser un error de configuración o redirección mal manejada.
+                    console.warn('Received HTML response for task creation');
+                    
+                    // Intentar detectar si es la página de login o error
+                    const text = await response.text();
+                    if (text.includes('login') || text.includes('iniciar sesión')) {
+                         window.location.reload(); // Forzar login
+                         return;
+                    }
+
+                    // Asumir éxito si no parece error, pero con precaución
                     this.closeModal('addTask');
                     this.taskForm.reset();
-                    this.showNotification('Tarea creada correctamente', 'success');
+                    this.showNotification('Tarea creada (respuesta HTML)', 'warning');
                     document.dispatchEvent(new CustomEvent('taskCreated'));
-                    if (window.location.pathname.includes('/kanban/')) {
-                        setTimeout(() => location.reload(), 300);
-                    }
+                    setTimeout(() => location.reload(), 500);
                 }
             } else {
                 let msg = 'Error al crear la tarea';
@@ -650,11 +754,33 @@ class KanbanManager {
             const response = await fetch(`/projects/tasks/${taskId}/delete/`, {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': this.getCSRFToken()
+                    'X-CSRFToken': this.getCSRFToken(),
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
             });
 
+            // Check for redirects (e.g. login page)
+            if (response.redirected) {
+                if (response.url.includes('/login/')) {
+                    window.location.href = response.url;
+                    return;
+                }
+            }
+
+            const contentType = response.headers.get("content-type");
             if (response.ok) {
+                // Verify JSON response
+                if (contentType && contentType.includes("application/json")) {
+                    const data = await response.json();
+                    if (!data.success) {
+                        this.showNotification(data.error || 'Error al eliminar la tarea', 'error');
+                        return;
+                    }
+                } else {
+                    // If we got HTML 200 OK, it might be a mistake (e.g. dashboard page)
+                    console.warn('Received HTML response for delete request');
+                }
+
                 // Buscar y eliminar la tarjeta del DOM
                 const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
                 if (taskCard) {
@@ -665,12 +791,10 @@ class KanbanManager {
 
                     setTimeout(() => {
                         taskCard.remove();
-
-                        // Verificar si la columna está vacía y mostrar mensaje
-                        const column = taskCard.closest('.kanban-column-body');
-                        if (column && column.children.length === 0) {
-                            column.innerHTML = '<div class="empty-column"><div class="empty-state"><i class="fas fa-drafting-compass"></i><p>No hay tareas</p></div></div>';
-                        }
+                        
+                        // Actualizar UI
+                        this.checkEmptyColumns();
+                        this.updateColumnCounts();
                     }, 300);
                 }
 
@@ -679,7 +803,14 @@ class KanbanManager {
                 // Disparar evento para que otras partes de la app se actualicen
                 document.dispatchEvent(new CustomEvent('taskDeleted', { detail: { taskId } }));
             } else {
-                this.showNotification('Error al eliminar la tarea', 'error');
+                // Handle HTTP errors
+                if (response.status === 403) {
+                    this.showNotification('No tienes permisos para eliminar esta tarea', 'error');
+                } else if (response.status === 404) {
+                    this.showNotification('La tarea ya no existe', 'error');
+                } else {
+                    this.showNotification('Error al eliminar la tarea (' + response.status + ')', 'error');
+                }
             }
         } catch (error) {
             console.error('Error:', error);
@@ -734,20 +865,91 @@ class KanbanManager {
     // ===== UTILITIES =====
 
     getCSRFToken() {
+        // Intentar obtener del cookie primero
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; csrftoken=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        
+        // Fallback: buscar en el DOM
         const token = document.querySelector('[name=csrfmiddlewaretoken]');
         return token ? token.value : '';
     }
 
     showNotification(message, type = 'info') {
-        // Usar el sistema de notificaciones moderno
+        // 1. Intentar usar el sistema de notificaciones global (window.notifications)
         if (window.notifications) {
-            // Solo mostrar notificaciones para acciones importantes
-            if (type === 'error' || type === 'success') {
+            if (type === 'success' && typeof window.notifications.success === 'function') {
+                window.notifications.success(message);
+                return;
+            } else if (type === 'error' && typeof window.notifications.error === 'function') {
+                window.notifications.error(message);
+                return;
+            } else if (typeof window.notifications.show === 'function') {
                 window.notifications.show(message, type);
+                return;
             }
-        } else {
-            console.warn('Sistema de notificaciones no disponible:', message);
         }
+
+        // 2. Fallback a toastr si existe (común en muchas apps)
+        if (typeof toastr !== 'undefined') {
+            toastr[type](message);
+            return;
+        }
+
+        // 3. Fallback manual: Crear un toast de Bootstrap
+        this.showFallbackToast(message, type);
+    }
+
+    showFallbackToast(message, type) {
+        const toastContainer = document.querySelector('.toast-container') || this.createToastContainer();
+        
+        const toastId = 'toast-' + Date.now();
+        const bgClass = type === 'success' ? 'bg-success' : (type === 'error' ? 'bg-danger' : 'bg-info');
+        const icon = type === 'success' ? 'fa-check-circle' : (type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle');
+        
+        const toastHtml = `
+            <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="fas ${icon} me-2"></i> ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        `;
+        
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = toastHtml.trim();
+        const toastElement = tempDiv.firstChild;
+        
+        toastContainer.appendChild(toastElement);
+        
+        if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
+            const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
+            toast.show();
+            
+            toastElement.addEventListener('hidden.bs.toast', () => {
+                toastElement.remove();
+            });
+        } else {
+            // Fallback sin bootstrap JS
+            toastElement.style.display = 'block';
+            setTimeout(() => {
+                toastElement.style.opacity = '0';
+                setTimeout(() => toastElement.remove(), 500);
+            }, 3000);
+        }
+    }
+
+    createToastContainer() {
+        let container = document.querySelector('.toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            container.style.zIndex = '1070';
+            document.body.appendChild(container);
+        }
+        return container;
     }
 
     // ===== STATISTICS UPDATE =====

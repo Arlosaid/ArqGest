@@ -735,3 +735,30 @@
     }
 }
 
+/* Empty state for tasks */
+.task-compact-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem;
+    background: var(--arc-bg-secondary, #f8fafc);
+    border: 2px dashed var(--arc-border-color, #e2e8f0);
+    border-radius: var(--arc-border-radius, 8px);
+    color: var(--arc-text-secondary, #64748b);
+    text-align: center;
+    grid-column: 1 / -1;
+}
+
+.task-compact-empty i {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: var(--arc-text-tertiary, #9ca3af);
+}
+
+.task-compact-empty p {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
