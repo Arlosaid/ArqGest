@@ -354,7 +354,13 @@ def upload_file(request, project_id, phase_id):
                 extension=ext,
                 stack_trace=stack_trace_full[:500]
             )
-            error_msg = f"Error al guardar el archivo: {str(e)}"
+            
+            # En producción, ocultar detalles técnicos del error 500
+            if not settings.DEBUG:
+                error_msg = "Ocurrió un error al guardar el archivo. Por favor intenta nuevamente."
+            else:
+                error_msg = f"Error al guardar el archivo: {str(e)}"
+                
             messages.error(request, error_msg)
             if request.headers.get('HX-Request') == 'true':
                 return JsonResponse({"error": error_msg, "success": False}, status=500)
