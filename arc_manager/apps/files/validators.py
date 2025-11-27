@@ -24,8 +24,8 @@ class FileValidator:
         'GIF': ['image/gif'],
         'DWG': ['image/vnd.dwg', 'application/acad', 'application/x-dwg', 'application/octet-stream'],
         'DXF': ['image/vnd.dxf', 'application/dxf', 'application/octet-stream'],
-        'RVT': ['application/octet-stream'],  # Archivos Revit
-        'SKP': ['application/octet-stream'],  # Archivos SketchUp
+        'RVT': ['application/octet-stream', 'application/x-ole-storage'],  # Archivos Revit
+        'SKP': ['application/octet-stream', 'application/zip'],  # Archivos SketchUp
         '3DS': ['application/octet-stream'],  # Archivos 3D Studio Max
         'MAX': ['application/octet-stream'],  # Archivos 3D Studio Max
         'ZIP': ['application/zip', 'application/x-zip-compressed', 'application/octet-stream'],
@@ -33,14 +33,14 @@ class FileValidator:
         '7Z': ['application/x-7z-compressed', 'application/octet-stream'],
         'TIFF': ['image/tiff', 'application/octet-stream'],
         'TIF': ['image/tiff', 'application/octet-stream'],
-        'DOC': ['application/msword'],
-        'DOCX': ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-        'XLS': ['application/vnd.ms-excel'],
-        'XLSX': ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
-        'PPT': ['application/vnd.ms-powerpoint'],
-        'PPTX': ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
-        'TXT': ['text/plain'],
-        'MD': ['text/markdown', 'text/plain'],
+        'DOC': ['application/msword', 'application/x-ole-storage', 'application/octet-stream'],
+        'DOCX': ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip', 'application/octet-stream'],
+        'XLS': ['application/vnd.ms-excel', 'application/x-ole-storage', 'application/octet-stream'],
+        'XLSX': ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/zip', 'application/octet-stream'],
+        'PPT': ['application/vnd.ms-powerpoint', 'application/x-ole-storage', 'application/octet-stream'],
+        'PPTX': ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/zip', 'application/octet-stream'],
+        'TXT': ['text/plain', 'application/octet-stream'],
+        'MD': ['text/markdown', 'text/plain', 'application/octet-stream'],
     }
     
     # Extensiones peligrosas que nunca se deben permitir
