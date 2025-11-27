@@ -206,6 +206,15 @@ class ErrorHandlingMiddleware(MiddlewareMixin):
             # 400 Bad Request
             if response.status_code == 400:
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    # Si la respuesta ya es JSON y tiene contenido, NO reemplazarla
+                    # Esto permite que las vistas envíen errores específicos (ej: validación de archivos)
+                    if isinstance(response, JsonResponse):
+                        return response
+                    
+                    # También verificar si es HttpResponse con content-type json
+                    if response.get('Content-Type') == 'application/json':
+                        return response
+
                     return JsonResponse({
                         'error': 'La solicitud no pudo procesarse. Por favor, intenta nuevamente.',
                         'status': 400
@@ -223,6 +232,13 @@ class ErrorHandlingMiddleware(MiddlewareMixin):
             # 403 Forbidden
             elif response.status_code == 403:
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    # Si la respuesta ya es JSON y tiene contenido, NO reemplazarla
+                    if isinstance(response, JsonResponse):
+                        return response
+                    
+                    if response.get('Content-Type') == 'application/json':
+                        return response
+
                     return JsonResponse({
                         'error': 'No tienes permiso para acceder a este recurso.',
                         'status': 403
