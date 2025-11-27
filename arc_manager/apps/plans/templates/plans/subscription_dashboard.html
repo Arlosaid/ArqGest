@@ -431,10 +431,26 @@
                     <h3><i class="fas fa-headset"></i> ¿Necesitas ayuda?</h3>
                 </div>
                 <div class="card-body">
-                    <p>Si tienes preguntas sobre tu plan o necesitas asistencia, contáctanos:</p>
-                    <div class="support-info">
-                        <div class="support-row"><i class="fas fa-phone"></i> <span class="label">Teléfono:</span> <span class="value">{{ support_phone }}</span></div>
-                        <div class="support-row"><i class="fas fa-envelope"></i> <span class="label">Correo:</span> <span class="value">{{ support_email }}</span></div>
+                    <p style="margin-bottom: 1rem;">Si tienes preguntas sobre tu plan o necesitas asistencia, contáctanos:</p>
+                    <div class="support-info" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div class="support-row" style="display: flex; align-items: center; padding: 1rem; background: var(--arc-bg-secondary); border-radius: var(--arc-border-radius-sm); border: 1px solid var(--arc-border-color);">
+                            <div style="background: var(--arc-color-primary); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 1rem; flex-shrink: 0;">
+                                <i class="fas fa-phone"></i>
+                            </div>
+                            <div>
+                                <span class="label" style="display: block; font-size: 0.875rem; color: var(--arc-text-secondary); margin-bottom: 0.25rem;">Teléfono</span>
+                                <span class="value" style="font-size: 1.1rem; font-weight: 600; color: var(--arc-text-primary);">{{ support_phone }}</span>
+                            </div>
+                        </div>
+                        <div class="support-row" style="display: flex; align-items: center; padding: 1rem; background: var(--arc-bg-secondary); border-radius: var(--arc-border-radius-sm); border: 1px solid var(--arc-border-color);">
+                            <div style="background: var(--arc-color-primary); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 1rem; flex-shrink: 0;">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <div>
+                                <span class="label" style="display: block; font-size: 0.875rem; color: var(--arc-text-secondary); margin-bottom: 0.25rem;">Correo</span>
+                                <span class="value" style="font-size: 1.1rem; font-weight: 600; color: var(--arc-text-primary); word-break: break-all;">{{ support_email }}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -100,11 +100,11 @@ class TestSubscriptionCacheInvalidation:
         assert cached_value is not None
         assert cached_value['total_gb'] == 10
         
-        # 4. Crear plan básico (25 GB)
+        # 4. Crear plan básico (100 GB)
         basic_plan = Plan.objects.create(
             name='basic',
             display_name='Basic Plan',
-            max_storage_gb=25,
+            max_storage_gb=100,
             max_users=3,
             billing_cycle_days=30,
             is_active=True
@@ -124,12 +124,12 @@ class TestSubscriptionCacheInvalidation:
             "El cache de storage debería haberse invalidado al cambiar de plan"
         )
         
-        # 7. Verificar que el nuevo límite es correcto (25 GB)
+        # 7. Verificar que el nuevo límite es correcto (100 GB)
         org.refresh_from_db()
         subscription.refresh_from_db()
         new_limit = org.get_total_storage_limit_gb()
-        assert new_limit == 25, (
-            f"El límite debería ser 25 GB (del plan basic), pero es {new_limit} GB"
+        assert new_limit == 100, (
+            f"El límite debería ser 100 GB (del plan basic), pero es {new_limit} GB"
         )
     
     def test_cache_invalidated_when_updating_subscription_plan_directly(self):
@@ -164,7 +164,7 @@ class TestSubscriptionCacheInvalidation:
         basic_plan = Plan.objects.create(
             name='basic',
             display_name='Basic Plan',
-            max_storage_gb=25,
+            max_storage_gb=100,
             max_users=3,
             is_active=True
         )
@@ -182,7 +182,7 @@ class TestSubscriptionCacheInvalidation:
         # 6. Verificar nuevo límite
         org.refresh_from_db()
         new_limit = org.get_total_storage_limit_gb()
-        assert new_limit == 25
+        assert new_limit == 100
     
     def test_dashboard_stats_cache_also_invalidated(self):
         """

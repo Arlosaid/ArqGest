@@ -57,7 +57,7 @@ class TestPlanCreation:
             display_name='Plan Básico',
             price=Decimal('299.00'),
             max_users=3,
-            max_storage_gb=25,
+            max_storage_gb=100,
             trial_days=0,
             billing_cycle_days=30,
             is_active=True
@@ -209,11 +209,11 @@ class TestPlanProperties:
     
     def test_get_feature_list_includes_storage(self):
         """get_feature_list debe incluir almacenamiento"""
-        plan = PlanFactory(max_users=3, max_storage_gb=25)
+        plan = PlanFactory(max_users=3, max_storage_gb=100)
         
         features = plan.get_feature_list()
         
-        assert any('25 gb' in f.lower() for f in features)
+        assert any('100 gb' in f.lower() for f in features)
     
     def test_get_feature_list_singular_user(self):
         """get_feature_list debe usar singular para 1 usuario"""

@@ -136,7 +136,7 @@ org.get_founder_price(original_price=350)  # Debe retornar 199 (ignora el origin
 - ✅ Límite total calculado correctamente:
   - Sin subscription: 10 GB (fallback) + 100 GB = **110 GB**
   - Con plan trial (10 GB): 10 + 100 = **110 GB**
-  - Con plan básico (25 GB): 25 + 100 = **125 GB**
+  - Con plan básico (100 GB): 100 + 100 = **200 GB**
 
 **Verificación manual:**
 ```python
@@ -721,7 +721,7 @@ org.users.count()  # Cuenta usuarios normales
 |-----------|---------------|----------------------|
 | 10 GB (fallback sin plan) | 0 GB | **10 GB** |
 | 10 GB (trial) | +50 GB | **60 GB** |
-| 25 GB (básico) | +100 GB | **125 GB** |
+| 100 GB (básico) | +100 GB | **200 GB** |
 | 10 GB | -5 GB | **5 GB** ✅ (reducción permitida) |
 | 10 GB | -20 GB | **0 GB** ✅ (nunca negativo - FIX aplicado) |
 
@@ -1114,9 +1114,9 @@ redis-cli TTL org_user_count:1
 
 **Reproducción:**
 1. Crear organización nueva → se crea con 10 GB (fallback)
-2. Asignar suscripción con plan de 25 GB
+2. Asignar suscripción con plan de 100 GB
 3. Ver dashboard → ❌ Sigue mostrando 10 GB (valor cacheado)
-4. Subir un archivo → ✅ Ahora sí muestra 25 GB
+4. Subir un archivo → ✅ Ahora sí muestra 100 GB
 
 **Causa raíz:** El método `save()` de `Subscription` no invalidaba el cache de almacenamiento cuando se creaba o modificaba el plan.
 
@@ -1148,8 +1148,8 @@ def save(self, *args, **kwargs):
 **Cómo probar manualmente:**
 1. Crear organización nueva en `/admin/orgs/organization/`
 2. Ir al dashboard → Verificar que muestra 10 GB (fallback)
-3. Ir a `/admin/plans/subscription/` y crear suscripción con plan básico (25 GB)
-4. **Volver al dashboard inmediatamente** → ✅ Debe mostrar 25 GB sin recargar
+3. Ir a `/admin/plans/subscription/` y crear suscripción con plan básico (100 GB)
+4. **Volver al dashboard inmediatamente** → ✅ Debe mostrar 100 GB sin recargar
 5. Cambiar a otro plan desde el admin
 6. **Volver al dashboard inmediatamente** → ✅ Debe mostrar el nuevo límite sin recargar
 
