@@ -2,51 +2,66 @@
 <div class="tasks-compact-grid" id="compactTasksGrid">
     {% for task in tasks_page_obj.object_list %}
     <div class="task-compact-card" data-phase-id="{{ task.phase_id }}" data-task-id="{{ task.id }}">
-        <div class="task-compact-header">
-            <h6 class="task-compact-title">{{ task.title }}</h6>
-            <div class="task-compact-priority {% if task.priority == 'HIGH' %}high{% elif task.priority == 'MEDIUM' %}medium{% else %}low{% endif %}"></div>
+        <!-- Header: Title & Status -->
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <div class="d-flex align-items-start gap-2" style="flex: 1; min-width: 0;">
+                <div class="task-compact-priority {% if task.priority == 'HIGH' %}high{% elif task.priority == 'MEDIUM' %}medium{% else %}low{% endif %} mt-1" title="Prioridad: {{ task.get_priority_display }}"></div>
+                <h6 class="task-compact-title text-truncate" title="{{ task.title }}">{{ task.title }}</h6>
+            </div>
+            <span class="task-compact-status {% if task.status == 'DONE' %}done{% elif task.status == 'IN_PROGRESS' %}in-progress{% elif task.status == 'PAUSED' %}paused{% else %}todo{% endif %}">
+                {{ task.get_status_display }}
+            </span>
         </div>
         
-        <div class="task-compact-meta">
-            <div class="task-compact-phase">
-                <i class="fas fa-layer-group"></i>
-                <span>{{ task.phase.name }}</span>
+        <!-- Meta Info: Phase & Date -->
+        <div class="task-compact-meta mb-2">
+            <div class="task-compact-phase" title="Fase: {{ task.phase.name }}">
+                <i class="fas fa-layer-group text-muted small"></i>
+                <span>{{ task.phase.name|truncatechars:20 }}</span>
             </div>
             {% if task.due_date %}
-            <div class="task-compact-date {% if task.due_date < today %}overdue{% elif task.is_due_soon %}due-soon{% endif %}">
-                <i class="fas fa-calendar"></i>
-                <span>{{ task.due_date|date:'d/m/Y' }}</span>
+            <div class="task-compact-date {% if task.due_date < today %}overdue{% elif task.is_due_soon %}due-soon{% endif %}" title="Vence: {{ task.due_date|date:'d/m/Y' }}">
+                <i class="fas fa-calendar-alt small"></i>
+                <span>{{ task.due_date|date:'d/m' }}</span>
             </div>
             {% endif %}
         </div>
         
-        <div class="task-compact-footer">
-            <span class="task-compact-status {% if task.status == 'DONE' %}done{% elif task.status == 'IN_PROGRESS' %}in-progress{% elif task.status == 'PAUSED' %}paused{% else %}todo{% endif %}">
-                {{ task.get_status_display }}
-            </span>
+        <!-- Footer: Assignee & Actions -->
+        <div class="task-compact-assignee">
+            {% if task.assigned_to %}
+                <div class="assignee-avatar" title="Asignado a: {{ task.assigned_to.get_full_name }}">
+                    {{ task.assigned_to.first_name|slice:":1" }}{{ task.assigned_to.last_name|slice:":1" }}
+                </div>
+                <span class="assignee-name text-truncate" style="max-width: 100px;" title="{{ task.assigned_to.get_full_name }}">
+                    {{ task.assigned_to.first_name }} {{ task.assigned_to.last_name|slice:":1" }}.
+                </span>
+            {% else %}
+                <div class="unassigned-badge" title="Sin responsable asignado">
+                    <i class="far fa-user-circle"></i>
+                    <span>Sin asignar</span>
+                </div>
+            {% endif %}
 
-            <div class="task-simple-actions">
-                <button type="button" class="btn-action btn-view" 
+            <div class="task-compact-actions">
+                <button type="button" class="btn-icon-action view" 
                         onclick="openTaskModal('detail', {{ task.pk }})"
                         title="Ver detalles">
                     <i class="fas fa-eye"></i>
-                    <span>Ver detalles</span>
                 </button>
                 {% if user.is_org_admin %}
-                <button type="button" class="btn-action btn-edit" 
+                <button type="button" class="btn-icon-action edit" 
                         onclick="openTaskModal('edit', {{ task.pk }})"
                         title="Editar">
-                    <i class="fas fa-edit"></i>
-                    <span>Editar</span>
+                    <i class="fas fa-pen"></i>
                 </button>
-                {% endif %}
-                {% if user.is_org_admin %}
-                <button type="button" class="btn-action btn-delete" 
+                <button type="button" class="btn-icon-action delete" 
                         data-action="delete-task" 
                         data-task-id="{{ task.id }}"
+                        data-task-title="{{ task.title }}"
+                        data-task-description="{{ task.description|default:''|truncatewords:20 }}"
                         title="Eliminar">
                     <i class="fas fa-trash-alt"></i>
-                    <span>Eliminar</span>
                 </button>
                 {% endif %}
             </div>

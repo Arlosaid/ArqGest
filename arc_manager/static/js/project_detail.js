@@ -154,6 +154,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!btn) return;
     const id = btn.getAttribute('data-bs-target').replace('#', '');
     showTabById(id);
+    
+    // Actualizar URL sin recargar para mantener la pestaña activa al refrescar
+    history.replaceState(null, null, `#${id}`);
   });
 
   tabContainer.addEventListener('shown.bs.tab', (e) => {
@@ -168,66 +171,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  document.addEventListener('click', async function (e) {
-    const btn = e.target.closest('[data-action="delete-task"][data-task-id]');
-    if (!btn) return;
-    e.preventDefault();
-    const taskId = btn.getAttribute('data-task-id');
-    if (!taskId) return;
-
-    // Obtener información de la tarea para el modal
-    const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
-    const taskTitle = taskElement?.querySelector('.task-title')?.textContent?.trim() || 
-                      taskElement?.textContent?.trim() || 
-                      'esta tarea';
-
-    // Mostrar modal de confirmación usando el sistema unificado
-    ConfirmationModals.deleteTask({
-        taskId: taskId,
-        taskTitle: taskTitle,
-        taskDescription: '',
-        onConfirm: async () => {
-            await performTaskDeletionFromDetail(taskId);
-        }
-    });
-  });
-
-  async function performTaskDeletionFromDetail(taskId) {
-    try {
-      const res = await fetch(`/projects/tasks/${taskId}/delete/`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': (document.querySelector('[name=csrfmiddlewaretoken]')||{}).value || '' }
-      });
-      const ok = res.ok;
-      if (ok) {
-        // Buscar el elemento de tarea (puede ser tr, div, etc.)
-        const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
-        if (taskElement) {
-          // Añadir animación de salida
-          taskElement.style.transition = 'all 0.3s ease';
-          taskElement.style.opacity = '0';
-          taskElement.style.transform = 'scale(0.8)';
-          setTimeout(() => taskElement.remove(), 300);
-        }
-        
-        // Disparar evento para actualizar otras vistas
-        document.dispatchEvent(new CustomEvent('taskDeleted', { detail: { taskId } }));
-        
-        if (window.notifications) {
-          window.notifications.success('Tarea eliminada correctamente');
-        }
-      } else {
-        if (window.notifications) {
-          window.notifications.error('Error al eliminar');
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      if (window.notifications) {
-        window.notifications.error('Error al eliminar');
-      }
-    }
-  });
+  // NOTA: La eliminación de tareas ahora es manejada por task-delete.js (sistema unificado)
+  // No necesitamos un listener duplicado aquí que cause dobles modales
 
   // Configurar paginación de tareas responsive
   function setupTasksPagination() {
@@ -243,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function () {
     
     // Función para cargar página
     async function loadTasksPage(page = 1, phaseFilter = '') {
-      const perPage = isMobile() ? 5 : 9;
+      const perPage = isMobile() ? 6 : 12;
       const params = new URLSearchParams({
         page: page,
         per_page: perPage,
@@ -255,7 +200,12 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!response.ok) throw new Error('Error en la respuesta');
         
         const html = await response.text();
-        tasksContainer.innerHTML = html;
+        
+        // Verificar que tasksContainer existe antes de actualizar
+        const container = document.getElementById('tasksContainer');
+        if (container) {
+          container.innerHTML = html;
+        }
         
         // Re-configurar event listeners después de cargar contenido
         setupPaginationEvents();
@@ -322,7 +272,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (projectId && paginatedUrl) {
         // Recargar primera página
         const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
-        const perPage = isMobile() ? 5 : 9;
+        const perPage = isMobile() ? 6 : 12;
         const params = new URLSearchParams({
           page: 1,
           per_page: perPage,
@@ -332,8 +282,12 @@ document.addEventListener('DOMContentLoaded', function () {
         fetch(`${paginatedUrl}?${params}`)
           .then(response => response.text())
           .then(html => {
-            tasksContainer.innerHTML = html;
-            setupTasksPagination();
+            // Verificar que tasksContainer existe antes de actualizar
+            const container = document.getElementById('tasksContainer');
+            if (container) {
+              container.innerHTML = html;
+              setupTasksPagination();
+            }
           })
           .catch(error => console.error('Error recargando tareas:', error));
       }
@@ -345,6 +299,9 @@ document.addEventListener('DOMContentLoaded', function () {
   
   // Recargar tareas después de actualizar una tarea
   document.addEventListener('taskUpdated', reloadTasks);
+  
+  // Recargar tareas después de eliminar una tarea
+  document.addEventListener('taskDeleted', reloadTasks);
 });
 
 // Función global para actualizar el estado de las tareas
@@ -369,7 +326,7 @@ async function updateTaskStatus(taskId, newStatus) {
         
         if (projectId && paginatedUrl) {
           const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
-          const perPage = isMobile() ? 5 : 9;
+          const perPage = isMobile() ? 6 : 12;
           const currentPage = document.querySelector('.pagination .page-item.active .page-link');
           const page = currentPage ? currentPage.textContent.trim() : '1';
           
@@ -382,7 +339,12 @@ async function updateTaskStatus(taskId, newStatus) {
           const reloadResponse = await fetch(`${paginatedUrl}?${params}`);
           if (reloadResponse.ok) {
             const html = await reloadResponse.text();
-            tasksContainer.innerHTML = html;
+            
+            // Verificar que tasksContainer existe antes de actualizar
+            const container = document.getElementById('tasksContainer');
+            if (container) {
+              container.innerHTML = html;
+            }
             
             // Re-configurar event listeners después de cargar contenido
             const setupPaginationEvents = () => {

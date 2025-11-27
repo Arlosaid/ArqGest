@@ -138,7 +138,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </thead>
                     <tbody>
                         {% for template in templates %}
-                        <tr>
+                        <tr data-template-id="{{ template.pk }}" data-phases="{{ template.phases|length }}">
                             <td>
                                 <div class="template-info">
                                     <div class="template-avatar">
@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <td>
                                 <span class="phases-count">
                                     <i class="fas fa-list-ul"></i>
-                                    {{ template.phases.count }} fase{{ template.phases.count|pluralize }}
+                                    {{ template.phases|length }} fase{{ template.phases|length|pluralize }}
                                 </span>
                             </td>
                             <td>

@@ -5,8 +5,9 @@
 {% block title %}{% trans "Mis Tareas" %} - ArqGest{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/tasks.css' %}?v=1.2" rel="stylesheet">
-<link href="{% static 'css/my_tasks_page.css' %}?v=2.3" rel="stylesheet">
+<link href="{% static 'css/tasks.css' %}?v=1.4" rel="stylesheet">
+<link href="{% static 'css/my_tasks_page.css' %}?v=2.6" rel="stylesheet">
+<link href="{% static 'css/project_list.css' %}?v=6.2" rel="stylesheet">
 <!-- Modal de Detalles de Tareas con Estilos Mejorados -->
 <link href="{% static 'css/task_detail_modal.css' %}?v=3.0" rel="stylesheet">
 {% endblock %}
@@ -14,169 +15,195 @@
 {% block content %}
 <div class="page-container">
     
-    <div class="my-tasks-header">
+    <!-- Header Section (estilo unificado) -->
+    <div class="header-section">
         <div class="header-content">
-            <h1><i class="fas fa-user-check"></i> {% trans "Mis Tareas" %}</h1>
-            <p class="header-subtitle">{% trans "Gestiona y revisa tus tareas asignadas" %}</p>
-        </div>
-
-        <div class="stats-compact">
-            <div class="stat-item stat-total">
-                <div class="stat-number">{{ total_tasks|default:"0" }}</div>
-                <div class="stat-label">{% trans "Total" %}</div>
-            </div>
-            <div class="stat-item stat-todo">
-                <div class="stat-number">{{ tasks_todo|default:"0" }}</div>
-                <div class="stat-label">{% trans "Pendientes" %}</div>
-            </div>
-            <div class="stat-item stat-progress">
-                <div class="stat-number">{{ tasks_in_progress|default:"0" }}</div>
-                <div class="stat-label">{% trans "En Curso" %}</div>
-            </div>
-            <div class="stat-item stat-paused">
-                <div class="stat-number">{{ tasks_paused|default:"0" }}</div>
-                <div class="stat-label">{% trans "Pausadas" %}</div>
-            </div>
-            <div class="stat-item stat-done">
-                <div class="stat-number">{{ tasks_done|default:"0" }}</div>
-                <div class="stat-label">{% trans "Completadas" %}</div>
+            <div class="header-title">
+                <div class="header-icon">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div>
+                    <h1>{% trans "Mis Tareas" %}</h1>
+                    <div class="text-muted">{% trans "Gestiona y revisa tus tareas asignadas" %}</div>
+                </div>
             </div>
         </div>
-
     </div>
-    
-    <!-- Filtros mejorados -->
-    <div class="search-and-filters">
-        <div class="search-section">
-            <div class="search-box-enhanced">
-                <i class="fas fa-search"></i>
-                <input type="text" id="taskSearch" placeholder="{% trans 'Buscar tareas, proyectos o fases...' %}" class="search-input-enhanced">
-                <button type="button" class="search-clear" id="clearSearch" style="display: none;">
-                    <i class="fas fa-times"></i>
-                </button>
+
+    <!-- Stats Section -->
+    <div class="stats-overview-section">
+        <div class="stat-card-modern total">
+            <div class="stat-icon-wrapper">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value" id="stat-total">{{ total_tasks|default:"0" }}</span>
+                <span class="stat-label">{% trans "Total" %}</span>
             </div>
         </div>
         
-        <div class="filters-section">
-            <div class="filter-pills">
-                <div class="filter-pill">
-                    <select id="statusFilter" class="filter-select-modern">
-                        <option value="">{% trans "Todos los estados" %}</option>
-                        <option value="TODO">📋 {% trans "Pendientes" %}</option>
-                        <option value="IN_PROGRESS">⚡ {% trans "En Progreso" %}</option>
-                        <option value="PAUSED">⏸️ {% trans "Pausadas" %}</option>
-                        <option value="DONE">✅ {% trans "Completadas" %}</option>
-                    </select>
-                </div>
-                
-                <div class="filter-pill">
-                    <select id="priorityFilter" class="filter-select-modern">
-                        <option value="">{% trans "Todas las prioridades" %}</option>
-                        <option value="HIGH">🔴 {% trans "Alta" %}</option>
-                        <option value="MEDIUM">🟡 {% trans "Media" %}</option>
-                        <option value="LOW">🟢 {% trans "Baja" %}</option>
-                    </select>
-                </div>
-
-                <div class="filter-pill">
-                    <button type="button" id="clearFiltersBtn" class="clear-filters-btn">
-                        <i class="fas fa-eraser"></i>
-                        <span>{% trans "Limpiar filtros" %}</span>
-                    </button>
-                </div>
+        <div class="stat-card-modern todo">
+            <div class="stat-icon-wrapper">
+                <i class="fas fa-clock"></i>
             </div>
+            <div class="stat-info">
+                <span class="stat-value" id="stat-todo">{{ tasks_todo|default:"0" }}</span>
+                <span class="stat-label">{% trans "Pendientes" %}</span>
+            </div>
+        </div>
+
+        <div class="stat-card-modern in-progress">
+            <div class="stat-icon-wrapper">
+                <i class="fas fa-play"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value" id="stat-in-progress">{{ tasks_in_progress|default:"0" }}</span>
+                <span class="stat-label">{% trans "En Curso" %}</span>
+            </div>
+        </div>
+
+        <div class="stat-card-modern paused">
+            <div class="stat-icon-wrapper">
+                <i class="fas fa-pause"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value" id="stat-paused">{{ tasks_paused|default:"0" }}</span>
+                <span class="stat-label">{% trans "Pausadas" %}</span>
+            </div>
+        </div>
+
+        <div class="stat-card-modern done">
+            <div class="stat-icon-wrapper">
+                <i class="fas fa-check"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value" id="stat-done">{{ tasks_done|default:"0" }}</span>
+                <span class="stat-label">{% trans "Completadas" %}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controls Section -->
+    <div class="controls-toolbar-section">
+        <div class="search-box-wrapper">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" 
+                   id="taskSearch"
+                   class="search-input-modern" 
+                   placeholder="{% trans 'Buscar tareas...' %}" 
+                   value="{{ request.GET.search|default:'' }}">
+            <button type="button" class="clear-search-btn" id="clearSearch" style="display: none;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="filters-wrapper">
+            <select id="statusFilter" class="filter-select-modern">
+                <option value="">{% trans "Estado: Todos" %}</option>
+                <option value="TODO" {% if request.GET.status == 'TODO' %}selected{% endif %}>{% trans "Pendientes" %}</option>
+                <option value="IN_PROGRESS" {% if request.GET.status == 'IN_PROGRESS' %}selected{% endif %}>{% trans "En Progreso" %}</option>
+                <option value="PAUSED" {% if request.GET.status == 'PAUSED' %}selected{% endif %}>{% trans "Pausadas" %}</option>
+                <option value="DONE" {% if request.GET.status == 'DONE' %}selected{% endif %}>{% trans "Completadas" %}</option>
+            </select>
+
+            <select id="priorityFilter" class="filter-select-modern">
+                <option value="">{% trans "Prioridad: Todas" %}</option>
+                <option value="HIGH" {% if request.GET.priority == 'HIGH' %}selected{% endif %}>{% trans "Alta" %}</option>
+                <option value="MEDIUM" {% if request.GET.priority == 'MEDIUM' %}selected{% endif %}>{% trans "Media" %}</option>
+                <option value="LOW" {% if request.GET.priority == 'LOW' %}selected{% endif %}>{% trans "Baja" %}</option>
+            </select>
+
+            <button type="button" id="clearFiltersBtn" class="btn-clear-filters" title="{% trans 'Limpiar filtros' %}">
+                <i class="fas fa-times-circle"></i>
+                <span>{% trans "Limpiar" %}</span>
+            </button>
         </div>
     </div>
 
     {% if tasks %}
         <div id="tasksList" class="tasks-grid-compact">
             {% for task in tasks %}
-                <div class="task-card-compact" data-task-id="{{ task.pk }}" data-status="{{ task.status }}" data-priority="{{ task.priority }}" data-project="{{ task.phase.project.name|lower }}" data-project-id="{{ task.phase.project.id }}" data-phase="{{ task.phase.name|lower }}">
+                <div class="task-compact-card" data-task-id="{{ task.pk }}" data-status="{{ task.status }}" data-priority="{{ task.priority }}" data-project="{{ task.phase.project.name|lower }}" data-project-id="{{ task.phase.project.id }}" data-phase="{{ task.phase.name|lower }}">
                     
-                    <div class="task-card-top">
-                        <div class="task-badges-compact">
-                            <span class="badge-status badge-{{ task.status|lower }}">{{ task.get_status_display }}</span>
-                            <span class="badge-priority badge-priority-{{ task.priority|lower }}">{{ task.get_priority_display }}</span>
+                    <!-- Header: Title & Status -->
+                    <div class="task-compact-header">
+                        <div class="task-compact-title-wrapper">
+                            <div class="task-compact-priority {% if task.priority == 'HIGH' %}high{% elif task.priority == 'MEDIUM' %}medium{% else %}low{% endif %}" title="Prioridad: {{ task.get_priority_display }}"></div>
+                            <h6 class="task-compact-title" title="{{ task.title }}">{{ task.title }}</h6>
                         </div>
-                        {% if task.due_date and task.due_date < today %}
-                            <div class="overdue-indicator" title="{% trans 'Tarea vencida' %}">
-                                <i class="fas fa-exclamation-triangle"></i>
-                            </div>
+                        <span class="task-compact-status {% if task.status == 'DONE' %}done{% elif task.status == 'IN_PROGRESS' %}in-progress{% elif task.status == 'PAUSED' %}paused{% else %}todo{% endif %}">
+                            {{ task.get_status_display }}
+                        </span>
+                    </div>
+                    
+                    <!-- Meta Info: Project, Phase & Date -->
+                    <div class="task-compact-meta">
+                        <div class="task-compact-project" title="Proyecto: {{ task.phase.project.name }}">
+                            <i class="fas fa-folder"></i>
+                            <span>{{ task.phase.project.name|truncatechars:20 }}</span>
+                        </div>
+                        <div class="task-compact-phase" title="Fase: {{ task.phase.name }}">
+                            <i class="fas fa-layer-group"></i>
+                            <span>{{ task.phase.name|truncatechars:20 }}</span>
+                        </div>
+                        {% if task.due_date %}
+                        <div class="task-compact-date {% if task.due_date < today %}overdue{% elif task.is_due_soon %}due-soon{% endif %}" title="Vence: {{ task.due_date|date:'d/m/Y' }}">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>{{ task.due_date|date:'d/m' }}</span>
+                        </div>
                         {% endif %}
                     </div>
-
-                    <div class="task-card-content">
-                        <h4 class="task-title-compact">{{ task.title }}</h4>
-                        
-                        <div class="task-meta-compact">
-                            <div class="meta-item">
-                                <i class="fas fa-folder"></i>
-                                <span>{{ task.phase.project.name }}</span>
-                            </div>
-                            <div class="meta-item">
-                                <i class="fas fa-layer-group"></i>
-                                <span>{{ task.phase.name }}</span>
-                            </div>
-                            <div class="meta-item">
-                                <i class="fas fa-user-circle"></i>
-                                <span title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.email }}{% else %}Sin asignar{% endif %}">
-                                    {% if task.assigned_to %}
-                                        {{ task.assigned_to.get_full_name|default:task.assigned_to.email }}
-                                    {% else %}
-                                        {% trans "Sin asignar" %}
-                                    {% endif %}
+                    
+                    <!-- Footer: Assignee & Actions -->
+                    <div class="task-compact-footer">
+                        <div class="task-compact-assignee">
+                            {% if task.assigned_to %}
+                                <div class="assignee-avatar" title="Asignado a: {{ task.assigned_to.get_full_name }}">
+                                    {{ task.assigned_to.first_name|slice:":1" }}{{ task.assigned_to.last_name|slice:":1" }}
+                                </div>
+                                <span class="assignee-name" title="{{ task.assigned_to.get_full_name }}">
+                                    {{ task.assigned_to.first_name }} {{ task.assigned_to.last_name|slice:":1" }}.
                                 </span>
-                            </div>
-                            {% if task.due_date %}
-                                <div class="meta-item meta-date {% if task.due_date < today %}overdue{% endif %}">
-                                    <i class="fas fa-calendar"></i>
-                                    <span>{{ task.due_date|date:"d/m/Y" }}</span>
+                            {% else %}
+                                <div class="unassigned-badge" title="Sin responsable asignado">
+                                    <i class="far fa-user-circle"></i>
+                                    <span>Sin asignar</span>
                                 </div>
                             {% endif %}
                         </div>
-                    </div>
 
-                    <div class="task-card-actions">
-
-                        <div class="status-actions">
-                            <button type="button" class="action-btn action-detail" 
+                        <div class="task-compact-actions status-actions">
+                            <button type="button" class="btn-icon-action view action-detail" 
                                     onclick="openTaskModal('detail', {{ task.pk }})"
                                     title="{% trans 'Ver detalles' %}">
                                 <i class="fas fa-eye"></i>
                             </button>
-                            {% if user.is_org_admin %}
-                            <button type="button" class="action-btn action-edit" 
-                                    onclick="openTaskModal('edit', {{ task.pk }})"
-                                    title="{% trans 'Editar tarea' %}">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            {% endif %}
                             
                             {% if task.status == 'TODO' %}
-                                <button type="button" class="action-btn action-start" 
+                                <button type="button" class="btn-icon-action edit action-start" 
                                         onclick="updateTaskStatus({{ task.pk }}, 'IN_PROGRESS')"
                                         title="{% trans 'Iniciar tarea' %}">
                                     <i class="fas fa-play"></i>
                                 </button>
                             {% elif task.status == 'IN_PROGRESS' %}
-                                <button type="button" class="action-btn action-pause" 
+                                <button type="button" class="btn-icon-action edit action-pause" 
                                         onclick="updateTaskStatus({{ task.pk }}, 'PAUSED')"
                                         title="{% trans 'Pausar tarea' %}">
                                     <i class="fas fa-pause"></i>
                                 </button>
-                                <button type="button" class="action-btn action-complete" 
+                                <button type="button" class="btn-icon-action delete action-complete" 
                                         onclick="updateTaskStatus({{ task.pk }}, 'DONE')"
                                         title="{% trans 'Completar tarea' %}">
                                     <i class="fas fa-check"></i>
                                 </button>
                             {% elif task.status == 'PAUSED' %}
-                                <button type="button" class="action-btn action-resume" 
+                                <button type="button" class="btn-icon-action edit action-resume" 
                                         onclick="updateTaskStatus({{ task.pk }}, 'IN_PROGRESS')"
                                         title="{% trans 'Reanudar tarea' %}">
                                     <i class="fas fa-play"></i>
                                 </button>
                             {% elif task.status == 'DONE' %}
-                                <button type="button" class="action-btn action-reopen" 
+                                <button type="button" class="btn-icon-action edit action-reopen" 
                                         onclick="updateTaskStatus({{ task.pk }}, 'IN_PROGRESS')"
                                         title="{% trans 'Reabrir tarea' %}">
                                     <i class="fas fa-undo"></i>
@@ -184,7 +211,7 @@
                             {% endif %}
                             
                             <a href="{% url 'projects:project-kanban' task.phase.project.id %}" 
-                               class="action-btn action-kanban"
+                               class="btn-icon-action view action-kanban"
                                title="{% trans 'Ir al Kanban' %}">
                                 <i class="fas fa-columns"></i>
                             </a>
@@ -213,5 +240,5 @@
 
 {% block extra_js %}
 <script src="{% static 'js/tasks.js' %}?v=1.1"></script>
-<script src="{% static 'js/my_tasks_page.js' %}?v=2.3"></script>
+<script src="{% static 'js/my_tasks_page.js' %}?v=2.4"></script>
 {% endblock %}

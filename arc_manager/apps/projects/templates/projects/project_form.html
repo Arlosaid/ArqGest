@@ -78,8 +78,17 @@
                         <label for="{{ form.client.id_for_label }}" class="form-label">
                             <i class="fas fa-user-tie"></i> {{ form.client.label }}
                         </label>
-                        {{ form.client }}
-                        {{ form.client.errors }}
+                        <div class="d-flex gap-2 align-items-stretch">
+                            <div class="flex-grow-1">
+                                {{ form.client }}
+                                {{ form.client.errors }}
+                            </div>
+                            {% if not form.instance.pk %}
+                            <button type="button" class="btn-primary-prominent" data-bs-toggle="modal" data-bs-target="#quickClientModal" style="white-space: nowrap;">
+                                <i class="fas fa-plus"></i> {% trans "Nuevo" %}
+                            </button>
+                            {% endif %}
+                        </div>
                         <div class="form-text">{% trans "Cliente asociado al proyecto" %}</div>
                     </div>
 
@@ -243,18 +252,27 @@
                     <i class="fas fa-layer-group"></i> {% trans "Editar Fases" %}
                 </a>
                 {% endif %}
-                <a href="{% url 'projects:project-list' %}" class="btn btn-secondary">
+                <a href="{% if form.instance.pk %}{% url 'projects:project-detail' form.instance.pk %}{% else %}{% url 'projects:project-list' %}{% endif %}" class="btn btn-secondary">
                     <i class="fas fa-times"></i> {% trans "Cancelar" %}
                 </a>
             </div>
         </form>
     </div>
 </div>
+
+{% if not form.instance.pk %}
+{% include "projects/partials/quick_client_modal.html" %}
+{% endif %}
+
 {% endblock content %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
 <script src="{% static 'js/projects.js' %}?v=1.0"></script>
+<script>
+    // Pass the client creation URL to JavaScript
+    window.CLIENT_CREATE_URL = "{% url 'orgs:client_create' %}";
+</script>
 <script src="{% static 'js/project_form.js' %}?v=1.0"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {

@@ -91,6 +91,7 @@ class ClientCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         """
         Assign the organization from the logged-in user to the client.
+        Handle both regular form submission and AJAX requests.
         """
         form.instance.organization = self.request.user.organization
         try:
@@ -110,6 +111,18 @@ class ClientCreateView(LoginRequiredMixin, CreateView):
                 created_by=self.request.user.email
             )
             
+            # Handle AJAX requests (for quick client creation)
+            if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'client': {
+                        'id': self.object.id,
+                        'name': self.object.name,
+                        'email': self.object.email or '',
+                        'phone_number': self.object.phone_number or '',
+                    }
+                })
+            
             messages.success(self.request, "Cliente creado con éxito.")
             return response
             
@@ -124,6 +137,14 @@ class ClientCreateView(LoginRequiredMixin, CreateView):
                 created_by=self.request.user.email,
                 exception_type=str(type(e).__name__)
             )
+            
+            # Handle AJAX requests
+            if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Ya existe un cliente con este nombre en tu organización.'
+                }, status=400)
+            
             form.add_error('name', 'Ya existe un cliente con este nombre en tu organización.')
             return self.form_invalid(form)
             
@@ -138,8 +159,29 @@ class ClientCreateView(LoginRequiredMixin, CreateView):
                 created_by=self.request.user.email,
                 exception_type=str(type(e).__name__)
             )
+            
+            # Handle AJAX requests
+            if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Ha ocurrido un error inesperado al crear el cliente.'
+                }, status=500)
+            
             messages.error(self.request, "Ha ocurrido un error inesperado al crear el cliente. Por favor, contacta con soporte técnico.")
             return self.form_invalid(form)
+    
+    def form_invalid(self, form):
+        """Handle AJAX requests for invalid forms."""
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            errors = {}
+            for field, error_list in form.errors.items():
+                errors[field] = [str(e) for e in error_list]
+            return JsonResponse({
+                'success': False,
+                'error': 'Formulario inválido. Por favor, revisa los datos ingresados.',
+                'errors': errors
+            }, status=400)
+        return super().form_invalid(form)
 
 class ClientUpdateView(LoginRequiredMixin, ClientOwnerMixin, UpdateView):
     model = Client

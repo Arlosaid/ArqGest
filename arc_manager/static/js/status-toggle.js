@@ -78,17 +78,9 @@ class StatusToggleManager {
                 // Actualizar contadores si existen
                 this.updateCounters(data);
                 
-                // Si es un proyecto y hay filtros activos, recargar la página para actualizar la vista
+                // Si es un proyecto, manejar la visibilidad según los filtros actuales
                 if (entityType === 'project') {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const hasFilters = urlParams.get('status') || urlParams.get('search');
-                    
-                    if (hasFilters) {
-                        // Recargar la página después de un breve delay para que se vea la notificación
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 800);
-                    }
+                    this.handleProjectVisibility(toggle, newStatus);
                 }
                 
             } else {
@@ -216,26 +208,92 @@ class StatusToggleManager {
         setTimeout(() => toggle.classList.remove('toggle-animation'), 300);
     }
 
+    handleProjectVisibility(toggle, newStatus) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentFilter = urlParams.get('status');
+        
+        // Si no hay filtro de estado, no ocultamos nada
+        if (!currentFilter) return;
+
+        const projectCard = toggle.closest('.project-card');
+        if (!projectCard) return;
+
+        // Si el filtro es 'active' y el nuevo estado es false (archivado) -> Ocultar
+        // Si el filtro es 'archived' y el nuevo estado es true (activo) -> Ocultar
+        const shouldHide = (currentFilter === 'active' && !newStatus) || 
+                          (currentFilter === 'archived' && newStatus);
+
+        if (shouldHide) {
+            // Animación de salida
+            projectCard.style.transition = 'all 0.3s ease';
+            projectCard.style.opacity = '0';
+            projectCard.style.transform = 'scale(0.95)';
+            
+            setTimeout(() => {
+                projectCard.style.display = 'none';
+                this.checkEmptyState();
+            }, 300);
+        }
+    }
+
+    checkEmptyState() {
+        const visibleProjects = document.querySelectorAll('.project-card:not([style*="display: none"])');
+        const emptyState = document.querySelector('.empty-state');
+        
+        if (visibleProjects.length === 0) {
+            if (emptyState) {
+                emptyState.style.display = 'flex';
+                // Asegurar que se vea con animación
+                emptyState.style.opacity = '0';
+                setTimeout(() => emptyState.style.opacity = '1', 10);
+            } else {
+                // Si no existe el empty state (porque había proyectos al cargar), recargar para mostrarlo
+                // o podríamos inyectarlo dinámicamente, pero recargar aquí es un fallback aceptable
+                window.location.reload();
+            }
+        }
+    }
+
     updateCounters(data) {
         // Actualizar contadores en la página si existen
         if (data.stats) {
-            const elements = {
+            // Contadores de Usuarios (por ID)
+            const userElements = {
                 total_users: document.getElementById('total-users-count'),
                 active_users: document.getElementById('active-users-count'),
                 inactive_users: document.getElementById('inactive-users-count'),
                 percentage_active: document.getElementById('percentage-active')
             };
 
-            Object.keys(elements).forEach(key => {
-                if (elements[key] && data.stats[key] !== undefined) {
-                    elements[key].textContent = data.stats[key];
-                    
-                    // Animar el cambio
-                    elements[key].classList.add('counter-update');
-                    setTimeout(() => elements[key].classList.remove('counter-update'), 500);
+            Object.keys(userElements).forEach(key => {
+                if (userElements[key] && data.stats[key] !== undefined) {
+                    this.animateCounter(userElements[key], data.stats[key]);
+                }
+            });
+
+            // Contadores de Proyectos (por Clase)
+            const projectStatsMap = {
+                'total_projects': '.stat-card-modern.total .stat-value',
+                'active_projects': '.stat-card-modern.active-projects .stat-value',
+                'completed_projects': '.stat-card-modern.completed .stat-value',
+                'archived_projects': '.stat-card-modern.archived .stat-value'
+            };
+
+            Object.keys(projectStatsMap).forEach(key => {
+                if (data.stats[key] !== undefined) {
+                    const element = document.querySelector(projectStatsMap[key]);
+                    if (element) {
+                        this.animateCounter(element, data.stats[key]);
+                    }
                 }
             });
         }
+    }
+
+    animateCounter(element, newValue) {
+        element.textContent = newValue;
+        element.classList.add('counter-update');
+        setTimeout(() => element.classList.remove('counter-update'), 500);
     }
 
     getEndpointUrl(entityType, entityId) {

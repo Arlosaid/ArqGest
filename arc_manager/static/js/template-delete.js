@@ -11,7 +11,9 @@ class TemplateDeleteManager {
     init() {
         // Interceptar clicks en enlaces de eliminación de plantillas
         document.addEventListener('click', (e) => {
-            const deleteLink = e.target.closest('a[href*="phasetemplate"][href*="delete"], a[href*="defaultphase"][href*="delete"]');
+            // Selector mejorado para plantillas (URL: /projects/templates/X/delete/)
+            const deleteLink = e.target.closest('a[href*="/templates/"][href*="/delete/"], a[href*="phasetemplate"][href*="delete"], a[href*="defaultphase"][href*="delete"]');
+            
             if (deleteLink) {
                 e.preventDefault();
                 this.handleDeleteClick(deleteLink);
@@ -26,8 +28,9 @@ class TemplateDeleteManager {
      */
     async handleDeleteClick(link) {
         const deleteUrl = link.href;
-        const isTemplate = deleteUrl.includes('phasetemplate');
-        const isPhase = deleteUrl.includes('defaultphase');
+        // Detectar si es plantilla o fase basado en la URL
+        const isTemplate = deleteUrl.includes('phasetemplate') || deleteUrl.includes('/templates/');
+        const isPhase = deleteUrl.includes('defaultphase') || deleteUrl.includes('/phases/');
         
         // Extraer información del elemento a eliminar
         const row = link.closest('tr, .template-card, .phase-card');
@@ -97,6 +100,11 @@ class TemplateDeleteManager {
      * Extraer cantidad de fases
      */
     extractPhaseCount(row) {
+        // Intentar obtener desde data attribute primero
+        if (row.dataset.phases) {
+            return parseInt(row.dataset.phases);
+        }
+
         const phaseElement = row.querySelector('.phases-count, [class*="phase"]');
         if (phaseElement) {
             const match = phaseElement.textContent.match(/(\d+)/);
@@ -143,9 +151,9 @@ class TemplateDeleteManager {
                         window.location.href = data.redirect_url;
                     } else {
                         // Volver a la lista de plantillas
-                        const isTemplate = deleteUrl.includes('phasetemplate');
+                        const isTemplate = deleteUrl.includes('phasetemplate') || deleteUrl.includes('/templates/');
                         if (isTemplate) {
-                            window.location.href = '/projects/phase-templates/';
+                            window.location.href = '/projects/templates/';
                         } else {
                             window.location.reload();
                         }

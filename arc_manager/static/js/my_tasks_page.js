@@ -1,8 +1,187 @@
 // ===== MIS TAREAS - FUNCIONALIDADES COMPLETAS =====
 
+// Función para obtener cookie CSRF (debe estar primero)
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+// Función para broadcast cambios de estado a otras pestañas/ventanas
+function broadcastTaskStatusChange(taskId, newStatus) {
+    try {
+        const event = {
+            type: 'TASK_STATUS_UPDATED',
+            taskId: taskId,
+            status: newStatus,
+            timestamp: Date.now(),
+            source: 'my_tasks'
+        };
+
+        // Usar localStorage para comunicación entre pestañas
+        localStorage.setItem('task_update_event', JSON.stringify(event));
+
+        // Limpiar inmediatamente para permitir eventos duplicados
+        setTimeout(() => {
+            localStorage.removeItem('task_update_event');
+        }, 100);
+    } catch (error) {
+        console.error('Error broadcasting task update:', error);
+    }
+}
+
+// Función para actualizar la UI instantáneamente
+function updateTaskUIInstant(taskId, newStatus) {
+    const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
+    if (!taskCard) return;
+
+    // Guardar el estado anterior
+    const oldStatus = taskCard.dataset.status;
+
+    // Actualizar el dataset
+    taskCard.dataset.status = newStatus;
+
+    // Actualizar el badge de estado
+    const statusBadge = taskCard.querySelector('.task-compact-status');
+    if (statusBadge) {
+        // Remover clases de estado anteriores
+        statusBadge.classList.remove('todo', 'in-progress', 'paused', 'done');
+        
+        // Mapear estado a clase CSS
+        const statusClassMap = {
+            'TODO': 'todo',
+            'IN_PROGRESS': 'in-progress',
+            'PAUSED': 'paused',
+            'DONE': 'done'
+        };
+        
+        // Agregar nueva clase
+        const newClass = statusClassMap[newStatus];
+        if (newClass) {
+            statusBadge.classList.add(newClass);
+        }
+
+        // Actualizar texto
+        const statusTexts = {
+            'TODO': 'Pendiente',
+            'IN_PROGRESS': 'En Progreso',
+            'PAUSED': 'Pausada',
+            'DONE': 'Completada'
+        };
+        statusBadge.textContent = statusTexts[newStatus] || newStatus;
+    }
+
+    // Actualizar botones de acción
+    updateTaskActions(taskCard, newStatus);
+
+    // Actualizar contadores específicamente para este cambio de estado
+    updateTaskStatusCounter(oldStatus, newStatus);
+}
+
+// Función para actualizar los botones según el nuevo estado
+function updateTaskActions(taskCard, status) {
+    const actionsContainer = taskCard.querySelector('.status-actions');
+    if (!actionsContainer) return;
+
+    const taskId = taskCard.dataset.taskId;
+
+    // Guardar el botón de kanban antes de reemplazar
+    const kanbanBtn = actionsContainer.querySelector('.action-kanban');
+    const kanbanUrl = kanbanBtn?.href || '#';
+
+    // Limpiar solo los botones de estado (no todos los botones)
+    const stateButtons = actionsContainer.querySelectorAll('.action-start, .action-pause, .action-complete, .action-resume, .action-reopen');
+    stateButtons.forEach(btn => btn.remove());
+
+    // Crear nuevos botones según estado
+    let newButtonsHTML = '';
+
+    if (status === 'TODO') {
+        newButtonsHTML = `
+            <button type="button" class="btn-icon-action edit action-start" 
+                    onclick="updateTaskStatus(${taskId}, 'IN_PROGRESS')"
+                    title="Iniciar tarea">
+                <i class="fas fa-play"></i>
+            </button>
+        `;
+    } else if (status === 'IN_PROGRESS') {
+        newButtonsHTML = `
+            <button type="button" class="btn-icon-action edit action-pause" 
+                    onclick="updateTaskStatus(${taskId}, 'PAUSED')"
+                    title="Pausar tarea">
+                <i class="fas fa-pause"></i>
+            </button>
+            <button type="button" class="btn-icon-action delete action-complete" 
+                    onclick="updateTaskStatus(${taskId}, 'DONE')"
+                    title="Completar tarea">
+                <i class="fas fa-check"></i>
+            </button>
+        `;
+    } else if (status === 'PAUSED') {
+        newButtonsHTML = `
+            <button type="button" class="btn-icon-action edit action-resume" 
+                    onclick="updateTaskStatus(${taskId}, 'IN_PROGRESS')"
+                    title="Reanudar tarea">
+                <i class="fas fa-play"></i>
+            </button>
+        `;
+    } else if (status === 'DONE') {
+        newButtonsHTML = `
+            <button type="button" class="btn-icon-action edit action-reopen" 
+                    onclick="updateTaskStatus(${taskId}, 'IN_PROGRESS')"
+                    title="Reabrir tarea">
+                <i class="fas fa-undo"></i>
+            </button>
+        `;
+    }
+
+    // Insertar los nuevos botones antes del botón de kanban
+    if (kanbanBtn) {
+        kanbanBtn.insertAdjacentHTML('beforebegin', newButtonsHTML);
+    } else {
+        // Si no hay botón de kanban, agregar los botones de estado y recrear el botón de kanban
+        actionsContainer.insertAdjacentHTML('beforeend', newButtonsHTML);
+        actionsContainer.insertAdjacentHTML('beforeend', `
+            <a href="${kanbanUrl}" 
+               class="btn-icon-action view action-kanban"
+               title="Ir al Kanban">
+                <i class="fas fa-columns"></i>
+            </a>
+        `);
+    }
+}
+
 // Función optimizada para cambio de estado instantáneo sin notificaciones
 window.updateTaskStatus = function (taskId, status) {
-    updateTaskStatusInstant(taskId, status);
+    // Primero actualizar la UI inmediatamente
+    updateTaskUIInstant(taskId, status);
+
+    // Luego enviar al servidor en background
+    const url = `/projects/tasks/${taskId}/update_status/`;
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken') || ''
+        },
+        body: `status=${status}`
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // CRÍTICO: Broadcast el cambio a otras pestañas/ventanas (ej: Kanban)
+                broadcastTaskStatusChange(taskId, status);
+            } else {
+                // Solo si falla, mostrar error discreto
+                console.error('Error al actualizar tarea:', data.error);
+                // Podrías revertir la UI aquí si quisieras
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Podrías revertir la UI aquí si quisieras
+        });
 };
 
 // Función global para confirmar eliminación de tareas
@@ -122,177 +301,6 @@ window.deleteTask = function (taskId) {
         });
 };
 
-// Función instantánea sin notificaciones ni recargas
-function updateTaskStatusInstant(taskId, status) {
-    // Primero actualizar la UI inmediatamente
-    updateTaskUIInstant(taskId, status);
-
-    // Luego enviar al servidor en background
-    const url = `/projects/tasks/${taskId}/update_status/`;
-
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFToken': getCookie('csrftoken') || ''
-        },
-        body: `status=${status}`
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // CRÍTICO: Broadcast el cambio a otras pestañas/ventanas (ej: Kanban)
-                broadcastTaskStatusChange(taskId, status);
-            } else {
-                // Solo si falla, revertir la UI y mostrar error discreto
-                console.error('Error al actualizar tarea:', data.error);
-                // Podrías revertir la UI aquí si quisieras
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            // Podrías revertir la UI aquí si quisieras
-        });
-}
-
-// Función para broadcast cambios de estado a otras pestañas/ventanas
-function broadcastTaskStatusChange(taskId, newStatus) {
-    try {
-        const event = {
-            type: 'TASK_STATUS_UPDATED',
-            taskId: taskId,
-            status: newStatus,
-            timestamp: Date.now(),
-            source: 'my_tasks'
-        };
-
-        // Usar localStorage para comunicación entre pestañas
-        localStorage.setItem('task_update_event', JSON.stringify(event));
-
-        // Limpiar inmediatamente para permitir eventos duplicados
-        setTimeout(() => {
-            localStorage.removeItem('task_update_event');
-        }, 100);
-    } catch (error) {
-        console.error('Error broadcasting task update:', error);
-    }
-}
-
-// Función para actualizar la UI instantáneamente
-function updateTaskUIInstant(taskId, newStatus) {
-    const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
-    if (!taskCard) return;
-
-    // Guardar el estado anterior
-    const oldStatus = taskCard.dataset.status;
-
-    // Actualizar el dataset
-    taskCard.dataset.status = newStatus;
-
-    // Actualizar el badge de estado
-    const statusBadge = taskCard.querySelector('.badge-status');
-    if (statusBadge) {
-        // Remover clases anteriores
-        statusBadge.className = statusBadge.className.replace(/badge-\w+/g, '');
-        statusBadge.classList.add('badge-status', `badge-${newStatus.toLowerCase()}`);
-
-        // Actualizar texto
-        const statusTexts = {
-            'TODO': 'Pendiente',
-            'IN_PROGRESS': 'En Progreso',
-            'PAUSED': 'Pausada',
-            'DONE': 'Completada'
-        };
-        statusBadge.textContent = statusTexts[newStatus] || newStatus;
-    }
-
-    // Actualizar botones de acción
-    updateTaskActions(taskCard, newStatus);
-
-    // Actualizar contadores específicamente para este cambio de estado
-    updateTaskStatusCounter(oldStatus, newStatus);
-}
-
-// Función para actualizar los botones según el nuevo estado
-function updateTaskActions(taskCard, status) {
-    const actionsContainer = taskCard.querySelector('.status-actions');
-    if (!actionsContainer) return;
-
-    const taskId = taskCard.dataset.taskId;
-
-    // Guardar el botón de kanban antes de reemplazar
-    const kanbanBtn = actionsContainer.querySelector('.action-kanban');
-    const kanbanUrl = kanbanBtn?.href || '#';
-
-    // Limpiar solo los botones de estado (no todos los botones)
-    const stateButtons = actionsContainer.querySelectorAll('.action-start, .action-pause, .action-complete, .action-resume, .action-reopen');
-    stateButtons.forEach(btn => btn.remove());
-
-    // Crear nuevos botones según estado
-    let newButtonsHTML = '';
-
-    if (status === 'TODO') {
-        newButtonsHTML = `
-            <button type="button" class="action-btn action-start" 
-                    onclick="updateTaskStatus(${taskId}, 'IN_PROGRESS')"
-                    title="Iniciar tarea">
-                <i class="fas fa-play"></i>
-            </button>
-        `;
-    } else if (status === 'IN_PROGRESS') {
-        newButtonsHTML = `
-            <button type="button" class="action-btn action-pause" 
-                    onclick="updateTaskStatus(${taskId}, 'PAUSED')"
-                    title="Pausar tarea">
-                <i class="fas fa-pause"></i>
-            </button>
-            <button type="button" class="action-btn action-complete" 
-                    onclick="updateTaskStatus(${taskId}, 'DONE')"
-                    title="Completar tarea">
-                <i class="fas fa-check"></i>
-            </button>
-        `;
-    } else if (status === 'PAUSED') {
-        newButtonsHTML = `
-            <button type="button" class="action-btn action-resume" 
-                    onclick="updateTaskStatus(${taskId}, 'IN_PROGRESS')"
-                    title="Reanudar tarea">
-                <i class="fas fa-play"></i>
-            </button>
-        `;
-    } else if (status === 'DONE') {
-        newButtonsHTML = `
-            <button type="button" class="action-btn action-reopen" 
-                    onclick="updateTaskStatus(${taskId}, 'IN_PROGRESS')"
-                    title="Reabrir tarea">
-                <i class="fas fa-undo"></i>
-            </button>
-        `;
-    }
-
-    // Insertar los nuevos botones antes del botón de kanban
-    if (kanbanBtn) {
-        kanbanBtn.insertAdjacentHTML('beforebegin', newButtonsHTML);
-    } else {
-        // Si no hay botón de kanban, agregar los botones de estado y recrear el botón de kanban
-        actionsContainer.insertAdjacentHTML('beforeend', newButtonsHTML);
-        actionsContainer.insertAdjacentHTML('beforeend', `
-            <a href="${kanbanUrl}" 
-               class="action-btn action-kanban"
-               title="Ir al Kanban">
-                <i class="fas fa-columns"></i>
-            </a>
-        `);
-    }
-}
-
-// Función para obtener cookie CSRF
-function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-}
-
 // Variables globales para guardar los valores reales del servidor
 let serverCounters = {
     total: 0,
@@ -304,12 +312,12 @@ let serverCounters = {
 
 // Función para inicializar contadores del servidor
 function initializeServerCounters() {
-    const totalEl = document.querySelector('.stat-total .stat-number');
-    const todoEl = document.querySelector('.stat-todo .stat-number');
-    const progressEl = document.querySelector('.stat-progress .stat-number');
-    const pausedEl = document.querySelector('.stat-paused .stat-number');
-    const doneEl = document.querySelector('.stat-done .stat-number');
-
+    const totalEl = document.getElementById('stat-total');
+    const todoEl = document.getElementById('stat-todo');
+    const progressEl = document.getElementById('stat-in-progress');
+    const pausedEl = document.getElementById('stat-paused');
+    const doneEl = document.getElementById('stat-done');
+    
     // Guardar los valores originales del servidor
     if (totalEl) serverCounters.total = parseInt(totalEl.textContent) || 0;
     if (todoEl) serverCounters.todo = parseInt(todoEl.textContent) || 0;
@@ -353,11 +361,11 @@ function updateTaskDeleteCounter(taskStatus) {
 
 // Función para refrescar la UI con los contadores actuales
 function refreshCountersUI() {
-    const totalEl = document.querySelector('.stat-total .stat-number');
-    const todoEl = document.querySelector('.stat-todo .stat-number');
-    const progressEl = document.querySelector('.stat-progress .stat-number');
-    const pausedEl = document.querySelector('.stat-paused .stat-number');
-    const doneEl = document.querySelector('.stat-done .stat-number');
+    const totalEl = document.getElementById('stat-total');
+    const todoEl = document.getElementById('stat-todo');
+    const progressEl = document.getElementById('stat-in-progress');
+    const pausedEl = document.getElementById('stat-paused');
+    const doneEl = document.getElementById('stat-done');
 
     if (totalEl) totalEl.textContent = serverCounters.total;
     if (todoEl) todoEl.textContent = serverCounters.todo;

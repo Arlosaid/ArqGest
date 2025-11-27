@@ -1,13 +1,10 @@
 // Filtrado de archivos optimizado con HTMX
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Filtros de archivos: Script cargado');
-    
     // Configurar filtros inmediatamente
     setupFileFilters();
     
     // IMPORTANTE: Reconfigurar cuando se carga contenido dinámico (accordions, tabs)
     document.body.addEventListener('htmx:afterSettle', function(event) {
-        console.log('HTMX afterSettle detectado:', event.target.id);
         // Esperar un momento para que el DOM se actualice
         setTimeout(() => {
             setupFileFilters();
@@ -16,7 +13,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // También configurar cuando se hace swap de contenido
     document.body.addEventListener('htmx:afterSwap', function(event) {
-        console.log('HTMX afterSwap detectado:', event.target.id);
         setTimeout(() => {
             setupFileFilters();
         }, 100);
@@ -24,7 +20,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Configurar cuando se abre un accordion
     document.addEventListener('shown.bs.collapse', function(event) {
-        console.log('Accordion abierto:', event.target.id);
         setTimeout(() => {
             setupFileFilters();
         }, 100);
@@ -32,15 +27,11 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function setupFileFilters() {
-    console.log('Configurando filtros de archivos...');
-    
     // Configurar filtros por tipo
     const typeFilters = document.querySelectorAll('[id^="fileTypeFilter-"]');
-    console.log(`Encontrados ${typeFilters.length} filtros de tipo`);
     
     typeFilters.forEach(filter => {
         const phaseId = filter.id.replace('fileTypeFilter-', '');
-        console.log(`Registrando filtro de tipo para fase ${phaseId}`);
         
         // Remover listeners anteriores para evitar duplicados
         if (filter._filterHandler) {
@@ -49,7 +40,6 @@ function setupFileFilters() {
         
         // Crear y asignar nuevo handler
         filter._filterHandler = () => {
-            console.log(`FILTRO DE TIPO CAMBIADO - Fase ${phaseId}, Valor: ${filter.value}`);
             applyFilters(phaseId);
         };
         filter.addEventListener('change', filter._filterHandler);
@@ -57,11 +47,9 @@ function setupFileFilters() {
     
     // Configurar filtros por fecha
     const dateFilters = document.querySelectorAll('[id^="fileDateFilter-"]');
-    console.log(`Encontrados ${dateFilters.length} filtros de fecha`);
     
     dateFilters.forEach(filter => {
         const phaseId = filter.id.replace('fileDateFilter-', '');
-        console.log(`Registrando filtro de fecha para fase ${phaseId}`);
         
         // Remover listeners anteriores para evitar duplicados
         if (filter._filterHandler) {
@@ -69,7 +57,6 @@ function setupFileFilters() {
         }
         
         filter._filterHandler = () => {
-            console.log(`FILTRO DE FECHA CAMBIADO - Fase ${phaseId}, Valor: ${filter.value}`);
             applyFilters(phaseId);
         };
         filter.addEventListener('change', filter._filterHandler);
@@ -77,11 +64,9 @@ function setupFileFilters() {
     
     // Configurar botones de limpiar
     const clearButtons = document.querySelectorAll('[id^="clearFilters-"]');
-    console.log(`Encontrados ${clearButtons.length} botones de limpiar`);
     
     clearButtons.forEach(button => {
         const phaseId = button.id.replace('clearFilters-', '');
-        console.log(`Registrando botón limpiar para fase ${phaseId}`);
         
         // Remover listeners anteriores para evitar duplicados
         if (button._clearHandler) {
@@ -89,13 +74,10 @@ function setupFileFilters() {
         }
         
         button._clearHandler = () => {
-            console.log(`LIMPIANDO FILTROS - Fase ${phaseId}`);
             clearFilters(phaseId);
         };
         button.addEventListener('click', button._clearHandler);
     });
-    
-    console.log('Filtros de archivos configurados exitosamente');
 }
 
 function applyFilters(phaseId) {
@@ -131,8 +113,6 @@ function applyFilters(phaseId) {
         url += `&date=${encodeURIComponent(dateValue)}`;
     }
     
-    console.log(`Aplicando filtros para fase ${phaseId}:`, { type: typeValue, date: dateValue, url: url });
-    
     // Actualizar el atributo hx-get del contenedor para futuros reloads
     container.setAttribute('hx-get', url);
     
@@ -158,7 +138,6 @@ function applyFilters(phaseId) {
         // Reemplazar contenido del contenedor
         container.innerHTML = html;
         
-        console.log(`Filtros aplicados exitosamente para fase ${phaseId}`);
         hideFilterLoadingIndicator(container);
         
         // Reinicializar event listeners en el nuevo contenido
@@ -167,7 +146,6 @@ function applyFilters(phaseId) {
         }
     })
     .catch((error) => {
-        console.error(`Error al aplicar filtros para fase ${phaseId}:`, error);
         hideFilterLoadingIndicator(container);
         
         // Mostrar notificación de error
@@ -220,8 +198,6 @@ function clearFilters(phaseId) {
     
     if (typeFilter) typeFilter.value = '';
     if (dateFilter) dateFilter.value = '';
-    
-    console.log(`🧹 Limpiando filtros para fase ${phaseId}`);
     
     // Aplicar filtros vacíos
     applyFilters(phaseId);

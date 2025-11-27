@@ -6,9 +6,10 @@
 {% block title %}{{ project.name }} - {% trans "Detalles del Proyecto" %} - ArqGest{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/projects.css' %}?v=1.6" rel="stylesheet">
+<link href="{% static 'css/projects.css' %}?v=3.0" rel="stylesheet">
 <link href="{% static 'css/tasks.css' %}?v=1.2" rel="stylesheet">
 <link href="{% static 'css/project_detail.css' %}?v=2.3" rel="stylesheet">
+<link href="{% static 'css/project_detail_enhanced.css' %}?v=1.0" rel="stylesheet">
 <!-- Modal de Detalles de Tareas con Estilos Mejorados -->
     <link href="{% static 'css/task_detail_modal.css' %}?v=5.2" rel="stylesheet">
 {% endblock %}
@@ -19,6 +20,9 @@
     <div class="header-section">
         <div class="header-content">
             <div class="header-title">
+                <a href="{% url 'projects:project-list' %}" class="btn btn-light border me-3" title="{% trans 'Volver a la lista de proyectos' %}" style="background: white; border-color: #dee2e6; color: #495057;">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
                 <div class="header-icon">
                     <img src="{{ project|dashboard_image }}" alt="{{ project.name }}" class="header-project-image">
                 </div>
@@ -29,28 +33,28 @@
                     </div>
                 </div>
             </div>
-            <div class="d-flex gap-2">
-                {% if user.is_org_admin %}
-                <a href="{% url 'projects:project-update' project.pk %}" class="btn btn-secondary">
-                    <i class="fas fa-edit"></i> {% trans "Editar" %}
+            <div class="d-flex gap-2 align-items-center flex-wrap justify-content-end">
+                <!-- Botón Principal (Kanban) -->
+                <a href="{% url 'projects:project-kanban' project.pk %}" class="btn btn-primary" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: none; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3); white-space: nowrap;">
+                    <i class="fas fa-columns"></i> <span class="d-none d-sm-inline">{% trans "Gestionar Tareas" %}</span>
                 </a>
-                {% endif %}
-                            <a href="{% url 'projects:project-kanban' project.pk %}" class="btn btn-primary">
-                    <i class="fas fa-columns"></i> {% trans "Gestionar Tareas" %}
-                </a>
-                            {% if user.is_org_admin %}
-                            <a href="{% url 'projects:project-phases-edit' project.pk %}" class="btn btn-secondary">
-                                <i class="fas fa-layer-group"></i> {% trans "Editar Fases" %}
-                            </a>
-                            {% endif %}
+                
                 {% if user.is_org_admin %}
+                <!-- Botones de Acción estilo blanco -->
+                <a href="{% url 'projects:project-update' project.pk %}" class="btn" style="background: white; border: 1px solid #e0e0e0; color: #666; box-shadow: 0 1px 3px rgba(0,0,0,0.1); white-space: nowrap;">
+                    <i class="fas fa-edit"></i> <span class="d-none d-md-inline">{% trans "Editar Proyecto" %}</span>
+                </a>
+                <a href="{% url 'projects:project-phases-edit' project.pk %}" class="btn" style="background: white; border: 1px solid #e0e0e0; color: #666; box-shadow: 0 1px 3px rgba(0,0,0,0.1); white-space: nowrap;">
+                    <i class="fas fa-layer-group"></i> <span class="d-none d-md-inline">{% trans "Editar Fases" %}</span>
+                </a>
                 <a href="{% url 'projects:project-delete' project.pk %}" 
-                   class="btn btn-secondary"
+                   class="btn" 
+                   style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border: none; color: white; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3); white-space: nowrap;"
                    data-project-name="{{ project.name }}"
                    data-phase-count="{{ project.phases.count }}"
                    data-task-count="{{ project.phases.all|sum_tasks }}"
                    data-file-count="{{ project.phases.all|sum_files }}">
-                    <i class="fas fa-trash"></i> {% trans "Eliminar" %}
+                    <i class="fas fa-trash"></i> <span class="d-none d-md-inline">{% trans "Eliminar" %}</span>
                 </a>
                 {% endif %}
             </div>
@@ -93,54 +97,113 @@
         <div class="tab-content" id="projectTabContent">
             
             <div class="tab-pane fade show active" id="details" role="tabpanel" aria-labelledby="details-tab" data-tab="details">
-                <div class="card mt-3">
-                    <div class="card-body">
-                        <h3 class="mb-3" style="font-weight:700; font-size:1.125rem;">{% trans "Información del Proyecto" %}</h3>
-                        <div class="mb-3 d-flex justify-content-between align-items-center">
-                            <span class="text-secondary">{% trans "Progreso general del proyecto" %}</span>
-                            <span class="fw-semibold">{{ project.progress_percentage|default:"0" }}%</span>
+                <div class="project-details-container">
+                    
+                    <!-- Progress Section -->
+                    <div class="progress-card">
+                        <div class="progress-header">
+                            <span class="progress-label">{% trans "Progreso General" %}</span>
+                            <span class="progress-badge">{{ project.progress_percentage|default:"0" }}%</span>
                         </div>
-                        <div class="progress" style="height:8px;">
-                            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ project.progress_percentage|default:'0' }}%" aria-valuenow="{{ project.progress_percentage|default:'0' }}" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                        <div class="row g-3 mt-3">
-                            <div class="col-sm-6">
-                                <div class="text-muted small">{% trans "Cliente" %}</div>
-                                <div class="fw-semibold" title="{% if project.client %}{{ project.client.name }}{% else %}No asignado{% endif %}">
-                                    {% if project.client %}{{ project.client.name|truncatechars:25 }}{% else %}No asignado{% endif %}
-                                </div>
-                            </div>
-                            <div class="col-sm-6">
-                                <div class="text-muted small">{% trans "Propietario" %}</div>
-                                <div class="fw-semibold">{{ project.owner.get_full_name|default:"No asignado" }}</div>
-                            </div>
-                            <div class="col-sm-6">
-                                <div class="text-muted small">{% trans "Estado" %}</div>
-                                <div class="fw-semibold">{{ project.get_status_display }}</div>
-                            </div>
-                            <div class="col-sm-6">
-                                <div class="text-muted small">{% trans "Fecha de inicio" %}</div>
-                                <div class="fw-semibold">{{ project.created_at|date:"d/m/Y" }}</div>
-                            </div>
-                            <div class="col-12">
-                                <div class="text-muted small">{% trans "Descripción" %}</div>
-                                <div class="fw-semibold">{{ project.description|default:"Sin descripción" }}</div>
-                            </div>
-                        </div>
-                        <div class="d-flex gap-2 flex-wrap mt-4">
-                            {% if user.is_org_admin %}
-                            <a href="{% url 'projects:project-update' project.pk %}" class="btn btn-secondary">
-                                <i class="fas fa-edit"></i> {% trans "Editar Proyecto" %}
-                            </a>
-                            <a href="{% url 'projects:project-phases-edit' project.pk %}" class="btn btn-secondary">
-                                <i class="fas fa-layer-group"></i> {% trans "Editar Fases" %}
-                            </a>
-                            {% endif %}
-                            <a href="{% url 'projects:project-kanban' project.pk %}" class="btn btn-primary">
-                                <i class="fas fa-columns"></i> {% trans "Gestionar Tareas en Kanban" %}
-                            </a>
+                        <div class="custom-progress-bar">
+                            <div class="custom-progress-fill" style="width: {{ project.progress_percentage|default:'0' }}%;"></div>
                         </div>
                     </div>
+
+                    <!-- Key Information Grid -->
+                    <h3 class="details-section-title">
+                        <i class="fas fa-info-circle"></i> {% trans "Información Clave" %}
+                    </h3>
+                    
+                    <div class="info-grid">
+                        <!-- Client -->
+                        <div class="detail-card">
+                            <div class="detail-icon icon-client">
+                                <i class="fas fa-building"></i>
+                            </div>
+                            <div class="detail-content">
+                                <div class="detail-label">{% trans "Cliente" %}</div>
+                                <div class="detail-value">
+                                    {% if project.client %}{{ project.client.name }}{% else %}<span class="text-muted">{% trans "No asignado" %}</span>{% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="detail-card">
+                            <div class="detail-icon icon-status">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="detail-content">
+                                <div class="detail-label">{% trans "Estado" %}</div>
+                                <div class="detail-value">{{ project.get_status_display }}</div>
+                            </div>
+                        </div>
+
+                        <!-- Start Date -->
+                        <div class="detail-card">
+                            <div class="detail-icon icon-date">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="detail-content">
+                                <div class="detail-label">{% trans "Fecha de Inicio" %}</div>
+                                <div class="detail-value">{{ project.created_at|date:"d/m/Y" }}</div>
+                            </div>
+                        </div>
+
+                        <!-- Budget (if available) -->
+                        {% if project.total_budget %}
+                        <div class="detail-card">
+                            <div class="detail-icon icon-budget">
+                                <i class="fas fa-sack-dollar"></i>
+                            </div>
+                            <div class="detail-content">
+                                <div class="detail-label">{% trans "Presupuesto" %}</div>
+                                <div class="detail-value">${{ project.total_budget|floatformat:2 }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Description Section -->
+                    {% if project.description %}
+                    <h3 class="details-section-title">
+                        <i class="fas fa-align-left"></i> {% trans "Descripción del Proyecto" %}
+                    </h3>
+                    <div class="description-section">
+                        <div class="description-text">
+                            {{ project.description|linebreaks }}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Team Section (Optional - if users are available) -->
+                    {% if users %}
+                    <div class="team-section">
+                        <h3 class="details-section-title">
+                            <i class="fas fa-users"></i> {% trans "Equipo Asignado" %}
+                        </h3>
+                        <div class="team-grid">
+                            {% for user in users|slice:":6" %}
+                            <div class="team-member-card">
+                                <div class="member-avatar">
+                                    {{ user.first_name|first|default:user.email|first|upper }}
+                                </div>
+                                <div class="member-info">
+                                    <span class="member-name">{{ user.get_full_name|default:user.email }}</span>
+                                    <span class="member-role">{% if user == project.owner %}{% trans "Propietario" %}{% else %}{% trans "Miembro" %}{% endif %}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            {% if users.count > 6 %}
+                            <div class="team-member-card" style="justify-content: center; color: var(--pd-primary); font-weight: 600; cursor: pointer;">
+                                +{{ users.count|add:"-6" }} {% trans "más" %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
                 </div>
             </div>
 
@@ -163,8 +226,9 @@
                             </select>
                           </div>
                           <div class="ms-auto">
-                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addTaskModal">{% trans "Nueva Tarea" %}</button>
-                            <a href="{% url 'projects:project-kanban' project.pk %}" class="btn btn-outline-secondary btn-sm">{% trans "Kanban Completo" %}</a>
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                              <i class="fas fa-plus"></i> {% trans "Nueva Tarea" %}
+                            </button>
                           </div>
                         </div>
 
@@ -186,6 +250,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/phase-quick-actions.js' %}?v=1.0"></script>
 <script src="{% static 'js/projects.js' %}?v=1.3"></script>
 <script src="{% static 'js/project_detail.js' %}?v=1.1"></script>
 <script src="{% static 'js/kanban.js' %}?v=1.7"></script>
@@ -197,24 +262,120 @@ document.body.dataset.updateTaskStatusUrlTemplate = `{% url 'projects:update-tas
 
 // Verificar que los filtros están cargados
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('=== VERIFICACION DE FILTROS ===');
-    console.log('setupFileFilters:', typeof setupFileFilters);
-    console.log('applyFileFilters:', typeof window.applyFileFilters);
-    console.log('clearFileFilters:', typeof window.clearFileFilters);
-    
-    // Contar elementos de filtros
-    const typeFilters = document.querySelectorAll('[id^="fileTypeFilter-"]');
-    const dateFilters = document.querySelectorAll('[id^="fileDateFilter-"]');
-    const clearButtons = document.querySelectorAll('[id^="clearFilters-"]');
-    
-    console.log('Filtros de tipo encontrados:', typeFilters.length);
-    console.log('Filtros de fecha encontrados:', dateFilters.length);
-    console.log('Botones de limpiar encontrados:', clearButtons.length);
-    
-    if (typeFilters.length === 0) {
-        console.warn('NO SE ENCONTRARON FILTROS. Posiblemente estás en una pestaña sin archivos o los elementos no están en el DOM todavía.');
+    // Manejar creación de tareas con AJAX para actualización automática
+    const taskForm = document.getElementById('taskForm');
+    if (taskForm) {
+        taskForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(taskForm);
+            const submitBtn = taskForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            
+            try {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando...';
+                
+                const response = await fetch(taskForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Limpiar formulario
+                    taskForm.reset();
+                    
+                    // Función para recargar las tareas de forma segura
+                    const reloadTasks = async () => {
+                        const tasksContainer = document.getElementById('tasksContainer');
+                        if (!tasksContainer || !tasksContainer.dataset.paginatedUrl) {
+                            console.warn('Contenedor de tareas no disponible, recargando página...');
+                            window.location.reload();
+                            return;
+                        }
+                        
+                        try {
+                            const paginatedUrl = tasksContainer.dataset.paginatedUrl;
+                            const phaseFilter = document.getElementById('phaseFilter');
+                            const selectedPhase = phaseFilter ? phaseFilter.value : '';
+                            const url = selectedPhase ? `${paginatedUrl}?phase=${selectedPhase}` : paginatedUrl;
+                            
+                            const tasksResponse = await fetch(url, {
+                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                            });
+                            
+                            if (tasksResponse.ok) {
+                                const html = await tasksResponse.text();
+                                // Verificación robusta justo antes de actualizar
+                                const container = document.getElementById('tasksContainer');
+                                if (container && html) {
+                                    try {
+                                        container.innerHTML = html;
+                                        document.dispatchEvent(new CustomEvent('taskCreated', { detail: { html } }));
+                                    } catch (e) {
+                                        // Si falla el innerHTML, recargar página
+                                        window.location.reload();
+                                    }
+                                } else {
+                                    window.location.reload();
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error recargando tareas:', error);
+                            window.location.reload();
+                        }
+                    };
+                    
+                    // Cerrar modal y esperar a que Bootstrap termine completamente
+                    const modalElement = document.getElementById('addTaskModal');
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    
+                    if (modal) {
+                        // Usar evento de Bootstrap para saber cuándo el modal está completamente cerrado
+                        modalElement.addEventListener('hidden.bs.modal', function onModalHidden() {
+                            // Remover el listener para evitar duplicados
+                            modalElement.removeEventListener('hidden.bs.modal', onModalHidden);
+                            // Esperar un frame adicional para asegurar que el DOM está estable
+                            requestAnimationFrame(() => {
+                                setTimeout(reloadTasks, 50);
+                            });
+                        }, { once: true });
+                        
+                        modal.hide();
+                    } else {
+                        // Si no hay modal, recargar directamente
+                        await reloadTasks();
+                    }
+                    
+                    // Mostrar mensaje de éxito
+                    if (typeof showToast === 'function') {
+                        showToast('Tarea creada exitosamente', 'success');
+                    } else if (window.notifications) {
+                        window.notifications.success('Tarea creada exitosamente');
+                    }
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || 'Error al crear la tarea');
+                }
+            } catch (error) {
+                console.error('Error al crear tarea:', error);
+                if (typeof showToast === 'function') {
+                    showToast('Error al crear la tarea', 'error');
+                } else {
+                    alert('Error al crear la tarea: ' + error.message);
+                }
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        });
     }
-    console.log('=== FIN VERIFICACION ===');
 });
 </script>
 

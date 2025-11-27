@@ -11,8 +11,12 @@ class ClientDeleteManager {
     init() {
         // Interceptar clicks en enlaces de eliminación
         document.addEventListener('click', (e) => {
-            const deleteLink = e.target.closest('a[href*="client_delete"], a[href*="client-delete"]');
-            if (deleteLink) {
+            // Selector mejorado para detectar enlaces de eliminación de clientes
+            // Busca enlaces que contengan "/delete/" y estén dentro de una tabla de clientes o tengan la clase delete
+            const deleteLink = e.target.closest('a[href*="/clients/"][href*="/delete/"], a.action-btn.delete[href*="/delete/"]');
+            
+            // Verificar que estamos en contexto de clientes (para evitar falsos positivos)
+            if (deleteLink && (document.querySelector('.client-management-page') || deleteLink.href.includes('client'))) {
                 e.preventDefault();
                 this.handleDeleteClick(deleteLink);
             }

@@ -6,7 +6,7 @@
 {% block title %}{{ phase.name }} - {{ project.name }} - ArqGest{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/projects.css' %}?v=2.8" rel="stylesheet">
+<link href="{% static 'css/projects.css' %}?v=3.0" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -30,94 +30,219 @@
     <!-- Message container for HTMX responses -->
     <div id="message-container" class="mb-3"></div>
 
-    <!-- Ultra Simplified Phase Header -->
-    <div class="phase-ultra-simple-header mb-4">
-        <div class="d-flex align-items-center">
-            <div class="phase-status-badge status-{{ phase.status|lower }} me-3">
-                {% if phase.status == 'PENDING' %}
-                    <i class="fas fa-clock"></i> {% trans "Pendiente" %}
-                {% elif phase.status == 'IN_PROGRESS' %}
-                    <i class="fas fa-play-circle"></i> {% trans "En Progreso" %}
-                {% else %}
-                    <i class="fas fa-check-circle"></i> {% trans "Completado" %}
+    <!-- Phase Header Simplificado -->
+    <div class="phase-detail-header mb-4">
+        <div class="phase-header-left">
+            <div class="phase-icon-detail">
+                <i class="fas fa-layer-group"></i>
+            </div>
+            <div>
+                <h2 class="phase-detail-title">{{ phase.name }}</h2>
+                {% if phase.notes %}
+                <p class="phase-detail-notes">{{ phase.notes }}</p>
                 {% endif %}
             </div>
-            {% if completion_percentage > 0 %}
-                <small class="text-muted">{{ completion_percentage|floatformat:0 }}% completado</small>
-            {% endif %}
         </div>
-        {% if phase.description %}
-            <p class="text-muted mt-2 mb-0">{{ phase.description }}</p>
-        {% endif %}
+        <div class="phase-completion-badge">
+            <div class="completion-circle">
+                <svg width="60" height="60">
+                    <circle cx="30" cy="30" r="26" fill="none" stroke="#e2e8f0" stroke-width="4"/>
+                    <circle cx="30" cy="30" r="26" fill="none" stroke="#3b82f6" stroke-width="4"
+                            stroke-dasharray="{{ completion_percentage|default:0 }} 100"
+                            transform="rotate(-90 30 30)"/>
+                </svg>
+                <div class="completion-text">{{ completion_percentage|floatformat:0 }}%</div>
+            </div>
+        </div>
     </div>
 
-    <div class="row">
-        <!-- Tasks Section - Simplified -->
-        <div class="col-md-8">
-            <div class="tasks-simple-header mb-3">
-                <h5 class="mb-0">{% trans "Tareas" %} ({{ recent_tasks_count }}{% if has_more_tasks %}+{% endif %})</h5>
-            </div>
-            
-            <!-- Tasks List - Limited to 5 most recent -->
-            {% if recent_tasks %}
-                <div class="tasks-simple-list">
-                    {% for task in recent_tasks %}
-                        <div class="task-simple-item">
-                            <div class="d-flex align-items-center">
-                                <div class="task-status-dot status-{{ task.status|lower }}"></div>
-                                <div class="task-simple-content flex-grow-1">
-                                    <div class="task-simple-title">{{ task.title }}</div>
-                                    <div class="task-simple-meta">
-                                        {% if task.assigned_to %}
-                                            <span class="text-muted">{{ task.assigned_to.get_full_name|default:task.assigned_to.email|truncatechars:20 }}</span>
-                                        {% endif %}
-                                        {% if task.due_date %}
-                                            <span class="text-muted ms-2">{{ task.due_date|date:"d/m" }}</span>
-                                        {% endif %}
+    <!-- Grid de Contenido: Tareas | Archivos -->
+    <div class="row g-4">
+        <!-- Columna de Tareas -->
+        <div class="col-lg-6">
+            <div class="content-section-card">
+                <div class="section-header">
+                    <div class="section-title">
+                        <i class="fas fa-tasks"></i>
+                        <h3>{% trans "Tareas" %}</h3>
+                    </div>
+                    <div class="section-counter">{{ phase.tasks.count }}</div>
+                </div>
+                
+                <div class="section-actions">
+                    <a href="{% url 'projects:project-kanban' project.pk %}?phase={{ phase.id }}" 
+                       class="btn-section-action primary full-width">
+                        <i class="fas fa-columns"></i> {% trans "Ver en Kanban" %}
+                    </a>
+                </div>
+                
+                <div class="section-content">
+                    {% if phase.tasks.all %}
+                        <div class="task-list-modern">
+                            {% for task in phase.tasks.all|slice:":10" %}
+                                <div class="task-item-modern status-{{ task.status|lower }}">
+                                    <div class="task-status-indicator"></div>
+                                    <div class="task-content">
+                                        <div class="task-title-row">
+                                            <h4 class="task-title">{{ task.title }}</h4>
+                                            <span class="task-priority priority-{{ task.priority|lower }}">
+                                                {% if task.priority == 'HIGH' %}
+                                                    <i class="fas fa-circle"></i>
+                                                {% elif task.priority == 'MEDIUM' %}
+                                                    <i class="fas fa-circle"></i>
+                                                {% else %}
+                                                    <i class="fas fa-circle"></i>
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="task-meta">
+                                            {% if task.assigned_to %}
+                                                <span class="task-assignee">
+                                                    <i class="fas fa-user"></i>
+                                                    {{ task.assigned_to.get_full_name|default:task.assigned_to.email|truncatechars:25 }}
+                                                </span>
+                                            {% endif %}
+                                            {% if task.due_date %}
+                                                <span class="task-due-date">
+                                                    <i class="fas fa-calendar"></i>
+                                                    {{ task.due_date|date:"d/m/Y" }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="task-simple-priority priority-{{ task.priority|lower }}"></div>
-                            </div>
+                            {% endfor %}
                         </div>
-                    {% endfor %}
+                        
+                        {% if phase.tasks.count > 10 %}
+                            <div class="show-more-tasks">
+                                <a href="{% url 'projects:project-kanban' project.pk %}?phase={{ phase.id }}">
+                                    {% trans "Ver todas las" %} {{ phase.tasks.count }} {% trans "tareas" %} →
+                                </a>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="empty-state-modern">
+                            <i class="fas fa-tasks"></i>
+                            <p>{% trans "No hay tareas en esta fase" %}</p>
+                            <a href="{% url 'projects:project-kanban' project.pk %}?phase={{ phase.id }}" 
+                               class="btn-empty-action">
+                                <i class="fas fa-plus"></i> {% trans "Ir a Tareas" %}
+                            </a>
+                        </div>
+                    {% endif %}
                 </div>
-                {% if has_more_tasks %}
-                    <div class="text-center mt-3">
-                        <a href="{% url 'projects:project-detail' project.pk %}#kanban" class="btn btn-sm btn-outline-secondary">
-                            {% trans "Ver todas las tareas" %}
-                        </a>
-                    </div>
-                {% endif %}
-            {% else %}
-                <div class="empty-state-simple text-center py-4">
-                    <i class="fas fa-tasks fa-2x text-muted mb-2"></i>
-                    <p class="text-muted mb-0">{% trans "No hay tareas en esta fase" %}</p>
-                </div>
-            {% endif %}
+            </div>
         </div>
-
-        <!-- Notes Section - Simplified -->
-        <div class="col-md-4">
-            <h5 class="mb-3">{% trans "Notas" %}</h5>
-            <!-- Notes Form with HTMX -->
-            <form id="notes-form" 
-                  hx-post="{% url 'projects:phase-detail' project_pk=project.pk pk=phase.pk %}"
-                  hx-trigger="keyup changed delay:500ms"
-                  hx-swap="none"
-                  hx-indicator="#notes-spinner">
-                {% csrf_token %}
-                <div class="position-relative">
-                    <textarea name="notes" class="form-control" rows="8" placeholder="{% trans 'Notas sobre esta fase...' %}">{{ phase.notes|default_if_none:"" }}</textarea>
-                    <span id="notes-spinner" class="spinner-border spinner-border-sm htmx-indicator position-absolute" style="top: 10px; right: 10px;" role="status" aria-hidden="true"></span>
+        
+        <!-- Columna de Archivos -->
+        <div class="col-lg-6">
+            <div class="content-section-card">
+                <div class="section-header">
+                    <div class="section-title">
+                        <i class="fas fa-file-alt"></i>
+                        <h3>{% trans "Archivos" %}</h3>
+                    </div>
+                    <div class="section-counter">{{ phase.files.count }}</div>
                 </div>
-                <div id="notes-save-status" class="form-text text-muted mt-2"></div>
-            </form>
+                
+                <div class="section-actions">
+                    <a href="{% url 'projects:project-detail' project.pk %}#files" 
+                       class="btn-section-action primary full-width">
+                        <i class="fas fa-folder-open"></i> {% trans "Ver Todos" %}
+                    </a>
+                </div>
+                
+                <div class="section-content">
+                    {% if phase.files.all %}
+                        <div class="file-list-modern">
+                            {% for file in phase.files.all|slice:":8" %}
+                                <div class="file-item-modern">
+                                    <div class="file-icon">
+                                        {% if file.file_type == 'pdf' %}
+                                            <i class="fas fa-file-pdf"></i>
+                                        {% elif file.file_type == 'image' %}
+                                            <i class="fas fa-file-image"></i>
+                                        {% elif file.file_type == 'document' %}
+                                            <i class="fas fa-file-word"></i>
+                                        {% elif file.file_type == 'spreadsheet' %}
+                                            <i class="fas fa-file-excel"></i>
+                                        {% else %}
+                                            <i class="fas fa-file"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="file-info">
+                                        <div class="file-name">{{ file.name|truncatechars:35 }}</div>
+                                        <div class="file-meta">
+                                            <span>{{ file.file.size|filesizeformat }}</span>
+                                            <span>{{ file.uploaded_at|date:"d/m/Y" }}</span>
+                                        </div>
+                                    </div>
+                                    <a href="{{ file.file.url }}" 
+                                       class="file-download" 
+                                       target="_blank"
+                                       title="{% trans 'Descargar' %}">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        
+                        {% if phase.files.count > 8 %}
+                            <div class="show-more-files">
+                                <a href="{% url 'projects:project-detail' project.pk %}#files">
+                                    {% trans "Ver todos los" %} {{ phase.files.count }} {% trans "archivos" %} →
+                                </a>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="empty-state-modern">
+                            <i class="fas fa-file-alt"></i>
+                            <p>{% trans "No hay archivos en esta fase" %}</p>
+                            <a href="{% url 'projects:project-detail' project.pk %}#files" 
+                               class="btn-empty-action">
+                                <i class="fas fa-folder-open"></i> {% trans "Ir a Archivos" %}
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
+
+    <!-- Sección de Notas (Opcional, al final) -->
+    {% if user.is_org_admin %}
+    <div class="notes-section-card mt-4">
+        <div class="notes-header">
+            <h4><i class="fas fa-sticky-note"></i> {% trans "Notas Internas" %}</h4>
+            <span class="notes-hint">{% trans "Auto-guardado" %}</span>
+        </div>
+        <form id="notes-form" 
+              hx-post="{% url 'projects:phase-detail' project_pk=project.pk pk=phase.pk %}"
+              hx-trigger="keyup changed delay:500ms"
+              hx-swap="none"
+              hx-indicator="#notes-spinner">
+            {% csrf_token %}
+            <div class="position-relative">
+                <textarea name="notes" 
+                          class="form-control notes-textarea" 
+                          rows="4" 
+                          placeholder="{% trans 'Agregar notas sobre esta fase...' %}">{{ phase.notes|default_if_none:"" }}</textarea>
+                <span id="notes-spinner" 
+                      class="spinner-border spinner-border-sm htmx-indicator" 
+                      style="position: absolute; top: 12px; right: 12px;" 
+                      role="status" 
+                      aria-hidden="true"></span>
+            </div>
+            <div id="notes-save-status" class="form-text text-muted mt-2"></div>
+        </form>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
 
 {% block extra_js %}
 {{ block.super }}
+<script src="{% static 'js/phase-quick-actions.js' %}?v=1.0"></script>
 <script src="{% static 'js/phase_detail.js' %}?v=2.1"></script>
 {% endblock %}

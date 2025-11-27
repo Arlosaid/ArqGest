@@ -150,7 +150,7 @@
                                         title="Eliminar pago"
                                         data-form-id="del-form-{{ payment.pk }}"
                                         data-payment-id="{{ payment.pk }}"
-                                        data-payment-amount="{{ payment.amount }}"
+                                        data-payment-amount="${{ payment.amount|floatformat:2 }}"
                                         data-payment-date="{{ payment.date|date:'d/m/Y' }}"
                                         data-payment-description="{{ payment.description|default:'Pago' }}">
                                     <i class="fas fa-trash"></i>

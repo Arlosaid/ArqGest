@@ -5,32 +5,41 @@
 {% block title %}Seleccionar Proyecto para Kanban - ArqGest{% endblock %}
 
 {% block extra_css %}
-<link href="{% static 'css/projects.css' %}?v=2.6" rel="stylesheet">
-<link href="{% static 'css/kanban_selector.css' %}?v=1.1" rel="stylesheet">
+<link href="{% static 'css/projects.css' %}?v=2.7" rel="stylesheet">
+<link href="{% static 'css/kanban_selector.css' %}?v=1.2" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
 <div class="page-container">
-    <!-- Header Section Compacto -->
-    <div class="kanban-header-compact">
-        <div class="kanban-header-main">
-            <div class="kanban-header-title">
-                <div class="kanban-header-icon">
+    <!-- Header Section Unificado -->
+    <div class="header-section">
+        <div class="header-content">
+            <div class="header-title">
+                <div class="header-icon" style="background: var(--arc-color-primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; width: 48px; height: 48px; border-radius: 12px; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);">
                     <i class="fas fa-columns"></i>
                 </div>
-                <h1>Seleccionar Proyecto para Kanban</h1>
+                <div>
+                    <h1 class="unified-title-primary">Seleccionar Proyecto para Kanban</h1>
+                    <div class="unified-subtitle-small">
+                        Gestiona el flujo de trabajo de tus proyectos de manera visual
+                    </div>
+                </div>
             </div>
         </div>
+    </div>
 
-        <div class="kanban-info-panel">
-            <h3>
-                <div class="kanban-info-icon">
-                    <i class="fas fa-info"></i>
-                </div>
-                ¿Qué es el Tablero Kanban?
-            </h3>
-            <p>El tablero Kanban es una herramienta visual que te permite gestionar el flujo de trabajo de tus proyectos arquitectónicos. Organiza las tareas por fases, visualiza el progreso y optimiza la colaboración del equipo.</p>
+    <!-- Info Panel - Más discreto -->
+    <div id="kanban-info-alert" class="alert alert-light border mb-4 d-flex align-items-center shadow-sm" role="alert" style="border-radius: 12px; background: white;">
+        <div class="d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; background: #e3f2fd; border-radius: 50%; color: #1976d2; flex-shrink: 0;">
+            <i class="fas fa-info"></i>
         </div>
+        <div>
+            <h6 class="alert-heading mb-1 fw-bold" style="font-size: 0.95rem; color: #333;">¿Qué es el Tablero Kanban?</h6>
+            <p class="mb-0 small text-muted">
+                Es una herramienta visual para gestionar el flujo de trabajo, organizar tareas por fases y optimizar la colaboración.
+            </p>
+        </div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 
     {% if active_projects %}
@@ -45,7 +54,7 @@
     <div class="kanban-selector-grid">
         {% for project in active_page_obj.object_list %}
         <div class="kanban-project-card active">
-            <span class="kanban-project-status active">{{ project.get_phase_display }}</span>
+            <span class="kanban-project-status active">{{ project.get_status_display }}</span>
             
             <h3 class="kanban-project-title" title="{{ project.name }}">{{ project.name|truncatechars:20 }}</h3>
             
@@ -173,4 +182,22 @@
 
 {% block extra_js %}
 <script src="{% static 'js/projects.js' %}?v=2.6"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const alert = document.getElementById('kanban-info-alert');
+        if (alert) {
+            if (localStorage.getItem('kanban_info_dismissed') === 'true') {
+                alert.style.display = 'none';
+                alert.classList.remove('d-flex'); // Bootstrap d-flex might override display: none
+            } else {
+                const closeBtn = alert.querySelector('.btn-close');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', function() {
+                        localStorage.setItem('kanban_info_dismissed', 'true');
+                    });
+                }
+            }
+        }
+    });
+</script>
 {% endblock %}

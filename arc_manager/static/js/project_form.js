@@ -200,5 +200,135 @@ document.addEventListener('DOMContentLoaded', function() {
   togglePhaseCreationVisibility();
   updateOrder();
   wireDeleteButtons(document);
+
+  // ============================================
+  // QUICK CLIENT CREATION FUNCTIONALITY
+  // ============================================
+  const saveQuickClientBtn = document.getElementById('saveQuickClient');
+  const quickClientForm = document.getElementById('quickClientForm');
+  const quickClientModal = document.getElementById('quickClientModal');
+  const clientSelect = document.querySelector('select[name="client"]');
+  const quickClientError = document.getElementById('quickClientError');
+  const quickClientErrorMessage = document.getElementById('quickClientErrorMessage');
+
+  if (saveQuickClientBtn && quickClientForm) {
+    saveQuickClientBtn.addEventListener('click', function() {
+      console.log('Quick client button clicked');
+      console.log('CLIENT_CREATE_URL:', window.CLIENT_CREATE_URL);
+      
+      // Reset previous errors
+      quickClientError.classList.add('d-none');
+      document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+      
+      const formData = new FormData(quickClientForm);
+      const name = formData.get('name');
+      
+      // Simple client-side validation
+      if (!name || name.trim() === '') {
+        const nameInput = document.getElementById('quick_client_name');
+        nameInput.classList.add('is-invalid');
+        document.getElementById('quick_client_name_error').textContent = 'Este campo es obligatorio';
+        return;
+      }
+      
+      // Check if URL is defined
+      if (!window.CLIENT_CREATE_URL) {
+        console.error('CLIENT_CREATE_URL is not defined');
+        quickClientErrorMessage.textContent = 'Error de configuración. Por favor, recarga la página.';
+        quickClientError.classList.remove('d-none');
+        return;
+      }
+      
+      // Disable button to prevent double-submission
+      saveQuickClientBtn.disabled = true;
+      saveQuickClientBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creando...';
+      
+      console.log('Sending request to:', window.CLIENT_CREATE_URL);
+      
+      // Send AJAX request to create client
+      fetch(window.CLIENT_CREATE_URL, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+        }
+      })
+      .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+      })
+      .then(data => {
+        console.log('Response data:', data);
+        if (data.success) {
+          // Add new client to select dropdown
+          if (clientSelect && data.client) {
+            const option = document.createElement('option');
+            option.value = data.client.id;
+            option.textContent = data.client.name;
+            option.selected = true;
+            clientSelect.appendChild(option);
+            
+            // Trigger change event
+            clientSelect.dispatchEvent(new Event('change'));
+          }
+          
+          // Close modal
+          const modalInstance = bootstrap.Modal.getInstance(quickClientModal);
+          if (modalInstance) {
+            modalInstance.hide();
+          }
+          
+          // Reset form
+          quickClientForm.reset();
+          
+          // Show success message (optional)
+          if (window.showToast) {
+            window.showToast('Cliente creado exitosamente', 'success');
+          }
+        } else {
+          // Show error message
+          quickClientErrorMessage.textContent = data.error || 'Error al crear el cliente';
+          quickClientError.classList.remove('d-none');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        quickClientErrorMessage.textContent = 'Error de conexión. Por favor, intenta nuevamente.';
+        quickClientError.classList.remove('d-none');
+      })
+      .finally(() => {
+        // Re-enable button
+        saveQuickClientBtn.disabled = false;
+        saveQuickClientBtn.innerHTML = '<i class="fas fa-check me-2"></i>Crear Cliente';
+      });
+    });
+  }
+
+  // Reset form when modal is hidden
+  if (quickClientModal) {
+    quickClientModal.addEventListener('hidden.bs.modal', function() {
+      if (quickClientForm) {
+        quickClientForm.reset();
+        // Clear all input values manually
+        document.getElementById('quick_client_name').value = '';
+        document.getElementById('quick_client_email').value = '';
+        document.getElementById('quick_client_phone').value = '';
+      }
+      if (quickClientError) quickClientError.classList.add('d-none');
+      document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    });
+    
+    // Also reset when modal is shown (to ensure clean state)
+    quickClientModal.addEventListener('show.bs.modal', function() {
+      if (quickClientForm) {
+        quickClientForm.reset();
+        document.getElementById('quick_client_name').value = '';
+        document.getElementById('quick_client_email').value = '';
+        document.getElementById('quick_client_phone').value = '';
+      }
+      if (quickClientError) quickClientError.classList.add('d-none');
+      document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    });
+  }
 });
 

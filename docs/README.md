@@ -12,7 +12,8 @@ docs/
 ├── tests/                 🧪 Tests automatizados
 ├── logging/               📝 Logging y monitoreo
 ├── security/              🔒 Seguridad y auditorías
-└── features/              ✨ Features y mejoras
+├── features/              ✨ Features y mejoras
+└── estilos/               🎨 Guías de homologación de estilos (NUEVO)
 ```
 
 ---
@@ -81,6 +82,77 @@ Documentación de features y mejoras específicas.
 
 ---
 
+## 🎨 Guías de Homologación de Estilos
+
+**Documentación completa para homologar todas las vistas de la aplicación.**
+
+### 📌 [INDICE_DOCUMENTACION_ESTILOS.md](./INDICE_DOCUMENTACION_ESTILOS.md) ⭐ **START HERE**
+
+**Índice maestro** - Punto de entrada a toda la documentación de estilos.
+
+### Documentos Principales:
+
+#### 1️⃣ [GUIA_HOMOLOGACION_ESTILOS_VISTAS.md](./GUIA_HOMOLOGACION_ESTILOS_VISTAS.md)
+**Guía completa y detallada**
+- Estructura general de vistas
+- Header Section, Info Cards, Stats
+- Búsqueda, Filtros, Botones, Tablas
+- Ejemplos completos de implementación
+- Variables CSS y checklist
+
+📖 Para: Desarrolladores implementando nuevas vistas  
+⏱️ Lectura: 30-40 minutos
+
+#### 2️⃣ [EJEMPLOS_VISUALES_HOMOLOGACION.md](./EJEMPLOS_VISUALES_HOMOLOGACION.md)
+**Guía visual con comparaciones**
+- Ejemplos ✅ CORRECTO vs ❌ INCORRECTO
+- Visualizaciones ASCII de componentes
+- Paleta de colores con matriz de uso
+- Checklist visual rápida
+
+📖 Para: Verificación de implementaciones  
+⏱️ Lectura: 20-25 minutos
+
+#### 3️⃣ [QUICK_REFERENCE_ESTILOS.md](./QUICK_REFERENCE_ESTILOS.md)
+**Referencia rápida copy/paste**
+- Templates listos para usar
+- Snippets de todos los componentes
+- Paleta de colores
+- Iconos y espaciado
+
+📖 Para: Desarrollo rápido  
+⏱️ Uso: 2-5 minutos
+
+#### 4️⃣ [ANALISIS_COMPARATIVO_PROYECTOS_TAREAS.md](./ANALISIS_COMPARATIVO_PROYECTOS_TAREAS.md)
+**Comparación entre vistas existentes**
+- Estado actual de proyectos vs tareas
+- Plan de homologación priorizado
+- Diff de cambios requeridos
+
+📖 Para: Planificación de refactorización  
+⏱️ Lectura: 15-20 minutos
+
+### 🚀 Uso Rápido por Escenario:
+
+```bash
+# Crear nueva vista
+1. Lee: GUIA_HOMOLOGACION_ESTILOS_VISTAS.md
+2. Usa: QUICK_REFERENCE_ESTILOS.md (template base)
+3. Verifica: EJEMPLOS_VISUALES_HOMOLOGACION.md (checklist)
+
+# Homologar vista existente
+1. Lee: ANALISIS_COMPARATIVO_PROYECTOS_TAREAS.md
+2. Consulta: EJEMPLOS_VISUALES_HOMOLOGACION.md
+3. Usa: QUICK_REFERENCE_ESTILOS.md (código correcto)
+
+# Verificar implementación
+1. Abre: EJEMPLOS_VISUALES_HOMOLOGACION.md
+2. Compara con ejemplos ✅ CORRECTO
+3. Usa checklist visual
+```
+
+
+
 ## 🚀 Inicio Rápido
 
 ### Para Tests
@@ -113,10 +185,11 @@ ls -la
 - **Logging:** `docs/logging/` - Documentación de logging estructurado
 - **Security:** `docs/security/` - Auditorías y mejoras de seguridad
 - **Features:** `docs/features/` - Documentación de features específicas
+- **Estilos:** Ver documentos en raíz de `docs/` - Guías de homologación de vistas
 
 ---
 
-**Última actualización:** 11 de Noviembre, 2025
+**Última actualización:** 26 de Noviembre, 2025
 
 
 

@@ -29,7 +29,7 @@ class ProjectsManager {
     }
 
     setupSearchAndFilters() {
-        const searchInput = document.querySelector('.table-search-input');
+        const searchInput = document.querySelector('.search-input-inline, .table-search-input, .search-input-modern');
         const clearBtn = document.querySelector('.clear-search-btn');
         
         if (searchInput) {
@@ -38,7 +38,7 @@ class ProjectsManager {
             const searchFromUrl = urlParams.get('search') || '';
             if (searchFromUrl) {
                 searchInput.value = searchFromUrl;
-                if (clearBtn) clearBtn.style.display = 'block';
+                if (clearBtn) clearBtn.style.display = 'flex'; // Changed to flex to center icon
             }
             
             // Solo un event listener para búsqueda
@@ -51,7 +51,7 @@ class ProjectsManager {
                 
                 // Show/hide clear button
                 if (clearBtn) {
-                    clearBtn.style.display = searchTerm.length > 0 ? 'block' : 'none';
+                    clearBtn.style.display = searchTerm.length > 0 ? 'flex' : 'none';
                 }
                 
                 // Búsqueda con debounce
@@ -74,7 +74,7 @@ class ProjectsManager {
     }
 
     setupStatusFilters() {
-        const filterButtons = document.querySelectorAll('.filter-btn');
+        const filterButtons = document.querySelectorAll('.filter-btn, .filter-btn-compact, .filter-btn-modern');
         
         if (!filterButtons.length) {
             return;

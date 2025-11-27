@@ -210,36 +210,37 @@ Unificar TODOS los botones de eliminación del sistema para usar modales visuale
 ### Archivos
 1. Subir archivo → Eliminar desde vista de archivos
 2. Verificar modal muestra nombre y tamaño
-3. Confirmar que se elimina con animación
+3. Confirmar que se elimina con animación   
 
 ### Tareas
 1. Crear tarea → Ir al Kanban → Eliminar
-2. Desde modal de edición de tarea → Eliminar
-3. Desde detalle de proyecto → Eliminar
+2. Desde modal de edición de tarea → Eliminar ✅
+3. Desde detalle de proyecto → Eliminar ✅
 4. Desde "Mis Tareas" → Verificar modal existente
-5. Verificar modal muestra título
+5. Verificar modal muestra título ✅
 
 ### Proyectos
-1. Proyecto con contenido → Click en Eliminar
+1. Proyecto con contenido → Click en Eliminar tiene otro notificacion de estilo
 2. Verificar modal muestra estadísticas (fases, tareas, archivos)
 3. Confirmar redirección a lista
 
 ### Pagos
-1. Crear pago → Editar → Eliminar
-2. Desde detalle de proyecto → Eliminar pago
-3. Verificar modal muestra monto y fecha
+1. Crear pago → Editar → Eliminar solo dice pago pero no de cuanto o ams info
+2. Desde detalle de proyecto → Eliminar pago  no funciona
+3. Verificar modal muestra monto y fecha 
 
 ### Usuarios
 1. Lista de usuarios → Eliminar usuario
 2. Verificar modal muestra nombre completo y email
 
 ### Clientes
-1. Cliente sin proyectos → Eliminar (sin warning)
+1. Cliente sin proyectos → Eliminar (sin warning)  me sale plantilla y no modal 
 2. Cliente con proyectos → Eliminar (mostrar warning)
-3. Verificar contador de proyectos afectados
+3. Verificar contador de proyectos afectados+
+al cancelar se va a perfil del cliente y debe ser a lista de clientes
 
 ### Plantillas
-1. Plantilla de fase → Eliminar
+1. Plantilla de fase → Eliminar no funciona
 2. Verificar modal muestra cantidad de fases
 
 ### Fases
@@ -1121,5 +1122,223 @@ Para verificar que funciona correctamente en móvil:
 ---
 
 **Fecha de implementación:** Noviembre 2025
-**Última corrección:** 25/11/2025 (Problema de sesión en móvil)
+**Última corrección:** 26/11/2025 (Logs excesivos y error al crear tarea)
 **Estado:** ✅ COMPLETADO Y REPARADO (Desktop + Móvil)
+
+---
+
+## 🔧 Correcciones Aplicadas (26/11/2025) - Optimización de Logs y Corrección de Errores
+
+### Problemas Identificados
+
+1. **Logs excesivos en consola** 
+   - ❌ `files_filtering.js` mostraba múltiples logs cada vez que se entraba a "Centro de Tareas" o pestañas con archivos
+   - ❌ Logs repetitivos: "Configurando filtros de archivos...", "Encontrados X filtros...", "Registrando filtro para fase X..."
+   - ❌ Esto generaba ruido visual en la consola del desarrollador y del usuario
+
+2. **Error al crear tarea desde Centro de Tareas**
+   - ❌ Error: `Uncaught (in promise) TypeError: Cannot read properties of null (reading 'innerHTML')`
+   - ❌ Ocurría en línea 1426 del HTML renderizado
+   - ❌ La tarea se creaba pero no aparecía al instante en la lista
+   - ❌ Causaba confusión al usuario
+
+### Diagnóstico
+
+**Logs excesivos:**
+- Causa: `console.log()` en producción dentro de `files_filtering.js`
+- Los logs se disparaban múltiples veces por cada evento HTMX (`afterSettle`, `afterSwap`) y al abrir accordions
+- Impacto: Contaminación de la consola, dificulta debugging de otros problemas
+
+**Error de innerHTML:**
+```javascript
+// ❌ ANTES: No verificaba si tasksContainer existe
+if (tasksResponse.ok) {
+    const html = await tasksResponse.text();
+    tasksContainer.innerHTML = html; // ← Error si tasksContainer es null
+}
+
+// ✅ DESPUÉS: Verifica existencia antes de acceder
+if (tasksResponse.ok) {
+    const html = await tasksResponse.text();
+    if (tasksContainer) {  // ← Verificación agregada
+        tasksContainer.innerHTML = html;
+    }
+}
+```
+
+### Soluciones Implementadas
+
+#### 1. Eliminación de Logs de Producción
+Se eliminaron los `console.log()` innecesarios en producción dentro de los siguientes archivos:
+
+- `files_filtering.js`: Eliminados 13 logs de información y depuración.
+- `large-file-upload.js`: Eliminados 3 logs de información.
+
+#### 2. Corrección de Error al Crear Tarea
+
+Se corrigió el error de `innerHTML` al crear una tarea desde "Centro de Tareas" mediante las siguientes mejoras:
+
+- Se agregó una verificación adicional para asegurar que el contenedor de tareas (`tasksContainer`) existe antes de intentar acceder a su propiedad `innerHTML`.
+- Se implementó un fallback que recarga la página si el contenedor de tareas no está disponible después de intentar crear una tarea.
+- Se mejoró el manejo de notificaciones para mostrar un mensaje de éxito o error según corresponda.
+
+**Código corregido:**
+```javascript
+// Cerrar modal
+const modalElement = document.getElementById('addTaskModal');
+const modal = bootstrap.Modal.getInstance(modalElement);
+if (modal) {
+    modal.hide();
+}
+
+// Limpiar formulario
+taskForm.reset();
+
+// Esperar a que Bootstrap termine de cerrar
+await new Promise(resolve => setTimeout(resolve, 100));
+
+// Recargar el contenedor de tareas con validación robusta
+const tasksContainer = document.getElementById('tasksContainer');
+if (tasksContainer && tasksContainer.dataset.paginatedUrl) {
+    try {
+        const paginatedUrl = tasksContainer.dataset.paginatedUrl;
+        const phaseFilter = document.getElementById('phaseFilter');
+        const selectedPhase = phaseFilter ? phaseFilter.value : '';
+        
+        const url = selectedPhase ? `${paginatedUrl}?phase=${selectedPhase}` : paginatedUrl;
+        
+        const tasksResponse = await fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        if (tasksResponse.ok) {
+            const html = await tasksResponse.text();
+            // Verificación en 3 lugares
+            const container = document.getElementById('tasksContainer');
+            if (container && html && typeof container.innerHTML !== 'undefined') {
+                container.innerHTML = html;
+                
+                // Disparar evento para actualizar otros componentes
+                document.dispatchEvent(new CustomEvent('taskCreated', { detail: { html } }));
+            } else if (!container) {
+                // Fallback: Si no hay contenedor después de esperar, recargar
+                setTimeout(() => window.location.reload(), 500);
+            }
+        }
+    } catch (reloadError) {
+        console.error('Error recargando tareas:', reloadError);
+        // Intentar recargar toda la página como último recurso
+        setTimeout(() => window.location.reload(), 1000);
+    }
+} else {
+    // Si no hay contenedor, recargar la página
+    console.warn('Contenedor de tareas no encontrado, recargando página...');
+    setTimeout(() => window.location.reload(), 500);
+}
+```
+
+### Archivos Modificados (26/11/2025 - Correcciones Aplicadas)
+
+1. **JavaScript:**
+   - `arc_manager/static/js/files_filtering.js` - Eliminados 13 console.log() de producción
+   - `arc_manager/static/js/large-file-upload.js` - Eliminados 3 console.log() de producción
+   - `arc_manager/static/js/project_detail.js` - Corregido error de sintaxis y mejorado manejo de tareas
+
+2. **Templates:**
+   - `arc_manager/apps/projects/templates/projects/project_detail.html` - Mejorada lógica de recarga de tareas y manejo de notificaciones
+
+3. **Documentación:**
+   - `docs/HOMOGENIZACION_MODALES_ELIMINACION.md` - Actualizado con correcciones del 26/11/2025
+
+### Beneficios de las Correcciones
+
+**Logs limpios:**
+- ✅ Consola libre de ruido visual
+- ✅ Más fácil identificar errores reales
+- ✅ Mejor experiencia de desarrollo
+- ✅ Producción sin logs innecesarios
+
+**Creación de tareas sin errores:**
+- ✅ No más `TypeError` al crear tarea
+- ✅ La tarea aparece inmediatamente en la lista
+- ✅ Notificación de éxito se muestra correctamente
+- ✅ Sincronización mejorada entre componentes
+
+### Testing Recomendado
+
+**Verificar logs limpios:**
+1. Abrir DevTools (F12)
+2. Ir a pestaña "Console"
+3. Navegar a "Centro de Tareas" → No debe haber logs
+4. Cambiar a pestaña "Archivos" → No debe haber logs
+5. Aplicar filtros de archivos → No debe haber logs (solo si hay error)
+
+**Verificar creación de tareas:**
+1. Ir a un proyecto → "Centro de Tareas"
+2. Click en "Nueva Tarea"
+3. Llenar formulario y enviar
+4. Verificar:
+   - ✅ Modal se cierra
+   - ✅ Tarea aparece en la lista al instante
+   - ✅ Notificación de éxito se muestra
+   - ✅ No hay errores en consola
+
+**Verificar filtrado de archivos:**
+1. Ir a pestaña "Archivos"
+2. Seleccionar filtros (tipo, fecha)
+3. Verificar:
+   - ✅ Filtros se aplican correctamente
+   - ✅ No hay logs en consola
+   - ✅ Solo aparecen warnings si hay problemas reales
+
+---
+
+## 🔧 Correcciones Aplicadas (26/11/2025 - Sexta Iteración) - Clientes y Plantillas
+
+### Problemas Identificados
+
+1. **Eliminación de Clientes:**
+   - ❌ Cliente sin proyectos: No mostraba modal, redirigía a plantilla de eliminación estándar.
+   - ❌ Cliente con proyectos: No mostraba warning porque no detectaba el conteo de proyectos.
+   - ❌ Cancelar: Redirigía incorrectamente (al arreglar el modal, esto se soluciona).
+   - **Causa:** Selector JS incorrecto (`href*="client_delete"`) y falta de atributo de datos para conteo de proyectos.
+
+2. **Eliminación de Plantillas:**
+   - ❌ "Eliminar no funciona": El selector JS esperaba `phasetemplate` en la URL, pero la URL real es `/projects/templates/...`.
+   - ❌ Contador de fases incorrecto: Usaba `.count` en template Django sobre un `JSONField` (lista), lo cual no funciona.
+   - ❌ Redirección incorrecta: Redirigía a `/projects/phase-templates/` (404) en lugar de `/projects/templates/`.
+
+### Soluciones Implementadas
+
+#### 1. **Clientes** (`client-delete.js` y `client_list.html`)
+
+- ✅ **Selector JS Robustecido:**
+  ```javascript
+  // Antes: a[href*="client_delete"]
+  // Ahora: a[href*="/clients/"][href*="/delete/"], a.action-btn.delete[href*="/delete/"]
+  ```
+- ✅ **Datos en Template:**
+  Agregado `data-projects="{{ client.projects.count }}"` a la fila de la tabla para que el JS pueda leer el número de proyectos asociados sin depender del HTML visual.
+
+#### 2. **Plantillas** (`template-delete.js` y `phasetemplate_list.html`)
+
+- ✅ **Selector JS Corregido:**
+  ```javascript
+  // Antes: a[href*="phasetemplate"]
+  // Ahora: a[href*="/templates/"][href*="/delete/"]
+  ```
+- ✅ **Detección de Tipo:**
+  Actualizada lógica `isTemplate` para detectar `/templates/` en la URL.
+- ✅ **Contador de Fases:**
+  Cambiado `{{ template.phases.count }}` por `{{ template.phases|length }}` en el template HTML y agregado `data-phases` para lectura confiable desde JS.
+- ✅ **Redirección:**
+  Corregida redirección a `/projects/templates/` después de eliminar.
+
+### Archivos Modificados
+
+1. `arc_manager/static/js/client-delete.js`
+2. `arc_manager/apps/orgs/templates/orgs/client_list.html`
+3. `arc_manager/static/js/template-delete.js`
+4. `arc_manager/apps/projects/templates/projects/phasetemplate_list.html`

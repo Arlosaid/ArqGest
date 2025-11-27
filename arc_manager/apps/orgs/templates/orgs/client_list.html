@@ -81,7 +81,7 @@
                     </thead>
                     <tbody>
                         {% for client in clients %}
-                        <tr>
+                        <tr data-client-id="{{ client.pk }}" data-projects="{{ client.projects.count }}">
                             <td>
                                 <div class="client-info">
                                     <div class="client-avatar">

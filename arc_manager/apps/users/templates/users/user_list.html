@@ -80,6 +80,99 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ Búsqueda de usuarios configurada correctamente');
 });
 
+// Función para actualizar estadísticas y UI después de eliminar
+function updateUserStats(stats) {
+    // Actualizar contadores
+    const totalUsersEl = document.getElementById('totalUsers');
+    const activeUsersEl = document.getElementById('activeUsers');
+    const inactiveUsersEl = document.getElementById('inactiveUsers');
+    
+    if (totalUsersEl) totalUsersEl.textContent = stats.total_users;
+    if (activeUsersEl) activeUsersEl.textContent = stats.active_users;
+    if (inactiveUsersEl) inactiveUsersEl.textContent = stats.inactive_users;
+    
+    // Calcular espacios disponibles
+    const maxUsers = stats.max_users || {{ max_users|default:"2" }};
+    const remainingSlots = Math.max(0, maxUsers - stats.total_users);
+    
+    // Actualizar el texto del total en la tarjeta (sin mostrar espacios disponibles)
+    const statValueElements = document.querySelectorAll('.stat-value-advanced');
+    if (statValueElements.length > 0) {
+        statValueElements[0].innerHTML = `<span id="totalUsers">${stats.total_users}</span>/${maxUsers}`;
+    }
+    
+    // Verificar si ya no estamos en el límite
+    const atLimit = stats.total_users >= maxUsers;
+    
+    // Mostrar/ocultar alerta de límite
+    const limitAlert = document.querySelector('.alert.alert-warning');
+    const headerContent = document.querySelector('.header-content .d-flex');
+    
+    if (!atLimit) {
+        // Ya no estamos en el límite - remover alerta con animación
+        if (limitAlert) {
+            limitAlert.style.transition = 'opacity 0.3s ease, max-height 0.3s ease';
+            limitAlert.style.opacity = '0';
+            limitAlert.style.maxHeight = '0';
+            limitAlert.style.overflow = 'hidden';
+            limitAlert.style.marginTop = '0';
+            limitAlert.style.marginBottom = '0';
+            
+            setTimeout(() => {
+                limitAlert.remove();
+            }, 300);
+        }
+        
+        // Reemplazar el botón deshabilitado con un enlace funcional
+        if (headerContent) {
+            const currentButton = headerContent.querySelector('button.btn-primary, a.btn-primary');
+            if (currentButton) {
+                const newButton = document.createElement('a');
+                newButton.href = '{% url "users:create" %}';
+                newButton.className = 'btn btn-primary';
+                newButton.innerHTML = '<i class="fas fa-user-plus"></i> Crear Usuario';
+                currentButton.replaceWith(newButton);
+            }
+        }
+    } else {
+        // Todavía estamos en el límite - asegurar que la alerta esté visible
+        if (!limitAlert) {
+            // Crear la alerta si no existe
+            const headerSection = document.querySelector('.header-section');
+            if (headerSection) {
+                const alertHtml = `
+                    <div class="alert alert-warning d-flex align-items-center" role="alert" style="margin: 1rem 0; border-left: 4px solid #f0ad4e;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 1.5rem; margin-right: 1rem;"></i>
+                        <div>
+                            <strong>Límite de usuarios alcanzado</strong>
+                            <p style="margin: 0.5rem 0 0 0;">
+                                Has alcanzado el límite de <strong>${maxUsers} usuario${maxUsers !== 1 ? 's' : ''}</strong> de tu plan. 
+                                Para agregar más usuarios, 
+                                ${stats.inactive_users > 0 ? 'elimina un usuario existente o ' : ''}
+                                <a href="{% url 'plans:request_upgrade' %}" class="alert-link"><strong>actualiza tu plan</strong></a>.
+                            </p>
+                        </div>
+                    </div>
+                `;
+                headerSection.insertAdjacentHTML('afterend', alertHtml);
+            }
+        }
+        
+        // Asegurar que el botón esté deshabilitado
+        if (headerContent) {
+            const currentButton = headerContent.querySelector('a.btn-primary');
+            if (currentButton && !currentButton.disabled) {
+                const disabledButton = document.createElement('button');
+                disabledButton.className = 'btn btn-primary';
+                disabledButton.disabled = true;
+                disabledButton.title = `Has alcanzado el límite de ${maxUsers} usuario${maxUsers !== 1 ? 's' : ''}`;
+                disabledButton.innerHTML = '<i class="fas fa-lock"></i> Límite Alcanzado';
+                currentButton.replaceWith(disabledButton);
+            }
+        }
+    }
+}
+
 // Función mejorada de confirmación y eliminación con modal visual
 function confirmAndDelete(userId) {
     const row = document.querySelector(`tr[data-user-id="${userId}"]`) || document.querySelector(`.mobile-user-card[data-user-id="${userId}"]`);
@@ -120,6 +213,11 @@ function confirmAndDelete(userId) {
         
         if (!data.success) {
             throw new Error(data.error || 'Error al eliminar usuario');
+        }
+        
+        // Actualizar estadísticas inmediatamente
+        if (data.stats) {
+            updateUserStats(data.stats);
         }
         
         // Remover elemento de la UI con animación
@@ -163,12 +261,36 @@ function confirmAndDelete(userId) {
                 <div class="text-muted">Administra los usuarios de tu organización</div>
             </div>
             <div class="d-flex gap-2">
-                <a href="{% url 'users:create' %}" class="btn btn-primary">
-                    <i class="fas fa-user-plus"></i> Crear Usuario
-                </a>
+                {% if at_user_limit %}
+                    <button class="btn btn-primary" disabled title="Has alcanzado el límite de {{ max_users }} usuario{{ max_users|pluralize }}">
+                        <i class="fas fa-lock"></i> Límite Alcanzado
+                    </button>
+                {% else %}
+                    <a href="{% url 'users:create' %}" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i> Crear Usuario
+                    </a>
+                {% endif %}
             </div>
         </div>
     </div>
+    
+    <!-- Alerta cuando se alcanza el límite -->
+    {% if at_user_limit %}
+    <div class="alert alert-warning d-flex align-items-center" role="alert" style="margin: 1rem 0; border-left: 4px solid #f0ad4e;">
+        <i class="fas fa-exclamation-triangle" style="font-size: 1.5rem; margin-right: 1rem;"></i>
+        <div>
+            <strong>Límite de usuarios alcanzado</strong>
+            <p style="margin: 0.5rem 0 0 0;">
+                Has alcanzado el límite de <strong>{{ max_users }} usuario{{ max_users|pluralize }}</strong> de tu plan. 
+                Para agregar más usuarios, 
+                {% if inactive_users > 0 %}
+                    elimina un usuario existente o 
+                {% endif %}
+                <a href="{% url 'plans:request_upgrade' %}" class="alert-link"><strong>actualiza tu plan</strong></a>.
+            </p>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="stats-grid-advanced">
         <div class="stat-card-advanced">
@@ -179,7 +301,7 @@ function confirmAndDelete(userId) {
                 <div class="stat-main-advanced">
                     <div class="stat-title-advanced">Total Usuarios</div>
                     <div class="stat-value-advanced"><span id="totalUsers">{{ total_users|default:"1" }}</span>/{{ max_users|default:"2" }}</div>
-                    <div class="stat-subtitle-advanced"><span id="remainingSlots">{{ remaining_slots|default:"1" }}</span> espacios disponibles</div>
+                    <div class="stat-subtitle-advanced">Límite del plan actual</div>
                 </div>
             </div>
         </div>

@@ -87,6 +87,12 @@ class Project(models.Model):
         db_index=True,
         help_text=_("Máximo 100 caracteres. Sea claro y específico.")
     )
+    description = models.TextField(
+        _("Descripción"),
+        blank=True,
+        null=True,
+        help_text=_("Descripción detallada del proyecto")
+    )
     status = models.CharField(
         _("Estado"),
         max_length=20,
@@ -549,6 +555,14 @@ class Task(models.Model):
         
         logger.info(f"Task deleted - ID: {self.pk}, Title: '{self.title}', Project: {project_id}")
     
+    @property
+    def is_overdue(self):
+        """Devuelve True si la tarea está vencida y no completada."""
+        if not self.due_date or self.status == self.Status.DONE:
+            return False
+        from datetime import date
+        return self.due_date < date.today()
+
     @property
     def is_due_soon(self):
         """Devuelve True si la tarea vence en los próximos 3 días."""
