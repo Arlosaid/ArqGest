@@ -946,3 +946,24 @@ CRON_SECRET_KEY = os.environ.get('CRON_SECRET_KEY', '')
 # CONFIGURACIÓN DEL MIDDLEWARE DE LOGGING
 # ========================================
 # Configuración para RequestLoggingMiddleware (ya definida arriba)
+
+# ========================================
+# UNIFIED FILE UPLOAD SETTINGS
+# ========================================
+# Centralized configuration for both Backend and Frontend
+
+# Maximum file size in MB (Default 1500MB)
+MAX_UPLOAD_SIZE_MB = int(os.environ.get('MAX_FILE_SIZE_MB', '1500'))
+
+# Allowed file extensions
+_allowed_extensions_str = os.environ.get('ALLOWED_EXTENSIONS', '')
+if _allowed_extensions_str:
+    ALLOWED_UPLOAD_EXTENSIONS = [ext.strip().upper() for ext in _allowed_extensions_str.split(',') if ext.strip()]
+else:
+    # Default fallback list
+    ALLOWED_UPLOAD_EXTENSIONS = [
+        'PDF', 'JPG', 'JPEG', 'PNG', 'GIF', 'TIFF',
+        'DWG', 'DXF', 'RVT', 'SKP',
+        'DOC', 'DOCX', 'XLS', 'XLSX', 'PPT', 'PPTX',
+        'ZIP', 'RAR', 'TXT', 'MD'
+    ]

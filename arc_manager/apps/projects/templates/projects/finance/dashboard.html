@@ -210,7 +210,7 @@
                                                     </span>
                                                 {% else %}
                                                     <span class="badge bg-warning">
-                                                        <i class="fas fa-exclamation-circle me-1"></i>Sin presupuesto
+                                                        <i class="fas fa-exclamation-circle me-1"></i>Por configurar
                                                     </span>
                                                 {% endif %}
                                             </td>
@@ -232,7 +232,7 @@
                                                         <a href="{% url 'projects:budget-config' project.pk %}" 
                                                            class="btn btn-sm btn-warning" 
                                                            data-bs-toggle="tooltip" title="Configurar presupuesto">
-                                                            <i class="fas fa-dollar-sign me-1"></i>Presupuesto
+                                                            <i class="fas fa-cog me-1"></i>Configurar
                                                         </a>
                                                     {% endif %}
                                                 </div>
@@ -262,7 +262,7 @@
                                                 {% if project.budget_configured %}
                                                     <span class="badge bg-success">Configurado</span>
                                                 {% else %}
-                                                    <span class="badge bg-warning">Sin presupuesto</span>
+                                                    <span class="badge bg-warning">Por configurar</span>
                                                 {% endif %}
                                             </div>
                                         </div>

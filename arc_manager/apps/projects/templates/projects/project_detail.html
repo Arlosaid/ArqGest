@@ -124,7 +124,16 @@
                             <div class="detail-content">
                                 <div class="detail-label">{% trans "Cliente" %}</div>
                                 <div class="detail-value">
-                                    {% if project.client %}{{ project.client.name }}{% else %}<span class="text-muted">{% trans "No asignado" %}</span>{% endif %}
+                                    {% if project.client %}
+                                        {{ project.client.name }}
+                                    {% else %}
+                                        <span class="text-muted">{% trans "No asignado" %}</span>
+                                        {% if user.is_org_admin %}
+                                            <a href="{% url 'projects:project-update' project.pk %}" class="btn btn-link btn-sm p-0 ms-2" style="font-size: 0.8rem; text-decoration: none;">
+                                                <i class="fas fa-cog me-1"></i>{% trans "Configurar" %}
+                                            </a>
+                                        {% endif %}
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -151,18 +160,27 @@
                             </div>
                         </div>
 
-                        <!-- Budget (if available) -->
-                        {% if project.total_budget %}
+                        <!-- Budget -->
                         <div class="detail-card">
                             <div class="detail-icon icon-budget">
                                 <i class="fas fa-sack-dollar"></i>
                             </div>
                             <div class="detail-content">
                                 <div class="detail-label">{% trans "Presupuesto" %}</div>
-                                <div class="detail-value">${{ project.total_budget|floatformat:2 }}</div>
+                                <div class="detail-value">
+                                    {% if project.total_budget %}
+                                        ${{ project.total_budget|floatformat:2 }}
+                                    {% else %}
+                                        <span class="text-muted">{% trans "No configurado" %}</span>
+                                        {% if user.is_org_admin %}
+                                            <a href="{% url 'projects:budget-config' project.pk %}" class="btn btn-link btn-sm p-0 ms-2" style="font-size: 0.8rem; text-decoration: none;">
+                                                <i class="fas fa-cog me-1"></i>{% trans "Configurar" %}
+                                            </a>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
-                        {% endif %}
                     </div>
 
                     <!-- Description Section -->

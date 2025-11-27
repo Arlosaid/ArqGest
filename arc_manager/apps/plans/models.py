@@ -106,6 +106,20 @@ class Plan(models.Model):
         # Guardar
         super().save(*args, **kwargs)
         
+        # Invalidar caches si cambiaron límites críticos
+        if not is_new and changed_fields:
+            storage_changed = any(c['field'] == 'max_storage_gb' for c in changed_fields)
+            users_changed = any(c['field'] == 'max_users' for c in changed_fields)
+            
+            if storage_changed or users_changed:
+                # Invalidar caches de todas las organizaciones afectadas
+                # Usamos iterator() para evitar cargar todos los objetos en memoria si son muchos
+                for sub in self.subscription_set.select_related('organization').iterator():
+                    if storage_changed:
+                        sub.organization.invalidate_storage_cache()
+                    if users_changed:
+                        sub.organization.invalidate_user_cache()
+
         # Logging de negocio
         if is_new:
             log_business_event(
