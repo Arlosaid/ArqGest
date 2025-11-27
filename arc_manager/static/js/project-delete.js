@@ -296,14 +296,22 @@ class ProjectDeleteManager {
     }
 
     getCsrfToken() {
-        // Intentar obtener del cookie primero
+        // 1. Intentar obtener del meta tag (método preferido y más seguro)
+        const metaToken = document.querySelector('meta[name="csrf-token"]');
+        if (metaToken) {
+            const token = metaToken.getAttribute('content');
+            if (token && token.trim() !== '') return token;
+        }
+
+        // 2. Fallback: buscar en el DOM (input hidden generado por {% csrf_token %})
+        // Esto funcionará gracias al div oculto agregado en base.html
+        const input = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (input && input.value) return input.value;
+
+        // 3. Intentar obtener del cookie (puede fallar si es HttpOnly)
         const value = `; ${document.cookie}`;
         const parts = value.split(`; csrftoken=`);
         if (parts.length === 2) return parts.pop().split(';').shift();
-        
-        // Fallback: buscar en el DOM (input hidden generado por {% csrf_token %})
-        const input = document.querySelector('[name=csrfmiddlewaretoken]');
-        if (input) return input.value;
         
         return '';
     }
