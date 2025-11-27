@@ -16,22 +16,25 @@ class ProjectDeleteManager {
                               (e.target.tagName === 'A' && e.target.href.includes('/projects/') && e.target.href.includes('/delete/') ? e.target : null);
             
             if (deleteLink) {
-                e.preventDefault();
-                e.stopPropagation();
-                
                 // Extraer ID del proyecto desde la URL
                 const projectId = this.extractProjectId(deleteLink.href);
                 
                 if (projectId) {
+                    console.log('🗑️ Intercepting delete click for project:', projectId);
+                    e.preventDefault();
+                    e.stopPropagation();
                     this.confirmDelete(projectId, deleteLink);
+                } else {
+                    console.warn('⚠️ Could not extract project ID from URL:', deleteLink.href);
+                    // Do NOT prevent default here, let the link work as a fallback
                 }
             }
         });
     }
 
     extractProjectId(url) {
-        // Extraer ID desde URLs como /projects/123/delete/
-        const match = url.match(/\/projects\/(\d+)\/delete\//);
+        // Extraer ID desde URLs como /projects/123/delete/ o /projects/123/delete
+        const match = url.match(/\/projects\/(\d+)\/delete\/?/);
         return match ? match[1] : null;
     }
 
