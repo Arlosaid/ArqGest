@@ -17,12 +17,15 @@ window.FILE_UPLOAD_CONFIG = {
     ENABLE_STORAGES: false,
     
     // Extensiones permitidas (Use server config or default)
-    ALLOWED_EXTENSIONS: serverConfig.ALLOWED_EXTENSIONS || [
-        'PDF', 'JPG', 'JPEG', 'PNG', 'GIF', 'TIFF', 
-        'DWG', 'DXF', 'RVT', 'SKP', 
-        'DOC', 'DOCX', 'XLS', 'XLSX', 'PPT', 'PPTX', 
-        'ZIP', 'RAR', 'TXT', 'MD'
-    ],
+    // Si el servidor envía una lista vacía, usamos la lista por defecto para evitar inconsistencias
+    ALLOWED_EXTENSIONS: (serverConfig.ALLOWED_EXTENSIONS && serverConfig.ALLOWED_EXTENSIONS.length > 0) 
+        ? serverConfig.ALLOWED_EXTENSIONS 
+        : [
+            'PDF', 'JPG', 'JPEG', 'PNG', 'GIF', 'TIFF', 
+            'DWG', 'DXF', 'RVT', 'SKP', 
+            'DOC', 'DOCX', 'XLS', 'XLSX', 'PPT', 'PPTX', 
+            'ZIP', 'RAR', 'TXT', 'MD'
+        ],
     
     // Configuración de chunks para uploads grandes
     CHUNK_SIZE_MB: 5,
