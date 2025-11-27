@@ -341,3 +341,31 @@ def get_user_accessible_projects(user, organization):
         id__in=all_accessible_ids,
         organization=organization
     )
+
+
+def get_or_set_kanban_stats(project_id, timeout=300):
+    """
+    Obtiene las estadísticas del tablero Kanban desde cache o las calcula.
+    Args:
+        project_id: ID del proyecto
+        timeout: Tiempo de cache en segundos (default: 5 minutos)
+    """
+    cache_key = f"project_kanban_stats:{project_id}"
+    stats = cache.get(cache_key)
+    
+    if stats is None:
+        from django.db.models import Count, Q
+        from .models import Task
+        
+        # Calcular estadísticas
+        stats = Task.objects.filter(phase__project_id=project_id).aggregate(
+            total=Count('id'),
+            todo=Count('id', filter=Q(status='TODO')),
+            in_progress=Count('id', filter=Q(status='IN_PROGRESS')),
+            paused=Count('id', filter=Q(status='PAUSED')),
+            done=Count('id', filter=Q(status='DONE')),
+        )
+        
+        cache.set(cache_key, stats, timeout)
+    
+    return stats

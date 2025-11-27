@@ -556,6 +556,14 @@ class Task(models.Model):
         logger.info(f"Task deleted - ID: {self.pk}, Title: '{self.title}', Project: {project_id}")
     
     @property
+    def is_overdue(self):
+        """Devuelve True si la tarea está vencida y no completada."""
+        if not self.due_date or self.status == self.Status.DONE:
+            return False
+        from datetime import date
+        return self.due_date < date.today()
+
+    @property
     def is_due_soon(self):
         """Devuelve True si la tarea vence en los próximos 3 días."""
         if not self.due_date:

@@ -13,6 +13,14 @@ def update_phase_status_on_task_change(sender, instance, created, **kwargs):
     - IN_PROGRESS: Al menos una tarea está en progreso o hay tareas activas
     - COMPLETED: Todas las tareas están completadas
     """
+    # Invalidate Kanban Cache
+    from .cache_utils import invalidate_task_cache
+    invalidate_task_cache(
+        instance.phase.project.organization.id, 
+        instance.phase.project.id,
+        instance.assigned_to.id if instance.assigned_to else None
+    )
+
     phase = instance.phase
     
     # Obtener todas las tareas de la fase
@@ -63,6 +71,17 @@ def update_phase_status_on_task_delete(sender, instance, **kwargs):
     """
     Actualiza el estado de la fase cuando se elimina una tarea.
     """
+    # Invalidate Kanban Cache
+    from .cache_utils import invalidate_task_cache
+    try:
+        invalidate_task_cache(
+            instance.phase.project.organization.id, 
+            instance.phase.project.id,
+            instance.assigned_to.id if instance.assigned_to else None
+        )
+    except Exception:
+        pass
+
     try:
         phase = instance.phase
         

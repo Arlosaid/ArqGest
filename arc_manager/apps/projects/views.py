@@ -688,20 +688,58 @@ def project_kanban(request, pk):
     phases = project.phases.prefetch_related('tasks__assigned_to').order_by('order')
 
     # Estadísticas detalladas del proyecto (optimizado)
-    from django.db.models import Count, Q
-    all_tasks = Task.objects.filter(phase__project=project)
+    from django.db.models import Count, Q, Case, When, Value, IntegerField
+    
+    # Ordenar tareas por prioridad (Alta > Media > Baja) y luego por fecha de vencimiento
+    all_tasks = Task.objects.filter(phase__project=project).annotate(
+        priority_val=Case(
+            When(priority='HIGH', then=Value(3)),
+            When(priority='MEDIUM', then=Value(2)),
+            When(priority='LOW', then=Value(1)),
+            default=Value(0),
+            output_field=IntegerField(),
+        )
+    ).order_by('-priority_val', 'due_date', '-created_at')
+
+    # --- FILTROS KANBAN ---
+    search_query = request.GET.get('search', '').strip()
+    priority_filter = request.GET.get('priority', '').strip()
+    assigned_to_filter = request.GET.get('assigned_to', '').strip()
+    phase_filter = request.GET.get('phase_id', '').strip()
+
+    if search_query:
+        all_tasks = all_tasks.filter(
+            Q(title__icontains=search_query) | 
+            Q(description__icontains=search_query)
+        )
+    
+    if priority_filter:
+        all_tasks = all_tasks.filter(priority=priority_filter)
+        
+    if assigned_to_filter and assigned_to_filter.isdigit():
+        all_tasks = all_tasks.filter(assigned_to_id=assigned_to_filter)
+
+    if phase_filter and phase_filter.isdigit():
+        all_tasks = all_tasks.filter(phase_id=phase_filter)
+    # ----------------------
     
     # UX: Mostrar todas las tareas en Kanban para contexto del proyecto
     # Los usuarios solo podrán interactuar con sus tareas asignadas (validado en frontend y permisos)
     is_org_admin = request.user.is_org_admin
     
-    stats = all_tasks.aggregate(
-        total=Count('id'),
-        todo=Count('id', filter=Q(status='TODO')),
-        in_progress=Count('id', filter=Q(status='IN_PROGRESS')),
-        paused=Count('id', filter=Q(status='PAUSED')),
-        done=Count('id', filter=Q(status='DONE')),
-    )
+    # USE CACHE FOR STATS if no filters are applied
+    if not (search_query or priority_filter or assigned_to_filter or phase_filter):
+        from .cache_utils import get_or_set_kanban_stats
+        stats = get_or_set_kanban_stats(project.id)
+    else:
+        stats = all_tasks.aggregate(
+            total=Count('id'),
+            todo=Count('id', filter=Q(status='TODO')),
+            in_progress=Count('id', filter=Q(status='IN_PROGRESS')),
+            paused=Count('id', filter=Q(status='PAUSED')),
+            done=Count('id', filter=Q(status='DONE')),
+        )
+    
     total_tasks = stats['total']
     tasks_todo = stats['todo']
     tasks_in_progress = stats['in_progress']
@@ -716,13 +754,13 @@ def project_kanban(request, pk):
 
     # Soporte para agrupar por estado
     status_choices = list(Task.Status.choices)
-    selected_phase_id = request.GET.get('phase_id')
+    selected_phase_id = phase_filter if phase_filter.isdigit() else None
 
     tasks_by_status = {}
     if group_by == 'status':
         base_qs = all_tasks.select_related('phase', 'assigned_to')
-        if selected_phase_id:
-            base_qs = base_qs.filter(phase_id=selected_phase_id)
+        # El filtro de fase ya se aplicó a all_tasks arriba si existe phase_filter
+        
         # Traer todas las tareas y agrupar en memoria para evitar N consultas
         tasks_list = list(base_qs)
         for code, _label in status_choices:
@@ -756,6 +794,13 @@ def project_kanban(request, pk):
         'project_progress': project_progress,
         'today': timezone.now().date(),
         'is_org_admin': is_organization_admin(request.user),
+        # Pasar filtros al contexto
+        'current_filters': {
+            'search': search_query,
+            'priority': priority_filter,
+            'assigned_to': int(assigned_to_filter) if assigned_to_filter.isdigit() else '',
+            'phase_id': int(phase_filter) if phase_filter.isdigit() else '',
+        }
     }
 
     return render(request, 'projects/kanban_board.html', context)
@@ -1318,7 +1363,18 @@ def update_task_status(request, task_pk):
         if status in dict(Task.Status.choices):
             task.status = status
             task.save()
-            return JsonResponse({'success': True})
+            
+            # Calcular estadísticas actualizadas para devolver al frontend
+            from django.db.models import Count, Q
+            stats = Task.objects.filter(phase__project=task.phase.project).aggregate(
+                total=Count('id'),
+                todo=Count('id', filter=Q(status='TODO')),
+                in_progress=Count('id', filter=Q(status='IN_PROGRESS')),
+                paused=Count('id', filter=Q(status='PAUSED')),
+                done=Count('id', filter=Q(status='DONE')),
+            )
+            
+            return JsonResponse({'success': True, 'stats': stats})
         else:
             log_msg, log_data = log_task_operation(
                 'UPDATE_TASK_ERROR',

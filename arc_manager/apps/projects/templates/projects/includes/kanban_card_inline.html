@@ -1,0 +1,84 @@
+{% load i18n %}
+<div class="card mb-2 task-card border-0 shadow-sm" draggable="true" ondragstart="drag(event)" ondragend="dragEnd(event)" data-task-id="{{ task.id }}" id="task-{{ task.id }}" style="border-radius: 6px; transition: all 0.2s ease; border-left: 3px solid {% if task.priority == 'HIGH' %}#ef4444{% elif task.priority == 'MEDIUM' %}#f59e0b{% else %}#3b82f6{% endif %} !important;">
+    <div class="card-body p-2">
+        <!-- Drag Handle -->
+        <div class="position-absolute top-0 start-50 translate-middle-x opacity-25" style="cursor: grab; margin-top: 2px;">
+            <i class="fas fa-grip-lines-vertical fa-xs"></i>
+        </div>
+
+        <!-- Header: Phase & Priority -->
+        <div class="d-flex justify-content-between align-items-center mb-1">
+            <small class="text-muted fw-bold text-truncate" style="font-size: 0.7rem; max-width: 70%;" title="{{ task.phase.name }}">
+                <i class="fas fa-layer-group me-1"></i>{{ task.phase.name }}
+            </small>
+            <span class="badge rounded-pill {% if task.priority == 'HIGH' %}bg-danger-subtle text-danger{% elif task.priority == 'MEDIUM' %}bg-warning-subtle text-warning-emphasis{% else %}bg-primary-subtle text-primary{% endif %}" style="font-size: 0.6rem; font-weight: 700; padding: 0.25em 0.6em;">
+                {% if task.priority == 'HIGH' %}{% trans "ALTA" %}{% elif task.priority == 'MEDIUM' %}{% trans "MEDIA" %}{% else %}{% trans "BAJA" %}{% endif %}
+            </span>
+        </div>
+        
+        <!-- Title (Clickable) -->
+        <a href="#" onclick="event.preventDefault(); window.openTaskModal('detail', '{{ task.id }}')" class="text-decoration-none text-dark" draggable="false">
+            <h6 class="card-title task-title mb-1" style="font-weight: 600; font-size: 0.9rem; line-height: 1.4;">{{ task.title }}</h6>
+        </a>
+        
+        <!-- Meta: Assignee & Date -->
+        <div class="d-flex align-items-center justify-content-between mt-1 pt-1 border-top border-light">
+            <!-- Assignee with Name -->
+            <div class="d-flex align-items-center" style="max-width: 60%;">
+                {% if task.assigned_to %}
+                    <div class="avatar-xs rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold shadow-sm me-2 flex-shrink-0" style="width: 24px; height: 24px; font-size: 10px;" title="{{ task.assigned_to.get_full_name|default:task.assigned_to.email }}">
+                        {{ task.assigned_to.first_name|first|default:task.assigned_to.email|first|upper }}
+                    </div>
+                    <span class="text-truncate text-muted" style="font-size: 0.75rem;">
+                        {{ task.assigned_to.first_name|default:task.assigned_to.email|truncatechars:15 }}
+                    </span>
+                {% else %}
+                    <div class="avatar-xs rounded-circle bg-light d-flex align-items-center justify-content-center text-muted border me-2 flex-shrink-0" style="width: 24px; height: 24px; font-size: 10px;" title="{% trans 'Sin asignar' %}">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <span class="text-muted fst-italic" style="font-size: 0.75rem;">{% trans "Sin asignar" %}</span>
+                {% endif %}
+            </div>
+            
+            <!-- Due Date -->
+            {% if task.due_date %}
+            <div class="d-flex align-items-center {% if task.is_overdue %}text-danger fw-bold bg-danger-subtle px-2 py-1 rounded{% else %}text-muted{% endif %}" style="font-size: 0.7rem;" title="{% if task.is_overdue %}{% trans 'Vencida' %}{% else %}{% trans 'Vence el' %}{% endif %} {{ task.due_date|date:'d M Y' }}">
+                <i class="far fa-calendar-alt me-1"></i>
+                <span>{{ task.due_date|date:"d M" }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Desktop Actions (View, Edit, Delete) -->
+        <div class="d-none d-md-flex justify-content-center align-items-center gap-2 mt-1 pt-1 border-top border-light opacity-75 hover-opacity-100 w-100">
+            <button type="button" class="btn btn-link p-0 text-muted border-0" onclick="event.stopPropagation(); window.openTaskModal('detail', '{{ task.id }}')" style="font-size: 0.9rem;" title="{% trans 'Ver detalles' %}">
+                <i class="fas fa-eye"></i>
+            </button>
+            <button type="button" class="btn btn-link p-0 text-primary border-0" onclick="event.stopPropagation(); window.openTaskModal('edit', '{{ task.id }}')" style="font-size: 0.9rem;" title="{% trans 'Editar' %}">
+                <i class="fas fa-pencil-alt"></i>
+            </button>
+            <button type="button" class="btn btn-link p-0 text-danger border-0" onclick="event.stopPropagation(); window.kanbanManager.deleteTask('{{ task.id }}')" style="font-size: 0.9rem;" title="{% trans 'Eliminar' %}">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        </div>
+
+        <!-- Mobile Actions (Status Change - Compact) -->
+        <div class="mobile-actions d-flex d-md-none justify-content-between gap-1 mt-1 pt-1 border-top border-light">
+            <button type="button" class="btn btn-sm btn-outline-dark flex-fill p-1 btn-status-todo {% if task.status|stringformat:'s' == 'TODO' %}d-none{% endif %}" style="font-size: 0.7rem;" onclick="event.stopPropagation(); updateTaskStatus('{{ task.id }}', 'TODO')" title="{% trans 'Por Hacer' %}">
+                <i class="fas fa-undo"></i>
+            </button>
+            
+            <button type="button" class="btn btn-sm btn-outline-primary flex-fill p-1 btn-status-in-progress {% if task.status|stringformat:'s' == 'IN_PROGRESS' %}d-none{% endif %}" style="font-size: 0.7rem;" onclick="event.stopPropagation(); updateTaskStatus('{{ task.id }}', 'IN_PROGRESS')" title="{% trans 'En Progreso' %}">
+                <i class="fas fa-play"></i>
+            </button>
+            
+            <button type="button" class="btn btn-sm btn-outline-warning flex-fill p-1 btn-status-paused {% if task.status|stringformat:'s' == 'PAUSED' %}d-none{% endif %}" style="font-size: 0.7rem;" onclick="event.stopPropagation(); updateTaskStatus('{{ task.id }}', 'PAUSED')" title="{% trans 'Pausar' %}">
+                <i class="fas fa-pause"></i>
+            </button>
+            
+            <button type="button" class="btn btn-sm btn-outline-success flex-fill p-1 btn-status-done {% if task.status|stringformat:'s' == 'DONE' %}d-none{% endif %}" style="font-size: 0.7rem;" onclick="event.stopPropagation(); updateTaskStatus('{{ task.id }}', 'DONE')" title="{% trans 'Completar' %}">
+                <i class="fas fa-check"></i>
+            </button>
+        </div>
+    </div>
+</div>

@@ -3,604 +3,347 @@
 {% load static %}
 {% load project_extras %}
 
-{% block title %}{{ project.name }} - {% trans "Gestión de Tareas" %} - ArqGest{% endblock %}
+{% block title %}{{ project.name }} - {% trans "Tablero Kanban" %} - ArqGest{% endblock %}
 
 {% block extra_css %}
-<!-- Estilos específicos para proyectos y kanban -->
-<link href="{% static 'css/projects.css' %}?v=1.2" rel="stylesheet">
-<link href="{% static 'css/kanban.css' %}?v=1.6" rel="stylesheet">
+<link href="{% static 'css/projects.css' %}?v=3.0" rel="stylesheet">
 <link href="{% static 'css/tasks.css' %}?v=1.2" rel="stylesheet">
-<!-- Modal de Detalles de Tareas con Estilos Mejorados -->
-<link href="{% static 'css/task_detail_modal.css' %}?v=4.0" rel="stylesheet">
+<link href="{% static 'css/project_detail.css' %}?v=2.3" rel="stylesheet">
+<link href="{% static 'css/project_detail_enhanced.css' %}?v=1.0" rel="stylesheet">
+<link href="{% static 'css/my_tasks_page.css' %}?v=2.6" rel="stylesheet">
+<style>
+    /* Architect Style Kanban - Enhanced */
+    :root {
+        --kanban-bg: #f8f9fa;
+        --column-bg: #ffffff;
+        --column-border: #e9ecef;
+        --card-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        --card-hover-shadow: 0 8px 16px rgba(0,0,0,0.08);
+    }
+
+    .kanban-board-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+        height: calc(100vh - 280px);
+        padding-bottom: 1rem;
+        overflow-x: auto;
+    }
+
+    .kanban-column {
+        background-color: var(--column-bg);
+        border-radius: 12px;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        border: 1px solid var(--column-border);
+        min-width: 280px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+        transition: box-shadow 0.3s ease, background-color 0.2s ease, border-color 0.2s ease;
+    }
+    
+    .kanban-column.drag-over {
+        background-color: #eef2ff;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    }
+
+    .kanban-column-header {
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 700;
+        color: #343a40;
+        border-bottom: 3px solid transparent;
+        font-family: 'Inter', sans-serif;
+        letter-spacing: -0.02em;
+    }
+
+    /* Status Accents - Updated Colors */
+    /* TODO: Black/Dark */
+    .column-todo .kanban-column-header { border-bottom-color: #212529; color: #212529; }
+    /* IN_PROGRESS: Blue */
+    .column-in-progress .kanban-column-header { border-bottom-color: #0d6efd; color: #0d6efd; }
+    /* PAUSED: Yellow/Warning */
+    .column-paused .kanban-column-header { border-bottom-color: #ffc107; color: #b48900; }
+    /* DONE: Green */
+    .column-done .kanban-column-header { border-bottom-color: #198754; color: #198754; }
+    
+    /* Column Background Tints */
+    .column-todo { background: linear-gradient(to bottom, #f8f9fa, #ffffff 15%); }
+    .column-in-progress { background: linear-gradient(to bottom, #f0f7ff, #ffffff 15%); }
+    .column-paused { background: linear-gradient(to bottom, #fff9e6, #ffffff 15%); }
+    .column-done { background: linear-gradient(to bottom, #f0fdf4, #ffffff 15%); }
+
+    .badge-counter {
+        background-color: rgba(0,0,0,0.05);
+        color: inherit;
+        font-size: 0.8rem;
+        padding: 0.35em 0.8em;
+        border-radius: 20px;
+        font-weight: 700;
+    }
+
+    .kanban-column-body {
+        flex: 1;
+        overflow-y: auto;
+        padding-right: 4px;
+        min-height: 150px;
+        padding-top: 0.5rem;
+        padding-bottom: 5rem; /* Espacio extra al final para facilitar el drop */
+    }
+
+    /* Custom Scrollbar */
+    .kanban-column-body::-webkit-scrollbar {
+        width: 6px;
+    }
+    .kanban-column-body::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 10px;
+    }
+    .kanban-column-body::-webkit-scrollbar-track {
+        background-color: transparent;
+    }
+
+    .task-card {
+        cursor: grab;
+        background: white;
+        border: 1px solid #f1f5f9 !important;
+        border-radius: 8px;
+        box-shadow: var(--card-shadow);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        margin-bottom: 1rem;
+        position: relative;
+        overflow: hidden;
+        user-select: none; /* Prevents text selection while dragging */
+        -webkit-user-select: none;
+    }
+    .task-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--card-hover-shadow) !important;
+        border-color: #e2e8f0 !important;
+    }
+    .task-card:active {
+        cursor: grabbing;
+    }
+
+    /* Fix cursor consistency: Only buttons show pointer, everything else shows grab */
+    .task-card a {
+        cursor: grab !important;
+    }
+    .task-card a:active {
+        cursor: grabbing !important;
+    }
+    .task-card button, 
+    .task-card .btn {
+        cursor: pointer !important;
+    }
+
+    .task-card.dragging {
+        opacity: 0.5;
+        border: 2px dashed #6366f1 !important;
+        background-color: #f8fafc;
+    }
+
+    .empty-state {
+        border: 2px dashed #e2e8f0;
+        border-radius: 8px;
+        background-color: rgba(255,255,255,0.6);
+        color: #94a3b8;
+        transition: all 0.3s;
+    }
+    .empty-state:hover {
+        border-color: #cbd5e1;
+        color: #64748b;
+    }
+
+    /* Mobile Responsiveness */
+    @media (max-width: 992px) {
+        .kanban-board-grid {
+            grid-template-columns: 1fr;
+            height: auto;
+            overflow-y: visible;
+        }
+        .kanban-column {
+            min-height: 350px; /* Altura mínima para facilitar el drag & drop en móvil */
+            margin-bottom: 2rem;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<!-- Usar el container estándar de base.css con mejoras -->
-{% csrf_token %}
-<div class="page-container kanban-page">
-    <!-- Header Section (viene de base.css) -->
-    <div class="header-section">
+<div class="page-container">
+    <!-- Header Section -->
+    <div class="header-section mb-4">
         <div class="header-content">
             <div class="header-title">
-                <div class="header-icon">
-                    <i class="fas fa-drafting-compass"></i>
-                </div>
-                <h1>{{ project.name }} - {% trans "Gestión de Tareas" %}</h1>
-                <div class="text-muted">{% trans "Tablero Kanban para gestión visual de tareas" %}</div>
-            </div>
-            <div class="kanban-actions">
-                <a href="{% url 'projects:project-detail' project.pk %}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> {% trans "Volver al Proyecto" %}
+                <a href="{% url 'projects:project-detail' project.id %}" class="btn btn-light border me-3 shadow-sm" title="{% trans 'Volver al proyecto' %}" style="background: white; border-color: #e9ecef; color: #495057; border-radius: 8px;">
+                    <i class="fas fa-arrow-left"></i>
                 </a>
-                {% if is_org_admin %}
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTaskModal">
-                    <i class="fas fa-plus"></i> {% trans "Nueva Tarea" %}
+                <div class="header-icon shadow-sm">
+                    <img src="{{ project|dashboard_image }}" alt="{{ project.name }}" class="header-project-image">
+                </div>
+                <div>
+                    <h1 class="unified-title-primary">{{ project.name }}</h1>
+                    <div class="unified-subtitle-small text-primary">
+                        <i class="fas fa-columns me-1"></i>{% trans "Tablero Kanban" %}
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex gap-2 align-items-center flex-wrap justify-content-end">
+                <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#addTaskModal" style="border-radius: 8px; padding: 0.6rem 1.2rem; font-weight: 600;">
+                    <i class="fas fa-plus me-2"></i>{% trans "Nueva Tarea" %}
                 </button>
-                {% endif %}
             </div>
         </div>
     </div>
 
-    <!-- Total de tareas y controles de vista -->
-    <div class="project-stats mb-4">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <!-- Total de tareas elegante -->
-            <div class="total-tasks-display">
-                <div class="total-tasks-badge">
-                    <i class="fas fa-drafting-compass"></i>
-                    <span class="total-number">{{ total_tasks }}</span>
-                    <span class="total-label">{% trans "Total Tareas" %}</span>
-                </div>
+    <!-- Filters Section (My Tasks Style) -->
+    <div class="controls-toolbar-section mb-4">
+        <form method="get" action="." id="kanbanFiltersForm" class="w-100 d-flex flex-wrap gap-3 align-items-center">
+            <div class="search-box-wrapper flex-grow-1" style="max-width: 400px;">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" 
+                       name="search"
+                       class="search-input-modern" 
+                       placeholder="{% trans 'Buscar tareas...' %}" 
+                       value="{{ current_filters.search|default:'' }}"
+                       onchange="this.form.submit()">
             </div>
             
-            <!-- Filtros y controles alineados a la derecha -->
-            <div class="d-flex align-items-center gap-3">
-                <form method="get" class="d-flex align-items-center gap-2">
-                    <input type="hidden" name="group_by" value="status">
-                    <label class="form-label m-0 small fw-semibold">{% trans "Filtrar por Fase:" %}</label>
-                    <select name="phase_id" class="form-select form-select-sm" onchange="this.form.submit()">
-                        <option value="">{% trans "Todas las Fases" %}</option>
-                        {% for phase in phases %}
-                            <option value="{{ phase.id }}" {% if selected_phase_id == phase.id %}selected{% endif %}>{{ phase.name }}</option>
-                        {% endfor %}
-                    </select>
-                </form>
-                
-                <div class="d-flex gap-2">
-                    <button class="btn btn-outline-secondary btn-sm" onclick="clearFilters()">
-                        <i class="fas fa-filter"></i> {% trans "Limpiar Filtros" %}
-                    </button>
-                    <button class="btn btn-outline-primary btn-sm" onclick="refreshKanban()">
-                        <i class="fas fa-sync-alt"></i> {% trans "Actualizar" %}
-                    </button>
-                </div>
+            <div class="filters-wrapper">
+                <select name="phase_id" class="filter-select-modern" onchange="this.form.submit()">
+                    <option value="">{% trans "Fase: Todas" %}</option>
+                    {% for phase in phases %}
+                        <option value="{{ phase.id }}" {% if current_filters.phase_id == phase.id %}selected{% endif %}>{{ phase.name }}</option>
+                    {% endfor %}
+                </select>
+
+                <select name="priority" class="filter-select-modern" onchange="this.form.submit()">
+                    <option value="">{% trans "Prioridad: Todas" %}</option>
+                    <option value="HIGH" {% if current_filters.priority == 'HIGH' %}selected{% endif %}>{% trans "Alta" %}</option>
+                    <option value="MEDIUM" {% if current_filters.priority == 'MEDIUM' %}selected{% endif %}>{% trans "Media" %}</option>
+                    <option value="LOW" {% if current_filters.priority == 'LOW' %}selected{% endif %}>{% trans "Baja" %}</option>
+                </select>
+
+                <select name="assigned_to" class="filter-select-modern" onchange="this.form.submit()">
+                    <option value="">{% trans "Asignado a: Todos" %}</option>
+                    {% for user in users %}
+                        <option value="{{ user.id }}" {% if current_filters.assigned_to|stringformat:"s" == user.id|stringformat:"s" %}selected{% endif %}>{{ user.get_full_name|default:user.email }}</option>
+                    {% endfor %}
+                </select>
+
+                {% if current_filters.search or current_filters.priority or current_filters.assigned_to or current_filters.phase_id %}
+                <a href="." class="btn-clear-filters text-decoration-none" title="{% trans 'Limpiar filtros' %}">
+                    <i class="fas fa-times-circle"></i>
+                    <span>{% trans "Limpiar" %}</span>
+                </a>
+                {% endif %}
             </div>
-        </div>
+        </form>
     </div>
 
-    <!-- Tablero Kanban -->
-    <div class="kanban-board-container">
-        <div class="kanban-board" data-group-by="{{ group_by }}">
-
-            {% if group_by == 'status' %}
-                <!-- Columna: Por Hacer -->
-                <div class="kanban-column" data-status="todo">
-                    <div class="kanban-column-header">
-                        <div class="column-title">
-                            <h5><i class="fas fa-pencil-ruler"></i> {% trans "Por Hacer" %}</h5>
-                            <span class="task-count">{{ tasks_by_status.TODO.count }} {% if tasks_by_status.TODO.count == 1 %}{% trans "tarea" %}{% else %}{% trans "tareas" %}{% endif %}</span>
-                        </div>
+    <!-- Kanban Board Grid -->
+    <div class="kanban-board-grid px-2">
+        <!-- TODO Column -->
+        <div class="kanban-column column-todo" 
+             ondrop="drop(event)" 
+             ondragover="allowDrop(event)" 
+             ondragenter="dragEnter(event)"
+             ondragleave="dragLeave(event)"
+             data-status="TODO">
+            <div class="kanban-column-header">
+                <span class="text-uppercase ls-1"><i class="far fa-circle me-2"></i>{% trans "Por Hacer" %}</span>
+                <span id="count-TODO" class="badge-counter">{{ tasks_by_status.TODO.count|default:"0" }}</span>
+            </div>
+            <div id="todo-tasks" class="kanban-column-body">
+                {% for task in tasks_by_status.TODO.tasks %}
+                    {% include "projects/includes/kanban_card_inline.html" with task=task %}
+                {% empty %}
+                    <div class="text-center py-5 empty-state mt-2">
+                        <i class="far fa-clipboard fa-2x mb-2 opacity-50"></i>
+                        <p class="small mb-0 fw-medium">{% trans "Sin tareas" %}</p>
                     </div>
-                    <div class="kanban-column-body" data-status-code="TODO">
-                        {% for task in tasks_by_status.TODO.tasks %}
-                        <div class="kanban-card {% if is_org_admin or task.assigned_to.id|default:0 == user.id %}my-task{% else %}other-user-task{% endif %}" data-task-id="{{ task.id }}" draggable="{% if is_org_admin or task.assigned_to.id|default:0 == user.id %}true{% else %}false{% endif %}" data-assigned-to-id="{{ task.assigned_to.id|default:0 }}">
-                            <div class="card-body">
-                                <!-- Contenido principal de la tarjeta -->
-                                <div class="task-content-main">
-                                    <!-- Header ultra compacto con título y prioridad -->
-                                    <div class="task-header">
-                                        <h6 class="task-title" title="{{ task.title }}">{{ task.title|truncatechars:25 }}</h6>
-                                        <div class="task-priority-badge priority-{{ task.priority|lower }}">
-                                            {{ task.get_priority_display|slice:":3" }}
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Descripción ultra compacta (solo 1 línea) -->
-                                    {% if task.description %}
-                                    <p class="task-description" title="{{ task.description }}">{{ task.description|truncatechars:35 }}</p>
-                                    {% endif %}
-                                    
-                                    <!-- Meta información optimizada y bien estructurada -->
-                                    <div class="task-meta">
-                                        <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.email }}{% else %}Sin asignar{% endif %}">
-                                            <i class="fas fa-user-circle"></i>
-                                            <span class="small">
-                                                {% if task.assigned_to %}
-                                                    {{ task.assigned_to.get_full_name|default:task.assigned_to.email|default:task.assigned_to|truncatechars:10 }}
-                                                {% else %}
-                                                    {% trans "Sin asig." %}
-                                                {% endif %}
-                                            </span>
-                                        </div>
-                                        <div class="task-phase">
-                                            <span class="phase-badge" title="{{ task.phase.name }}">{{ task.phase.name|truncatechars:6 }}</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Fecha de vencimiento ultra compacta -->
-                                    {% if task.due_date %}
-                                    <div class="task-due-date" title="Vence: {{ task.due_date|date:'d/m/Y' }}">
-                                        <i class="fas fa-calendar-alt"></i>
-                                        <span class="small {% if task.due_date < today %}text-danger{% endif %}">
-                                            {{ task.due_date|date:"d/m" }}
-                                        </span>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                                
-                                <!-- Acciones mejoradas y bien alineadas -->
-                                <div class="task-actions">
-                                    <!-- Botones de cambio de estado para móvil (simplificados) -->
-                                    {% if is_org_admin or task.assigned_to.id|default:0 == user.id %}
-                                    <div class="task-status-buttons d-md-none">
-                                        {% if task.status == 'TODO' %}
-                                            <button class="btn btn-sm btn-primary" 
-                                                    onclick="updateTaskStatus({{ task.pk }}, 'IN_PROGRESS')"
-                                                    title="{% trans 'Iniciar tarea' %}">
-                                                <i class="fas fa-play"></i>
-                                            </button>
-                                        {% elif task.status == 'IN_PROGRESS' %}
-                                            <button class="btn btn-sm btn-warning" 
-                                                    onclick="updateTaskStatus({{ task.pk }}, 'PAUSED')"
-                                                    title="{% trans 'Pausar tarea' %}">
-                                                <i class="fas fa-pause"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-success" 
-                                                    onclick="updateTaskStatus({{ task.pk }}, 'DONE')"
-                                                    title="{% trans 'Completar tarea' %}">
-                                                <i class="fas fa-check"></i>
-                                            </button>
-                                        {% elif task.status == 'PAUSED' %}
-                                            <button class="btn btn-sm btn-primary" 
-                                                    onclick="updateTaskStatus({{ task.pk }}, 'IN_PROGRESS')"
-                                                    title="{% trans 'Reanudar tarea' %}">
-                                                <i class="fas fa-play"></i>
-                                            </button>
-                                        {% elif task.status == 'DONE' %}
-                                            <button class="btn btn-sm btn-info" 
-                                                    onclick="updateTaskStatus({{ task.pk }}, 'IN_PROGRESS')"
-                                                    title="{% trans 'Volver a En Progreso' %}">
-                                                <i class="fas fa-undo"></i>
-                                            </button>
-                                        {% endif %}
-                                    </div>
-                                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
 
-                                    <!-- Botones de acción tradicionales -->
-                                    <div class="task-action-buttons">
-                                        <button class="btn btn-outline-secondary" onclick="openTaskModal('detail', {{ task.pk }})" 
-                                                title="{% trans 'Ver detalles' %}">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        {% if is_org_admin %}
-                                        <button class="btn btn-outline-primary" onclick="openTaskModal('edit', {{ task.pk }})"
-                                                title="{% trans 'Editar tarea' %}">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        {% endif %}
-                                        {% if is_org_admin %}
-                                        <button class="btn btn-outline-danger" 
-                                                data-action="delete-task" 
-                                                data-task-id="{{ task.pk }}"
-                                                title="{% trans 'Eliminar tarea' %}">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% empty %}
-                        <div class="empty-column">
-                            <div class="empty-state">
-                                <i class="fas fa-drafting-compass"></i>
-                                <p>{% trans "No hay tareas" %}</p>
-                            </div>
-                        </div>
-                        {% endfor %}
+        <!-- IN_PROGRESS Column -->
+        <div class="kanban-column column-in-progress" 
+             ondrop="drop(event)" 
+             ondragover="allowDrop(event)" 
+             ondragenter="dragEnter(event)"
+             ondragleave="dragLeave(event)"
+             data-status="IN_PROGRESS">
+            <div class="kanban-column-header">
+                <span class="text-uppercase ls-1"><i class="fas fa-play me-2"></i>{% trans "En Progreso" %}</span>
+                <span id="count-IN_PROGRESS" class="badge-counter">{{ tasks_by_status.IN_PROGRESS.count|default:"0" }}</span>
+            </div>
+            <div id="in-progress-tasks" class="kanban-column-body">
+                {% for task in tasks_by_status.IN_PROGRESS.tasks %}
+                    {% include "projects/includes/kanban_card_inline.html" with task=task %}
+                {% empty %}
+                    <div class="text-center py-5 empty-state mt-2">
+                        <i class="fas fa-running fa-2x mb-2 opacity-50"></i>
+                        <p class="small mb-0 fw-medium">{% trans "Nada en curso" %}</p>
                     </div>
-                </div>
+                {% endfor %}
+            </div>
+        </div>
 
-                <!-- Columna: En Progreso -->
-                <div class="kanban-column" data-status="in_progress">
-                    <div class="kanban-column-header">
-                        <div class="column-title">
-                            <h5><i class="fas fa-hammer"></i> {% trans "En Progreso" %}</h5>
-                            <span class="task-count">{{ tasks_by_status.IN_PROGRESS.count }} {% if tasks_by_status.IN_PROGRESS.count == 1 %}{% trans "tarea" %}{% else %}{% trans "tareas" %}{% endif %}</span>
-                        </div>
+        <!-- PAUSED Column -->
+        <div class="kanban-column column-paused" 
+             ondrop="drop(event)" 
+             ondragover="allowDrop(event)" 
+             ondragenter="dragEnter(event)"
+             ondragleave="dragLeave(event)"
+             data-status="PAUSED">
+            <div class="kanban-column-header">
+                <span class="text-uppercase ls-1"><i class="fas fa-pause me-2"></i>{% trans "Pausadas" %}</span>
+                <span id="count-PAUSED" class="badge-counter">{{ tasks_by_status.PAUSED.count|default:"0" }}</span>
+            </div>
+            <div id="paused-tasks" class="kanban-column-body">
+                {% for task in tasks_by_status.PAUSED.tasks %}
+                    {% include "projects/includes/kanban_card_inline.html" with task=task %}
+                {% empty %}
+                    <div class="text-center py-5 empty-state mt-2">
+                        <i class="far fa-clock fa-2x mb-2 opacity-50"></i>
+                        <p class="small mb-0 fw-medium">{% trans "Sin pausas" %}</p>
                     </div>
-                    <div class="kanban-column-body" data-status-code="IN_PROGRESS">
-                        {% for task in tasks_by_status.IN_PROGRESS.tasks %}
-                        <div class="kanban-card {% if is_org_admin or task.assigned_to.id|default:0 == user.id %}my-task{% else %}other-user-task{% endif %}" data-task-id="{{ task.id }}" draggable="{% if is_org_admin or task.assigned_to.id|default:0 == user.id %}true{% else %}false{% endif %}" data-assigned-to-id="{{ task.assigned_to.id|default:0 }}">
-                            <div class="card-body">
-                                <!-- Contenido principal de la tarjeta -->
-                                <div class="task-content-main">
-                                    <!-- Header ultra compacto con título y prioridad -->
-                                    <div class="task-header">
-                                        <h6 class="task-title" title="{{ task.title }}">{{ task.title|truncatechars:25 }}</h6>
-                                        <div class="task-priority-badge priority-{{ task.priority|lower }}">
-                                            {{ task.get_priority_display|slice:":3" }}
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Descripción ultra compacta (solo 1 línea) -->
-                                    {% if task.description %}
-                                    <p class="task-description" title="{{ task.description }}">{{ task.description|truncatechars:35 }}</p>
-                                    {% endif %}
-                                    
-                                    <!-- Meta información optimizada y bien estructurada -->
-                                    <div class="task-meta">
-                                        <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.email }}{% else %}Sin asignar{% endif %}">
-                                            <i class="fas fa-user-circle"></i>
-                                            <span class="small">
-                                                {% if task.assigned_to %}
-                                                    {{ task.assigned_to.get_full_name|default:task.assigned_to.email|default:task.assigned_to|truncatechars:10 }}
-                                                {% else %}
-                                                    {% trans "Sin asig." %}
-                                                {% endif %}
-                                            </span>
-                                        </div>
-                                        <div class="task-phase">
-                                            <span class="phase-badge" title="{{ task.phase.name }}">{{ task.phase.name|truncatechars:6 }}</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Fecha de vencimiento ultra compacta -->
-                                    {% if task.due_date %}
-                                    <div class="task-due-date" title="Vence: {{ task.due_date|date:'d/m/Y' }}">
-                                        <i class="fas fa-calendar-alt"></i>
-                                        <span class="small {% if task.due_date < today %}text-danger{% endif %}">
-                                            {{ task.due_date|date:"d/m" }}
-                                        </span>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                                
-                                <!-- Acciones mejoradas y bien alineadas -->
-                                <div class="task-actions">
-                                    <!-- Botones de cambio de estado para móvil (simplificados) -->
-                                    {% if is_org_admin or task.assigned_to.id|default:0 == user.id %}
-                                    <div class="task-status-buttons d-md-none">
-                                        {% if task.status == 'TODO' %}
-                                            <button class="btn btn-sm btn-primary" 
-                                                    onclick="updateTaskStatus({{ task.pk }}, 'IN_PROGRESS')"
-                                                    title="{% trans 'Iniciar tarea' %}">
-                                                <i class="fas fa-play"></i>
-                                            </button>
-                                        {% elif task.status == 'IN_PROGRESS' %}
-                                            <button class="btn btn-sm btn-warning" 
-                                                    onclick="updateTaskStatus({{ task.pk }}, 'PAUSED')"
-                                                    title="{% trans 'Pausar tarea' %}">
-                                                <i class="fas fa-pause"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-success" 
-                                                    onclick="updateTaskStatus({{ task.pk }}, 'DONE')"
-                                                    title="{% trans 'Completar tarea' %}">
-                                                <i class="fas fa-check"></i>
-                                            </button>
-                                        {% elif task.status == 'PAUSED' %}
-                                            <button class="btn btn-sm btn-primary" 
-                                                    onclick="updateTaskStatus({{ task.pk }}, 'IN_PROGRESS')"
-                                                    title="{% trans 'Reanudar tarea' %}">
-                                                <i class="fas fa-play"></i>
-                                            </button>
-                                        {% elif task.status == 'DONE' %}
-                                            <button class="btn btn-sm btn-info" 
-                                                    onclick="updateTaskStatus({{ task.pk }}, 'IN_PROGRESS')"
-                                                    title="{% trans 'Volver a En Progreso' %}">
-                                                <i class="fas fa-undo"></i>
-                                            </button>
-                                        {% endif %}
-                                    </div>
-                                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
 
-                                    <!-- Botones de acción tradicionales -->
-                                    <div class="task-action-buttons">
-                                        <button class="btn btn-outline-secondary" onclick="openTaskModal('detail', {{ task.pk }})"
-                                                title="{% trans 'Ver detalles' %}">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        {% if is_org_admin %}
-                        <button class="btn btn-outline-primary" onclick="openTaskModal('edit', {{ task.pk }})"
-                                                title="{% trans 'Editar tarea' %}">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        {% endif %}
-                                        {% if is_org_admin %}
-                                        <button class="btn btn-outline-danger" 
-                                                data-action="delete-task" 
-                                                data-task-id="{{ task.pk }}"
-                                                title="{% trans 'Eliminar tarea' %}">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% empty %}
-                        <div class="empty-column">
-                            <div class="empty-state">
-                                <i class="fas fa-drafting-compass"></i>
-                                <p>{% trans "No hay tareas" %}</p>
-                            </div>
-                        </div>
-                        {% endfor %}
+        <!-- DONE Column -->
+        <div class="kanban-column column-done" 
+             ondrop="drop(event)" 
+             ondragover="allowDrop(event)" 
+             ondragenter="dragEnter(event)"
+             ondragleave="dragLeave(event)"
+             data-status="DONE">
+            <div class="kanban-column-header">
+                <span class="text-uppercase ls-1"><i class="fas fa-check me-2"></i>{% trans "Completadas" %}</span>
+                <span id="count-DONE" class="badge-counter">{{ tasks_by_status.DONE.count|default:"0" }}</span>
+            </div>
+            <div id="done-tasks" class="kanban-column-body">
+                {% for task in tasks_by_status.DONE.tasks %}
+                    {% include "projects/includes/kanban_card_inline.html" with task=task %}
+                {% empty %}
+                    <div class="text-center py-5 empty-state mt-2">
+                        <i class="fas fa-check-double fa-2x mb-2 opacity-50"></i>
+                        <p class="small mb-0 fw-medium">{% trans "Sin finalizar" %}</p>
                     </div>
-                </div>
-
-                <!-- Columna: En Pausa -->
-                <div class="kanban-column" data-status="paused">
-                    <div class="kanban-column-header">
-                        <div class="column-title">
-                            <h5><i class="fas fa-pause-circle"></i> {% trans "En Pausa" %}</h5>
-                            <span class="task-count">{{ tasks_by_status.PAUSED.count }} {% if tasks_by_status.PAUSED.count == 1 %}{% trans "tarea" %}{% else %}{% trans "tareas" %}{% endif %}</span>
-                        </div>
-                    </div>
-                    <div class="kanban-column-body" data-status-code="PAUSED">
-                        {% for task in tasks_by_status.PAUSED.tasks %}
-                        <div class="kanban-card {% if is_org_admin or task.assigned_to.id|default:0 == user.id %}my-task{% else %}other-user-task{% endif %}" data-task-id="{{ task.id }}" draggable="{% if is_org_admin or task.assigned_to.id|default:0 == user.id %}true{% else %}false{% endif %}" data-assigned-to-id="{{ task.assigned_to.id|default:0 }}">
-                            <div class="card-body">
-                                <!-- Contenido principal de la tarjeta -->
-                                <div class="task-content-main">
-                                    <!-- Header ultra compacto con título y prioridad -->
-                                    <div class="task-header">
-                                        <h6 class="task-title" title="{{ task.title }}">{{ task.title|truncatechars:25 }}</h6>
-                                        <div class="task-priority-badge priority-{{ task.priority|lower }}">
-                                            {{ task.get_priority_display|slice:":3" }}
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Descripción ultra compacta (solo 1 línea) -->
-                                    {% if task.description %}
-                                    <p class="task-description" title="{{ task.description }}">{{ task.description|truncatechars:35 }}</p>
-                                    {% endif %}
-                                    
-                                    <!-- Meta información optimizada y bien estructurada -->
-                                    <div class="task-meta">
-                                        <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.email }}{% else %}Sin asignar{% endif %}">
-                                            <i class="fas fa-user-circle"></i>
-                                            <span class="small">
-                                                {% if task.assigned_to %}
-                                                    {{ task.assigned_to.get_full_name|default:task.assigned_to.email|default:task.assigned_to|truncatechars:10 }}
-                                                {% else %}
-                                                    {% trans "Sin asig." %}
-                                                {% endif %}
-                                            </span>
-                                        </div>
-                                        <div class="task-phase">
-                                            <span class="phase-badge" title="{{ task.phase.name }}">{{ task.phase.name|truncatechars:6 }}</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Fecha de vencimiento ultra compacta -->
-                                    {% if task.due_date %}
-                                    <div class="task-due-date" title="Vence: {{ task.due_date|date:'d/m/Y' }}">
-                                        <i class="fas fa-calendar-alt"></i>
-                                        <span class="small {% if task.due_date < today %}text-danger{% endif %}">
-                                            {{ task.due_date|date:"d/m" }}
-                                        </span>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                                
-                                <!-- Acciones mejoradas y bien alineadas -->
-                                <div class="task-actions">
-                                    <!-- Botones de cambio de estado para móvil (simplificados) -->
-                                    {% if is_org_admin or task.assigned_to.id|default:0 == user.id %}
-                                    <div class="task-status-buttons d-md-none">
-                                        {% if task.status == 'TODO' %}
-                                            <button class="btn btn-sm btn-primary" 
-                                                    onclick="updateTaskStatus({{ task.pk }}, 'IN_PROGRESS')"
-                                                    title="{% trans 'Iniciar tarea' %}">
-                                                <i class="fas fa-play"></i>
-                                            </button>
-                                        {% elif task.status == 'IN_PROGRESS' %}
-                                            <button class="btn btn-sm btn-warning" 
-                                                    onclick="updateTaskStatus({{ task.pk }}, 'PAUSED')"
-                                                    title="{% trans 'Pausar tarea' %}">
-                                                <i class="fas fa-pause"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-success" 
-                                                    onclick="updateTaskStatus({{ task.pk }}, 'DONE')"
-                                                    title="{% trans 'Completar tarea' %}">
-                                                <i class="fas fa-check"></i>
-                                            </button>
-                                        {% elif task.status == 'PAUSED' %}
-                                            <button class="btn btn-sm btn-primary" 
-                                                    onclick="updateTaskStatus({{ task.pk }}, 'IN_PROGRESS')"
-                                                    title="{% trans 'Reanudar tarea' %}">
-                                                <i class="fas fa-play"></i>
-                                            </button>
-                                        {% elif task.status == 'DONE' %}
-                                            <button class="btn btn-sm btn-info" 
-                                                    onclick="updateTaskStatus({{ task.pk }}, 'IN_PROGRESS')"
-                                                    title="{% trans 'Volver a En Progreso' %}">
-                                                <i class="fas fa-undo"></i>
-                                            </button>
-                                        {% endif %}
-                                    </div>
-                                    {% endif %}
-
-                                    <!-- Botones de acción tradicionales -->
-                                    <div class="task-action-buttons">
-                                        <button class="btn btn-outline-secondary" onclick="openTaskModal('detail', {{ task.pk }})"
-                                                title="{% trans 'Ver detalles' %}">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        {% if is_org_admin %}
-                        <button class="btn btn-outline-primary" onclick="openTaskModal('edit', {{ task.pk }})"
-                                                title="{% trans 'Editar tarea' %}">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        {% endif %}
-                                        {% if is_org_admin %}
-                                        <button class="btn btn-outline-danger" 
-                                                data-action="delete-task" 
-                                                data-task-id="{{ task.pk }}"
-                                                title="{% trans 'Eliminar tarea' %}">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% empty %}
-                        <div class="empty-column">
-                            <div class="empty-state">
-                                <i class="fas fa-pause-circle"></i>
-                                <p>{% trans "No hay tareas" %}</p>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <!-- Columna: Hecho -->
-                <div class="kanban-column" data-status="done">
-                    <div class="kanban-column-header">
-                        <div class="column-title">
-                            <h5><i class="fas fa-check-double"></i> {% trans "Hecho" %}</h5>
-                            <span class="task-count">{{ tasks_by_status.DONE.count }} {% if tasks_by_status.DONE.count == 1 %}{% trans "tarea" %}{% else %}{% trans "tareas" %}{% endif %}</span>
-                        </div>
-                    </div>
-                    <div class="kanban-column-body" data-status-code="DONE">
-                        {% for task in tasks_by_status.DONE.tasks %}
-                        <div class="kanban-card {% if is_org_admin or task.assigned_to.id|default:0 == user.id %}my-task{% else %}other-user-task{% endif %}" data-task-id="{{ task.id }}" draggable="{% if is_org_admin or task.assigned_to.id|default:0 == user.id %}true{% else %}false{% endif %}" data-assigned-to-id="{{ task.assigned_to.id|default:0 }}">
-                            <div class="card-body">
-                                <!-- Contenido principal de la tarjeta -->
-                                <div class="task-content-main">
-                                    <!-- Header ultra compacto con título y prioridad -->
-                                    <div class="task-header">
-                                        <h6 class="task-title" title="{{ task.title }}">{{ task.title|truncatechars:25 }}</h6>
-                                        <div class="task-priority-badge priority-{{ task.priority|lower }}">
-                                            {{ task.get_priority_display|slice:":3" }}
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Descripción ultra compacta (solo 1 línea) -->
-                                    {% if task.description %}
-                                    <p class="task-description" title="{{ task.description }}">{{ task.description|truncatechars:35 }}</p>
-                                    {% endif %}
-                                    
-                                    <!-- Meta información optimizada y bien estructurada -->
-                                    <div class="task-meta">
-                                        <div class="task-assignee" title="{% if task.assigned_to %}{{ task.assigned_to.get_full_name|default:task.assigned_to.email }}{% else %}Sin asignar{% endif %}">
-                                            <i class="fas fa-user-circle"></i>
-                                            <span class="small">
-                                                {% if task.assigned_to %}
-                                                    {{ task.assigned_to.get_full_name|default:task.assigned_to.email|default:task.assigned_to|truncatechars:10 }}
-                                                {% else %}
-                                                    {% trans "Sin asig." %}
-                                                {% endif %}
-                                            </span>
-                                        </div>
-                                        <div class="task-phase">
-                                            <span class="phase-badge" title="{{ task.phase.name }}">{{ task.phase.name|truncatechars:6 }}</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Fecha de vencimiento ultra compacta -->
-                                    {% if task.due_date %}
-                                    <div class="task-due-date" title="Vence: {{ task.due_date|date:'d/m/Y' }}">
-                                        <i class="fas fa-calendar-alt"></i>
-                                        <span class="small {% if task.due_date < today %}text-danger{% endif %}">
-                                            {{ task.due_date|date:"d/m" }}
-                                        </span>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                                
-                                <!-- Acciones mejoradas y bien alineadas -->
-                                <div class="task-actions">
-                                    <!-- Botones de cambio de estado para móvil (simplificados) -->
-                                    {% if is_org_admin or task.assigned_to.id|default:0 == user.id %}
-                                    <div class="task-status-buttons d-md-none">
-                                        {% if task.status == 'TODO' %}
-                                            <button class="btn btn-sm btn-primary" 
-                                                    onclick="updateTaskStatus({{ task.pk }}, 'IN_PROGRESS')"
-                                                    title="{% trans 'Iniciar tarea' %}">
-                                                <i class="fas fa-play"></i>
-                                            </button>
-                                        {% elif task.status == 'IN_PROGRESS' %}
-                                            <button class="btn btn-sm btn-warning" 
-                                                    onclick="updateTaskStatus({{ task.pk }}, 'PAUSED')"
-                                                    title="{% trans 'Pausar tarea' %}">
-                                                <i class="fas fa-pause"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-success" 
-                                                    onclick="updateTaskStatus({{ task.pk }}, 'DONE')"
-                                                    title="{% trans 'Completar tarea' %}">
-                                                <i class="fas fa-check"></i>
-                                            </button>
-                                        {% elif task.status == 'PAUSED' %}
-                                            <button class="btn btn-sm btn-primary" 
-                                                    onclick="updateTaskStatus({{ task.pk }}, 'IN_PROGRESS')"
-                                                    title="{% trans 'Reanudar tarea' %}">
-                                                <i class="fas fa-play"></i>
-                                            </button>
-                                        {% elif task.status == 'DONE' %}
-                                            <button class="btn btn-sm btn-info" 
-                                                    onclick="updateTaskStatus({{ task.pk }}, 'IN_PROGRESS')"
-                                                    title="{% trans 'Volver a En Progreso' %}">
-                                                <i class="fas fa-undo"></i>
-                                            </button>
-                                        {% endif %}
-                                    </div>
-                                    {% endif %}
-
-                                    <!-- Botones de acción tradicionales -->
-                                    <div class="task-action-buttons">
-                                        <button class="btn btn-outline-secondary" onclick="openTaskModal('detail', {{ task.pk }})"
-                                                title="{% trans 'Ver detalles' %}">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        {% if is_org_admin %}
-                        <button class="btn btn-outline-primary" onclick="openTaskModal('edit', {{ task.pk }})"
-                                                title="{% trans 'Editar tarea' %}">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        {% endif %}
-                                        {% if is_org_admin %}
-                                        <button class="btn btn-outline-danger" 
-                                                data-action="delete-task" 
-                                                data-task-id="{{ task.pk }}"
-                                                title="{% trans 'Eliminar tarea' %}">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% empty %}
-                        <div class="empty-column">
-                            <div class="empty-state">
-                                <i class="fas fa-drafting-compass"></i>
-                                <p>{% trans "No hay tareas" %}</p>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            {% endif %}
+                {% endfor %}
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Modal para crear/editar tareas - Solo admins -->
-{% if is_org_admin %}
+<!-- Modal para crear tareas -->
 <div class="modal fade" id="addTaskModal" tabindex="-1" aria-labelledby="addTaskModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
@@ -660,19 +403,279 @@
         </div>
     </div>
 </div>
-{% endif %}
 
-{% endblock %}
-
-{% block extra_js %}
-<script src="{% static 'js/kanban.js' %}?v=1.8"></script>
+<!-- Modal para editar tareas -->
+<div class="modal fade" id="taskModal" tabindex="-1" aria-labelledby="taskModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="taskModalLabel">{% trans "Editar Tarea" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="taskModalContent">
+                <!-- Content loaded via AJAX -->
+            </div>
+        </div>
+    </div>
+</div>
 <script>
-document.body.dataset.taskDetailUrlTemplate = `{% url 'projects:task-detail' 0 %}`;
-document.body.dataset.updateTaskStatusUrlTemplate = `{% url 'projects:update-task-status' 0 %}`;
-document.body.dataset.isOrgAdmin = '{{ is_org_admin|lower }}';
-document.body.dataset.currentUserId = '{{ user.id }}';
+    // Global drag state
+    let draggedItem = null;
+
+    function allowDrop(ev) {
+        ev.preventDefault();
+        ev.dataTransfer.dropEffect = "move";
+    }
+
+    function drag(ev) {
+        // Ensure we are dragging the card, not a child
+        const card = ev.target.closest('.task-card');
+        if (!card) return;
+
+        draggedItem = card;
+        ev.dataTransfer.setData("text/plain", card.id);
+        ev.dataTransfer.effectAllowed = "move";
+        
+        // Add dragging class with a slight delay to keep the element visible for the drag image
+        setTimeout(() => {
+            card.classList.add('dragging');
+        }, 0);
+    }
+    
+    function dragEnd(ev) {
+        const card = ev.target.closest('.task-card');
+        if (card) {
+            card.classList.remove('dragging');
+        }
+        draggedItem = null;
+        
+        // Clean up all drag-over classes
+        document.querySelectorAll('.kanban-column').forEach(col => {
+            col.classList.remove('drag-over');
+        });
+    }
+
+    function dragEnter(ev) {
+        ev.preventDefault();
+        const column = ev.target.closest('.kanban-column');
+        if (column) {
+            column.classList.add('drag-over');
+        }
+    }
+
+    function dragLeave(ev) {
+        const column = ev.target.closest('.kanban-column');
+        // Check if we are really leaving the column (and not just entering a child)
+        if (column && !column.contains(ev.relatedTarget)) {
+            column.classList.remove('drag-over');
+        }
+    }
+
+    function drop(ev) {
+        ev.preventDefault();
+        
+        // Find the closest column container
+        const column = ev.target.closest('.kanban-column');
+        if (!column) return;
+        
+        // Remove highlight
+        column.classList.remove('drag-over');
+        
+        const data = ev.dataTransfer.getData("text/plain");
+        const taskCard = document.getElementById(data);
+        
+        if (!taskCard) return;
+        
+        taskCard.classList.remove('dragging');
+        
+        const newStatus = column.getAttribute('data-status');
+        const container = column.querySelector('.kanban-column-body');
+        
+        // Don't do anything if dropped in the same column
+        // (Unless we implement reordering, but for now let's just handle status change)
+        // Actually, we should allow dropping in same column to just re-append (simple reorder to bottom)
+        
+        // Move element visually
+        // Remove empty state if present
+        const emptyState = container.querySelector('.empty-state');
+        if (emptyState) emptyState.style.display = 'none';
+        
+        container.appendChild(taskCard);
+        
+        // Check if old column is now empty
+        checkEmptyColumns();
+
+        // Update via AJAX
+        const taskId = taskCard.getAttribute('data-task-id');
+        updateTaskStatus(taskId, newStatus);
+    }
+
+    function checkEmptyColumns() {
+        document.querySelectorAll('.kanban-column-body').forEach(body => {
+            const hasCards = body.querySelectorAll('.task-card').length > 0;
+            const emptyState = body.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.style.display = hasCards ? 'none' : 'block';
+            }
+        });
+    }
+
+    function updateTaskStatus(taskId, status) {
+        const url = "{% url 'projects:update-task-status' 0 %}".replace('0', taskId);
+        
+        // Optimistic UI update
+        const card = document.getElementById('task-' + taskId);
+        const targetColumn = document.querySelector(`.kanban-column[data-status="${status}"]`);
+        
+        if (card && targetColumn) {
+            const container = targetColumn.querySelector('.kanban-column-body');
+            
+            // 1. Move card if needed
+            if (card.parentElement !== container) {
+                // Remove empty state from target if present
+                const emptyState = container.querySelector('.empty-state');
+                if (emptyState) emptyState.style.display = 'none';
+                
+                container.appendChild(card);
+                checkEmptyColumns();
+            }
+            
+            // 2. Update buttons visibility
+            const mobileActions = card.querySelector('.mobile-actions');
+            if (mobileActions) {
+                // Show all buttons first
+                mobileActions.querySelectorAll('button').forEach(btn => btn.classList.remove('d-none'));
+                
+                // Hide the button for the new status
+                const statusClassMap = {
+                    'TODO': '.btn-status-todo',
+                    'IN_PROGRESS': '.btn-status-in-progress',
+                    'PAUSED': '.btn-status-paused',
+                    'DONE': '.btn-status-done'
+                };
+                
+                const btnToHide = mobileActions.querySelector(statusClassMap[status]);
+                if (btnToHide) {
+                    btnToHide.classList.add('d-none');
+                }
+            }
+        }
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ status: status })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                // Revert change if failed
+                alert('Error updating task status: ' + (data.error || 'Unknown error'));
+                window.location.reload();
+            } else {
+                // Update counters from data.stats
+                if (data.stats) {
+                    const countTodo = document.getElementById('count-TODO');
+                    const countInProgress = document.getElementById('count-IN_PROGRESS');
+                    const countPaused = document.getElementById('count-PAUSED');
+                    const countDone = document.getElementById('count-DONE');
+
+                    if (countTodo) countTodo.textContent = data.stats.todo || 0;
+                    if (countInProgress) countInProgress.textContent = data.stats.in_progress || 0;
+                    if (countPaused) countPaused.textContent = data.stats.paused || 0;
+                    if (countDone) countDone.textContent = data.stats.done || 0;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error updating task status');
+            window.location.reload();
+        });
+    }
+    
+    // Add dragend listener to all cards on load
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.task-card');
+        cards.forEach(card => {
+            card.addEventListener('dragend', dragEnd);
+        });
+    });
+
+    // KanbanManager compatibility for delete task
+    window.kanbanManager = {
+        deleteTask: function(taskId) {
+            // Get task info for the modal
+            const card = document.getElementById('task-' + taskId);
+            const taskTitle = card ? card.querySelector('.task-title').textContent.trim() : '{% trans "This task" %}';
+            
+            // Use the unified modal system
+            if (typeof ConfirmationModals !== 'undefined') {
+                ConfirmationModals.deleteTask({
+                    taskId: taskId,
+                    taskTitle: taskTitle,
+                    onConfirm: async () => {
+                        const url = "{% url 'projects:task-delete' 0 %}".replace('0', taskId);
+                        
+                        // 1. Add loading state
+                        if (card) card.style.opacity = '0.5';
+
+                        try {
+                            const response = await fetch(url, {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRFToken': '{{ csrf_token }}',
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                            
+                            if (response.ok) {
+                                // Remove card from DOM
+                                if (card) {
+                                    // Get column reference before removing card
+                                    const column = card.closest('.kanban-column');
+                                    
+                                    // Animation
+                                    card.style.transition = 'all 0.3s ease';
+                                    card.style.opacity = '0';
+                                    card.style.transform = 'scale(0.8)';
+                                    
+                                    setTimeout(() => {
+                                        card.remove();
+                                        checkEmptyColumns();
+                                        
+                                        // 3. Robust Counter Update (Recount DOM)
+                                        if (column) {
+                                            const status = column.getAttribute('data-status');
+                                            const counterId = 'count-' + status;
+                                            const counter = document.getElementById(counterId);
+                                            // Count actual cards in the DOM
+                                            const newCount = column.querySelectorAll('.task-card').length;
+                                            if (counter) counter.textContent = newCount;
+                                        }
+                                    }, 300);
+                                }
+                            } else {
+                                // Revert loading state on error
+                                if (card) card.style.opacity = '1';
+                                console.error('Error deleting task: Server responded with ' + response.status);
+                            }
+                        } catch (error) {
+                            // Revert loading state on error
+                            if (card) card.style.opacity = '1';
+                            console.error('Error deleting task:', error);
+                        }
+                    }
+                });
+            } else {
+                console.error('ConfirmationModals is not defined. Cannot delete task.');
+            }
+        }
+    };
 </script>
-<script src="{% static 'js/kanban_board_page.js' %}?v=1.2"></script>
 {% endblock %}
 
 
