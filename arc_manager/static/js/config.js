@@ -5,16 +5,19 @@
  * Para cambiar el límite de tamaño de archivo, edita MAX_FILE_SIZE_MB.
  */
 
+// Get settings injected from Django template
+const serverConfig = window.SERVER_UPLOAD_CONFIG || {};
+
 window.FILE_UPLOAD_CONFIG = {
-    // Tamaño máximo de archivo en MB
-    MAX_FILE_SIZE_MB: 1500,              // Límite para desktop/tablet
+    // Tamaño máximo de archivo en MB (Use server config or default)
+    MAX_FILE_SIZE_MB: serverConfig.MAX_FILE_SIZE_MB || 1500,              // Límite para desktop/tablet
     MAX_FILE_SIZE_MOBILE_MB: 50,       // Límite para móviles (puedes reducirlo si quieres)
     
     // Storage externo (R2/S3) - cambiar a true para habilitar uploads directos
     ENABLE_STORAGES: false,
     
-    // Extensiones permitidas
-    ALLOWED_EXTENSIONS: [
+    // Extensiones permitidas (Use server config or default)
+    ALLOWED_EXTENSIONS: serverConfig.ALLOWED_EXTENSIONS || [
         'PDF', 'JPG', 'JPEG', 'PNG', 'GIF', 'TIFF', 
         'DWG', 'DXF', 'RVT', 'SKP', 
         'DOC', 'DOCX', 'XLS', 'XLSX', 'PPT', 'PPTX', 

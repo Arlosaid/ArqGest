@@ -155,6 +155,14 @@
     
     <script src="{% static 'js/htmx_error_handler.js' %}?v={{ STATIC_VERSION }}"></script>
     
+    {# Inject Backend Settings for JS #}
+    <script>
+        window.SERVER_UPLOAD_CONFIG = {
+            MAX_FILE_SIZE_MB: {{ MAX_UPLOAD_SIZE_MB|default:1500 }},
+            ALLOWED_EXTENSIONS: {{ ALLOWED_UPLOAD_EXTENSIONS|safe|default:"[]" }}
+        };
+    </script>
+
     {# Cargar configuración PRIMERO #}
     <script src="{% static 'js/config.js' %}?v={{ STATIC_VERSION }}"></script>
     

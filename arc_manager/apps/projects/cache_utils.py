@@ -49,6 +49,9 @@ def invalidate_task_cache(organization_id, project_id, user_id=None):
     # Si se especifica un usuario, invalidar su cache de tareas
     if user_id:
         cache_keys.append(f"my_tasks_stats:{user_id}")
+        # Invalidar cache de proyectos accesibles ya que una nueva tarea
+        # puede dar acceso a un nuevo proyecto
+        invalidate_user_accessible_projects_cache(user_id, organization_id, is_admin=False)
     
     cache.delete_many(cache_keys)
 

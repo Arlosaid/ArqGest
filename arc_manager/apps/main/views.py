@@ -35,46 +35,32 @@ def dashboard(request):
 
     # --- Widgets de Métricas para el Arquitecto ---
 
-    # --- Consultas optimizadas con agregaciones y cache ---
+    # --- Consultas optimizadas con agregaciones ---
     
-    # Obtener contadores con cache (10 minutos)
+    # Obtener contadores en tiempo real (sin cache para evitar datos desactualizados)
     from django.db.models import Count, Q
     
-    cache_key = f"dashboard_stats:{organization.id}:user:{current_user.id}"
-    dashboard_stats = cache.get(cache_key)
-    
-    if dashboard_stats is None:
-        # SEGURIDAD: Contar proyectos según permisos del usuario
-        if current_user.is_org_admin:
-            # Admins ven todos los proyectos (excluir archivados)
-            total_projects = Project.objects.filter(
-                organization=organization
-            ).exclude(status='ARCHIVED').count()
-        else:
-            # Usuarios normales solo cuentan proyectos accesibles
-            from apps.projects.cache_utils import get_or_set_user_accessible_projects
-            
-            accessible_data = get_or_set_user_accessible_projects(
-                current_user.id,
-                organization.id,
-                is_admin=False
-            )
-            
-            # Combinar IDs accesibles (activos + completados, sin archivados)
-            all_accessible_ids = accessible_data['active_ids'] | accessible_data['completed_ids']
-            total_projects = len(all_accessible_ids)
-        
-        total_clients = Client.objects.filter(organization=organization).count()
-        
-        dashboard_stats = {
-            'total_projects': total_projects,
-            'total_clients': total_clients,
-        }
-        # Cache por 10 minutos
-        cache.set(cache_key, dashboard_stats, 600)
+    # SEGURIDAD: Contar proyectos según permisos del usuario
+    if current_user.is_org_admin:
+        # Admins ven todos los proyectos (excluir archivados)
+        total_projects = Project.objects.filter(
+            organization=organization
+        ).exclude(status='ARCHIVED').count()
     else:
-        total_projects = dashboard_stats['total_projects']
-        total_clients = dashboard_stats['total_clients']
+        # Usuarios normales solo cuentan proyectos accesibles
+        from apps.projects.cache_utils import get_or_set_user_accessible_projects
+        
+        accessible_data = get_or_set_user_accessible_projects(
+            current_user.id,
+            organization.id,
+            is_admin=False
+        )
+        
+        # Combinar IDs accesibles (activos + completados, sin archivados)
+        all_accessible_ids = accessible_data['active_ids'] | accessible_data['completed_ids']
+        total_projects = len(all_accessible_ids)
+    
+    total_clients = Client.objects.filter(organization=organization).count()
     
     # 1. Widget "Mis Tareas" - optimizado con select_related (excluir archivados)
     my_tasks = Task.objects.filter(

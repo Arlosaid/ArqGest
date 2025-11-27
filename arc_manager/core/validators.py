@@ -304,12 +304,16 @@ def validate_payment_amount(value):
 # VALIDADORES DE ARCHIVOS
 # ============================================
 
-def validate_file_size(file, max_mb=10):
+def validate_file_size(file, max_mb=None):
     """
     Valida el tamaño máximo de un archivo.
     """
     if not file:
         return
+    
+    # Use global setting if no specific limit is provided
+    if max_mb is None:
+        max_mb = getattr(settings, 'MAX_UPLOAD_SIZE_MB', 1500)
     
     max_bytes = max_mb * 1024 * 1024
     
@@ -321,7 +325,7 @@ def validate_file_size(file, max_mb=10):
         )
 
 
-def validate_file_extension(file, allowed_extensions):
+def validate_file_extension(file, allowed_extensions=None):
     """
     Valida que la extensión del archivo esté permitida.
     
@@ -333,9 +337,22 @@ def validate_file_extension(file, allowed_extensions):
         return
     
     import os
+    
+    # Use global setting if no specific list is provided
+    if allowed_extensions is None:
+        allowed_extensions = getattr(settings, 'ALLOWED_UPLOAD_EXTENSIONS', [])
+
     ext = os.path.splitext(file.name)[1].lower()
     
-    if ext not in [e.lower() for e in allowed_extensions]:
+    # Normalize allowed extensions to ensure they have dots and are lowercase
+    normalized_allowed = []
+    for e in allowed_extensions:
+        e = e.lower()
+        if not e.startswith('.'):
+            e = '.' + e
+        normalized_allowed.append(e)
+    
+    if ext not in normalized_allowed:
         raise ValidationError(
             _(f"Tipo de archivo no permitido. "
               f"Extensiones permitidas: {', '.join(allowed_extensions)}"),

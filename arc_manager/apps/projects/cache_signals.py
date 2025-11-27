@@ -16,6 +16,11 @@ def invalidate_project_cache_on_save(sender, instance, **kwargs):
     if instance.organization_id:
         logger.debug(f"Invalidating project cache for project {instance.id} in organization {instance.organization_id}")
         invalidate_project_cache(instance.organization_id, instance.id)
+        
+        # Invalidar cache de proyectos accesibles para el dueño
+        if instance.owner_id:
+            from .cache_utils import invalidate_user_accessible_projects_cache
+            invalidate_user_accessible_projects_cache(instance.owner_id, instance.organization_id)
 
 
 @receiver(post_delete, sender=Project)
@@ -24,6 +29,11 @@ def invalidate_project_cache_on_delete(sender, instance, **kwargs):
     if instance.organization_id:
         logger.debug(f"Invalidating project cache for deleted project {instance.id} in organization {instance.organization_id}")
         invalidate_project_cache(instance.organization_id, instance.id)
+        
+        # Invalidar cache de proyectos accesibles para el dueño
+        if instance.owner_id:
+            from .cache_utils import invalidate_user_accessible_projects_cache
+            invalidate_user_accessible_projects_cache(instance.owner_id, instance.organization_id)
 
 
 @receiver(post_save, sender=Task)
