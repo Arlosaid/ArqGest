@@ -357,13 +357,31 @@ class LargeFileUploader {
                     }
                 }, 1500);
             } else {
-                throw new Error('Error en el servidor');
+                // Intentar obtener mensaje de error específico del servidor
+                let errorMessage = 'Error en el servidor';
+                try {
+                    const errorData = await response.json();
+                    // Buscar mensaje en formatos comunes de Django/DRF
+                    if (errorData.error) errorMessage = errorData.error;
+                    else if (errorData.detail) errorMessage = errorData.detail;
+                    else if (errorData.message) errorMessage = errorData.message;
+                    else if (typeof errorData === 'object') {
+                        // Si es un objeto de errores de formulario, tomar el primero
+                        const firstKey = Object.keys(errorData)[0];
+                        const firstError = errorData[firstKey];
+                        errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
+                    }
+                } catch (e) {
+                    // Si no es JSON, usar status text
+                    errorMessage = `Error ${response.status}: ${response.statusText}`;
+                }
+                throw new Error(errorMessage);
             }
             
         } catch (error) {
             progressBar.classList.add('bg-danger');
             this.updateProgress(progressBar, statusDiv, 0, 'Error: ' + error.message);
-            this.showNotification('Error al subir archivo', 'error');
+            this.showNotification(error.message, 'error');
         }
     }
 

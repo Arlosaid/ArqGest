@@ -219,7 +219,17 @@ class MobileUploadOptimizer {
                 if (xhr.status === 200) {
                     resolve(xhr.response);
                 } else {
-                    reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
+                    // Intentar parsear error del servidor
+                    let errorMessage = `HTTP ${xhr.status}: ${xhr.statusText}`;
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.error) errorMessage = response.error;
+                        else if (response.detail) errorMessage = response.detail;
+                        else if (response.message) errorMessage = response.message;
+                    } catch (e) {
+                        // No es JSON válido, usar status text
+                    }
+                    reject(new Error(errorMessage));
                 }
             });
             
