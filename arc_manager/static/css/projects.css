@@ -155,6 +155,7 @@
 
 .project-form {
     max-width: 900px;
+    margin: 0 auto;
 }
 
 .project-form-header {
@@ -3238,3 +3239,159 @@
     opacity: 0.6;
     user-select: none;
 }
+/* ========================================
+   PHASE DETAIL REDESIGN (OPTIMIZED)
+   ======================================== */
+
+/* Stats Grid */
+.phase-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.phase-stats-grid .stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    border: 1px solid #eef2f6;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.phase-stats-grid .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.phase-stats-grid .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.phase-stats-grid .stat-info h4 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.2;
+    color: #1e293b;
+}
+
+.phase-stats-grid .stat-info p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* Utility Colors (Tailwind-like) */
+.bg-blue-50 { background-color: #eff6ff; }
+.text-blue-600 { color: #2563eb; }
+.bg-green-50 { background-color: #f0fdf4; }
+.text-green-600 { color: #16a34a; }
+.bg-amber-50 { background-color: #fffbeb; }
+.text-amber-600 { color: #d97706; }
+.bg-purple-50 { background-color: #faf5ff; }
+.text-purple-600 { color: #9333ea; }
+.text-purple { color: #9333ea; }
+
+/* Task List Modern */
+.task-item-modern {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    transition: all 0.2s ease;
+}
+
+.task-item-modern:hover {
+    border-color: #cbd5e1;
+    background-color: #f8fafc;
+}
+
+.task-status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-top: 0.4rem;
+    flex-shrink: 0;
+}
+
+.task-item-modern.status-todo .task-status-dot { background-color: #94a3b8; }
+.task-item-modern.status-in_progress .task-status-dot { background-color: #3b82f6; }
+.task-item-modern.status-paused .task-status-dot { background-color: #f59e0b; }
+.task-item-modern.status-completed .task-status-dot { background-color: #22c55e; }
+
+.task-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.task-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.task-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+/* Notes Section */
+.notes-wrapper {
+    background: #fffbeb; /* Amber-50 */
+    border: 1px solid #fcd34d;
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.notes-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.notes-textarea {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 0.75rem;
+    font-size: 0.9rem;
+    resize: vertical;
+    min-height: 120px;
+    width: 100%;
+}
+
+.notes-textarea:focus {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    outline: none;
+}
+
+.hover-bg-light:hover {
+    background-color: #f8fafc !important;
+}
+

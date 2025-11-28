@@ -25,6 +25,18 @@ class PhaseForm(forms.Form):
             'data-max-length': '100'
         })
     )
+    start_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+    )
+    end_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+    )
+    notes = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': _('Notas opcionales')})
+    )
     order = forms.IntegerField(
         required=False,
         widget=forms.HiddenInput()

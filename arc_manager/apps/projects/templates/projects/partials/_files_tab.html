@@ -1,72 +1,62 @@
 
 {% load i18n %}
+{% load static %}
 
-<style>
-    .bg-gradient-primary {
-        background: linear-gradient(45deg, #3b82f6 0%, #2563eb 100%) !important;
-    }
-    .upload-progress-bar {
-        height: 1.5rem;
-        border-radius: 1rem;
-        background-color: #f1f5f9;
-        box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
-    }
-</style>
+<!-- CSS dedicado para el tab de archivos -->
+<link rel="stylesheet" href="{% static 'css/files-tab.css' %}">
 
 <meta name="max-file-size" content="{{ max_file_size_mb }}">
 <meta name="allowed-extensions" content="PDF,JPG,JPEG,PNG,GIF,DWG,DXF,RVT,SKP,ZIP,RAR,TIFF,DOC,DOCX,XLS,XLSX,PPT,PPTX,TXT,MD">
 
-<div class="card shadow mb-4">
-    <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">{% trans "Documentos" %}</h6>
+<div class="files-tab-container">
+    <div class="files-tab-header">
+        <h6><i class="fas fa-folder-open"></i>{% trans "Documentos del Proyecto" %}</h6>
     </div>
-    <div class="card-body">
+    <div class="files-tab-body">
         {% if phases %}
-        <div class="accordion" id="filesAccordion">
+        <div class="accordion files-accordion" id="filesAccordion">
             {% for phase in phases %}
-            <div class="accordion-item mb-3 file-phase-item">
+            <div class="accordion-item file-phase-item">
                 <h2 class="accordion-header" id="heading-{{ phase.id }}">
-                    <button class="accordion-button file-phase-header collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ phase.id }}" aria-expanded="false" aria-controls="collapse-{{ phase.id }}" style="display: flex; justify-content: space-between; align-items: center;">
-                        <span class="file-phase-title d-flex align-items-center">
-                            <i class="fas fa-layer-group me-2"></i>{{ phase.name }}
+                    <button class="accordion-button file-phase-header collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ phase.id }}" aria-expanded="false" aria-controls="collapse-{{ phase.id }}">
+                        <span class="file-phase-title">
+                            <i class="fas fa-layer-group"></i>{{ phase.name }}
                         </span>
-                        <span class="file-phase-meta d-flex align-items-center gap-2">
-                            <span class="badge bg-primary-soft text-primary" id="file-count-{{ phase.id }}">{{ phase.files.count }} {% trans "documentos" %}</span>
+                        <span class="ms-auto me-3">
+                            <span class="file-count-badge{% if phase.files.count == 0 %} empty{% endif %}" id="file-count-{{ phase.id }}">
+                                <i class="fas fa-file"></i>
+                                {{ phase.files.count }} {% trans "archivos" %}
+                            </span>
                         </span>
                     </button>
                 </h2>
                 <div id="collapse-{{ phase.id }}" class="accordion-collapse collapse{% if open_phase|default:'' == phase.id|stringformat:'s' %} show{% endif %}" aria-labelledby="heading-{{ phase.id }}" data-bs-parent="#filesAccordion">
                     <div class="accordion-body">
-                        <form class="mb-3 file-upload-form" 
+                        <form class="mb-4 file-upload-form" 
                               data-upload-type="large-file"
                               data-project-id="{{ project.pk }}"
                               data-phase-id="{{ phase.id }}"
                               action="{% url 'files:upload_file' project_id=project.pk phase_id=phase.pk %}"
                               enctype="multipart/form-data">
                             {% csrf_token %}
-                            <div class="file-upload-wrapper">
+                            <div class="file-upload-wrapper" id="upload-zone-{{ phase.id }}">
                                 <div class="file-input-container">
                                     <input type="file" name="files" class="file-input" id="file-input-{{ phase.id }}" required accept=".pdf,.jpg,.jpeg,.png,.gif,.tiff,.dwg,.dxf,.rvt,.skp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt,.md">
                                     <label for="file-input-{{ phase.id }}" class="file-input-label">
-                                        <i class="fas fa-cloud-upload-alt me-2"></i>
-                                        <span class="file-label-text">{% trans "Seleccionar archivo" %}</span>
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        <span class="file-label-text">{% trans "Arrastra o selecciona un archivo" %}</span>
+                                        <small class="file-upload-hint">PDF, DWG, RVT, JPG, PNG, DOC, XLS ({% trans "Máx" %} 1.5GB)</small>
                                     </label>
                                 </div>
-                                <button class="btn btn-primary upload-btn" type="submit" disabled onclick="console.log('Upload started - Optimized HTMX solution'); console.log('Target #files-list-{{ phase.id }} exists:', !!document.getElementById('files-list-{{ phase.id }}')); return true;">
-                                    <i class="fas fa-upload upload-icon"></i>
-                                    <span class="upload-text ms-1">{% trans "Subir" %}</span>
+                                <button class="btn btn-primary upload-btn" type="submit" disabled>
+                                    <i class="fas fa-upload"></i>
+                                    <span class="upload-text">{% trans "Subir" %}</span>
                                 </button>
                             </div>
 
                             <div class="upload-progress-container" id="upload-progress-{{ phase.id }}" style="display: none;">
-                                <div class="upload-status mb-2">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="upload-status-text">{% trans "Preparando documentos..." %}</span>
-                                        <span class="upload-percentage">0%</span>
-                                    </div>
-                                </div>
-                                <div class="progress upload-progress-bar">
-                                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-gradient-primary" 
+                                <div class="progress mb-2">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
                                          role="progressbar" 
                                          style="width: 0%;" 
                                          aria-valuenow="0" 
@@ -74,13 +64,8 @@
                                          aria-valuemax="100">
                                     </div>
                                 </div>
-                                <div class="upload-details mt-2">
-                                    <small class="text-muted upload-details-text">
-                                        <i class="fas fa-clock me-1"></i>
-                                        <span class="upload-time">{% trans "Calculando tiempo..." %}</span>
-                                        <span class="upload-speed ms-2"></span>
-                                    </small>
-                                </div>
+                                <div class="upload-status text-muted small">{% trans "Preparando..." %}</div>
+                                <div class="upload-details small text-muted"></div>
                             </div>
                         </form>
 
@@ -95,230 +80,14 @@
             {% endfor %}
         </div>
         {% else %}
-            <div class="text-center text-muted">{% trans "Primero crea una fase para poder subir documentos." %}</div>
+            <div class="no-phases-state">
+                <i class="fas fa-layer-group"></i>
+                <h5>{% trans "No hay fases creadas" %}</h5>
+                <p>{% trans "Primero crea una fase para poder subir documentos." %}</p>
+            </div>
         {% endif %}
     </div>
 </div>
 
-<script>
-console.log('🚀 Files tab script loaded!');
-// Configuración de validación de documentos
-const FILE_VALIDATION = {
-    // Usar configuración centralizada con límites específicos por dispositivo
-    MAX_SIZE_MB: window.FILE_UPLOAD_CONFIG?.MAX_FILE_SIZE_MB || 1500,
-    MAX_SIZE_MOBILE_MB: window.FILE_UPLOAD_CONFIG?.MAX_FILE_SIZE_MOBILE_MB || 1500,
-    ALLOWED_EXTENSIONS: window.FILE_UPLOAD_CONFIG?.ALLOWED_EXTENSIONS || ['PDF', 'JPG', 'JPEG', 'PNG', 'GIF', 'TIFF', 'DWG', 'DXF', 'RVT', 'SKP', 'DOC', 'DOCX', 'XLS', 'XLSX', 'PPT', 'PPTX', 'ZIP', 'RAR', 'TXT', 'MD'],
-    
-    // Log del límite cargado
-    init: function() {
-        console.log(`✅ Límites: Desktop=${this.MAX_SIZE_MB}MB, Mobile=${this.MAX_SIZE_MOBILE_MB}MB`);
-    },
-    
-    // Detectar si es dispositivo móvil
-    isMobile: function() {
-        const userAgent = navigator.userAgent.toLowerCase();
-        return /android|iphone|ipad|mobile|tablet/.test(userAgent);
-    },
-    
-    // Validar un archivo individual
-    validateFile: function(file) {
-        const errors = [];
-        const maxSizeMB = this.isMobile() ? this.MAX_SIZE_MOBILE_MB : this.MAX_SIZE_MB;
-        const maxSizeBytes = maxSizeMB * 1024 * 1024;
-        
-        // Validar tamaño
-        if (file.size > maxSizeBytes) {
-            errors.push(`"${file.name}" es muy grande (${(file.size / 1024 / 1024).toFixed(1)}MB). Máximo: ${maxSizeMB}MB`);
-        }
-        
-        // Validar extensión
-        const extension = file.name.split('.').pop().toUpperCase();
-        if (!this.ALLOWED_EXTENSIONS.includes(extension)) {
-            errors.push(`"${file.name}" tiene una extensión no permitida (.${extension.toLowerCase()})`);
-        }
-        
-        return {
-            valid: errors.length === 0,
-            errors: errors
-        };
-    },
-    
-    // Validar archivo único (simplificado para MVP)
-    validateFiles: function(files) {
-        const allErrors = [];
-        const validFiles = [];
-        
-        // Solo permitir 1 archivo por vez
-        if (files.length > 1) {
-            allErrors.push("Solo se permite subir 1 archivo a la vez");
-            return {
-                valid: false,
-                errors: allErrors,
-                validFiles: [],
-                hasValidFiles: false
-            };
-        }
-        
-        Array.from(files).forEach(file => {
-            const validation = this.validateFile(file);
-            if (validation.valid) {
-                validFiles.push(file);
-            } else {
-                allErrors.push(...validation.errors);
-            }
-        });
-        
-        return {
-            valid: allErrors.length === 0,
-            errors: allErrors,
-            validFiles: validFiles,
-            hasValidFiles: validFiles.length > 0
-        };
-    }
-};
-
-// Función para mostrar errores de validación
-function showValidationErrors(errors, phaseId) {
-    // Crear o actualizar el contenedor de errores
-    let errorContainer = document.getElementById('validation-errors-' + phaseId);
-    if (!errorContainer) {
-        errorContainer = document.createElement('div');
-        errorContainer.id = 'validation-errors-' + phaseId;
-        errorContainer.className = 'validation-error';
-        
-        const form = document.querySelector('#file-input-' + phaseId).closest('form');
-        form.appendChild(errorContainer);
-    }
-    
-    errorContainer.innerHTML = `
-        <div class="alert-header">
-            <i class="fas fa-exclamation-triangle"></i>
-            <span>Archivo no válido</span>
-        </div>
-        <ul>
-            ${errors.map(error => `<li>${error}</li>`).join('')}
-        </ul>
-    `;
-    errorContainer.style.display = 'block';
-    
-    // Agregar clase de error al contenedor del input
-    const fileInputContainer = document.querySelector('#file-input-' + phaseId).closest('.file-input-container');
-    if (fileInputContainer) {
-        fileInputContainer.classList.add('has-validation-errors');
-    }
-}
-
-// Función para ocultar errores de validación
-function hideValidationErrors(phaseId) {
-    const errorContainer = document.getElementById('validation-errors-' + phaseId);
-    if (errorContainer) {
-        errorContainer.style.display = 'none';
-    }
-    
-    // Remover clase de error del contenedor del input
-    const fileInputContainer = document.querySelector('#file-input-' + phaseId).closest('.file-input-container');
-    if (fileInputContainer) {
-        fileInputContainer.classList.remove('has-validation-errors');
-    }
-}
-
-// Manejar selección de documentos y mostrar información
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('✅ DOMContentLoaded fired in files tab!');
-    document.querySelectorAll('.file-input').forEach(function(input) {
-        input.addEventListener('change', function() {
-            const phaseId = this.id.split('-').pop();
-            const uploadBtn = this.closest('form').querySelector('.upload-btn');
-            const fileLabel = this.closest('.file-input-container').querySelector('.file-label-text');
-            
-            // Ocultar errores previos
-            hideValidationErrors(phaseId);
-            
-            if (this.files.length > 0) {
-                // Validar archivo (solo 1 permitido)
-                const validation = FILE_VALIDATION.validateFiles(this.files);
-                
-                if (!validation.valid) {
-                    // Mostrar errores de validación
-                    showValidationErrors(validation.errors, phaseId);
-                    uploadBtn.disabled = true;
-                    fileLabel.textContent = 'Seleccionar archivo';
-                } else {
-                    // Archivo válido
-                    const fileName = this.files[0].name;
-                    const fileSize = (this.files[0].size / (1024 * 1024)).toFixed(2);
-                    
-                    // Actualizar texto del label
-                    fileLabel.textContent = `${fileName} (${fileSize} MB)`;
-                    
-                    // Habilitar botón de subir
-                    uploadBtn.disabled = false;
-                }
-            } else {
-                // Sin archivo seleccionado
-                uploadBtn.disabled = true;
-                fileLabel.textContent = 'Seleccionar archivo';
-            }
-        });
-    });
-});
-
-// El sistema de actualización ahora se maneja en file-list-updater.js
-// Mantener solo compatibilidad básica para casos edge
-document.body.addEventListener('htmx:afterRequest', function(evt) {
-    if (evt.detail.xhr.status === 200 && evt.detail.requestConfig.path.includes('/files/upload/')) {
-        // El FileListUpdater maneja esto automáticamente
-        // Solo disparar evento si no está presente
-        if (!window.fileListUpdater) {
-            document.body.dispatchEvent(new CustomEvent('fileUploaded'));
-        }
-    }
-});
-
-// Función para validar antes del envío del formulario
-function validateFormBeforeSubmit(form, phaseId) {
-    const fileInput = form.querySelector('.file-input');
-    if (!fileInput || !fileInput.files.length) {
-        return false; // No hay archivos seleccionados
-    }
-    
-    const validation = FILE_VALIDATION.validateFiles(fileInput.files);
-    
-    if (!validation.valid) {
-        // Mostrar errores si no se habían mostrado ya
-        showValidationErrors(validation.errors, phaseId);
-        
-        if (!validation.hasValidFiles) {
-            // No hay archivos válidos, prevenir envío
-            return false;
-        }
-        
-        // Si hay archivos válidos, crear una nueva lista de archivos con solo los válidos
-        // Nota: No podemos modificar directamente FileList, pero el servidor validará nuevamente
-        console.warn('Se enviarán todos los archivos al servidor. El servidor filtrará los inválidos.');
-    }
-    
-    // Ocultar errores previos al enviar
-    hideValidationErrors(phaseId);
-    
-    return true; // Permitir envío
-}
-
-// Los errores de archivos ahora se manejan globalmente en htmx_error_handler.js
-// No necesitamos listener específico para evitar duplicados
-
-// Resetear formulario después de cualquier error (sin notificación duplicada)
-document.body.addEventListener('htmx:responseError', function(evt) {
-    if (evt.detail.requestConfig.path && evt.detail.requestConfig.path.includes('/files/upload/')) {
-        // Solo resetear el formulario, la notificación la maneja htmx_error_handler.js
-        const form = evt.target.closest('form');
-        if (form && form.classList.contains('file-upload-form')) {
-            form.reset();
-        }
-    }
-});
-
-// Inicializar validación y mostrar límite cargado
-FILE_VALIDATION.init();
-</script>
+<script src="{% static 'js/files_validation.js' %}"></script>
 

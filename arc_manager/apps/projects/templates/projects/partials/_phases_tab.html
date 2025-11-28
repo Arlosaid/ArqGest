@@ -1,93 +1,166 @@
 
 {% load i18n %}
+{% load project_extras %}
 
-<div class="card shadow mb-4" id="phases-section">
-    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-        <h6 class="m-0 font-weight-bold text-primary">{% trans "Fases del Proyecto" %}</h6>
+<div class="card shadow-sm border-0 mb-4" id="phases-section">
+    <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between border-bottom">
+        <h5 class="m-0 font-weight-bold text-dark">
+            <i class="fas fa-layer-group text-primary me-2"></i>{% trans "Fases del Proyecto" %}
+        </h5>
+        {% if user.is_org_admin %}
         <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createPhaseModal">
-            <i class="fas fa-plus me-1"></i>{% trans "Nueva Fase" %}
+            <i class="fas fa-plus"></i> {% trans "Nueva Fase" %}
         </button>
+        {% endif %}
     </div>
-    <div class="card-body">
-		{% if phases_page_obj %}
-            <div class="row g-4">
-				{% for phase in phases_page_obj.object_list %}
-                    <div class="col-md-6 col-lg-4">
-                        <div class="phase-compact-card" onclick="window.location.href='{% url 'projects:phase-detail' project.pk phase.id %}'" style="cursor: pointer;">
-                            <div class="phase-compact-header">
-                                <h3 class="phase-compact-title">
-                                    <span class="text-muted me-2">#{{ forloop.counter }}</span>
-                                    {{ phase.name }}
-                                </h3>
-                            </div>
-                            
-                            <div class="phase-compact-body">
+    <div class="card-body p-0">
+        {% if phases_page_obj %}
+            <div class="list-group list-group-flush">
+                {% for phase in phases_page_obj.object_list %}
+                    <div class="list-group-item p-4 hover-bg-light transition-all border-bottom" onclick="window.location.href='{% url 'projects:phase-detail' project.pk phase.id %}'" style="cursor: pointer;">
+                        <div class="row align-items-center">
+                            <!-- Phase Info -->
+                            <div class="col-md-5 mb-3 mb-md-0">
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="badge bg-light text-secondary border me-2 rounded-pill px-2" title="{% trans 'Número de fase' %}">
+                                        <small class="fw-bold">#{{ phases_page_obj.start_index|add:forloop.counter0 }}</small>
+                                    </span>
+                                    <h5 class="mb-0 font-weight-bold text-dark text-truncate" title="{{ phase.name }}">
+                                        {{ phase.name }}
+                                    </h5>
+                                </div>
                                 {% if phase.notes %}
-                                <p class="phase-compact-description">{{ phase.notes|truncatechars:100 }}</p>
+                                    <p class="text-muted small mb-2 line-clamp-2">{{ phase.notes|truncatechars:120 }}</p>
                                 {% else %}
-                                <p class="phase-compact-description text-muted fst-italic" style="font-size: 0.8rem;">{% trans "Sin descripción" %}</p>
+                                    <p class="text-muted small mb-2 fst-italic">{% trans "Sin descripción" %}</p>
                                 {% endif %}
+                                
+                                <div class="d-flex align-items-center small text-muted">
+                                    <i class="far fa-calendar-alt me-2 text-primary"></i>
+                                    {% if phase.start_date or phase.end_date %}
+                                        {% if phase.start_date and phase.end_date %}
+                                            {{ phase.start_date|date:"d M" }} - {{ phase.end_date|date:"d M Y" }}
+                                        {% elif phase.start_date %}
+                                            {% trans "Desde" %} {{ phase.start_date|date:"d M Y" }}
+                                        {% else %}
+                                            {% trans "Hasta" %} {{ phase.end_date|date:"d M Y" }}
+                                        {% endif %}
+                                    {% elif phase.calculated_start_date or phase.calculated_end_date %}
+                                        <span class="text-muted" title="{% trans 'Fechas calculadas según tareas' %}">
+                                            {% if phase.calculated_start_date and phase.calculated_end_date %}
+                                                {{ phase.calculated_start_date|date:"d M" }} - {{ phase.calculated_end_date|date:"d M Y" }}
+                                            {% elif phase.calculated_start_date %}
+                                                {% trans "Desde" %} {{ phase.calculated_start_date|date:"d M Y" }}
+                                            {% else %}
+                                                {% trans "Hasta" %} {{ phase.calculated_end_date|date:"d M Y" }}
+                                            {% endif %}
+                                            <i class="fas fa-magic ms-1 small text-muted" style="font-size: 0.7em;" title="{% trans 'Auto-calculado' %}"></i>
+                                        </span>
+                                    {% else %}
+                                        <span class="fst-italic">{% trans "Sin fechas definidas" %}</span>
+                                    {% endif %}
+                                </div>
                             </div>
 
-                            <div class="phase-compact-meta">
-                                <div class="phase-stat-badge">
-                                    <i class="fas fa-tasks"></i> {{ phase.tasks.count }}
-                                </div>
-                                <div class="phase-stat-badge">
-                                    <i class="fas fa-file-alt"></i> {{ phase.files.count }}
-                                </div>
+                            <!-- Progress & Stats -->
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                {% with stats=phase_task_counts|get_item:phase.id %}
+                                    <div class="d-flex justify-content-between small mb-1">
+                                        <span class="fw-bold text-muted">{% trans "Progreso" %}</span>
+                                        <span class="fw-bold text-primary">
+                                            {% widthratio stats.DONE stats.TOTAL 100 as progress %}
+                                            {% if not stats.TOTAL %}0{% else %}{{ progress }}{% endif %}%
+                                        </span>
+                                    </div>
+                                    <div class="progress mb-2" style="height: 6px; border-radius: 3px;">
+                                        <div class="progress-bar {% if phase.status == 'COMPLETED' %}bg-success{% else %}bg-primary{% endif %}" role="progressbar" style="width: {% if not stats.TOTAL %}0{% else %}{% widthratio stats.DONE stats.TOTAL 100 %}{% endif %}%"></div>
+                                    </div>
+                                    <div class="d-flex gap-3 small text-muted">
+                                        <span title="{% trans 'Tareas Totales' %}">
+                                            <i class="fas fa-tasks me-1"></i> 
+                                            <strong>{{ stats.TOTAL|default:"0" }}</strong> {% trans "tareas" %}
+                                        </span>
+                                        <span title="{% trans 'Completadas' %}" class="text-success">
+                                            <i class="fas fa-check-circle me-1"></i> 
+                                            <strong>{{ stats.DONE|default:"0" }}</strong> {% trans "terminadas" %}
+                                        </span>
+                                        <span title="{% trans 'En Pausa' %}" class="text-warning">
+                                            <i class="fas fa-pause-circle me-1"></i> 
+                                            <strong>{{ stats.PAUSED|default:"0" }}</strong> {% trans "en pausa" %}
+                                        </span>
+                                        <span title="{% trans 'Archivos' %}">
+                                            <i class="fas fa-paperclip me-1"></i> 
+                                            <strong>{{ phase.files.count }}</strong> {% trans "archivos" %}
+                                        </span>
+                                    </div>
+                                {% endwith %}
                             </div>
-                            
-                            <div class="phase-compact-footer">
-                                <div class="task-compact-actions">
-                                     <a href="{% url 'projects:phase-detail' project.pk phase.id %}" class="btn-icon-action view" title="{% trans 'Ver detalles' %}" onclick="event.stopPropagation();">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
+
+                            <!-- Status Badge -->
+                            <div class="col-md-3 text-md-end">
+                                <span class="badge rounded-pill {% if phase.status == 'COMPLETED' %}bg-success-subtle text-success border border-success{% elif phase.status == 'IN_PROGRESS' %}bg-primary-subtle text-primary border border-primary{% else %}bg-secondary-subtle text-secondary border border-secondary{% endif %} px-3 py-2">
+                                    {{ phase.get_status_display }}
+                                </span>
+                                <div class="mt-2 text-muted small">
+                                    <i class="fas fa-chevron-right"></i>
                                 </div>
                             </div>
                         </div>
                     </div>
                 {% endfor %}
             </div>
-			{% include 'partials/pagination.html' with page_obj=phases_page_obj page_param='phases_page' extra_params='tab=phases&' item_label='fases' %}
+            <div class="p-3 border-top">
+                {% include 'partials/pagination.html' with page_obj=phases_page_obj page_param='phases_page' extra_params='tab=phases&' item_label='fases' %}
+            </div>
         {% else %}
-            <div class="text-center py-4">
-                <i class="fas fa-layer-group fa-3x text-muted mb-3"></i>
-                <p class="text-muted">{% trans "Aún no se han definido fases para este proyecto." %}</p>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createPhaseModal">
+            <!-- Empty State -->
+            <div class="text-center py-5">
+                <div class="mb-3">
+                    <div class="avatar avatar-xl bg-light rounded-circle mx-auto d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                        <i class="fas fa-layer-group fa-2x text-muted"></i>
+                    </div>
+                </div>
+                <h5 class="text-dark fw-bold mb-2">{% trans "No hay fases definidas" %}</h5>
+                <p class="text-muted mb-4">{% trans "Organiza tu proyecto creando fases para agrupar tareas." %}</p>
+                {% if user.is_org_admin %}
+                <button type="button" class="btn btn-primary px-4 rounded-pill" data-bs-toggle="modal" data-bs-target="#createPhaseModal">
                     <i class="fas fa-plus me-1"></i>{% trans "Crear Primera Fase" %}
                 </button>
+                {% endif %}
             </div>
         {% endif %}
     </div>
 </div>
 
+<!-- Modal remains the same -->
 <div class="modal fade" id="createPhaseModal" tabindex="-1" aria-labelledby="createPhaseModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="createPhaseModalLabel">{% trans "Nueva Fase" %}</h5>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold" id="createPhaseModalLabel">{% trans "Nueva Fase" %}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form action="{% url 'projects:phase-create' project.pk %}" method="post">
                 {% csrf_token %}
-                <div class="modal-body">
+                <div class="modal-body pt-4">
                     <div class="mb-3">
-                        <label for="id_name" class="form-label">{% trans "Nombre de la Fase" %}</label>
-                        <input type="text" name="name" id="id_name" class="form-control" required>
+                        <label for="id_name" class="form-label small fw-bold text-uppercase text-muted">{% trans "Nombre de la Fase" %}</label>
+                        <input type="text" name="name" id="id_name" class="form-control bg-light border-0" placeholder="Ej. Diseño Preliminar" required>
                     </div>
                     <div class="mb-3">
-                        <label for="id_notes" class="form-label">{% trans "Notas" %}</label>
-                        <textarea name="notes" id="id_notes" class="form-control" rows="3"></textarea>
+                        <label for="id_notes" class="form-label small fw-bold text-uppercase text-muted">{% trans "Notas / Descripción" %}</label>
+                        <textarea name="notes" id="id_notes" class="form-control bg-light border-0" rows="3" placeholder="Describe el objetivo de esta fase..."></textarea>
                     </div>
-                    <div class="mb-3">
-                        <label for="id_order" class="form-label">{% trans "Orden" %}</label>
-                        <input type="number" name="order" id="id_order" class="form-control" value="{{ phases.count|add:1 }}" min="1" required>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_order" class="form-label small fw-bold text-uppercase text-muted">{% trans "Orden" %}</label>
+                            <input type="number" name="order" id="id_order" class="form-control bg-light border-0" value="{{ phases.count|add:1 }}" min="1" required>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancelar" %}</button>
-                    <button type="submit" class="btn btn-primary">{% trans "Crear Fase" %}</button>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-link text-muted text-decoration-none" data-bs-dismiss="modal">{% trans "Cancelar" %}</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">{% trans "Crear Fase" %}</button>
                 </div>
             </form>
         </div>

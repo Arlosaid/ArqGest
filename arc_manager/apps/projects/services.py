@@ -24,7 +24,10 @@ def create_phases_for_project(project: Project, creation_method: str, phase_temp
                     Phase(
                         project=project,
                         name=phase_form.cleaned_data['name'],
-                        order=phase_form.cleaned_data['order']
+                        order=phase_form.cleaned_data['order'],
+                        start_date=phase_form.cleaned_data.get('start_date'),
+                        end_date=phase_form.cleaned_data.get('end_date'),
+                        notes=phase_form.cleaned_data.get('notes', '')
                     )
                 )
         

@@ -144,6 +144,12 @@ document.addEventListener('DOMContentLoaded', function() {
     forms.forEach((form, index) => {
       const orderInput = form.querySelector('input[name$="-order"]');
       if (orderInput) orderInput.value = index;
+      
+      // Update visual counter
+      const counter = form.querySelector('.phase-counter');
+      if (counter) {
+        counter.textContent = '#' + (index + 1);
+      }
     });
   }
 

@@ -97,7 +97,8 @@ class LargeFileUploader {
             fileInput.parentNode.appendChild(progressContainer);
         }
         
-        // Crear área de información del archivo
+        // Crear área de información del archivo - DESHABILITADO: Ya se muestra en el label
+        /*
         let fileInfoContainer = form.querySelector('.file-info-container');
         if (!fileInfoContainer) {
             fileInfoContainer = document.createElement('div');
@@ -105,44 +106,49 @@ class LargeFileUploader {
             fileInfoContainer.style.display = 'none';
             fileInput.parentNode.appendChild(fileInfoContainer);
         }
+        */
     }
 
     handleFileSelection(fileInput, form) {
         const files = Array.from(fileInput.files);
-        const fileInfoContainer = form.querySelector('.file-info-container');
+        // const fileInfoContainer = form.querySelector('.file-info-container');
         
         if (files.length === 0) {
-            fileInfoContainer.style.display = 'none';
+            // if (fileInfoContainer) fileInfoContainer.style.display = 'none';
             return;
         }
 
         // Mostrar información del archivo seleccionado
         const file = files[0]; // MVP: solo 1 archivo
-        const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
-        const extension = file.name.split('.').pop().toUpperCase();
+        // const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+        // const extension = file.name.split('.').pop().toUpperCase();
         
         // Validar archivo
         const validation = this.validateFile(file);
         
-        fileInfoContainer.innerHTML = `
-            <div class="card border-${validation.isValid ? 'success' : 'danger'}">
-                <div class="card-body p-3">
-                    <div class="d-flex align-items-center">
-                        <i class="fas fa-file-${this.getFileIcon(extension)} fa-2x text-${validation.isValid ? 'success' : 'danger'} me-3"></i>
-                        <div class="flex-grow-1">
-                            <h6 class="mb-1">${file.name}</h6>
-                            <small class="text-muted">
-                                ${sizeInMB} MB • ${extension}
-                                ${validation.isValid ? '' : ' • ❌ ' + validation.error}
-                            </small>
+        /* DESHABILITADO: El recuadro blanco es redundante
+        if (fileInfoContainer) {
+            fileInfoContainer.innerHTML = `
+                <div class="card border-${validation.isValid ? 'success' : 'danger'}">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-file-${this.getFileIcon(extension)} fa-2x text-${validation.isValid ? 'success' : 'danger'} me-3"></i>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">${file.name}</h6>
+                                <small class="text-muted">
+                                    ${sizeInMB} MB • ${extension}
+                                    ${validation.isValid ? '' : ' • ❌ ' + validation.error}
+                                </small>
+                            </div>
+                            ${validation.isValid ? '<i class="fas fa-check-circle text-success"></i>' : '<i class="fas fa-exclamation-triangle text-danger"></i>'}
                         </div>
-                        ${validation.isValid ? '<i class="fas fa-check-circle text-success"></i>' : '<i class="fas fa-exclamation-triangle text-danger"></i>'}
                     </div>
                 </div>
-            </div>
-        `;
-        
-        fileInfoContainer.style.display = 'block';
+            `;
+            
+            fileInfoContainer.style.display = 'block';
+        }
+        */
         
         // Habilitar/deshabilitar botón de submit
         const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');

@@ -278,7 +278,7 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         
         # Obtener fases del proyecto con sus archivos y tareas (optimizado)
         # SEGURIDAD: Filtrar tareas según permisos del usuario
-        from django.db.models import Prefetch
+        from django.db.models import Prefetch, Min, Max
         if is_admin:
             # Admins ven todas las tareas
             tasks_prefetch = Prefetch('tasks', queryset=Task.objects.select_related('assigned_to'))
@@ -289,6 +289,9 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         phases = project.phases.prefetch_related(
             'files__uploaded_by',
             tasks_prefetch
+        ).annotate(
+            calculated_start_date=Min('tasks__created_at'),
+            calculated_end_date=Max('tasks__due_date')
         ).order_by('order')
         
         # Archivos del proyecto
@@ -482,7 +485,9 @@ class ProjectUpdateView(LoginRequiredMixin, OrganizationAdminMixin, UpdateView):
     model = Project
     form_class = ProjectForm
     template_name = 'projects/project_form.html'
-    success_url = reverse_lazy('projects:project-list')
+    
+    def get_success_url(self):
+        return reverse_lazy('projects:project-detail', kwargs={'pk': self.object.pk})
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -610,7 +615,11 @@ class PhaseDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'phase'
 
     def get_queryset(self):
-        return super().get_queryset().filter(project__organization=self.request.user.organization)
+        from django.db.models import Min, Max
+        return super().get_queryset().filter(project__organization=self.request.user.organization).annotate(
+            calculated_start_date=Min('tasks__created_at'),
+            calculated_end_date=Max('tasks__due_date')
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -621,26 +630,48 @@ class PhaseDetailView(LoginRequiredMixin, DetailView):
         from datetime import date
         context['today'] = date.today()
         
-        # Get only recent tasks (limit to 5) with optimized query
-        recent_tasks = phase.tasks.select_related('assigned_to').order_by('-created_at')[:5]
-        total_tasks_count = phase.tasks.count()
+        # Get tasks for display (limit to 10) with optimized query
+        # Ordenar por fecha de vencimiento (las más urgentes primero) y luego prioridad
+        tasks_qs = phase.tasks.select_related('assigned_to').order_by('due_date', 'priority')
+        context['tasks_list'] = tasks_qs[:10]
         
-        context['recent_tasks'] = recent_tasks
-        context['recent_tasks_count'] = min(5, total_tasks_count)
-        context['has_more_tasks'] = total_tasks_count > 5
+        total_tasks_count = phase.tasks.count()
+        context['total_tasks_count'] = total_tasks_count
+        context['has_more_tasks'] = total_tasks_count > 10
+        
+        # Get files for display (limit to 8) with optimized query
+        files_qs = phase.files.select_related('uploaded_by').order_by('-uploaded_at')
+        context['files_list'] = files_qs[:8]
+        
+        total_files_count = phase.files.count()
+        context['total_files_count'] = total_files_count
+        context['has_more_files'] = total_files_count > 8
         
         # Calculate task statistics efficiently
         if total_tasks_count > 0:
             tasks_done = phase.tasks.filter(status='DONE').count()
             context['tasks_done_count'] = tasks_done
             context['tasks_in_progress_count'] = phase.tasks.filter(status='IN_PROGRESS').count()
+            context['tasks_paused_count'] = phase.tasks.filter(status='PAUSED').count()
             context['completion_percentage'] = round((tasks_done / total_tasks_count) * 100, 1)
         else:
             context['tasks_done_count'] = 0
             context['tasks_in_progress_count'] = 0
+            context['tasks_paused_count'] = 0
             context['completion_percentage'] = 0
         
         return context
+
+    def post(self, request, *args, **kwargs):
+        """Handle HTMX updates for notes"""
+        self.object = self.get_object()
+        if 'notes' in request.POST:
+            self.object.notes = request.POST.get('notes')
+            self.object.save()
+            if request.headers.get('HX-Request'):
+                return HttpResponse('<span class="text-success"><i class="fas fa-check"></i> Guardado</span>', status=200)
+            return redirect('projects:phase-detail', project_pk=self.object.project.pk, pk=self.object.pk)
+        return HttpResponseBadRequest()
 
 
 # Kanban View
@@ -929,6 +960,10 @@ class ProjectPhasesEditView(LoginRequiredMixin, OrganizationAdminMixin, View):
                     phase_id = item.get('id')
                     to_delete = bool(item.get('delete'))
                     name = (item.get('name') or '').strip()
+                    start_date = item.get('start_date') or None
+                    end_date = item.get('end_date') or None
+                    notes = (item.get('notes') or '').strip()
+
                     try:
                         order = int(item.get('order') or 0)
                     except Exception:
@@ -946,11 +981,30 @@ class ProjectPhasesEditView(LoginRequiredMixin, OrganizationAdminMixin, View):
                             if phase.order != order:
                                 phase.order = order
                                 changed = True
+                            
+                            # Update new fields
+                            if str(phase.start_date or '') != str(start_date or ''):
+                                phase.start_date = start_date
+                                changed = True
+                            if str(phase.end_date or '') != str(end_date or ''):
+                                phase.end_date = end_date
+                                changed = True
+                            if phase.notes != notes:
+                                phase.notes = notes
+                                changed = True
+
                             if changed:
                                 phase.save()
                     else:
                         if not to_delete and name:
-                            Phase.objects.create(project=project, name=name, order=order)
+                            Phase.objects.create(
+                                project=project, 
+                                name=name, 
+                                order=order,
+                                start_date=start_date,
+                                end_date=end_date,
+                                notes=notes
+                            )
 
                 # Reordenar de forma consistente (0..n)
                 for idx, phase in enumerate(project.phases.order_by('order', 'id')):
@@ -1673,35 +1727,29 @@ def phase_files_paginated(request, project_id, phase_id):
     """
     from django.core.cache import cache
     from django.conf import settings
-    # FIXME: Migrar a structured_logging después del deploy
-    # from core.structured_logging import log_error
+    from core.structured_logging import log_error
+    from apps.files.cache_utils import get_cached_files_result, cache_files_result
     import logging
     logger = logging.getLogger(__name__)
-    
-    # FIXME: Función temporal hasta migrar a structured_logging
-    def log_operation(*args, **kwargs):
-        """Temporal stub para evitar errores durante deploy"""
-        pass
     
     try:
         phase = get_object_or_404(Phase, id=phase_id, project_id=project_id, project__organization=request.user.organization)
     
         # Parámetros optimizados
         offset = int(request.GET.get('offset', 0))  # Usar offset en lugar de page
-        limit = int(request.GET.get('limit', 20))   # Límite por batch (aumentado)
+        limit = int(request.GET.get('limit', 18))   # Límite por batch (18 = uniforme en grid)
         load_more = request.GET.get('load_more', 'false') == 'true'
         
         # Filtros
         file_type_filter = request.GET.get('type', '')
         date_filter = request.GET.get('date', '')
     
-        # Crear clave de cache única para esta consulta
-        cache_key = f"files_phase_{phase_id}_{offset}_{limit}_{file_type_filter}_{date_filter}"
-        
         # Intentar obtener desde cache Redis primero
-        cached_result = cache.get(cache_key)
+        cached_result = None
+        if not settings.DEBUG:
+             cached_result = get_cached_files_result(phase_id, offset, limit, file_type_filter, date_filter)
         
-        if cached_result and not settings.DEBUG:
+        if cached_result:
             # En producción, usar cache para respuesta ultra-rápida
             files_data, has_more = cached_result
             context = {
@@ -1759,7 +1807,7 @@ def phase_files_paginated(request, project_id, phase_id):
             
             # Guardar en cache Redis (5 minutos en desarrollo, 10 en producción)
             cache_timeout = 300 if settings.DEBUG else 600
-            cache.set(cache_key, (files_data, has_more), cache_timeout)
+            cache_files_result(phase_id, files_data, has_more, offset, limit, file_type_filter, date_filter, cache_timeout)
             
             context = {
                 'phase': phase,

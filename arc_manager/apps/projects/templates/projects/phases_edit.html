@@ -51,15 +51,31 @@
 
       <div id="phasesList" class="d-flex flex-column gap-2">
         {% for p in phases %}
-        <div class="phase-form" data-id="{{ p.id }}">
-          <div class="phase-form-header">
-            <i class="fas fa-bars drag-handle"></i>
-            <div class="phase-name-wrap">
-              <input type="text" class="form-control" value="{{ p.name }}" placeholder="{% trans 'Nombre de la fase' %}">
+        <div class="phase-form card mb-3 border-0 shadow-sm" data-id="{{ p.id }}">
+          <div class="card-header bg-white border-bottom-0 pt-3 px-3 d-flex align-items-center">
+            <i class="fas fa-bars drag-handle text-muted me-3" style="cursor: move;"></i>
+            <div class="flex-grow-1">
+              <input type="text" class="form-control phase-name-input" value="{{ p.name }}" placeholder="{% trans 'Nombre de la fase' %}">
             </div>
-            <button type="button" class="icon-btn phase-delete-toggle" title="{% trans 'Eliminar' %}">
-              <i class="fas fa-trash"></i>
+            <button type="button" class="btn btn-link text-danger btn-sm phase-delete-toggle ms-2" title="{% trans 'Eliminar' %}">
+              <i class="fas fa-trash-alt"></i>
             </button>
+          </div>
+          <div class="card-body pt-0 px-3 pb-3">
+            <div class="row g-2 mt-2">
+                <div class="col-md-6">
+                    <label class="form-label small text-muted mb-1">{% trans "Inicio" %}</label>
+                    <input type="date" class="form-control phase-start-date" value="{{ p.start_date|date:'Y-m-d'|default:'' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small text-muted mb-1">{% trans "Fin" %}</label>
+                    <input type="date" class="form-control phase-end-date" value="{{ p.end_date|date:'Y-m-d'|default:'' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label small text-muted mb-1">{% trans "Notas" %}</label>
+                    <textarea class="form-control phase-notes" rows="2" placeholder="{% trans 'Notas opcionales' %}">{{ p.notes|default:'' }}</textarea>
+                </div>
+            </div>
           </div>
         </div>
         {% empty %}
@@ -225,16 +241,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
   addPhaseBtn.addEventListener('click', function() {
     const el = document.createElement('div');
-    el.className = 'phase-form';
+    el.className = 'phase-form card mb-3 border-0 shadow-sm';
     el.innerHTML = `
-      <div class="phase-form-header">
-        <i class="fas fa-bars drag-handle"></i>
-        <div class="phase-name-wrap">
-          <input type="text" class="form-control" placeholder="${'{% trans "Nombre de la fase" %}'}">
+      <div class="card-header bg-white border-bottom-0 pt-3 px-3 d-flex align-items-center">
+        <i class="fas fa-bars drag-handle text-muted me-3" style="cursor: move;"></i>
+        <div class="flex-grow-1">
+          <input type="text" class="form-control phase-name-input" placeholder="${'{% trans "Nombre de la fase" %}'}">
         </div>
-        <button type="button" class="icon-btn phase-delete-toggle" title="${'{% trans "Eliminar" %}'}">
-          <i class="fas fa-trash"></i>
+        <button type="button" class="btn btn-link text-danger btn-sm phase-delete-toggle ms-2" title="${'{% trans "Eliminar" %}'}">
+          <i class="fas fa-trash-alt"></i>
         </button>
+      </div>
+      <div class="card-body pt-0 px-3 pb-3">
+        <div class="row g-2 mt-2">
+            <div class="col-md-6">
+                <label class="form-label small text-muted mb-1">${'{% trans "Inicio" %}'}</label>
+                <input type="date" class="form-control phase-start-date">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small text-muted mb-1">${'{% trans "Fin" %}'}</label>
+                <input type="date" class="form-control phase-end-date">
+            </div>
+            <div class="col-12">
+                <label class="form-label small text-muted mb-1">${'{% trans "Notas" %}'}</label>
+                <textarea class="form-control phase-notes" rows="2" placeholder="${'{% trans "Notas opcionales" %}'}"></textarea>
+            </div>
+        </div>
       </div>`;
     phasesList.appendChild(el);
   });
@@ -383,14 +415,21 @@ document.addEventListener('DOMContentLoaded', function() {
     let orderIndex = 0; // solo para filas no eliminadas
     
     rows.forEach((row) => {
-      const input = row.querySelector('input[type="text"]');
-      const name = (input?.value || '').trim();
+      const nameInput = row.querySelector('.phase-name-input');
+      const startInput = row.querySelector('.phase-start-date');
+      const endInput = row.querySelector('.phase-end-date');
+      const notesInput = row.querySelector('.phase-notes');
+      
+      const name = (nameInput?.value || '').trim();
       const toDelete = row.dataset.delete === '1' || row.style.display === 'none';
-      markInvalid(input, !toDelete && !name);
+      markInvalid(nameInput, !toDelete && !name);
       if (!toDelete && !name) hasInvalid = true;
       const item = {
         id: row.dataset.id ? parseInt(row.dataset.id) : null,
         name: name,
+        start_date: startInput?.value || null,
+        end_date: endInput?.value || null,
+        notes: notesInput?.value || '',
         order: toDelete ? null : orderIndex,
         delete: toDelete
       };

@@ -145,8 +145,43 @@ def sum_tasks(phases):
     except Exception as e:
         import logging
         logger = logging.getLogger(__name__)
-        logger.error(f"Error counting tasks: {e}")
+        logger.error(f"Error counting files: {e}")
         return 0
+
+
+@register.filter(name='file_icon')
+def file_icon(extension):
+    """
+    Retorna el icono y clase CSS correspondiente a una extensión de archivo.
+    Uso: {{ file.extension|file_icon }}
+    Las clases corresponden a files-tab.css
+    """
+    extension = extension.upper() if extension else ''
+    
+    icons = {
+        'PDF': {'icon': 'fas fa-file-pdf', 'class': 'pdf'},
+        'JPG': {'icon': 'fas fa-image', 'class': 'image'},
+        'JPEG': {'icon': 'fas fa-image', 'class': 'image'},
+        'PNG': {'icon': 'fas fa-image', 'class': 'image'},
+        'GIF': {'icon': 'fas fa-image', 'class': 'image'},
+        'TIFF': {'icon': 'fas fa-image', 'class': 'image'},
+        'DWG': {'icon': 'fas fa-drafting-compass', 'class': 'cad'},
+        'DXF': {'icon': 'fas fa-drafting-compass', 'class': 'cad'},
+        'RVT': {'icon': 'fas fa-cube', 'class': 'revit'},
+        'SKP': {'icon': 'fas fa-cubes', 'class': 'sketchup'},
+        'DOC': {'icon': 'fas fa-file-word', 'class': 'word'},
+        'DOCX': {'icon': 'fas fa-file-word', 'class': 'word'},
+        'XLS': {'icon': 'fas fa-file-excel', 'class': 'excel'},
+        'XLSX': {'icon': 'fas fa-file-excel', 'class': 'excel'},
+        'PPT': {'icon': 'fas fa-file-powerpoint', 'class': 'ppt'},
+        'PPTX': {'icon': 'fas fa-file-powerpoint', 'class': 'ppt'},
+        'ZIP': {'icon': 'fas fa-file-archive', 'class': 'archive'},
+        'RAR': {'icon': 'fas fa-file-archive', 'class': 'archive'},
+        'TXT': {'icon': 'fas fa-file-alt', 'class': 'default'},
+        'MD': {'icon': 'fas fa-file-alt', 'class': 'default'},
+    }
+    
+    return icons.get(extension, {'icon': 'fas fa-file', 'class': 'default'})
 
 
 @register.filter(name='sum_files')
