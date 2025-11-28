@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     } catch (e) {
-        console.warn('SortableJS no está disponible o falló la inicialización:', e);
+        // SortableJS no está disponible o falló la inicialización
     }
 
     updateOrder();

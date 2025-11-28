@@ -110,7 +110,6 @@ class NotificationManager {
     show(message, type = 'info', options = {}) {
         // Prevenir duplicados - verificar si hay una notificación similar reciente
         if (this.isDuplicateMessage(message, type)) {
-            console.log('Notificación duplicada prevenida:', message);
             return null;
         }
 

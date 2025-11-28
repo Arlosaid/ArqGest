@@ -52,7 +52,6 @@ async function performTaskDeletionFromModal(taskId) {
             throw new Error(data.error || 'Error al eliminar la tarea');
         }
     } catch (error) {
-        console.error('Error:', error);
         if (window.notifications) {
             window.notifications.error('Error al eliminar la tarea');
         }
@@ -84,8 +83,6 @@ document.addEventListener('htmx:afterRequest', function (e) {
       // Mostrar notificación de éxito
       if (window.notifications) {
         window.notifications.success('Tarea actualizada correctamente');
-      } else {
-        console.log('Tarea actualizada correctamente');
       }
       
       // Disparar evento para actualizar la UI dinámicamente
@@ -114,7 +111,7 @@ document.addEventListener('htmx:afterRequest', function (e) {
       }
     }
   } catch (error) {
-    console.error('Error processing HTMX response:', error);
+    // Silent fail for HTMX response processing
   }
 });
 
@@ -123,7 +120,6 @@ document.addEventListener('htmx:responseError', function (e) {
   // Solo manejar errores que sean específicamente de edición de tareas
   const form = e.target.closest('form');
   if (form && form.getAttribute('hx-post') && form.getAttribute('hx-post').includes('task-edit')) {
-    console.error('HTMX Task Edit Error:', e.detail);
     if (window.notifications) {
       window.notifications.error('Error al actualizar la tarea');
     }
@@ -135,7 +131,6 @@ document.addEventListener('htmx:responseError', function (e) {
 document.addEventListener('htmx:beforeSend', function (e) {
   const form = e.target.closest('form');
   if (form && form.getAttribute('hx-post') && form.getAttribute('hx-post').includes('task-edit')) {
-    console.log('HTMX: Enviando formulario de edición de tarea...');
     const submitBtn = form.querySelector('#saveTaskBtn');
     if (submitBtn) {
       submitBtn.disabled = true;
@@ -149,30 +144,12 @@ document.addEventListener('htmx:beforeSend', function (e) {
 document.addEventListener('htmx:afterRequest', function (e) {
   const form = e.target.closest('form');
   if (form && form.getAttribute('hx-post') && form.getAttribute('hx-post').includes('task-edit')) {
-    console.log('HTMX: Respuesta recibida para edición de tarea');
     const submitBtn = form.querySelector('#saveTaskBtn');
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Cambios';
       submitBtn.style.opacity = '1';
     }
-  }
-});
-
-// Debug: Verificar que HTMX está funcionando
-document.addEventListener('htmx:configRequest', function(e) {
-  if (e.detail.path.includes('task') && e.detail.path.includes('edit')) {
-    console.log('HTMX Config Request:', e.detail);
-  }
-});
-
-// Verificar disponibilidad de HTMX al cargar
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('HTMX disponible:', typeof htmx !== 'undefined');
-  if (typeof htmx === 'undefined') {
-    console.error('⚠️ HTMX no está cargado! Los formularios de edición no funcionarán correctamente.');
-  } else {
-    console.log('✅ HTMX cargado correctamente');
   }
 });
 

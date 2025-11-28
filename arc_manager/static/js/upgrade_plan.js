@@ -5,14 +5,12 @@
 
 // Configuración
 const CONFIG = {
-    DEBUG: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
+    DEBUG: false, // Deshabilitado en producción
     TIMEOUT: 10000 // 10 segundos
 };
 
 function debugLog(message, data = null) {
-    if (CONFIG.DEBUG) {
-        console.log(`[UpgradePlan] ${message}`, data || '');
-    }
+    // Debug deshabilitado en producción
 }
 
 class UpgradePlanManager {
@@ -373,8 +371,6 @@ class UpgradePlanManager {
     showError(message) {
         if (window.notifications) {
             window.notifications.error(message);
-        } else {
-            console.warn('Sistema de notificaciones no disponible:', message);
         }
     }
 
@@ -384,8 +380,6 @@ class UpgradePlanManager {
     showSuccess(message) {
         if (window.notifications) {
             window.notifications.success(message);
-        } else {
-            console.warn('Sistema de notificaciones no disponible:', message);
         }
     }
 }

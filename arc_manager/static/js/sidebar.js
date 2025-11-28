@@ -289,18 +289,8 @@ document.head.appendChild(styleSheet);
 document.addEventListener('DOMContentLoaded', () => {
     try {
         window.sidebarManager = new SidebarManager();
-        
-        // Eventos globales para debugging
-        document.addEventListener('sidebar:opened', () => {
-            console.log('🎨 Sidebar abierto');
-        });
-        
-        document.addEventListener('sidebar:closed', () => {
-            console.log('🎨 Sidebar cerrado');
-        });
-        
     } catch (error) {
-        console.error('❌ Error inicializando Sidebar Manager:', error);
+        // Silent initialization failure
     }
 });
 
@@ -348,7 +338,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const projects = await response.json();
             displayProjects(projects);
         } catch (error) {
-            console.error('Error:', error);
             displayProjects([]);
         }
     }
@@ -362,7 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const clients = await response.json();
             populateClientFilter(clients);
         } catch (error) {
-            console.error('Error:', error);
+            // Silent fail for client load
         }
     }
 

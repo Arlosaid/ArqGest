@@ -122,8 +122,6 @@ class MobileUploadOptimizer {
     }
 
     async processMobileMultiUpload(form, files, phaseId) {
-        console.log(`📱 Procesando ${files.length} archivos en mobile`);
-        
         // Validaciones específicas para mobile
         const validFiles = this.validateMobileFiles(files);
         if (validFiles.length === 0) return;
@@ -146,7 +144,6 @@ class MobileUploadOptimizer {
                 await this.sleep(500);
                 
             } catch (error) {
-                console.error(`Error uploading ${file.name}:`, error);
                 this.showMobileError(phaseId, file.name, error);
             }
         }
@@ -413,8 +410,8 @@ class MobileUploadOptimizer {
         this.uploadQueue = this.uploadQueue.filter(item => item.status !== 'completed');
         
         // Solo loguear en modo debug
-        if (window.location.search.includes('debug=true')) {
-            console.log('📱 Mobile memory cleanup completed');
+        if (window.location.search.includes('debug=upload')) {
+            // Memory cleanup completed
         }
     }
 

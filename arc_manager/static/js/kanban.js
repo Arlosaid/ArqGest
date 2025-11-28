@@ -2,7 +2,6 @@
  * Kanban Board JavaScript - ArcManager
  * Maneja la funcionalidad del tablero kanban para gestión de tareas
  */
-console.log('Kanban JS loaded - Timestamp:', Date.now());
 
 class KanbanManager {
     constructor() {
@@ -65,12 +64,9 @@ class KanbanManager {
 
     bindFormEvents() {
         if (this.taskForm) {
-            console.log('Task form found, binding submit event');
             this.taskForm.addEventListener('submit', (e) => {
                 this.handleTaskSubmit(e);
             });
-        } else {
-            console.warn('Task form NOT found - form id="taskForm" missing from DOM');
         }
     }
 
@@ -111,9 +107,6 @@ class KanbanManager {
 
     initializeDragAndDrop() {
         if (!this.columns.length) return;
-
-        console.log('Initializing Drag and Drop. Window width:', window.innerWidth);
-        console.log('Found cards:', this.cards.length);
 
         // Solo activar drag and drop en desktop (pantallas >= 768px)
         if (window.innerWidth >= 768) {
@@ -181,12 +174,9 @@ class KanbanManager {
         const isOrgAdmin = document.body.dataset.isOrgAdmin === 'true';
         const currentUserId = parseInt(document.body.dataset.currentUserId || '0');
         const taskAssignedToId = parseInt(e.currentTarget.dataset.assignedToId || '0');
-        
-        console.log('Drag Start Debug:', { isOrgAdmin, currentUserId, taskAssignedToId });
 
         // Permitir solo si es admin O si es el usuario asignado
         if (!isOrgAdmin && currentUserId !== taskAssignedToId) {
-            console.warn('Drag prevented: User not authorized');
             this.showNotification('No tienes permiso para mover esta tarea', 'warning');
             e.preventDefault();
             return;
@@ -377,14 +367,10 @@ class KanbanManager {
                 this.broadcastTaskStatusChange(taskId, newStatus);
             } else {
                 // Revertir el movimiento si falla
-                console.error('Error al actualizar tarea:', errorMsg);
                 this.showNotification('Error al actualizar estado: ' + errorMsg, 'error');
-                // Aquí podrías revertir el movimiento visual si es necesario
-                // this.revertCardMove(taskId); // Implementar si es crítico
                 setTimeout(() => location.reload(), 1000); // Recargar para sincronizar estado real
             }
         } catch (error) {
-            console.error('Error:', error);
             this.showNotification('Error de conexión', 'error');
             setTimeout(() => location.reload(), 1000);
         } finally {
@@ -411,7 +397,7 @@ class KanbanManager {
                 localStorage.removeItem('task_update_event');
             }, 100);
         } catch (error) {
-            console.error('Error broadcasting task update:', error);
+            // Broadcast failed silently
         }
     }
 
@@ -611,7 +597,7 @@ class KanbanManager {
                 this.updateStatCard('paused', data.paused_tasks);
             }
         } catch (error) {
-            console.error('Error al actualizar estadísticas:', error);
+            // Statistics update failed silently
         }
     }
 
@@ -640,11 +626,8 @@ class KanbanManager {
 
     async handleTaskSubmit(e) {
         e.preventDefault();
-        console.log('handleTaskSubmit called - form submission intercepted');
 
         const formData = new FormData(this.taskForm);
-        console.log('Form action:', this.taskForm.action);
-        console.log('Form data entries:', [...formData.entries()]);
         
         // El botón de submit está fuera del <form> (usa atributo form="taskForm").
         // Buscar primero por el botón vinculado al form y, si no existe, buscar dentro del form.
@@ -675,12 +658,10 @@ class KanbanManager {
             }
 
             const contentType = response.headers.get('content-type') || '';
-            console.log('Task creation response:', { ok: response.ok, contentType, redirected: response.redirected });
             
             if (response.ok) {
                 if (contentType.includes('application/json')) {
                     const data = await response.json();
-                    console.log('Task creation JSON data:', data);
                     
                     if (data && data.success) {
                         // Cerrar modal inmediatamente
@@ -696,32 +677,26 @@ class KanbanManager {
                         
                         // Si estamos en kanban y tenemos el HTML, insertar dinámicamente
                         if (isKanbanPage && data.task_html) {
-                            console.log('Inserting task HTML into kanban board');
                             const status = data.status || 'TODO';
                             // Buscar el wrapper de la columna por status, luego el body
                             const columnWrapper = document.querySelector(`.kanban-column[data-status="${status}"]`);
                             const column = columnWrapper ? columnWrapper.querySelector('.kanban-column-body') : null;
                             
-                            console.log('Target column:', { status, columnWrapper: !!columnWrapper, column: !!column });
-                            
                             if (column) {
                                 // Remover empty state si existe
                                 const emptyState = column.querySelector('.empty-state');
                                 if (emptyState) {
-                                    console.log('Removing empty state');
                                     emptyState.remove();
                                 }
                                 
                                 // Insertar al principio
                                 column.insertAdjacentHTML('afterbegin', data.task_html);
-                                console.log('Task HTML inserted');
                                 
                                 // Actualizar contadores
                                 this.updateColumnCounts();
                                 
                                 // Re-inicializar drag events para la nueva tarjeta
                                 const newCard = column.querySelector(`[data-task-id="${data.task_id}"]`);
-                                console.log('New card found:', !!newCard, 'Task ID:', data.task_id);
                                 
                                 if (newCard && window.innerWidth >= 768) {
                                     newCard.addEventListener('dragstart', this.handleDragStart.bind(this));
@@ -731,18 +706,15 @@ class KanbanManager {
                                     
                                     // Añadir a la lista de cards para futuras operaciones
                                     this.cards = document.querySelectorAll('.kanban-card');
-                                    console.log('Drag events attached to new card. Total cards now:', this.cards.length);
                                 }
                                 
                                 // Disparar evento para que otros componentes se actualicen
                                 document.dispatchEvent(new CustomEvent('taskCreated', { detail: { taskId: data.task_id } }));
                             } else {
                                 // Fallback si no encuentra columna
-                                console.warn('Column not found, reloading page');
                                 setTimeout(() => location.reload(), 1000);
                             }
                         } else {
-                            console.log('No task_html in response or not on kanban page, will reload');
                             // Disparar evento para que otros componentes se actualicen
                             document.dispatchEvent(new CustomEvent('taskCreated'));
                             // Recargar solo si estamos en la página del kanban
@@ -753,14 +725,12 @@ class KanbanManager {
                             }
                         }
                     } else {
-                        console.error('Task creation failed:', data);
                         this.showNotification((data && (data.message || data.error)) || 'Error al crear la tarea', 'error');
                     }
                 } else {
                     // Fallback: servidor devolvió HTML.
                     // Si es un 200 OK HTML, podría ser la página de éxito renderizada.
                     // Pero para AJAX, esto suele ser un error de configuración o redirección mal manejada.
-                    console.warn('Received HTML response for task creation');
                     
                     // Intentar detectar si es la página de login o error
                     const text = await response.text();
@@ -785,7 +755,6 @@ class KanbanManager {
                 this.showNotification(msg, 'error');
             }
         } catch (error) {
-            console.error('Error:', error);
             this.showNotification('Error de conexión', 'error');
         } finally {
             // Restaurar botón si existe
@@ -805,7 +774,6 @@ class KanbanManager {
                 this.openModal('task');
             })
             .catch(error => {
-                console.error('Error:', error);
                 this.showNotification('Error al cargar la tarea', 'error');
             });
     }
@@ -866,7 +834,7 @@ class KanbanManager {
                     }
                 } else {
                     // If we got HTML 200 OK, it might be a mistake (e.g. dashboard page)
-                    console.warn('Received HTML response for delete request');
+                    // Silent fallback
                 }
 
                 // Buscar y eliminar la tarjeta del DOM
@@ -901,7 +869,6 @@ class KanbanManager {
                 }
             }
         } catch (error) {
-            console.error('Error:', error);
             this.showNotification('Error de conexión', 'error');
         }
     }
@@ -1101,11 +1068,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (event.type === 'TASK_STATUS_UPDATED' && window.kanbanManager) {
                     // Actualizar la UI si la tarea está visible en esta página
                     window.kanbanManager.moveCardVisually(event.taskId, event.status);
-
-                    console.log(`[Sync] Task ${event.taskId} updated to ${event.status} from ${event.source}`);
                 }
             } catch (error) {
-                console.error('Error processing storage event:', error);
+                // Silent fail for storage event errors
             }
         }
     });

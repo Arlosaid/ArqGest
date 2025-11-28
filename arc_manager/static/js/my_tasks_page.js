@@ -608,8 +608,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (event.type === 'TASK_STATUS_UPDATED') {
                     // Actualizar la UI si la tarea está visible en esta página
                     updateTaskUIInstant(event.taskId, event.status);
-
-                    console.log(`[Sync] Task ${event.taskId} updated to ${event.status} from ${event.source}`);
                 }
             } catch (error) {
                 console.error('Error processing storage event:', error);

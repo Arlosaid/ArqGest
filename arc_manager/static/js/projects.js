@@ -95,13 +95,9 @@ class ProjectsManager {
         });
         
         filterButtons.forEach((button, index) => {
-            console.log(`✅ Registrando listener para botón ${index + 1}:`, button.dataset.filter);
-            
             button.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                
-                console.log('🖱️ CLICK en filtro:', button.dataset.filter);
                 
                 // Remover clase active de todos los botones
                 filterButtons.forEach(btn => btn.classList.remove('active'));
@@ -113,8 +109,6 @@ class ProjectsManager {
                 const filter = button.dataset.filter;
                 this.currentStatusFilter = filter;
                 
-                console.log('📊 Filtro actualizado a:', this.currentStatusFilter);
-                
                 // Obtener término de búsqueda actual
                 const searchInput = document.querySelector('.table-search-input');
                 const searchTerm = searchInput ? searchInput.value.trim() : '';
@@ -123,8 +117,6 @@ class ProjectsManager {
                 this.applyFiltersWithUrl(searchTerm, filter);
             });
         });
-        
-        console.log('✅ Filtros configurados correctamente');
     }
 
     applyFiltersWithUrl(searchTerm = '', statusFilter = 'all') {
@@ -147,8 +139,6 @@ class ProjectsManager {
         // Resetear página a 1 cuando se cambia el filtro
         url.searchParams.delete('page');
         
-        console.log('🔄 Redirigiendo con filtros:', url.toString());
-        
         // Redirigir a la nueva URL
         window.location.href = url.toString();
     }
@@ -165,9 +155,6 @@ class ProjectsManager {
     handleActionClick(event) {
         const button = event.currentTarget;
         const action = this.getActionType(button);
-        
-        // Log de acción
-        console.log(`Acción: ${action}`);
     }
 
     getActionType(button) {
@@ -340,15 +327,13 @@ class ProjectsManager {
 
     // Ejecutar cuando el DOM esté listo
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('🚀 Inicializando ProjectsManager...');
         updateProgressCircles();
         try {
             if (typeof ProjectsManager === 'function') {
                 window.projectsManagerInstance = new ProjectsManager();
-                console.log('✅ ProjectsManager inicializado correctamente');
             }
         } catch (e) {
-            console.error('❌ Error al inicializar ProjectsManager:', e);
+            // Error al inicializar ProjectsManager
         }
     });
 

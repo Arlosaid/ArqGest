@@ -51,7 +51,8 @@ def update_phase_status_on_task_change(sender, instance, created, **kwargs):
         old_status = phase.status
         phase.status = new_status
         phase.save()
-        logger.info(
+        # DEBUG: Log solo para debugging, no afecta monitoreo en producción
+        logger.debug(
             "phase_auto_status_changed",
             extra={
                 "event": "phase_auto_status_changed",
@@ -110,7 +111,8 @@ def update_phase_status_on_task_delete(sender, instance, **kwargs):
             old_status = phase.status
             phase.status = new_status
             phase.save()
-            logger.info(
+            # DEBUG: Log solo para debugging, no afecta monitoreo en producción
+            logger.debug(
                 "phase_auto_status_changed_after_delete",
                 extra={
                     "event": "phase_auto_status_changed_after_delete",

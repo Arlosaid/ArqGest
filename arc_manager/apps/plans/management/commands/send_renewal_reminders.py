@@ -47,7 +47,7 @@ class Command(BaseCommand):
                     cache_keys = [k for k in cache.keys('renewal_reminder_*') if k]
                     if cache_keys:
                         cache.delete_many(cache_keys)
-                        logger.info(f"Cache limpiado: {len(cache_keys)} entradas")
+                        logger.debug(f"Cache limpiado: {len(cache_keys)} entradas")
                 except Exception:
                     logger.warning("No se pudo limpiar cache (método no soportado)")
             
@@ -65,7 +65,7 @@ class Command(BaseCommand):
                 self.stdout.write('No hay suscripciones por vencer')
                 return
             
-            logger.info(f"Suscripciones encontradas: {total_subs}")
+            logger.debug(f"Suscripciones encontradas: {total_subs}")
             if dry_run:
                 self.stdout.write(self.style.WARNING(f'[DRY RUN] {total_subs} emails por enviar'))
             
@@ -127,7 +127,7 @@ class Command(BaseCommand):
                         result = send_resend_email(user_email, subject, html)
                         
                         if result and result.get('id'):
-                            logger.info(f"Email enviado: {user_email} - {org.name}")
+                            logger.debug(f"Email enviado: {user_email} - {org.name}")
                             sent_count += 1
                             emails_sent_for_org += 1
                         else:
@@ -145,7 +145,10 @@ class Command(BaseCommand):
                     cache.set(org_cache_key, True, timeout=604800)
             
             summary = f"Enviados: {sent_count} | Fallidos: {failed_count} | Omitidos: {skipped_count}"
-            logger.info(f"Resumen: {summary}")
+            
+            # Solo loguear si hubo actividad relevante
+            if sent_count > 0 or failed_count > 0:
+                logger.info(f"Renewal reminders: {summary}")
             
             if dry_run:
                 self.stdout.write(self.style.WARNING(f'[DRY RUN] {summary}'))

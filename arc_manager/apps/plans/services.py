@@ -47,7 +47,8 @@ class SubscriptionService:
                     # created_at se asigna automáticamente con timezone.now() por auto_now_add=True
                 )
             
-            logger.info(f"Suscripción trial creada para organización: {organization.name}")
+            # DEBUG: Creación de trial es operación rutinaria
+            logger.debug(f"Trial subscription created for organization: {organization.name}")
             return {'success': True, 'subscription': subscription}
             
         except Exception as e:

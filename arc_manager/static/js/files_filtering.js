@@ -86,7 +86,6 @@ function applyFilters(phaseId) {
     const container = document.getElementById(`files-container-${phaseId}`);
     
     if (!typeFilter || !dateFilter || !container) {
-        console.warn(`No se encontraron elementos de filtro para fase ${phaseId}`);
         return;
     }
     
@@ -96,7 +95,6 @@ function applyFilters(phaseId) {
     // Obtener la URL base del contenedor
     const hxGetAttr = container.getAttribute('hx-get');
     if (!hxGetAttr) {
-        console.error(`No se encontró hx-get en el contenedor para fase ${phaseId}`);
         return;
     }
     

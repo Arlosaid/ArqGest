@@ -351,15 +351,19 @@ class Phase(models.Model):
                 'new': new_status_display
             }]
             
-            log_info(
-                event='PHASE_STATUS_CHANGED',
-                message=f"Estado de fase '{self.name}' cambió de {old_status_display} a {new_status_display}",
-                logger_name='apps.projects',
-                phase_id=self.pk,
-                phase_name=self.name,
-                project_id=self.project_id,
-                project_name=self.project.name,
-                changes=changes
+            # DEBUG: Cambios de estado de fase son operaciones frecuentes
+            # Solo loguear en DEBUG para trazabilidad sin ruido en producción
+            logger = logging.getLogger('apps.projects')
+            logger.debug(
+                f"Phase '{self.name}' status: {old_status_display} -> {new_status_display}",
+                extra={
+                    'event': 'PHASE_STATUS_CHANGED',
+                    'phase_id': self.pk,
+                    'phase_name': self.name,
+                    'project_id': self.project_id,
+                    'old_status': old_status_display,
+                    'new_status': new_status_display
+                }
             )
         
         super().save(*args, **kwargs)
@@ -482,19 +486,19 @@ class Task(models.Model):
                     'new': new_user.email if new_user else 'Sin asignar'
                 })
             
-            # Log cambios si hay
+            # Log cambios si hay - DEBUG: Cambios de tarea son operaciones frecuentes
             if changes:
-                log_info(
-                    event='TASK_CHANGED',
-                    message=f"Tarea '{self.title}' actualizada con {len(changes)} cambio(s)",
-                    logger_name='apps.projects',
-                    task_id=self.pk,
-                    task_title=self.title,
-                    phase_id=self.phase_id,
-                    phase_name=self.phase.name,
-                    project_id=self.phase.project_id,
-                    project_name=self.phase.project.name,
-                    changes=changes
+                logger = logging.getLogger('apps.projects')
+                logger.debug(
+                    f"Task '{self.title}' updated: {len(changes)} change(s)",
+                    extra={
+                        'event': 'TASK_CHANGED',
+                        'task_id': self.pk,
+                        'task_title': self.title,
+                        'phase_id': self.phase_id,
+                        'project_id': self.phase.project_id,
+                        'changes_count': len(changes)
+                    }
                 )
         
         super().save(*args, **kwargs)
@@ -533,7 +537,8 @@ class Task(models.Model):
                 invalidate_user_accessible_projects_cache(self.assigned_to_id, organization_id)
         
         if is_new:
-            logger.info(f"Task created successfully - ID: {self.pk}, Title: '{self.title}', Phase: {self.phase_id}")
+            # DEBUG: Creación de tareas es operación rutinaria
+            logger.debug(f"Task created - ID: {self.pk}, Title: '{self.title}', Phase: {self.phase_id}")
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -553,7 +558,8 @@ class Task(models.Model):
         invalidate_project_progress_cache(project_id)
         invalidate_project_cache(organization_id, project_id)
         
-        logger.info(f"Task deleted - ID: {self.pk}, Title: '{self.title}', Project: {project_id}")
+        # DEBUG: Eliminación de tareas es operación rutinaria
+        logger.debug(f"Task deleted - ID: {self.pk}, Title: '{self.title}', Project: {project_id}")
     
     @property
     def is_overdue(self):
@@ -688,16 +694,11 @@ class ProjectPayment(models.Model):
         """Override save para logging y invalidación de caché."""
         is_new = self.pk is None
         
-        if is_new:
-            logger.info(
-                f"Creating payment: ${self.amount} for project '{self.project.name}' "
-                f"({self.project.id}) on {self.date}"
-            )
-        
         super().save(*args, **kwargs)
         
+        # Solo loguear creación exitosa (evento de negocio importante para auditoría)
         if is_new:
-            logger.info(f"Payment created successfully - ID: {self.pk}")
+            logger.info(f"Payment #{self.pk} created: ${self.amount} for project {self.project.id}")
         
         # OPTIMIZACIÓN: Invalidar caché financiero después de guardar
         from django.core.cache import cache
@@ -707,15 +708,18 @@ class ProjectPayment(models.Model):
     
     def delete(self, *args, **kwargs):
         """Override delete para logging e invalidación de caché."""
-        logger.info(
-            f"Deleting payment: ${self.amount} from project '{self.project.name}' "
-            f"({self.project.id}) - Payment ID: {self.pk}"
-        )
+        payment_id = self.pk
+        project_id = self.project.id
+        amount = self.amount
+        org_id = self.project.organization.id
         
         # OPTIMIZACIÓN: Invalidar caché financiero antes de eliminar
         from django.core.cache import cache
-        cache.delete(f"project_total_paid:{self.project.id}")
-        cache.delete(f"project_finance_stats:{self.project.id}")
-        cache.delete_pattern(f"org_finance_stats:{self.project.organization.id}")
+        cache.delete(f"project_total_paid:{project_id}")
+        cache.delete(f"project_finance_stats:{project_id}")
+        cache.delete_pattern(f"org_finance_stats:{org_id}")
         
         super().delete(*args, **kwargs)
+        
+        # Log eliminación (evento de negocio importante para auditoría)
+        logger.info(f"Payment #{payment_id} deleted: ${amount} from project {project_id}")

@@ -59,7 +59,6 @@ class LargeFileUploader {
         form._submitHandler = (e) => {
             e.preventDefault();
             e.stopPropagation(); // Evitar propagación del evento
-            console.log('📤 Submit interceptado por LargeFileUploader');
             this.handleFormSubmit(form);
         };
         
@@ -229,8 +228,6 @@ class LargeFileUploader {
                 presignedData = await this.getPresignedUrl(projectId, phaseId, file);
             } catch (presignError) {
                 // 🔥 FALLBACK: Si R2 no está disponible (desarrollo local), usar upload normal
-                console.log('⚠️ R2 no disponible, usando upload normal:', presignError.message);
-                console.log('💡 Para habilitar R2 en local, configura ENABLE_STORAGES=true en .env');
                 this.updateProgress(progressBar, statusDiv, 10, 'Procesando archivo...');
                 
                 await this.handleRegularUpload(form);
@@ -249,9 +246,6 @@ class LargeFileUploader {
             } catch (uploadError) {
                 // 🔥 FALLBACK: Si el upload directo falla (CORS), usar upload a través del backend
                 if (uploadError.message.includes('Network error') || uploadError.message.includes('CORS')) {
-                    console.warn('⚠️ Upload directo a R2 falló (posible problema CORS), usando método alternativo...');
-                    console.warn('📖 Para solucionar: ver docs/R2_CORS_CONFIGURATION.md');
-                    
                     this.updateProgress(progressBar, statusDiv, 10, 'Cambiando a método alternativo...');
                     detailsDiv.textContent = 'Usando upload a través del servidor...';
                     
@@ -289,7 +283,6 @@ class LargeFileUploader {
             }, 2000);
             
         } catch (error) {
-            console.error('❌ Error en upload:', error);
             progressBar.classList.remove('bg-primary', 'bg-gradient-primary');
             progressBar.classList.add('bg-danger');
             
@@ -433,21 +426,13 @@ class LargeFileUploader {
             
             xhr.addEventListener('load', () => {
                 if (xhr.status >= 200 && xhr.status < 300) {
-                    console.log('✅ Upload a R2 exitoso:', xhr.status);
                     resolve();
                 } else {
-                    console.error('❌ Upload falló:', xhr.status, xhr.statusText);
-                    console.error('Response:', xhr.responseText);
                     reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
                 }
             });
             
             xhr.addEventListener('error', (e) => {
-                console.error('❌ Network error durante upload a R2');
-                console.error('Error event:', e);
-                console.error('XHR Status:', xhr.status);
-                console.error('XHR ReadyState:', xhr.readyState);
-                
                 // Mensaje de error más descriptivo para CORS
                 let errorMsg = 'Network error during upload';
                 if (xhr.status === 0) {
@@ -455,28 +440,19 @@ class LargeFileUploader {
                               '1. Configuración CORS en R2\n' +
                               '2. URL presignada válida\n' +
                               '3. Conexión a internet';
-                    console.error('💡 Tip: Este error suele indicar un problema de CORS.');
-                    console.error('📖 Ver docs/R2_CORS_CONFIGURATION.md para solución');
                 }
                 
                 reject(new Error(errorMsg));
             });
             
             xhr.addEventListener('timeout', () => {
-                console.error('⏱️ Upload timeout después de 5 minutos');
                 reject(new Error('Upload timeout - archivo muy grande o conexión lenta'));
-            });
-            
-            xhr.addEventListener('loadstart', () => {
-                console.log('🚀 Iniciando upload directo a R2...');
-                console.log('Archivo:', file.name, `(${(file.size / 1024 / 1024).toFixed(2)} MB)`);
             });
             
             xhr.open('PUT', presignedUrl);
             xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
             xhr.timeout = 600000; // 10 minutos timeout para archivos grandes
             
-            console.log('📤 Enviando archivo a R2...');
             xhr.send(file);
         });
     }

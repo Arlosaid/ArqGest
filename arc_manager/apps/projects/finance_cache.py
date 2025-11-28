@@ -76,7 +76,8 @@ def get_organization_finance_stats(organization_id, force_refresh=False):
     # Guardar en caché
     cache.set(cache_key, stats, FINANCE_CACHE_TIMEOUT)
     
-    logger.info(f"Finance stats cached for organization {organization_id}")
+    # DEBUG: Operación de caché rutinaria, no relevante para monitoreo
+    logger.debug(f"Finance stats cached for organization {organization_id}")
     return stats
 
 def get_project_finance_stats(project_id, force_refresh=False):
@@ -180,7 +181,8 @@ def invalidate_finance_cache(organization_id=None, project_id=None):
     for pattern in patterns_to_delete:
         try:
             cache.delete_pattern(pattern)
-            logger.info(f"Deleted cache pattern: {pattern}")
+            # DEBUG: Operación de caché rutinaria
+            logger.debug(f"Deleted cache pattern: {pattern}")
         except Exception as e:
             logger.warning(f"Could not delete cache pattern {pattern}: {e}")
 

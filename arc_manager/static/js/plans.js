@@ -232,8 +232,6 @@ function showNotification(message, type = 'info', duration = 4000) {
         setTimeout(() => {
             if (window.notifications) {
                 window.notifications.show(message, type, { duration: duration });
-            } else {
-                console.warn('Sistema de notificaciones no disponible:', message);
             }
         }, 100);
     }
@@ -306,7 +304,6 @@ function validateForm(form) {
  * Maneja errores de carga de recursos
  */
 function handleResourceError(error) {
-    console.warn('Error cargando recurso:', error);
     showNotification('Error cargando algunos recursos. Por favor, recarga la página.', 'warning', 6000);
 }
 
@@ -321,7 +318,4 @@ window.PlansJS = {
     validateForm
 };
 
-// Logging para desarrollo
-if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    console.log('Plans.js cargado correctamente');
-}
+
