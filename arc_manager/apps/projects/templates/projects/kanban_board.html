@@ -108,7 +108,8 @@
         background-color: transparent;
     }
 
-    .task-card {
+    .task-card,
+    .kanban-card {
         cursor: grab;
         background: white;
         border: 1px solid #f1f5f9 !important;
@@ -121,31 +122,46 @@
         user-select: none; /* Prevents text selection while dragging */
         -webkit-user-select: none;
     }
-    .task-card:hover {
+    .task-card:hover,
+    .kanban-card:hover {
         transform: translateY(-3px);
         box-shadow: var(--card-hover-shadow) !important;
         border-color: #e2e8f0 !important;
     }
-    .task-card:active {
+    .task-card:active,
+    .kanban-card:active {
         cursor: grabbing;
     }
 
     /* Fix cursor consistency: Only buttons show pointer, everything else shows grab */
-    .task-card a {
+    .task-card a,
+    .kanban-card a {
         cursor: grab !important;
     }
-    .task-card a:active {
+    .task-card a:active,
+    .kanban-card a:active {
         cursor: grabbing !important;
     }
     .task-card button, 
-    .task-card .btn {
+    .task-card .btn,
+    .kanban-card button,
+    .kanban-card .btn {
         cursor: pointer !important;
     }
 
-    .task-card.dragging {
+    .task-card.dragging,
+    .kanban-card.dragging {
         opacity: 0.5;
         border: 2px dashed #6366f1 !important;
         background-color: #f8fafc;
+    }
+    
+    /* Drag handle styling */
+    .kanban-drag-handle {
+        cursor: grab !important;
+    }
+    .kanban-drag-handle:active {
+        cursor: grabbing !important;
     }
 
     .empty-state {
@@ -405,7 +421,13 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/kanban.js' %}?v={{ STATIC_VERSION }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.body.dataset.isOrgAdmin = "{{ is_org_admin|yesno:'true,false' }}";
+        document.body.dataset.currentUserId = "{{ request.user.id }}";
+    });
+</script>
+<script src="{% static 'js/kanban.js' %}?v={{ STATIC_VERSION }}&t={% now 'U' %}"></script>
 {% endblock %}
 
 
