@@ -37,7 +37,7 @@ class SubscriptionNotifications {
             this.checkProjectLimits(info);
             this.checkGracePeriod(info);
         }).catch(error => {
-            console.error('Error obteniendo información de suscripción:', error);
+            // Silent fail for subscription check
         });
     }
 
@@ -100,7 +100,6 @@ class SubscriptionNotifications {
             const stored = localStorage.getItem(this.storageKey);
             return stored ? JSON.parse(stored) : {};
         } catch (e) {
-            console.warn('Error leyendo notificaciones almacenadas:', e);
             return {};
         }
     }
@@ -151,7 +150,7 @@ class SubscriptionNotifications {
             try {
                 return JSON.parse(subscriptionData.dataset.subscriptionInfo);
             } catch (e) {
-                console.error('Error parsing subscription data from DOM:', e);
+                // Silent fail for DOM parsing
             }
         }
 
@@ -370,7 +369,6 @@ class SubscriptionNotifications {
      */
     clearHistory() {
         localStorage.removeItem(this.storageKey);
-        console.log('Historial de notificaciones limpiado');
     }
 
     /**
@@ -378,13 +376,7 @@ class SubscriptionNotifications {
      */
     showHistory() {
         const stored = this.getStoredNotifications();
-        console.log('Historial de notificaciones:', stored);
-        
-        // Mostrar de forma legible
-        Object.keys(stored).forEach(key => {
-            const timestamp = new Date(stored[key]);
-            console.log(`${key}: ${timestamp.toLocaleString()}`);
-        });
+        return stored;
     }
 }
 

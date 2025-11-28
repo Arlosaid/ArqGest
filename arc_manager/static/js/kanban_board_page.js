@@ -71,8 +71,7 @@ function updateTaskStatus(taskId, status) {
         return response.json();
     })
     .then(data => {
-        console.log('Success:', data);
-        // Optional: Show toast notification
+        // Actualización exitosa
     })
     .catch((error) => {
         console.error('Error:', error);

@@ -29,7 +29,6 @@ class TaskManager {
         this.clearFiltersBtn = document.querySelector('.clear-filters-btn');
         
         if (!this.tasksList) {
-            console.warn('TaskManager: No se encontró la lista de tareas');
             return;
         }
     }
@@ -366,7 +365,7 @@ class TaskManager {
                 this.currentFilters = JSON.parse(savedFilters);
                 this.applySavedFilters();
             } catch (e) {
-                console.warn('Error al restaurar filtros guardados:', e);
+                // Silent fail for filter restore
             }
         }
     }
@@ -465,7 +464,7 @@ class TaskManager {
         try {
             localStorage.setItem('taskFilters', JSON.stringify(this.currentFilters));
         } catch (e) {
-            console.warn('No se pudieron guardar los filtros:', e);
+            // Silent fail for filter save
         }
     }
 
@@ -705,7 +704,6 @@ class TaskManager {
             }
         })
         .catch(error => {
-            console.error('Error:', error);
             this.showErrorMessage('Error al actualizar la tarea');
         });
     }
@@ -743,8 +741,6 @@ class TaskManager {
             setTimeout(() => {
                 if (window.notifications) {
                     window.notifications.show(message, type);
-                } else {
-                    console.warn('Sistema de notificaciones no disponible:', message);
                 }
             }, 100);
         }
@@ -784,7 +780,6 @@ class TaskManager {
      */
     initializeDragAndDrop() {
         // TODO: Implementar drag and drop para reordenar tareas
-        console.log('Drag and drop feature ready for future implementation');
     }
 
     /**

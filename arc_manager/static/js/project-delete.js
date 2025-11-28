@@ -20,14 +20,11 @@ class ProjectDeleteManager {
                 const projectId = this.extractProjectId(deleteLink.href);
                 
                 if (projectId) {
-                    console.log('🗑️ Intercepting delete click for project:', projectId);
                     e.preventDefault();
                     e.stopPropagation();
                     this.confirmDelete(projectId, deleteLink);
-                } else {
-                    console.warn('⚠️ Could not extract project ID from URL:', deleteLink.href);
-                    // Do NOT prevent default here, let the link work as a fallback
                 }
+                // Si no se puede extraer el ID, dejar que el enlace funcione normalmente
             }
         });
     }
@@ -39,18 +36,14 @@ class ProjectDeleteManager {
     }
 
     async confirmDelete(projectId, linkElement) {
-        console.log('🎯 confirmDelete called with projectId:', projectId);
-        
         // Verificar que ConfirmationModals esté disponible
         if (typeof ConfirmationModals === 'undefined') {
-            console.error('❌ ConfirmationModals no está disponible');
+            // Fallback a confirm nativo si no hay modales
             if (confirm('¿Estás seguro de que deseas eliminar este proyecto?')) {
                 await this.deleteProject(projectId, linkElement.href);
             }
             return;
         }
-
-        console.log('✅ ConfirmationModals está disponible');
 
         try {
             let stats;
@@ -62,19 +55,15 @@ class ProjectDeleteManager {
             const fileCount = linkElement.getAttribute('data-file-count');
             
             if (projectName && phaseCount !== null && taskCount !== null && fileCount !== null) {
-                console.log('✅ Usando datos del atributo data-* (sin AJAX)');
                 stats = {
                     name: projectName,
                     phase_count: parseInt(phaseCount) || 0,
                     task_count: parseInt(taskCount) || 0,
                     file_count: parseInt(fileCount) || 0
                 };
-                console.log('📊 Stats from data attributes:', stats);
             } else {
                 // Fallback: Obtener estadísticas del proyecto via AJAX
-                console.log('📊 Datos no disponibles en atributos, obteniendo vía AJAX...');
                 stats = await this.getProjectStats(projectId);
-                console.log('📈 Estadísticas recibidas:', stats);
             }
             
             // Verificar que los datos sean válidos
@@ -83,13 +72,6 @@ class ProjectDeleteManager {
             }
             
             // Mostrar modal de confirmación con estadísticas
-            console.log('🎨 Creando modal con:', {
-                projectName: stats.name,
-                phaseCount: stats.phase_count,
-                taskCount: stats.task_count,
-                fileCount: stats.file_count
-            });
-            
             ConfirmationModals.deleteProject({
                 projectId: projectId,
                 projectName: stats.name,
@@ -102,10 +84,7 @@ class ProjectDeleteManager {
             });
 
         } catch (error) {
-            console.error('❌ Error getting project stats:', error);
-            
             // Fallback: mostrar modal básico sin stats
-            console.warn('⚠️ Usando modal de fallback');
             ConfirmationModals.deleteProject({
                 projectId: projectId,
                 projectName: 'este proyecto',
@@ -122,9 +101,6 @@ class ProjectDeleteManager {
     async getProjectStats(projectId) {
         const url = `/projects/${projectId}/stats/`;
         
-        console.log('📡 Fetching project stats from:', url);
-        console.log('📱 User agent:', navigator.userAgent.includes('Mobile') ? 'MOBILE' : 'DESKTOP');
-        
         try {
             const response = await fetch(url, {
                 method: 'GET',
@@ -132,72 +108,47 @@ class ProjectDeleteManager {
                     'X-Requested-With': 'XMLHttpRequest',
                     'Accept': 'application/json'
                 },
-                credentials: 'same-origin' // Asegurar que se envíen las cookies de sesión
+                credentials: 'same-origin'
             });
 
-            console.log('📨 Response status:', response.status);
-            console.log('📨 Response ok:', response.ok);
-            console.log('📨 Response Content-Type:', response.headers.get('Content-Type'));
-
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('❌ Error response:', errorText);
                 throw new Error(`Failed to fetch project stats: ${response.status}`);
             }
 
             const contentType = response.headers.get('Content-Type');
             if (!contentType || !contentType.includes('application/json')) {
-                const htmlText = await response.text();
-                console.error('❌ Received HTML instead of JSON:', htmlText.substring(0, 500));
-                throw new Error('Server returned HTML instead of JSON. Check server logs.');
+                throw new Error('Server returned HTML instead of JSON');
             }
 
             const data = await response.json();
-            console.log('✅ Project stats received:', {
-                name: data.name,
-                phases: data.phase_count,
-                tasks: data.task_count,
-                files: data.file_count,
-                rawData: data
-            });
             
             // Validar que los datos tengan el formato esperado
             if (typeof data.name === 'undefined' || 
                 typeof data.phase_count === 'undefined' ||
                 typeof data.task_count === 'undefined' ||
                 typeof data.file_count === 'undefined') {
-                console.error('❌ Datos incompletos recibidos:', data);
                 throw new Error('Incomplete data received from server');
             }
             
             return data;
 
         } catch (error) {
-            console.error('❌ Error fetching project stats:', error);
-            console.error('❌ Error stack:', error.stack);
-            
             // Devolver stats vacías en caso de error
-            const fallbackData = {
+            return {
                 name: 'el proyecto',
                 phase_count: 0,
                 task_count: 0,
                 file_count: 0
             };
-            console.warn('⚠️ Returning fallback data:', fallbackData);
-            return fallbackData;
         }
     }
 
     async deleteProject(projectId, deleteUrl) {
-        // Construct URL explicitly to ensure it's correct and has trailing slash
-        // We ignore the passed deleteUrl to avoid issues with query params or missing slashes
         const finalUrl = `/projects/${projectId}/delete/`;
-        console.log('🗑️ Attempting to delete project:', projectId, 'at URL:', finalUrl);
 
         try {
             const csrfToken = this.getCsrfToken();
             if (!csrfToken) {
-                console.error('❌ CSRF token not found!');
                 this.showErrorMessage('Error de seguridad: Token CSRF no encontrado');
                 return;
             }
@@ -210,33 +161,23 @@ class ProjectDeleteManager {
                 }
             });
 
-            console.log('📨 Delete response status:', response.status);
-            console.log('📨 Delete response URL:', response.url);
-
-            // Check if we were redirected to the confirmation page (meaning it was treated as GET)
+            // Check if we were redirected to the confirmation page
             if (response.url && response.url.includes('/delete/') && !response.url.includes('/login/')) {
-                 console.error('❌ Redirected back to delete page, likely POST converted to GET');
                  this.showErrorMessage('Error: La solicitud de eliminación no se procesó correctamente.');
                  return;
             }
 
             if (response.ok) {
-                console.log('✅ Project deleted successfully');
                 this.showSuccessMessage('Proyecto eliminado correctamente');
-                
-                // Redirigir a la lista de proyectos después de un delay
                 setTimeout(() => {
                     window.location.href = '/projects/';
                 }, 1500);
-
             } else {
-                console.error('❌ Delete failed with status:', response.status);
                 const data = await response.json().catch(() => ({}));
                 this.showErrorMessage(data.error || 'Error al eliminar el proyecto');
             }
 
         } catch (error) {
-            console.error('❌ Error deleting project:', error);
             this.showErrorMessage('Error de conexión al eliminar el proyecto');
         }
     }

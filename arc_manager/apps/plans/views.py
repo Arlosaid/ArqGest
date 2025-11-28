@@ -410,7 +410,8 @@ def cron_renewal_reminders(request):
         return HttpResponse('Rate limit exceeded. Try again later.', status=429)
     
     try:
-        logger.info("Ejecutando recordatorios de renovación via cron endpoint")
+        # DEBUG: Log rutinario de ejecución de cron
+        logger.debug("Ejecutando recordatorios de renovación via cron endpoint")
         
         # Capturar output del comando
         output = StringIO()
@@ -420,7 +421,11 @@ def cron_renewal_reminders(request):
         # Marcar rate limit por 1 hora
         cache.set(rate_limit_key, True, timeout=3600)
         
-        logger.info(f"Recordatorios ejecutados exitosamente: {result.strip()}")
+        # Solo loguear INFO si hay recordatorios enviados
+        if 'enviados' in result.lower() or result.strip() != 'No hay suscripciones por vencer':
+            logger.info(f"Recordatorios ejecutados: {result.strip()}")
+        else:
+            logger.debug(f"Cron ejecutado: {result.strip()}")
         return HttpResponse(f'OK - {result}', status=200)
         
     except Exception as e:

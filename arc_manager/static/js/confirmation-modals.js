@@ -268,8 +268,6 @@ class ConfirmationModal {
             // Cerrar modal
             this.hide();
         } catch (error) {
-            console.error('Error en confirmación:', error);
-            
             // Restaurar botón
             confirmBtn.disabled = false;
             confirmBtn.innerHTML = originalHtml;

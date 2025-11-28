@@ -44,7 +44,8 @@ def create_phases_for_project(project: Project, creation_method: str, phase_temp
     if phases_to_create:
         try:
             Phase.objects.bulk_create(phases_to_create)
-            logger.info(f"{len(phases_to_create)} fases creadas para proyecto {project.id}")
+            # DEBUG: Creación de fases es operación rutinaria durante creación de proyecto
+            logger.debug(f"{len(phases_to_create)} phases created for project {project.id}")
         except Exception as e:
             logger.error(f"Failed to create phases for project {project.id}: {str(e)}", exc_info=True)
             raise

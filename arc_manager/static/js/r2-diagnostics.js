@@ -152,8 +152,11 @@ const R2Diagnostics = {
 // Exportar para uso en consola
 window.R2Diagnostics = R2Diagnostics;
 
-console.log('🔧 Herramientas de diagnóstico R2 cargadas');
-console.log('📖 Uso:');
-console.log('  R2Diagnostics.showEnvironmentInfo()');
-console.log('  R2Diagnostics.runFullDiagnostics(projectId, phaseId)');
-console.log('  Ejemplo: R2Diagnostics.runFullDiagnostics(16, 26)');
+// Los logs de uso se muestran solo cuando se invoca help()
+R2Diagnostics.help = function() {
+    console.log('🔧 Herramientas de diagnóstico R2');
+    console.log('📖 Uso:');
+    console.log('  R2Diagnostics.showEnvironmentInfo()');
+    console.log('  R2Diagnostics.runFullDiagnostics(projectId, phaseId)');
+    console.log('  Ejemplo: R2Diagnostics.runFullDiagnostics(16, 26)');
+};

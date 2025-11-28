@@ -44,8 +44,6 @@ class UploadProgressManager {
 
         const phaseId = this.extractPhaseId(form);
         if (!phaseId) return;
-
-        console.log(`📤 Starting upload for phase ${phaseId}`);
         
         // Calcular tamaño total de archivos
         const fileInput = form.querySelector('.file-input');
@@ -88,10 +86,8 @@ class UploadProgressManager {
         if (!phaseId) return;
 
         if (event.detail.successful) {
-            console.log(`✅ Upload completed successfully for phase ${phaseId}`);
             this.completeUploadProgress(phaseId);
         } else {
-            console.log(`❌ Upload failed for phase ${phaseId}`);
             this.handleError(event);
         }
     }
@@ -106,7 +102,6 @@ class UploadProgressManager {
         const phaseId = this.extractPhaseId(form);
         if (!phaseId) return;
 
-        console.log(`🚨 Upload error for phase ${phaseId}`);
         this.showUploadError(phaseId);
     }
 

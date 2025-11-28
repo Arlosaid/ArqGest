@@ -303,13 +303,6 @@ document.addEventListener('DOMContentLoaded', function() {
         input.addEventListener('change', function() {
             const file = this.files[0];
             if (file) {
-                console.log('Archivo seleccionado:', {
-                    name: file.name,
-                    size: file.size,
-                    type: file.type,
-                    lastModified: new Date(file.lastModified)
-                });
-                
                 const maxSize = 5 * 1024 * 1024; // 5MB
                 if (file.size > maxSize) {
                     alert('El archivo es demasiado grande. Máximo 5MB.');
@@ -327,11 +320,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.value = '';
                     return;
                 }
-                
-                console.log('Archivo válido, permitiendo selección');
             }
         });
     });
-    
-    console.log('Finance Module initialized successfully');
 });

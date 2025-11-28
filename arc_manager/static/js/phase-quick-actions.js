@@ -70,7 +70,6 @@ function openUploadModalWithPhase(phaseId, phaseName) {
     const modal = document.getElementById(`uploadFileModal${phaseId}`);
     
     if (!modal) {
-        console.warn('⚠️ Modal de subida de archivos no encontrado para fase', phaseId);
         // Fallback: redirigir a la pestaña de archivos
         const filesTab = document.querySelector('[data-bs-target="#files"]');
         if (filesTab) {
@@ -96,12 +95,5 @@ function showToast(type, message) {
     // Si existe un sistema de toasts global, usarlo
     if (typeof window.showNotification === 'function') {
         window.showNotification(type, message);
-        return;
     }
-    
-    // Fallback: usar console
-    console.log(`[${type.toUpperCase()}]`, message);
 }
-
-// Log de inicialización
-console.log('✅ Phase Quick Actions loaded');

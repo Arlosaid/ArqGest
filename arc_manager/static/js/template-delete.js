@@ -19,8 +19,6 @@ class TemplateDeleteManager {
                 this.handleDeleteClick(deleteLink);
             }
         });
-        
-        console.log('✅ TemplateDeleteManager inicializado');
     }
 
     /**
@@ -35,7 +33,6 @@ class TemplateDeleteManager {
         // Extraer información del elemento a eliminar
         const row = link.closest('tr, .template-card, .phase-card');
         if (!row) {
-            console.error('No se encontró el elemento');
             return;
         }
 
@@ -164,7 +161,6 @@ class TemplateDeleteManager {
                 throw new Error(data.error || 'Error al eliminar');
             }
         } catch (error) {
-            console.error('Error:', error);
             throw error;
         }
     }

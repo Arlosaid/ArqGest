@@ -147,11 +147,8 @@ class UserManagement {
         const form = event.target.closest('form');
         
         if (!form) {
-            console.log('No se encontró formulario de búsqueda');
             return;
         }
-
-        console.log('Enviando búsqueda de usuarios al servidor:', searchTerm);
         
         // Mostrar indicador de carga
         this.showSearchLoading();
@@ -257,9 +254,8 @@ class UserManagement {
     }
 
     updateSelectedCount() {
-        const checkedBoxes = document.querySelectorAll('tbody .checkbox:checked');
         // Aquí podrías mostrar un contador de elementos seleccionados
-        console.log(`${checkedBoxes.length} usuarios seleccionados`);
+        const checkedBoxes = document.querySelectorAll('tbody .checkbox:checked');
     }
 
     // El conteo de resultados ahora lo maneja el servidor
@@ -291,9 +287,6 @@ class UserManagement {
         // Usar el sistema de notificaciones moderno
         if (window.notifications) {
             window.notifications.show(message, type);
-        } else {
-            // Fallback si el sistema no está disponible
-            console.warn('Sistema de notificaciones no disponible:', message);
         }
     }
 
@@ -480,8 +473,6 @@ function showGlobalNotification(message, type = 'info') {
         setTimeout(() => {
             if (window.notifications) {
                 window.notifications.show(message, type);
-            } else {
-                console.warn('Sistema de notificaciones no disponible:', message);
             }
         }, 100);
     }
@@ -545,7 +536,6 @@ function openDeleteModal(userId) {
     }
     
     if (!userRow) {
-        console.error('No se encontró información del usuario');
         return;
     }
     
@@ -717,9 +707,6 @@ function deleteUser(userId) {
             // Fallback si no hay instancia
             showGlobalNotification(`Error al eliminar usuario: ${error.message}`, 'error');
         }
-        
-        // Log en consola para debug
-        console.error('Error al eliminar usuario:', error);
         
         // Cerrar modal 
         closeDeleteModal();
@@ -935,7 +922,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // Función para mostrar notificaciones en formularios - DEPRECATED
 // Usar window.notifications en su lugar
 function showFormNotification(message, type = 'info') {
-    console.warn('showFormNotification está obsoleto, usar window.notifications en su lugar');
     if (window.notifications) {
         window.notifications.show(message, type);
     }

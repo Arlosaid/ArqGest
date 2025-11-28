@@ -566,8 +566,6 @@ def get_project_stats(request, pk):
             pk=pk
         )
         
-        logger.info(f"Getting stats for project {pk}: {project.name}")
-        
         # Contar elementos asociados
         phase_count = project.phases.count()
         task_count = Task.objects.filter(phase__project=project).count()
@@ -576,16 +574,12 @@ def get_project_stats(request, pk):
         from apps.files.models import ProjectFile
         file_count = ProjectFile.objects.filter(phase__project=project).count()
         
-        logger.info(f"Project stats - Phases: {phase_count}, Tasks: {task_count}, Files: {file_count}")
-        
         response_data = {
             'name': project.name,
             'phase_count': phase_count,
             'task_count': task_count,
             'file_count': file_count
         }
-        
-        logger.info(f"Returning project stats: {response_data}")
         
         return JsonResponse(response_data)
         

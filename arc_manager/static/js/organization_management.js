@@ -4,35 +4,7 @@
 const PERFORMANCE_MONITORING = false; // Cambiar a true para monitorear
 
 if (PERFORMANCE_MONITORING && window.performance) {
-    // Medir tiempo de carga de la página
-    window.addEventListener('load', () => {
-        const perfData = performance.getEntriesByType('navigation')[0];
-        console.log('📊 Métricas de Rendimiento:');
-        console.log(`⏱️ Tiempo total de carga: ${perfData.loadEventEnd - perfData.fetchStart}ms`);
-        console.log(`🎨 Tiempo de renderizado: ${perfData.domContentLoadedEventEnd - perfData.domContentLoadedEventStart}ms`);
-        console.log(`📦 Tamaño transferido: ${(perfData.transferSize / 1024).toFixed(2)}KB`);
-    });
-
-    // Medir FPS de animaciones
-    let frameCount = 0;
-    let lastTime = performance.now();
-    
-    function measureFPS() {
-        frameCount++;
-        const currentTime = performance.now();
-        
-        if (currentTime >= lastTime + 1000) {
-            console.log(`🎯 FPS actual: ${frameCount} fps`);
-            frameCount = 0;
-            lastTime = currentTime;
-        }
-        
-        requestAnimationFrame(measureFPS);
-    }
-    
-    if (document.querySelector('.info-card, .action-card')) {
-        measureFPS();
-    }
+    // Performance monitoring deshabilitado en producción
 }
 
 document.addEventListener('DOMContentLoaded', function() {

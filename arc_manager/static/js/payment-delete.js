@@ -25,8 +25,6 @@ class PaymentDeleteManager {
                 this.handleDeleteButtonClick(deleteBtn);
             }
         });
-        
-        console.log('✅ PaymentDeleteManager inicializado');
     }
 
     /**
@@ -56,11 +54,9 @@ class PaymentDeleteManager {
         const form = document.getElementById(formId);
         
         if (!form) {
-            console.error('Form no encontrado:', formId);
             // Intentar encontrar el form hermano si el ID falla
             const siblingForm = btn.nextElementSibling;
             if (siblingForm && siblingForm.tagName === 'FORM') {
-                console.log('Usando form hermano encontrado');
                 this.processDelete(btn, siblingForm);
                 return;
             }
@@ -76,12 +72,9 @@ class PaymentDeleteManager {
         const amount = btn.getAttribute('data-payment-amount') || 'Monto no especificado';
         const date = btn.getAttribute('data-payment-date') || '';
         const description = btn.getAttribute('data-payment-description') || `Pago de ${amount}`;
-        
-        console.log('Procesando eliminación de pago:', { paymentId, amount, date, description });
 
         // Verificar si ConfirmationModals está disponible
         if (typeof ConfirmationModals === 'undefined') {
-            console.warn('ConfirmationModals no está definido. Usando confirmación nativa.');
             if (confirm(`¿Estás seguro de que deseas eliminar este pago?\n\n${description}\n${amount}`)) {
                 form.submit();
             }
@@ -192,8 +185,6 @@ class PaymentDeleteManager {
             } else {
                 window.notifications.show(message, type);
             }
-        } else {
-            console.log(`[${type.toUpperCase()}] ${message}`);
         }
     }
 }

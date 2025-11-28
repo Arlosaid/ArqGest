@@ -71,7 +71,6 @@ document.addEventListener('DOMContentLoaded', function() {
             window.notifications.show(message, type);
         } else {
             // Fallback: crear notificación simple si el sistema no está disponible
-            console.warn('Sistema de notificaciones personalizado no disponible, usando fallback');
             
             // Crear elemento de notificación simple
             const notification = document.createElement('div');

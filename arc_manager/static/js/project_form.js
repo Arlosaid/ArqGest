@@ -213,9 +213,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
   if (saveQuickClientBtn && quickClientForm) {
     saveQuickClientBtn.addEventListener('click', function() {
-      console.log('Quick client button clicked');
-      console.log('CLIENT_CREATE_URL:', window.CLIENT_CREATE_URL);
-      
       // Reset previous errors
       quickClientError.classList.add('d-none');
       document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
@@ -233,7 +230,6 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Check if URL is defined
       if (!window.CLIENT_CREATE_URL) {
-        console.error('CLIENT_CREATE_URL is not defined');
         quickClientErrorMessage.textContent = 'Error de configuración. Por favor, recarga la página.';
         quickClientError.classList.remove('d-none');
         return;
@@ -242,8 +238,6 @@ document.addEventListener('DOMContentLoaded', function() {
       // Disable button to prevent double-submission
       saveQuickClientBtn.disabled = true;
       saveQuickClientBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creando...';
-      
-      console.log('Sending request to:', window.CLIENT_CREATE_URL);
       
       // Send AJAX request to create client
       fetch(window.CLIENT_CREATE_URL, {
@@ -254,11 +248,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       })
       .then(response => {
-        console.log('Response status:', response.status);
         return response.json();
       })
       .then(data => {
-        console.log('Response data:', data);
         if (data.success) {
           // Add new client to select dropdown
           if (clientSelect && data.client) {
@@ -292,7 +284,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       })
       .catch(error => {
-        console.error('Error:', error);
         quickClientErrorMessage.textContent = 'Error de conexión. Por favor, intenta nuevamente.';
         quickClientError.classList.remove('d-none');
       })

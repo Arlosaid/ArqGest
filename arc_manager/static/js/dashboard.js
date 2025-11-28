@@ -35,9 +35,6 @@ function initializeProgressBars() {
         setTimeout(() => {
             bar.style.width = `${percentage}%`;
         }, 10);
-        
-        // Debug: mostrar el valor en consola para verificar
-        console.log(`Progress bar initialized: ${percentage}% width`);
     });
 }
 

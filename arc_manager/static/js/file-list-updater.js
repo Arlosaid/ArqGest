@@ -199,7 +199,6 @@ class FileListUpdater {
     incrementFileCounter(phaseId) {
         const counterBadge = document.getElementById(`file-count-${phaseId}`);
         if (!counterBadge) {
-            console.warn('No se encontró el badge del contador para incrementar (Fase:', phaseId, ')');
             return;
         }
 
@@ -208,7 +207,6 @@ class FileListUpdater {
         const currentCountMatch = counterText.match(/\d+/);
         
         if (!currentCountMatch) {
-            console.warn('No se pudo extraer el número del contador:', counterText);
             return;
         }
         

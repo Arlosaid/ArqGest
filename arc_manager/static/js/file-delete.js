@@ -96,20 +96,17 @@ class FileDeleteManager {
         const deleteUrl = deleteBtn.dataset.deleteUrl;
         
         if (!fileId || !deleteUrl) {
-            console.error('No se pudo extraer file ID o URL de eliminación');
             return;
         }
 
         // Verificar si ya se está eliminando
         if (this.deletingFiles.has(fileId)) {
-            console.warn('Archivo ya en proceso de eliminación:', fileId);
             return;
         }
 
         // Obtener información del archivo del DOM
         const fileElement = document.getElementById(`file-${fileId}`);
         if (!fileElement) {
-            console.error('No se encontró el elemento del archivo:', fileId);
             return;
         }
 
@@ -149,7 +146,6 @@ class FileDeleteManager {
 
     async executeDelete() {
         if (!this.currentFileData) {
-            console.error('No hay datos de archivo para eliminar');
             return;
         }
 
@@ -218,8 +214,6 @@ class FileDeleteManager {
             this.triggerFileListUpdate();
 
         } catch (error) {
-            console.error('Error al eliminar archivo:', error);
-            
             // Mostrar notificación de error
             this.showNotification('Error al eliminar el archivo', 'error');
             
@@ -309,7 +303,6 @@ class FileDeleteManager {
         // Buscar el contenedor de la fase para obtener el phaseId
         const filesContainer = fileElement.closest('[id^="files-grid-"], [id^="files-container-"], [id^="files-list-"], [id^="filesTableBody-"]');
         if (!filesContainer) {
-            console.warn('No se encontró el contenedor de archivos para actualizar el contador');
             return;
         }
 
@@ -319,7 +312,6 @@ class FileDeleteManager {
         const phaseIdMatch = containerId.match(/(\d+)$/);
         
         if (!phaseIdMatch) {
-            console.warn('No se pudo extraer el phaseId del contenedor:', containerId);
             return;
         }
 
@@ -328,7 +320,6 @@ class FileDeleteManager {
         // Buscar el badge del contador
         const counterBadge = document.getElementById(`file-count-${phaseId}`);
         if (!counterBadge) {
-            console.warn('No se encontró el badge del contador para la fase:', phaseId);
             return;
         }
 
@@ -337,7 +328,6 @@ class FileDeleteManager {
         const currentCount = parseInt(counterText.match(/\d+/)[0]);
         
         if (isNaN(currentCount) || currentCount <= 0) {
-            console.warn('Contador inválido o ya es 0:', currentCount);
             return;
         }
 
@@ -346,8 +336,6 @@ class FileDeleteManager {
         // Actualizar el texto manteniendo la traducción "documentos"
         const documentosText = counterText.includes('documento') ? counterText.match(/\d+\s+(.+)/)[1] : 'documentos';
         counterBadge.textContent = `${newCount} ${documentosText}`;
-        
-        console.log(`✅ Contador actualizado: ${currentCount} → ${newCount} documentos (Fase ${phaseId})`);
     }
 
     triggerFileListUpdate() {

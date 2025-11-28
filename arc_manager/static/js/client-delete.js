@@ -21,8 +21,6 @@ class ClientDeleteManager {
                 this.handleDeleteClick(deleteLink);
             }
         });
-        
-        console.log('✅ ClientDeleteManager inicializado');
     }
 
     /**

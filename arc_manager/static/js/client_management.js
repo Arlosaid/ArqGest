@@ -3,22 +3,17 @@ class ClientManagement {
     constructor() {
         // Solo inicializar si estamos en la página de gestión de clientes
         if (!document.querySelector('.client-management-page')) {
-            console.log('No es la página de gestión de clientes, saliendo...');
             return;
         }
         
         // Verificar elementos necesarios
         if (!document.querySelector('.table-search-input')) {
-            console.log('No se encontró input de búsqueda, saliendo...');
             return;
         }
         
         this.searchInput = document.querySelector('.table-search-input');
         this.actionButtons = document.querySelectorAll('.action-btn');
         this.paginationButtons = document.querySelectorAll('.pagination-btn, .pagination-number');
-        
-        console.log('ClientManagement inicializado correctamente');
-        console.log('Search input encontrado:', this.searchInput);
         
         this.init();
     }
@@ -71,11 +66,8 @@ class ClientManagement {
         const form = event.target.closest('form');
         
         if (!form) {
-            console.log('No se encontró formulario de búsqueda');
             return;
         }
-
-        console.log('Enviando búsqueda al servidor:', searchTerm);
         
         // Mostrar indicador de carga
         this.showSearchLoading();
@@ -177,9 +169,6 @@ class ClientManagement {
         // Usar el sistema de notificaciones moderno
         if (window.notifications) {
             window.notifications.show(message, type);
-        } else {
-            // Fallback si el sistema no está disponible
-            console.warn('Sistema de notificaciones no disponible:', message);
         }
     }
 
@@ -239,8 +228,6 @@ function showGlobalNotification(message, type = 'info') {
         setTimeout(() => {
             if (window.notifications) {
                 window.notifications.show(message, type);
-            } else {
-                console.warn('Sistema de notificaciones no disponible:', message);
             }
         }, 100);
     }
@@ -248,25 +235,19 @@ function showGlobalNotification(message, type = 'info') {
 
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM cargado para gestión de clientes...');
-    
     // Verificar si estamos en la página correcta
     const isClientPage = document.querySelector('.client-management-page') || 
                         (document.querySelector('h1') && document.querySelector('h1').textContent.includes('Gestión de Clientes'));
     
     if (!isClientPage) {
-        console.log('No es la página de clientes, saliendo...');
         return;
     }
-    
-    console.log('Página de clientes detectada, inicializando...');
     
     // Intentar inicializar la clase principal
     try {
         clientManagementInstance = new ClientManagement();
-        console.log('ClientManagement inicializado');
     } catch (error) {
-        console.error('Error al inicializar ClientManagement:', error);
+        // Silent fail
     }
     
     // Siempre inicializar búsqueda simple como respaldo
@@ -279,17 +260,13 @@ document.addEventListener('DOMContentLoaded', () => {
 function initSimpleSearch() {
     const searchInput = document.querySelector('.table-search-input');
     if (!searchInput) {
-        console.log('FALLBACK: No se encontró el input de búsqueda');
         return;
     }
     
     // Verificar si ya tiene event listeners (para evitar duplicados)
     if (searchInput.hasAttribute('data-search-initialized')) {
-        console.log('FALLBACK: Búsqueda ya inicializada, saltando...');
         return;
     }
-    
-    console.log('FALLBACK: Inicializando búsqueda simple...');
     
     // Marcar como inicializado
     searchInput.setAttribute('data-search-initialized', 'true');
@@ -299,10 +276,7 @@ function initSimpleSearch() {
         const searchTerm = event.target.value.trim();
         const form = event.target.closest('form');
         
-        console.log('FALLBACK: Input detectado:', searchTerm);
-        
         if (!form) {
-            console.error('FALLBACK: No se encontró formulario para la búsqueda');
             return;
         }
         
@@ -313,8 +287,6 @@ function initSimpleSearch() {
         
         // Crear nuevo timeout para debounce
         window.clientSearchTimeout = setTimeout(() => {
-            console.log('FALLBACK: Enviando formulario con búsqueda:', searchTerm);
-            
             // Mostrar indicador visual (opcional)
             const searchIcon = document.querySelector('.table-search-icon');
             if (searchIcon) {
@@ -329,7 +301,6 @@ function initSimpleSearch() {
     // Event listener para tecla Escape
     searchInput.addEventListener('keydown', function(event) {
         if (event.key === 'Escape' && this.value) {
-            console.log('FALLBACK: Escape presionado, limpiando búsqueda');
             this.value = '';
             const form = this.closest('form');
             if (form) {
@@ -337,21 +308,7 @@ function initSimpleSearch() {
             }
         }
     });
-    
-    console.log('FALLBACK: Búsqueda simple configurada correctamente');
 }
-
-// Función de debug inmediata
-(function debugClientSearch() {
-    console.log('=== DEBUG CLIENT SEARCH ===');
-    console.log('URL actual:', window.location.pathname);
-    console.log('Título de página:', document.title);
-    console.log('H1 encontrado:', document.querySelector('h1')?.textContent || 'No encontrado');
-    console.log('Clase client-management-page:', !!document.querySelector('.client-management-page'));
-    console.log('Input de búsqueda:', !!document.querySelector('.table-search-input'));
-    console.log('Formulario de búsqueda:', !!document.querySelector('.table-search-box'));
-    console.log('============================');
-})();
 
 // Limpiar al cerrar la página
 window.addEventListener('beforeunload', () => {

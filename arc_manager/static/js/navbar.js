@@ -204,8 +204,6 @@ class NavbarManager {
             setTimeout(() => {
                 if (window.notifications) {
                     window.notifications.show(message, type);
-                } else {
-                    console.warn('Sistema de notificaciones no disponible:', message);
                 }
             }, 100);
         }

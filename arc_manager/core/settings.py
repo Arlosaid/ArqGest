@@ -532,10 +532,10 @@ if os.environ.get('ENABLE_STORAGES', 'false').lower() == 'true':
     AWS_S3_OBJECT_PARAMETERS = {
         'CacheControl': 'max-age=86400',  # Cache por 1 día
     }
-    
-    logging.info(f"Storage: Cloudflare R2 - {AWS_S3_ENDPOINT_URL}")
+    # Storage configurado: R2
 else:
-    logging.info("Storage: Local FileSystemStorage")
+    # Storage: Local FileSystemStorage
+    pass
 
 # ========================================
 # CONFIGURACIÓN OPTIMIZADA DE SESIONES
@@ -718,6 +718,13 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        # apps.projects: Reducido a WARNING para evitar ruido de tareas/fases
+        # Los logs DEBUG de cambios de tareas/fases no se mostrarán en producción
+        'apps.projects': {
+            'handlers': ['console_dev', 'console_prod'],
+            'level': 'WARNING' if not DEBUG else 'INFO',
+            'propagate': False,
+        },
         'apps.plans': {
             'handlers': ['console_dev', 'console_prod'],
             'level': 'INFO' if not DEBUG else 'DEBUG',
@@ -814,16 +821,16 @@ else:
         # Email de remitente - debe estar verificado en Resend
         DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'ArqGest <noreply@arqgest.com>')
         SERVER_EMAIL = DEFAULT_FROM_EMAIL
-        
-        logging.info("Email: Resend backend configured")
+        # Email backend configurado: Resend
     
     else:
         # Fallback: Si no hay Resend, usar console (no envía emails reales)
         EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
         DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'ArqGest <noreply@arqgest.com>')
         SERVER_EMAIL = DEFAULT_FROM_EMAIL
-        
-        logging.warning("Email: No RESEND_API_KEY configured - using console backend (emails will only print to logs)")
+        # WARNING: Solo loguear en producción real si falta la configuración
+        if os.environ.get('RAILWAY_ENVIRONMENT'):
+            logging.warning("Email: No RESEND_API_KEY configured - emails will not be sent")
 
 
 # Configuración para el sistema de pagos
@@ -884,11 +891,11 @@ if IS_PRODUCTION:
     # Cache ya configurado arriba
     
     HEALTH_CHECK_URL = '/health/'
-    
-    logging.info("Environment: Production mode enabled")
+    # Production mode enabled
 
 else:
-    logging.info("Environment: Local development mode")
+    # Local development mode
+    pass
 
 # Health check endpoint para monitoreo
 def health_check(request):
