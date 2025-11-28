@@ -47,6 +47,15 @@
         {% if project.budget_configured %}
             <p class="current-budget">Presupuesto actual: <strong>${{ project.total_budget|floatformat:0 }}</strong></p>
         {% endif %}
+        
+        {% if project.total_paid > 0 %}
+            <div class="alert alert-info" style="margin-bottom: 1rem; padding: 0.75rem 1rem; border-radius: 6px; background: #e8f4fd; border: 1px solid #bee5eb; color: #0c5460;">
+                <i class="fas fa-info-circle"></i>
+                <strong>Total pagado:</strong> ${{ project.total_paid|floatformat:2 }}
+                <br>
+                <small>El presupuesto mínimo debe ser igual o mayor al total de pagos registrados.</small>
+            </div>
+        {% endif %}
             
         <form method="post" class="form-simple">
             {% csrf_token %}
@@ -58,7 +67,14 @@
                     {{ form.total_budget }}
                 </div>
                 {% if form.total_budget.errors %}
-                    <div class="error">{{ form.total_budget.errors.0 }}</div>
+                    <div class="error" style="color: #dc3545; font-size: 0.875rem; margin-top: 0.25rem;">
+                        {{ form.total_budget.errors.0 }}
+                    </div>
+                {% endif %}
+                {% if project.total_paid > 0 %}
+                    <small class="form-text text-muted" style="display: block; margin-top: 0.25rem; color: #6c757d;">
+                        Mínimo permitido: ${{ project.total_paid|floatformat:2 }}
+                    </small>
                 {% endif %}
             </div>
 

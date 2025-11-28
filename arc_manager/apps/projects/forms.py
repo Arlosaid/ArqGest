@@ -2,6 +2,7 @@
 from django import forms
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 from .models import Task, Project, PhaseTemplate
 from apps.orgs.models import Client
 from django.forms import formset_factory
@@ -259,3 +260,61 @@ class PhaseTemplateForm(forms.ModelForm):
             }),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
+
+
+class BudgetConfigForm(forms.ModelForm):
+    """
+    Formulario para configurar el presupuesto de un proyecto.
+    Valida que el presupuesto no sea menor que el total de pagos realizados.
+    """
+    class Meta:
+        model = Project
+        fields = ['total_budget']
+        labels = {
+            'total_budget': _('Presupuesto Total'),
+        }
+        widgets = {
+            'total_budget': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': _('Ej: 50000.00')
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Calcular el total pagado para establecer el mínimo
+        if self.instance and self.instance.pk:
+            self.total_paid = self.instance.total_paid
+        else:
+            self.total_paid = 0
+
+    def clean_total_budget(self):
+        total_budget = self.cleaned_data.get('total_budget')
+        
+        if total_budget is None:
+            raise ValidationError(_("El presupuesto es obligatorio."))
+        
+        if total_budget < 0:
+            raise ValidationError(_("El presupuesto no puede ser negativo."))
+        
+        # Validar que el presupuesto no sea menor que el total pagado
+        if self.instance and self.instance.pk:
+            total_paid = self.instance.total_paid
+            if total_paid and total_budget < total_paid:
+                raise ValidationError(
+                    _("El presupuesto no puede ser menor que el total ya pagado (${total_paid:,.2f}). "
+                      "Para reducir el presupuesto, primero elimina o modifica los pagos registrados.").format(
+                        total_paid=float(total_paid)
+                    )
+                )
+        
+        # Validar monto razonable
+        from core.validators import validate_budget_amount
+        try:
+            validate_budget_amount(total_budget)
+        except ValidationError as e:
+            raise e
+        
+        return total_budget

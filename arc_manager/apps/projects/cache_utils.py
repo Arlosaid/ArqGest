@@ -135,33 +135,37 @@ def get_or_set_dashboard_projects_progress(organization_id, timeout=600):
     """
     Obtiene el progreso de todos los proyectos para el dashboard.
     Optimizado para mostrar múltiples proyectos con un solo cache.
+    REFACTORIZADO: Usa una sola query agregada en lugar de N queries.
     """
     cache_key = f"dashboard_projects_progress:{organization_id}"
     progress_data = cache.get(cache_key)
     
     if progress_data is None:
         from django.db.models import Count, Q
-        from .models import Project, Task
+        from .models import Task
         
-        # Obtener todos los proyectos activos de la organización
-        projects = Project.objects.filter(
-            organization_id=organization_id,
-            status='ACTIVE'
-        ).values_list('id', flat=True)
+        # OPTIMIZACIÓN: Una sola query agregada para todos los proyectos
+        # en lugar de iterar con N queries separadas
+        project_stats = Task.objects.filter(
+            phase__project__organization_id=organization_id,
+            phase__project__status='ACTIVE'
+        ).values(
+            'phase__project_id'
+        ).annotate(
+            total=Count('id'),
+            done=Count('id', filter=Q(status='DONE'))
+        )
         
         progress_data = {}
-        
-        # Calcular progreso para cada proyecto en una consulta optimizada
-        for project_id in projects:
-            stats = Task.objects.filter(phase__project_id=project_id).aggregate(
-                total=Count('id'),
-                done=Count('id', filter=Q(status='DONE'))
-            )
+        for stat in project_stats:
+            project_id = stat['phase__project_id']
+            total = stat['total'] or 0
+            done = stat['done'] or 0
             
-            if stats['total'] == 0:
+            if total == 0:
                 progress_data[project_id] = 0
             else:
-                progress_data[project_id] = int((stats['done'] / stats['total']) * 100)
+                progress_data[project_id] = int((done / total) * 100)
         
         # Cache por 10 minutos
         cache.set(cache_key, progress_data, timeout)
@@ -372,3 +376,70 @@ def get_or_set_kanban_stats(project_id, timeout=300):
         cache.set(cache_key, stats, timeout)
     
     return stats
+
+
+def get_or_set_dashboard_stats(organization_id, timeout=300):
+    """
+    Obtiene estadísticas consolidadas del dashboard desde cache.
+    Incluye total_clients y total_tasks para evitar queries en cada request.
+    
+    Args:
+        organization_id: ID de la organización
+        timeout: Tiempo de cache en segundos (default: 5 minutos)
+    
+    Returns:
+        dict: {
+            'total_clients': int,
+            'total_tasks': int,
+            'total_tasks_done': int,
+            'total_active_projects': int
+        }
+    """
+    cache_key = f"dashboard_stats:{organization_id}"
+    stats = cache.get(cache_key)
+    
+    if stats is None:
+        from django.db.models import Count, Q
+        from .models import Project, Task
+        from apps.orgs.models import Client
+        
+        # Total de clientes
+        total_clients = Client.objects.filter(
+            organization_id=organization_id
+        ).count()
+        
+        # Total de tareas (excluyendo proyectos archivados)
+        task_stats = Task.objects.filter(
+            phase__project__organization_id=organization_id
+        ).exclude(
+            phase__project__status='ARCHIVED'
+        ).aggregate(
+            total=Count('id'),
+            done=Count('id', filter=Q(status='DONE'))
+        )
+        
+        # Total de proyectos activos
+        total_active_projects = Project.objects.filter(
+            organization_id=organization_id,
+            status='ACTIVE'
+        ).count()
+        
+        stats = {
+            'total_clients': total_clients,
+            'total_tasks': task_stats['total'] or 0,
+            'total_tasks_done': task_stats['done'] or 0,
+            'total_active_projects': total_active_projects
+        }
+        
+        cache.set(cache_key, stats, timeout)
+    
+    return stats
+
+
+def invalidate_dashboard_stats_cache(organization_id):
+    """
+    Invalida el cache de estadísticas del dashboard.
+    Se debe llamar cuando se modifican clientes, tareas o proyectos.
+    """
+    cache_key = f"dashboard_stats:{organization_id}"
+    cache.delete(cache_key)

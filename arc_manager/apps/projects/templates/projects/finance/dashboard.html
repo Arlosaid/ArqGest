@@ -1,421 +1,596 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load l10n %}
 
 {% block title %}Finanzas - ArqGest{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/finance.css' %}">
+<link href="{% static 'css/project_list.css' %}?v=6.2" rel="stylesheet">
+<link href="{% static 'css/tasks.css' %}?v=1.4" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
-<!-- Usar el container estándar de base.css como las otras vistas -->
 <div class="page-container">
-    <div class="finance-container">
-    <!-- Header Section Homologado -->
-    <div class="finance-header-simple">
-        <div class="finance-header-content">
-            <div class="finance-title-section">
-                <h1>
-                    <i class="fas fa-dollar-sign"></i>Finanzas
-                </h1>
-                <p>Gestiona el presupuesto y pagos de tus proyectos</p>
-            </div>
-            
-        </div>
-    </div>
-
-    <div class="row g-3 g-md-4 mb-5">
-        
-        <div class="col-12 col-sm-6 col-lg-3">
-            <div class="card h-100 border-0 shadow-sm finance-metric-card">
-                <div class="card-body text-center p-4">
-                    <div class="metric-icon bg-primary bg-gradient rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
-                        <i class="fas fa-wallet text-white"></i>
-                    </div>
-                    <h3 class="card-title text-primary mb-1">${{ total_budget|floatformat:0 }}</h3>
-                    <p class="card-text text-muted mb-0">Total Presupuesto</p>
+    
+    <!-- Header Section -->
+    <div class="header-section mb-4">
+        <div class="header-content">
+            <div class="header-title">
+                <div class="header-icon">
+                    <i class="fas fa-dollar-sign"></i>
                 </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-lg-3">
-            <div class="card h-100 border-0 shadow-sm finance-metric-card">
-                <div class="card-body text-center p-4">
-                    <div class="metric-icon bg-success bg-gradient rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
-                        <i class="fas fa-check-circle text-white"></i>
-                    </div>
-                    <h3 class="card-title text-success mb-1">${{ total_paid|floatformat:0 }}</h3>
-                    <p class="card-text text-muted mb-0">Total Cobrado</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-lg-3">
-            <div class="card h-100 border-0 shadow-sm finance-metric-card">
-                <div class="card-body text-center p-4">
-                    <div class="metric-icon bg-warning bg-gradient rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
-                        <i class="fas fa-clock text-white"></i>
-                    </div>
-                    <h3 class="card-title text-warning mb-1">${{ pending_amount|floatformat:0 }}</h3>
-                    <p class="card-text text-muted mb-0">Pendiente</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-lg-3">
-            <div class="card h-100 border-0 shadow-sm finance-metric-card">
-                <div class="card-body text-center p-4">
-                    <div class="metric-icon bg-info bg-gradient rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center">
-                        <i class="fas fa-chart-line text-white"></i>
-                    </div>
-                    <h3 class="card-title text-info mb-1">{{ overall_percentage }}%</h3>
-                    <p class="card-text text-muted mb-0">Progreso General</p>
+                <div>
+                    <h1>Finanzas</h1>
+                    <div class="text-muted">Gestiona el presupuesto y pagos de tus proyectos</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Filtros y Búsqueda con Bootstrap -->
-    <div class="row mb-4">
+    <div class="row g-4 mb-4">
+        <!-- Metrics Grid - Full Width -->
         <div class="col-12">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-4">
-                    <form method="get" class="row g-3" autocomplete="off">
-                        
-                        <div class="col-12 col-md-8">
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0">
-                                    <i class="fas fa-search text-muted"></i>
-                                </span>
-                                <input type="text" 
-                                       class="form-control border-start-0" 
-                                       placeholder="Buscar proyectos o clientes..." 
-                                       name="search"
-                                       value="{{ current_filters.search }}">
-                                {% if current_filters.search %}
-                                    <a href="{% url 'projects:finance-dashboard' %}" class="btn btn-outline-secondary">
-                                        <i class="fas fa-times"></i>
-                                    </a>
-                                {% endif %}
+            <div class="stats-overview-section" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                <div class="stat-card-modern total">
+                    <div class="stat-icon-wrapper" style="background: #ecfdf5; color: #059669;">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value">${{ total_budget|floatformat:0 }}</span>
+                        <span class="stat-label">Total Presupuesto</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card-modern active-projects">
+                    <div class="stat-icon-wrapper" style="background: #eff6ff; color: #2563eb;">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value">${{ total_paid|floatformat:0 }}</span>
+                        <span class="stat-label">Total Cobrado</span>
+                    </div>
+                </div>
+
+                <div class="stat-card-modern archived">
+                    <div class="stat-icon-wrapper" style="background: #fffbeb; color: #d97706;">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value">${{ pending_amount|floatformat:0 }}</span>
+                        <span class="stat-label">Pendiente</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <!-- Left Column: Filters & Bar Chart -->
+        <div class="col-12 col-xl-8">
+            <!-- Bar Chart (Moved here) -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-body p-3">
+                    <h6 class="card-title fw-bold mb-3 text-dark text-center">Ingresos Mensuales</h6>
+                    <div class="chart-container">
+                        <canvas id="incomeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters & Toolbar -->
+            <div class="controls-toolbar-section mb-4">
+                <div class="search-box-wrapper">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" 
+                           class="search-input-modern" 
+                           placeholder="Buscar proyectos..." 
+                           name="search"
+                           value="{{ current_filters.search }}">
+                    <a href="#" class="clear-search-btn" style="display: none;">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </div>
+                
+                <div class="filters-wrapper">
+                    <select name="budget_status" class="form-select border-0 bg-light fw-semibold" style="height: 40px; border-radius: 0.5rem; min-width: 180px; font-size: 0.9rem;" onchange="updateBudgetFilter(this.value)">
+                        <option value="">Estado Presupuesto</option>
+                        <option value="configured" {% if current_filters.budget_status == 'configured' %}selected{% endif %}>Con presupuesto</option>
+                        <option value="not_configured" {% if current_filters.budget_status == 'not_configured' %}selected{% endif %}>Sin presupuesto</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Donut Chart -->
+        <div class="col-12 col-xl-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-3 d-flex flex-column justify-content-center">
+                    <h6 class="card-title fw-bold mb-3 text-dark text-center">Resumen de Cobranza</h6>
+                    <div class="chart-container">
+                        <canvas id="financeChart"></canvas>
+                    </div>
+                    <div class="mt-3 text-center">
+                        <div class="d-flex justify-content-center gap-3">
+                            <div class="d-flex align-items-center gap-1">
+                                <span style="width: 8px; height: 8px; background-color: #10b981; border-radius: 50%; display: inline-block;"></span>
+                                <span class="text-muted small fw-semibold" style="font-size: 0.75rem;">Cobrado</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-1">
+                                <span style="width: 8px; height: 8px; background-color: #f59e0b; border-radius: 50%; display: inline-block;"></span>
+                                <span class="text-muted small fw-semibold" style="font-size: 0.75rem;">Pendiente</span>
                             </div>
                         </div>
-
-                        <div class="col-12 col-md-4">
-                            <select name="budget_status" class="form-select">
-                                <option value="">Todos los proyectos</option>
-                                <option value="configured" {% if current_filters.budget_status == 'configured' %}selected{% endif %}>
-                                    Con presupuesto
-                                </option>
-                                <option value="not_configured" {% if current_filters.budget_status == 'not_configured' %}selected{% endif %}>
-                                    Sin presupuesto
-                                </option>
-                            </select>
-                        </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     {% if projects %}
-        <div class="row">
-            <div class="col-12">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-light border-0 py-3">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0 fw-semibold">
-                                <i class="fas fa-folder-open text-primary me-2"></i>Proyectos
-                            </h5>
-                        </div>
-                    </div>
-                    <div class="card-body p-0">
-                        
-                        <div class="d-none d-lg-block">
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th class="border-0 py-3 px-4">Proyecto</th>
-                                            <th class="border-0 py-3">Cliente</th>
-                                            <th class="border-0 py-3">Presupuesto</th>
-                                            <th class="border-0 py-3">Pagado</th>
-                                            <th class="border-0 py-3">Progreso</th>
-                                            <th class="border-0 py-3">Estado</th>
-                                            <th class="border-0 py-3 text-end">Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for project in projects %}
-                                        <tr class="align-middle">
-                                            
-                                            <td class="py-3 px-4">
-                                                <div class="d-flex align-items-center">
-                                                    <div class="project-avatar bg-primary bg-gradient rounded-circle d-flex align-items-center justify-content-center me-3">
-                                                        <span class="text-white fw-bold">{{ project.name|first|upper }}</span>
-                                                    </div>
-                                                    <div>
-                                                        <h6 class="mb-0 fw-semibold">{{ project.name }}</h6>
-                                                        <small class="text-muted">{{ project.created_at|date:"d/m/Y" }}</small>
-                                                    </div>
-                                                </div>
-                                            </td>
-
-                                            <td class="py-3">
-                                                {% if project.client %}
-                                                    <span class="badge bg-light text-dark">
-                                                        <i class="fas fa-user me-1"></i>{{ project.client.name|truncatechars:25 }}
-                                                    </span>
-                                                {% else %}
-                                                    <span class="text-muted">Sin cliente</span>
-                                                {% endif %}
-                                            </td>
-
-                                            <td class="py-3">
-                                                {% if project.budget_configured %}
-                                                    <span class="fw-semibold">${{ project.total_budget|floatformat:0 }}</span>
-                                                {% else %}
-                                                    <span class="text-muted">No configurado</span>
-                                                {% endif %}
-                                            </td>
-
-                                            <td class="py-3">
-                                                {% if project.budget_configured %}
-                                                    <span class="text-success fw-semibold">${{ project.total_paid|floatformat:0 }}</span>
-                                                {% else %}
-                                                    <span class="text-muted">-</span>
-                                                {% endif %}
-                                            </td>
-
-                                            <td class="py-3">
-                                                {% if project.budget_configured %}
-                                                    <div class="d-flex align-items-center">
-                                                        <div class="progress flex-grow-1 me-2" style="height: 8px;">
-                                                            <div class="progress-bar bg-success" role="progressbar" 
-                                                                 style="width: {{ project.payment_percentage }}%"
-                                                                 aria-valuenow="{{ project.payment_percentage }}" 
-                                                                 aria-valuemin="0" aria-valuemax="100">
-                                                            </div>
-                                                        </div>
-                                                        <small class="text-muted">{{ project.payment_percentage }}%</small>
-                                                    </div>
-                                                {% else %}
-                                                    <span class="text-muted">-</span>
-                                                {% endif %}
-                                            </td>
-
-                                            <td class="py-3">
-                                                {% if project.budget_configured %}
-                                                    <span class="badge bg-success">
-                                                        <i class="fas fa-check-circle me-1"></i>Configurado
-                                                    </span>
-                                                {% else %}
-                                                    <span class="badge bg-warning">
-                                                        <i class="fas fa-exclamation-circle me-1"></i>Por configurar
-                                                    </span>
-                                                {% endif %}
-                                            </td>
-
-                                            <td class="py-3 text-end">
-                                                <div class="btn-group" role="group">
-                                                    {% if project.budget_configured %}
-                                                        <a href="{% url 'projects:finance-project-detail' project.pk %}" 
-                                                           class="btn btn-sm btn-outline-primary" 
-                                                           data-bs-toggle="tooltip" title="Ver detalles">
-                                                            <i class="fas fa-eye"></i>
-                                                        </a>
-                                                        <a href="{% url 'projects:payment-create' project.pk %}" 
-                                                           class="btn btn-sm btn-primary" 
-                                                           data-bs-toggle="tooltip" title="Agregar pago">
-                                                            <i class="fas fa-plus me-1"></i>Pago
-                                                        </a>
-                                                    {% else %}
-                                                        <a href="{% url 'projects:budget-config' project.pk %}" 
-                                                           class="btn btn-sm btn-warning" 
-                                                           data-bs-toggle="tooltip" title="Configurar presupuesto">
-                                                            <i class="fas fa-cog me-1"></i>Configurar
-                                                        </a>
-                                                    {% endif %}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <div class="d-lg-none">
-                            {% for project in projects %}
-                            <div class="border-bottom p-4">
-                                <div class="row g-3">
-                                    
-                                    <div class="col-12">
-                                        <div class="d-flex align-items-center mb-3">
-                                            <div class="project-avatar bg-primary bg-gradient rounded-circle d-flex align-items-center justify-content-center me-3">
-                                                <span class="text-white fw-bold">{{ project.name|first|upper }}</span>
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <h6 class="mb-1 fw-semibold">{{ project.name }}</h6>
-                                                <small class="text-muted">{{ project.created_at|date:"d/m/Y" }}</small>
-                                            </div>
-                                            <div>
-                                                {% if project.budget_configured %}
-                                                    <span class="badge bg-success">Configurado</span>
-                                                {% else %}
-                                                    <span class="badge bg-warning">Por configurar</span>
-                                                {% endif %}
-                                            </div>
-                                        </div>
+        <!-- Projects Table (Desktop) -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden d-none d-lg-block">
+            <div class="table-responsive">
+                <table class="table finance-table mb-0 w-100">
+                    <thead>
+                        <tr>
+                            <th>Proyecto</th>
+                            <th>Cliente</th>
+                            <th>Presupuesto</th>
+                            <th>Pagado</th>
+                            <th style="width: 15%;">Progreso</th>
+                            <th>Estado</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for project in projects %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="avatar-initials shadow-sm">
+                                        {{ project.name|first|upper }}
                                     </div>
-
-                                    <div class="col-6">
-                                        <small class="text-muted d-block">Cliente</small>
-                                        {% if project.client %}
-                                            <span class="fw-semibold" title="{{ project.client.name }}">{{ project.client.name|truncatechars:25 }}</span>
-                                        {% else %}
-                                            <span class="text-muted">Sin cliente</span>
-                                        {% endif %}
-                                    </div>
-
-                                    <div class="col-6">
-                                        <small class="text-muted d-block">Presupuesto</small>
-                                        {% if project.budget_configured %}
-                                            <span class="fw-semibold">${{ project.total_budget|floatformat:0 }}</span>
-                                        {% else %}
-                                            <span class="text-muted">No configurado</span>
-                                        {% endif %}
-                                    </div>
-
-                                    {% if project.budget_configured %}
-                                    <div class="col-12">
-                                        <div class="row g-2">
-                                            <div class="col-6">
-                                                <small class="text-muted d-block">Pagado</small>
-                                                <span class="text-success fw-semibold">${{ project.total_paid|floatformat:0 }}</span>
-                                            </div>
-                                            <div class="col-6">
-                                                <small class="text-muted d-block">Progreso</small>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="progress flex-grow-1 me-2" style="height: 6px;">
-                                                        <div class="progress-bar bg-success" style="width: {{ project.payment_percentage }}%"></div>
-                                                    </div>
-                                                    <small class="text-muted">{{ project.payment_percentage }}%</small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {% endif %}
-
-                                    <div class="col-12">
-                                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                                            {% if project.budget_configured %}
-                                                <a href="{% url 'projects:finance-project-detail' project.pk %}" 
-                                                   class="btn btn-outline-primary btn-sm">
-                                                    <i class="fas fa-eye me-1"></i>Ver
-                                                </a>
-                                                <a href="{% url 'projects:payment-create' project.pk %}" 
-                                                   class="btn btn-primary btn-sm">
-                                                    <i class="fas fa-plus me-1"></i>Pago
-                                                </a>
-                                            {% else %}
-                                                <a href="{% url 'projects:budget-config' project.pk %}" 
-                                                   class="btn btn-warning btn-sm">
-                                                    <i class="fas fa-dollar-sign me-1"></i>Configurar Presupuesto
-                                                </a>
-                                            {% endif %}
-                                        </div>
+                                    <div>
+                                        <div class="fw-semibold text-dark">{{ project.name }}</div>
+                                        <small class="text-muted">{{ project.created_at|date:"d M Y" }}</small>
                                     </div>
                                 </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
+                            </td>
+                            <td>
+                                {% if project.client %}
+                                    <div class="d-flex align-items-center text-secondary">
+                                        <i class="fas fa-user-circle me-2 text-muted"></i>
+                                        {{ project.client.name|truncatechars:20 }}
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted small fst-italic">Sin cliente</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if project.budget_configured %}
+                                    <span class="fw-bold text-dark">${{ project.total_budget|floatformat:0 }}</span>
+                                {% else %}
+                                    <span class="badge bg-light text-secondary border">No config.</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if project.budget_configured %}
+                                    <span class="fw-bold text-success">${{ project.total_paid|floatformat:0 }}</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if project.budget_configured %}
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress flex-grow-1 me-3" style="height: 6px; background-color: #e2e8f0; border-radius: 10px;">
+                                            <div class="progress-bar" role="progressbar" 
+                                                 style="width: {{ project.payment_percentage }}%; background: linear-gradient(90deg, #10b981 0%, #059669 100%); border-radius: 10px;"
+                                                 aria-valuenow="{{ project.payment_percentage }}" 
+                                                 aria-valuemin="0" aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                        <span class="small fw-bold text-secondary">{{ project.payment_percentage }}%</span>
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if project.budget_configured %}
+                                    <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-3 py-1">
+                                        Configurado
+                                    </span>
+                                {% else %}
+                                    <span class="badge rounded-pill bg-warning-subtle text-warning border border-warning-subtle px-3 py-1">
+                                        Pendiente
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="d-flex justify-content-end align-items-center gap-2">
+                                    {% if project.budget_configured %}
+                                        <a href="{% url 'projects:payment-create' project.pk %}" 
+                                           class="btn btn-primary btn-sm d-flex align-items-center gap-2 shadow-sm"
+                                           title="Agregar pago"
+                                           style="height: 32px; padding: 0 12px; font-weight: 500;">
+                                            <i class="fas fa-plus"></i>
+                                            <span>Pago</span>
+                                        </a>
+                                        <a href="{% url 'projects:finance-project-detail' project.pk %}" 
+                                           class="action-btn view" 
+                                           title="Ver detalles"
+                                           style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; text-decoration: none; transition: all 0.2s ease; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'projects:budget-config' project.pk %}" 
+                                           class="action-btn edit" 
+                                           title="Editar presupuesto"
+                                           style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; text-decoration: none; transition: all 0.2s ease; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    {% else %}
+                                        <a href="{% url 'projects:budget-config' project.pk %}" 
+                                           class="btn btn-warning btn-sm text-white d-flex align-items-center gap-2 shadow-sm"
+                                           title="Configurar presupuesto"
+                                           style="height: 32px; padding: 0 12px; font-weight: 500;">
+                                            <i class="fas fa-cog"></i>
+                                            <span>Configurar</span>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        {% if is_paginated %}
-        <div class="row mt-4">
-            <div class="col-12">
-                <nav aria-label="Navegación de proyectos">
-                    <ul class="pagination justify-content-center">
-                        {% if page_obj.has_previous %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page=1{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}{% if current_filters.budget_status %}&budget_status={{ current_filters.budget_status }}{% endif %}">
-                                    <i class="fas fa-angle-double-left"></i>
-                                </a>
-                            </li>
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}{% if current_filters.budget_status %}&budget_status={{ current_filters.budget_status }}{% endif %}">
-                                    <i class="fas fa-angle-left"></i>
-                                </a>
-                            </li>
-                        {% endif %}
-                        
-                        {% for num in page_obj.paginator.page_range %}
-                            {% if page_obj.number == num %}
-                                <li class="page-item active">
-                                    <span class="page-link">{{ num }}</span>
-                                </li>
-                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ num }}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}{% if current_filters.budget_status %}&budget_status={{ current_filters.budget_status }}{% endif %}">{{ num }}</a>
-                                </li>
-                            {% endif %}
-                        {% endfor %}
-                        
-                        {% if page_obj.has_next %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}{% if current_filters.budget_status %}&budget_status={{ current_filters.budget_status }}{% endif %}">
-                                    <i class="fas fa-angle-right"></i>
-                                </a>
-                            </li>
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}{% if current_filters.budget_status %}&budget_status={{ current_filters.budget_status }}{% endif %}">
-                                    <i class="fas fa-angle-double-right"></i>
-                                </a>
-                            </li>
-                        {% endif %}
-                    </ul>
-                </nav>
-            </div>
-        </div>
-        {% endif %}
-    {% else %}
-        
-        <div class="row">
-            <div class="col-12">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body text-center py-5">
-                        <div class="empty-icon mb-4">
-                            <i class="fas fa-folder-open text-muted" style="font-size: 4rem;"></i>
+        <!-- Mobile View (Cards) -->
+        <div class="d-lg-none">
+            <div class="projects-grid">
+                {% for project in projects %}
+                <div class="project-card h-100">
+                    <div class="project-card-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="project-image">
+                                <div class="image-placeholder">
+                                    <span class="fw-bold">{{ project.name|first|upper }}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="project-title text-white mb-0" style="font-size: 1rem;">{{ project.name }}</h3>
+                                <small class="text-white-50">{{ project.created_at|date:"d M Y" }}</small>
+                            </div>
                         </div>
-                        <h3 class="fw-semibold mb-3">No hay proyectos disponibles</h3>
-                        <p class="text-muted mb-4">
-                            {% if current_filters.search or current_filters.budget_status %}
-                                No se encontraron proyectos con los filtros aplicados.
-                            {% else %}
-                                Aún no hay proyectos en tu organización.
-                            {% endif %}
-                        </p>
-                        {% if not current_filters.search and not current_filters.budget_status %}
-                        <a href="{% url 'projects:project-create' %}" class="btn btn-primary btn-lg">
-                            <i class="fas fa-plus me-2"></i>Crear Proyecto
-                        </a>
+                        
+                        {% if project.budget_configured %}
+                            <span class="badge bg-white text-success rounded-pill px-3 py-1 fw-bold shadow-sm" style="font-size: 0.75rem;">
+                                Configurado
+                            </span>
                         {% else %}
-                        <a href="{% url 'projects:finance-dashboard' %}" class="btn btn-outline-primary">
-                            <i class="fas fa-refresh me-2"></i>Limpiar Filtros
-                        </a>
+                            <span class="badge bg-white text-warning rounded-pill px-3 py-1 fw-bold shadow-sm" style="font-size: 0.75rem;">
+                                Pendiente
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="project-card-body d-flex flex-column">
+                        <div class="project-client mb-3">
+                            {% if project.client %}
+                                <div class="client-avatar">{{ project.client.name|first|upper }}</div>
+                                <span class="client-name text-dark fw-semibold">{{ project.client.name|truncatechars:25 }}</span>
+                            {% else %}
+                                <div class="client-avatar no-client"><i class="fas fa-user"></i></div>
+                                <span class="client-name no-client">Sin cliente</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <div class="p-2 rounded bg-light border">
+                                    <small class="d-block text-muted text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">Presupuesto</small>
+                                    {% if project.budget_configured %}
+                                        <span class="fw-bold text-dark">${{ project.total_budget|floatformat:0 }}</span>
+                                    {% else %}
+                                        <span class="text-muted small">N/A</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-2 rounded bg-light border">
+                                    <small class="d-block text-muted text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">Pagado</small>
+                                    {% if project.budget_configured %}
+                                        <span class="fw-bold text-success">${{ project.total_paid|floatformat:0 }}</span>
+                                    {% else %}
+                                        <span class="text-muted small">-</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if project.budget_configured %}
+                        <div class="progress-container mt-auto">
+                            <div class="progress-info">
+                                <span class="progress-label">Progreso de Pago</span>
+                                <span class="progress-percentage">{{ project.payment_percentage }}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: {{ project.payment_percentage }}%;"></div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="mt-auto p-3 bg-warning-subtle rounded text-center border border-warning-subtle">
+                            <small class="text-warning-emphasis fw-semibold">
+                                <i class="fas fa-exclamation-circle me-1"></i> Presupuesto no configurado
+                            </small>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="project-card-footer">
+                        {% if project.budget_configured %}
+                            <a href="{% url 'projects:payment-create' project.pk %}" class="btn btn-primary btn-sm flex-grow-1 d-flex align-items-center justify-content-center gap-2 shadow-sm">
+                                <i class="fas fa-plus-circle"></i> Agregar Pago
+                            </a>
+                            <a href="{% url 'projects:finance-project-detail' project.pk %}" class="btn btn-light btn-sm border text-secondary d-flex align-items-center justify-content-center" style="width: 40px;" title="Ver detalles">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        {% else %}
+                            <a href="{% url 'projects:budget-config' project.pk %}" class="btn btn-warning btn-sm text-white flex-grow-1 d-flex align-items-center justify-content-center gap-2 shadow-sm">
+                                <i class="fas fa-cog"></i> Configurar
+                            </a>
                         {% endif %}
                     </div>
                 </div>
+                {% endfor %}
             </div>
         </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="mt-5">
+            <nav aria-label="Navegación de proyectos">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link border-0 shadow-sm mx-1 rounded-circle d-flex align-items-center justify-content-center" 
+                               style="width: 32px; height: 32px;"
+                               href="?page={{ page_obj.previous_page_number }}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}{% if current_filters.budget_status %}&budget_status={{ current_filters.budget_status }}{% endif %}">
+                                <i class="fas fa-chevron-left small"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    <li class="page-item active">
+                        <span class="page-link border-0 shadow-sm mx-1 rounded-circle d-flex align-items-center justify-content-center bg-primary text-white" 
+                              style="width: 32px; height: 32px;">{{ page_obj.number }}</span>
+                    </li>
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link border-0 shadow-sm mx-1 rounded-circle d-flex align-items-center justify-content-center" 
+                               style="width: 32px; height: 32px;"
+                               href="?page={{ page_obj.next_page_number }}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}{% if current_filters.budget_status %}&budget_status={{ current_filters.budget_status }}{% endif %}">
+                                <i class="fas fa-chevron-right small"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+
+    {% else %}
+        <!-- Empty State -->
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-folder-open"></i>
+            </div>
+            <h3>No se encontraron proyectos</h3>
+            <p>
+                {% if current_filters.search or current_filters.budget_status %}
+                    Intenta ajustar los filtros de búsqueda para encontrar lo que buscas.
+                {% else %}
+                    Comienza creando tu primer proyecto para gestionar sus finanzas.
+                {% endif %}
+            </p>
+            {% if current_filters.search or current_filters.budget_status %}
+                <a href="{% url 'projects:finance-dashboard' %}" class="btn btn-primary">
+                    <i class="fas fa-undo me-2"></i>Limpiar Filtros
+                </a>
+            {% else %}
+                <a href="{% url 'projects:project-create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Crear Proyecto
+                </a>
+            {% endif %}
+        </div>
     {% endif %}
-    </div>
+
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/finance.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/projects.js' %}?v=6.0" defer></script>
+<script>
+function updateBudgetFilter(value) {
+    const url = new URL(window.location);
+    if (value) {
+        url.searchParams.set('budget_status', value);
+    } else {
+        url.searchParams.delete('budget_status');
+    }
+    url.searchParams.delete('page');
+    window.location.href = url.toString();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Donut Chart ---
+    const ctx = document.getElementById('financeChart');
+    if (ctx) {
+        // Usar unlocalize para asegurar que los números sean válidos en JS (sin comas)
+        const totalPaid = {{ total_paid|unlocalize|default:0 }};
+        const pending = {{ pending_amount|unlocalize|default:0 }};
+        
+        // Si ambos son 0, mostrar un gráfico vacío o placeholder
+        const data = (totalPaid === 0 && pending === 0) ? [1] : [totalPaid, pending];
+        const bgColors = (totalPaid === 0 && pending === 0) ? ['#e2e8f0'] : ['#10b981', '#f59e0b'];
+        
+        new Chart(ctx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Cobrado', 'Pendiente'],
+                datasets: [{
+                    data: data,
+                    backgroundColor: bgColors,
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '75%',
+                plugins: {
+                    legend: {
+                        display: false // Ocultamos la leyenda por defecto para usar la nuestra personalizada
+                    },
+                    tooltip: {
+                        enabled: (totalPaid !== 0 || pending !== 0),
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed !== null) {
+                                    label += new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(context.parsed);
+                                }
+                                return label;
+                            }
+                        },
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#1e293b',
+                        bodyColor: '#475569',
+                        borderColor: '#e2e8f0',
+                        borderWidth: 1,
+                        padding: 12,
+                        displayColors: true,
+                        boxPadding: 6,
+                        titleFont: { family: "'Poppins', sans-serif", size: 13 },
+                        bodyFont: { family: "'Poppins', sans-serif", size: 13 }
+                    }
+                }
+            },
+            plugins: [{
+                id: 'textCenter',
+                beforeDraw: function(chart) {
+                    if (totalPaid === 0 && pending === 0) return;
+
+                    var width = chart.width,
+                        height = chart.height,
+                        ctx = chart.ctx;
+
+                    ctx.restore();
+                    var fontSize = (height / 100).toFixed(2);
+                    ctx.font = "bold " + fontSize + "em Poppins";
+                    ctx.textBaseline = "middle";
+                    ctx.fillStyle = "#1e293b";
+
+                    var text = "{{ overall_percentage }}%",
+                        textX = Math.round((width - ctx.measureText(text).width) / 2),
+                        textY = height / 2;
+
+                    ctx.fillText(text, textX, textY);
+                    
+                    var fontSizeLabel = (height / 250).toFixed(2);
+                    ctx.font = fontSizeLabel + "em Poppins";
+                    ctx.fillStyle = "#64748b";
+                    var textLabel = "Progreso",
+                        textLabelX = Math.round((width - ctx.measureText(textLabel).width) / 2),
+                        textLabelY = height / 2 + 15;
+                        
+                    ctx.fillText(textLabel, textLabelX, textLabelY);
+                    ctx.save();
+                }
+            }]
+        });
+    }
+
+    // --- Bar Chart (Income) ---
+    const ctxIncome = document.getElementById('incomeChart');
+    if (ctxIncome) {
+        const incomeLabels = {{ income_labels|safe }};
+        const incomeData = {{ income_data|safe }};
+        
+        new Chart(ctxIncome.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: incomeLabels,
+                datasets: [{
+                    label: 'Ingresos',
+                    data: incomeData,
+                    backgroundColor: '#3b82f6',
+                    borderRadius: 4,
+                    barThickness: 20,
+                    hoverBackgroundColor: '#2563eb'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#1e293b',
+                        bodyColor: '#475569',
+                        borderColor: '#e2e8f0',
+                        borderWidth: 1,
+                        padding: 10,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) label += ': ';
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            borderDash: [2, 4],
+                            color: '#f1f5f9',
+                            drawBorder: false,
+                        },
+                        ticks: {
+                            font: { size: 10, family: "'Poppins', sans-serif" },
+                            color: '#64748b',
+                            callback: function(value) {
+                                if (value >= 1000) return '$' + (value/1000) + 'k';
+                                return '$' + value;
+                            }
+                        }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { 
+                            font: { size: 10, family: "'Poppins', sans-serif" },
+                            color: '#64748b'
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

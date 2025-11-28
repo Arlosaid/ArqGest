@@ -232,16 +232,31 @@ class SubscriptionInfoMiddleware(MiddlewareMixin):
                 except Exception:
                     pass
 
-                # Verificar si hay solicitudes pendientes
-                from .models import RenewalRequest, UpgradeRequest
-                has_pending_renewal = RenewalRequest.objects.filter(
-                    organization=request.user.organization,
-                    status='pending'
-                ).exists()
-                has_pending_upgrade = UpgradeRequest.objects.filter(
-                    organization=request.user.organization,
-                    status='pending'
-                ).exists()
+                # Verificar si hay solicitudes pendientes (CON CACHE para evitar queries en cada request)
+                from django.core.cache import cache
+                org_id = request.user.organization.id
+                pending_cache_key = f"org_pending_requests:{org_id}"
+                pending_data = cache.get(pending_cache_key)
+                
+                if pending_data is None:
+                    from .models import RenewalRequest, UpgradeRequest
+                    has_pending_renewal = RenewalRequest.objects.filter(
+                        organization=request.user.organization,
+                        status='pending'
+                    ).exists()
+                    has_pending_upgrade = UpgradeRequest.objects.filter(
+                        organization=request.user.organization,
+                        status='pending'
+                    ).exists()
+                    pending_data = {
+                        'renewal': has_pending_renewal,
+                        'upgrade': has_pending_upgrade
+                    }
+                    # Cache por 60 segundos - balance entre rendimiento y frescura de datos
+                    cache.set(pending_cache_key, pending_data, 60)
+                else:
+                    has_pending_renewal = pending_data['renewal']
+                    has_pending_upgrade = pending_data['upgrade']
                 
                 # Calcular fecha de inicio de la nueva suscripción (si hay renovación pendiente)
                 from django.utils import timezone

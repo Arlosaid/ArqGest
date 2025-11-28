@@ -35,10 +35,15 @@ def dashboard(request):
 
     # --- Widgets de Métricas para el Arquitecto ---
 
-    # --- Consultas optimizadas con agregaciones ---
+    # --- Consultas optimizadas con cache y agregaciones ---
     
-    # Obtener contadores en tiempo real (sin cache para evitar datos desactualizados)
     from django.db.models import Count, Q
+    from apps.projects.cache_utils import get_or_set_dashboard_stats
+    
+    # Obtener estadísticas del dashboard desde cache
+    dashboard_stats = get_or_set_dashboard_stats(organization.id)
+    total_clients = dashboard_stats['total_clients']
+    total_tasks = dashboard_stats['total_tasks']
     
     # SEGURIDAD: Contar proyectos según permisos del usuario
     if current_user.is_org_admin:
@@ -59,8 +64,6 @@ def dashboard(request):
         # Combinar IDs accesibles (activos + completados, sin archivados)
         all_accessible_ids = accessible_data['active_ids'] | accessible_data['completed_ids']
         total_projects = len(all_accessible_ids)
-    
-    total_clients = Client.objects.filter(organization=organization).count()
     
     # 1. Widget "Mis Tareas" - optimizado con select_related (excluir archivados)
     my_tasks = Task.objects.filter(
@@ -130,12 +133,8 @@ def dashboard(request):
     from apps.orgs.storage_service import StorageService
     storage_summary = StorageService.get_storage_summary(organization)
     
-    # Total de tareas de la organización (optimizado, excluir archivados)
-    total_tasks = Task.objects.filter(
-        phase__project__organization=organization
-    ).exclude(
-        phase__project__status='ARCHIVED'
-    ).count()
+    # Total de tareas ya obtenido desde cache (dashboard_stats)
+    # No se necesita query adicional
     
     # No necesitamos recent_clients ya que no se usa en el template
 

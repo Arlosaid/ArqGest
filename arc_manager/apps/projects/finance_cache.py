@@ -15,6 +15,23 @@ FINANCE_CACHE_TIMEOUT = 60 * 15  # 15 minutos
 PROJECT_STATS_TIMEOUT = 60 * 30  # 30 minutos
 PAYMENT_STATS_TIMEOUT = 60 * 10  # 10 minutos
 
+
+def safe_delete_pattern(pattern):
+    """
+    Elimina claves de cache que coincidan con el patrón de forma segura.
+    Funciona con django-redis (tiene delete_pattern) y backends que no lo soportan.
+    """
+    try:
+        if hasattr(cache, 'delete_pattern'):
+            cache.delete_pattern(pattern)
+            return True
+        else:
+            logger.warning(f"Cache backend does not support delete_pattern: {pattern}")
+            return False
+    except Exception as e:
+        logger.error(f"Error deleting cache pattern '{pattern}': {e}")
+        return False
+
 def get_organization_finance_stats(organization_id, force_refresh=False):
     """
     Obtiene estadísticas financieras de la organización desde caché.
@@ -177,14 +194,9 @@ def invalidate_finance_cache(organization_id=None, project_id=None):
             f"project_finance_stats:{project_id}",
         ])
     
-    # Eliminar patrones de caché
+    # Eliminar patrones de caché usando safe_delete_pattern
     for pattern in patterns_to_delete:
-        try:
-            cache.delete_pattern(pattern)
-            # DEBUG: Operación de caché rutinaria
-            logger.debug(f"Deleted cache pattern: {pattern}")
-        except Exception as e:
-            logger.warning(f"Could not delete cache pattern {pattern}: {e}")
+        safe_delete_pattern(pattern)
 
 def cache_payment_aggregates(project_id):
     """

@@ -4,7 +4,7 @@ Comando de gestión para limpiar caché financiero.
 """
 from django.core.management.base import BaseCommand
 from django.core.cache import cache
-from apps.projects.finance_cache import invalidate_finance_cache
+from apps.projects.finance_cache import invalidate_finance_cache, safe_delete_pattern
 import logging
 
 logger = logging.getLogger(__name__)
@@ -45,14 +45,13 @@ class Command(BaseCommand):
             ]
             
             for pattern in patterns_to_clear:
-                try:
-                    cache.delete_pattern(pattern)
+                if safe_delete_pattern(pattern):
                     self.stdout.write(
                         self.style.SUCCESS(f'Cleared cache pattern: {pattern}')
                     )
-                except Exception as e:
+                else:
                     self.stdout.write(
-                        self.style.ERROR(f'Error clearing {pattern}: {e}')
+                        self.style.WARNING(f'Could not clear pattern (backend may not support it): {pattern}')
                     )
             
             self.stdout.write(

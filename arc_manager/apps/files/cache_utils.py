@@ -7,6 +7,24 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+def safe_delete_pattern(pattern):
+    """
+    Elimina claves de cache que coincidan con el patrón de forma segura.
+    Funciona con django-redis (tiene delete_pattern) y backends que no lo soportan.
+    """
+    try:
+        if hasattr(cache, 'delete_pattern'):
+            cache.delete_pattern(pattern)
+            return True
+        else:
+            logger.warning(f"Cache backend does not support delete_pattern: {pattern}")
+            return False
+    except Exception as e:
+        logger.error(f"Error deleting cache pattern '{pattern}': {e}")
+        return False
+
+
 def invalidate_phase_files_cache(phase_id):
     """
     Invalida todo el caché de archivos para una fase específica.
@@ -16,8 +34,8 @@ def invalidate_phase_files_cache(phase_id):
         # Patrón para encontrar todas las claves de caché de esta fase
         cache_pattern = f"files_phase_{phase_id}_*"
         
-        # En Redis, usamos el método delete_pattern de django-redis
-        cache.delete_pattern(cache_pattern)
+        # Usar safe_delete_pattern para compatibilidad
+        safe_delete_pattern(cache_pattern)
         
         logger.debug(f"Cache invalidado para fase {phase_id}")
         return True
