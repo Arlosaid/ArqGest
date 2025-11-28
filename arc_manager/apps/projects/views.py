@@ -6,6 +6,7 @@ from django.views.generic import (
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import Http404, HttpResponse, HttpResponseBadRequest, JsonResponse
+from django.template.loader import render_to_string
 from django.contrib import messages
 from django.views.decorators.http import require_POST, require_http_methods
 from django.contrib.auth.decorators import login_required
@@ -1124,7 +1125,13 @@ def task_create(request, project_pk):
                 is_htmx = request.headers.get('HX-Request')
                 is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
                 if accepts_json or is_htmx or is_ajax:
-                    return JsonResponse({'success': True, 'task_id': task.id})
+                    task_html = render_to_string('projects/includes/kanban_card_inline.html', {'task': task}, request=request)
+                    return JsonResponse({
+                        'success': True, 
+                        'task_id': task.id,
+                        'task_html': task_html,
+                        'status': task.status
+                    })
                 
                 # Solo mostrar mensaje Django para peticiones normales (no AJAX)
                 messages.success(request, f'Tarea "{title}" creada exitosamente.')
