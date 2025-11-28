@@ -26,7 +26,7 @@ def invalidate_phase_files_cache(phase_id):
         logger.warning(f"Error invalidando cache para fase {phase_id}: {e}")
         return False
 
-def get_cache_key(phase_id, offset=0, limit=20, file_type_filter='', date_filter=''):
+def get_cache_key(phase_id, offset=0, limit=18, file_type_filter='', date_filter=''):
     """
     Genera clave de caché consistente para consultas de archivos
     """
@@ -38,7 +38,7 @@ def get_cache_key(phase_id, offset=0, limit=20, file_type_filter='', date_filter
         return f"files_phase_{key_hash}"
     return f"files_phase_{key_components}"
 
-def cache_files_result(phase_id, files_data, has_more, offset=0, limit=20, 
+def cache_files_result(phase_id, files_data, has_more, offset=0, limit=18, 
                       file_type_filter='', date_filter='', timeout=600):
     """
     Guarda resultado de archivos en caché Redis
@@ -51,7 +51,7 @@ def cache_files_result(phase_id, files_data, has_more, offset=0, limit=20,
         logger.warning(f"Error guardando en cache: {e}")
         return False
 
-def get_cached_files_result(phase_id, offset=0, limit=20, file_type_filter='', date_filter=''):
+def get_cached_files_result(phase_id, offset=0, limit=18, file_type_filter='', date_filter=''):
     """
     Obtiene resultado de archivos desde caché Redis
     """

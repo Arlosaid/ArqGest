@@ -621,13 +621,25 @@ MESSAGE_TAGS = {
 # Determinar si estamos en un entorno containerizado
 IS_DOCKER = os.environ.get('DOCKER_CONTAINER', 'false').lower() == 'true'
 
+# Detectar versión de python-json-logger para compatibilidad
+# v4.x usa pythonjsonlogger.json.JsonFormatter
+# v2.x/v3.x usan pythonjsonlogger.jsonlogger.JsonFormatter
+def get_json_formatter_class():
+    try:
+        from pythonjsonlogger.json import JsonFormatter
+        return 'pythonjsonlogger.json.JsonFormatter'
+    except ImportError:
+        return 'pythonjsonlogger.jsonlogger.JsonFormatter'
+
+JSON_FORMATTER_CLASS = get_json_formatter_class()
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
         # Formato JSON para producción (CloudWatch, análisis) - SIN DUPLICAR MENSAJE
         'json': {
-            '()': 'pythonjsonlogger.jsonlogger.JsonFormatter',
+            '()': JSON_FORMATTER_CLASS,
             'format': '%(levelname)s %(name)s %(message)s %(request_id)s %(user_id)s %(organization_id)s',
         },
         # Formato simple para desarrollo

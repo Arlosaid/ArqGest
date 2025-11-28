@@ -41,10 +41,10 @@
                 
                 {% if user.is_org_admin %}
                 <!-- Botones de Acción estilo blanco -->
-                <a href="{% url 'projects:project-update' project.pk %}" class="btn" style="background: white; border: 1px solid #e0e0e0; color: #666; box-shadow: 0 1px 3px rgba(0,0,0,0.1); white-space: nowrap;">
+                <a href="{% url 'projects:project-update' project.pk %}" class="btn btn-outline-secondary" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1); white-space: nowrap;">
                     <i class="fas fa-edit"></i> <span class="d-none d-md-inline">{% trans "Editar Proyecto" %}</span>
                 </a>
-                <a href="{% url 'projects:project-phases-edit' project.pk %}" class="btn" style="background: white; border: 1px solid #e0e0e0; color: #666; box-shadow: 0 1px 3px rgba(0,0,0,0.1); white-space: nowrap;">
+                <a href="{% url 'projects:project-phases-edit' project.pk %}" class="btn btn-outline-secondary" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1); white-space: nowrap;">
                     <i class="fas fa-layer-group"></i> <span class="d-none d-md-inline">{% trans "Editar Fases" %}</span>
                 </a>
                 <a href="{% url 'projects:project-delete' project.pk %}" 
@@ -184,16 +184,18 @@
                     </div>
 
                     <!-- Description Section -->
-                    {% if project.description %}
                     <h3 class="details-section-title">
                         <i class="fas fa-align-left"></i> {% trans "Descripción del Proyecto" %}
                     </h3>
                     <div class="description-section">
                         <div class="description-text">
-                            {{ project.description|linebreaks }}
+                            {% if project.description %}
+                                {{ project.description|linebreaks }}
+                            {% else %}
+                                <span class="text-muted fst-italic">{% trans "Sin descripción detallada." %}</span>
+                            {% endif %}
                         </div>
                     </div>
-                    {% endif %}
 
                     <!-- Team Section (Optional - if users are available) -->
                     {% if users %}

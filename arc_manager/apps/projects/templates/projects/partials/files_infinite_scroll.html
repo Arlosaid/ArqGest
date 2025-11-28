@@ -1,52 +1,42 @@
 {% load i18n %}
 {% load humanize %}
+{% load project_extras %}
 
 {% for file in files %}
+{% with icon_data=file.extension|file_icon %}
 <div class="file-item" id="file-{{ file.id }}">
-    <div class="file-compact-card">
-        
-        <a href="{{ file.file_url }}" target="_blank" class="text-decoration-none">
-            {% if file.extension == 'JPG' or file.extension == 'JPEG' or file.extension == 'PNG' or file.extension == 'GIF' or file.extension == 'TIFF' %}
-                <div class="file-compact-icon file-icon-img"><i class="fas fa-image"></i></div>
-            {% elif file.extension == 'PDF' %}
-                <div class="file-compact-icon file-icon-pdf"><i class="fas fa-file-pdf"></i></div>
-            {% elif file.extension == 'DWG' or file.extension == 'DXF' or file.extension == 'RVT' or file.extension == 'SKP' %}
-                <div class="file-compact-icon file-icon-cad"><i class="fas fa-drafting-compass"></i></div>
-            {% elif file.extension == 'DOC' or file.extension == 'DOCX' %}
-                <div class="file-compact-icon file-icon-doc"><i class="fas fa-file-word"></i></div>
-            {% elif file.extension == 'XLS' or file.extension == 'XLSX' %}
-                <div class="file-compact-icon file-icon-xls"><i class="fas fa-file-excel"></i></div>
-            {% elif file.extension == 'PPT' or file.extension == 'PPTX' %}
-                <div class="file-compact-icon file-icon-ppt"><i class="fas fa-file-powerpoint"></i></div>
-            {% elif file.extension == 'ZIP' or file.extension == 'RAR' %}
-                <div class="file-compact-icon file-icon-zip"><i class="fas fa-file-archive"></i></div>
-            {% else %}
-                <div class="file-compact-icon file-icon-default"><i class="fas fa-file"></i></div>
-            {% endif %}
+    <div class="file-card">
+        <a href="{{ file.file_url }}" target="_blank" class="text-decoration-none" title="{% trans 'Ver archivo' %}">
+            <div class="file-icon {{ icon_data.class }}">
+                <i class="{{ icon_data.icon }}"></i>
+            </div>
         </a>
 
-        <div class="file-compact-info">
-            <div class="file-compact-name" title="{{ file.filename }}">
-                {{ file.filename|truncatechars:60 }}
-            </div>
-            <div class="file-compact-meta">
-                <div class="d-flex align-items-center">
-                    <span>{{ file.size|filesizeformat }}</span>
-                    <span class="mx-1">•</span>
-                    <span>{{ file.uploaded_at|date:"d/m/Y" }}</span>
-                </div>
-                <div class="d-none d-sm-flex align-items-center text-truncate ms-2" style="max-width: 120px;">
-                    <i class="fas fa-user-circle me-1 text-muted" style="font-size: 0.75rem;"></i>
-                    <span class="text-truncate" title="{{ file.uploaded_by_name }}">{{ file.uploaded_by_name }}</span>
-                </div>
+        <div class="file-info">
+            <h6 class="file-name" title="{{ file.filename }}">
+                {{ file.filename|truncatechars:50 }}
+            </h6>
+            <div class="file-meta">
+                <span class="file-meta-item">
+                    <i class="fas fa-tag"></i>{{ file.extension }}
+                </span>
+                <span class="file-meta-item">
+                    <i class="fas fa-weight-hanging"></i>{{ file.size|filesizeformat }}
+                </span>
+                <span class="file-meta-item">
+                    <i class="fas fa-calendar"></i>{{ file.uploaded_at|date:"d/m/Y" }}
+                </span>
             </div>
         </div>
 
-        <div class="file-compact-actions">
-            <a href="{{ file.file_url }}" class="btn-icon-action view" download title="{% trans 'Descargar' %}">
+        <div class="file-actions">
+            <a href="{{ file.file_url }}" 
+               class="file-action-btn download" 
+               download 
+               title="{% trans 'Descargar' %}">
                 <i class="fas fa-download"></i>
             </a>
-            <button class="btn-icon-action delete file-delete-btn"
+            <button class="file-action-btn delete file-delete-btn"
                     data-delete-url="{% url 'files:delete_file' file.id %}"
                     data-file-id="{{ file.id }}"
                     type="button"
@@ -56,16 +46,17 @@
         </div>
     </div>
 </div>
+{% endwith %}
 {% endfor %}
 
-<div id="load-more-wrapper-{{ phase.id }}" hx-swap-oob="true" class="text-center mt-4 mb-3">
+<div id="load-more-wrapper-{{ phase.id }}" hx-swap-oob="true" class="load-more-container">
     {% if has_more %}
-    <button class="btn btn-outline-primary btn-sm"
+    <button class="load-more-btn"
             hx-get="{% url 'projects:phase-files-paginated' project_id=phase.project.id phase_id=phase.id %}?offset={{ next_offset }}&load_more=true{% if current_filters.type %}&type={{ current_filters.type }}{% endif %}{% if current_filters.date %}&date={{ current_filters.date }}{% endif %}"
             hx-target="#files-grid-{{ phase.id }}"
             hx-swap="beforeend"
             hx-indicator="#spinner-{{ phase.id }}">
-        <i class="fas fa-plus-circle me-1"></i> {% trans "Cargar más archivos" %}
+        <i class="fas fa-plus-circle"></i> {% trans "Cargar más archivos" %}
     </button>
     <div id="spinner-{{ phase.id }}" class="htmx-indicator spinner-border spinner-border-sm text-primary ms-2" role="status">
         <span class="visually-hidden">{% trans "Cargando..." %}</span>

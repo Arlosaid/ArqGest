@@ -1,7 +1,7 @@
 // Control robusto de pestañas y utilidades de Project Detail
 document.addEventListener('DOMContentLoaded', function () {
   
-  // Función para manejar el filtrado de archivos mejorado
+  // Función para manejar el filtrado de archivos mejorado (Server-side con HTMX)
   function setupFileFiltering() {
     const fileTypeFilters = document.querySelectorAll('[id^="fileTypeFilter-"]');
     const fileDateFilters = document.querySelectorAll('[id^="fileDateFilter-"]');
@@ -9,116 +9,75 @@ document.addEventListener('DOMContentLoaded', function () {
     
     // Configurar filtros por tipo
     fileTypeFilters.forEach(filter => {
+      if (filter.dataset.initialized) return;
+      filter.dataset.initialized = "true";
       const phaseId = filter.id.replace('fileTypeFilter-', '');
-      setupFilterLogic(phaseId);
-      filter.addEventListener('change', () => applyAllFilters(phaseId));
+      filter.addEventListener('change', () => reloadFilesWithFilters(phaseId));
     });
     
     // Configurar filtros por fecha
     fileDateFilters.forEach(filter => {
+      if (filter.dataset.initialized) return;
+      filter.dataset.initialized = "true";
       const phaseId = filter.id.replace('fileDateFilter-', '');
-      filter.addEventListener('change', () => applyAllFilters(phaseId));
+      filter.addEventListener('change', () => reloadFilesWithFilters(phaseId));
     });
     
     // Configurar botones de limpiar filtros
-    clearFilterButtons.forEach(button => {
-      const phaseId = button.id.replace('clearFilters-', '');
-      button.addEventListener('click', () => clearAllFilters(phaseId));
-    });
+    // NOTA: El manejo principal está en files_filtering.js usando delegación de eventos
+    // No agregamos listeners aquí para evitar conflictos
   }
   
-  function setupFilterLogic(phaseId) {
-    // Esta función se ejecuta una vez por fase para configurar la lógica
-  }
-  
-  function applyAllFilters(phaseId) {
-    const tableBody = document.getElementById(`filesTableBody-${phaseId}`);
+  function reloadFilesWithFilters(phaseId) {
+    const container = document.getElementById(`files-container-${phaseId}`);
+    if (!container) return;
+    
     const typeFilter = document.getElementById(`fileTypeFilter-${phaseId}`);
     const dateFilter = document.getElementById(`fileDateFilter-${phaseId}`);
     
-    if (!tableBody || !typeFilter || !dateFilter) return;
+    const typeValue = typeFilter ? typeFilter.value : '';
+    const dateValue = dateFilter ? dateFilter.value : '';
     
-    const selectedTypes = typeFilter.value;
-    const selectedDateFilter = dateFilter.value;
-    const rows = tableBody.querySelectorAll('.file-row');
-    
-    // Obtener fechas para comparación
-    const today = new Date();
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay());
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    
-    rows.forEach(row => {
-      const fileType = row.getAttribute('data-file-type');
-      const fileDate = new Date(row.getAttribute('data-file-date'));
-      let showRow = true;
-      
-      // Filtro por tipo
-      if (selectedTypes && selectedTypes.trim() !== '') {
-        const allowedTypes = selectedTypes.split(',').map(t => t.trim().toUpperCase());
-        if (!allowedTypes.includes(fileType.toUpperCase())) {
-          showRow = false;
-        }
-      }
-      
-      // Filtro por fecha
-      if (showRow && selectedDateFilter && selectedDateFilter.trim() !== '') {
-        switch (selectedDateFilter) {
-          case 'today':
-            showRow = fileDate.toDateString() === today.toDateString();
-            break;
-          case 'week':
-            showRow = fileDate >= startOfWeek && fileDate <= today;
-            break;
-          case 'month':
-            showRow = fileDate >= startOfMonth && fileDate <= today;
-            break;
-          case 'older':
-            showRow = fileDate < startOfMonth;
-            break;
-        }
-      }
-      
-      row.style.display = showRow ? '' : 'none';
-    });
-    
-    // Actualizar contador de archivos visibles
-    updateFileCounter(phaseId, rows, selectedTypes || selectedDateFilter);
-  }
-  
-  function updateFileCounter(phaseId, rows, hasActiveFilter) {
-    const badge = document.querySelector(`#fileTypeFilter-${phaseId}`).closest('.row').querySelector('.badge');
-    if (!badge) return;
-    
-    const totalFiles = rows.length;
-    const visibleFiles = Array.from(rows).filter(row => row.style.display !== 'none').length;
-    
-    if (hasActiveFilter && hasActiveFilter.trim() !== '') {
-      badge.textContent = `${visibleFiles} de ${totalFiles} archivos`;
-      badge.className = 'badge bg-info';
+    // Obtener URL base del atributo hx-get original
+    let url = container.getAttribute('hx-get');
+    if (url) {
+        url = url.split('?')[0]; // Remover query params existentes
     } else {
-      badge.textContent = `${totalFiles} archivo${totalFiles !== 1 ? 's' : ''}`;
-      badge.className = 'badge bg-primary';
+        console.error('No hx-get attribute found on container');
+        return;
+    }
+    
+    // Construir nuevos parámetros
+    const params = new URLSearchParams();
+    params.append('offset', '0'); // Resetear a la primera página
+    params.append('limit', '20');
+    if (typeValue) params.append('type', typeValue);
+    if (dateValue) params.append('date', dateValue);
+    
+    const finalUrl = `${url}?${params.toString()}`;
+    
+    // Usar HTMX para recargar
+    if (window.htmx) {
+        // Mostrar indicador de carga si existe
+        const spinner = container.querySelector('.files-loading') || document.getElementById(`spinner-${phaseId}`);
+        if (spinner) spinner.style.display = 'block';
+        
+        htmx.ajax('GET', finalUrl, {
+            target: `#files-container-${phaseId}`,
+            swap: 'innerHTML'
+        });
     }
   }
   
   function clearAllFilters(phaseId) {
     const typeFilter = document.getElementById(`fileTypeFilter-${phaseId}`);
     const dateFilter = document.getElementById(`fileDateFilter-${phaseId}`);
-    const tableBody = document.getElementById(`filesTableBody-${phaseId}`);
     
     if (typeFilter) typeFilter.value = '';
     if (dateFilter) dateFilter.value = '';
     
-    if (tableBody) {
-      const rows = tableBody.querySelectorAll('.file-row');
-      rows.forEach(row => {
-        row.style.display = '';
-      });
-      
-      // Actualizar contador
-      updateFileCounter(phaseId, rows, '');
-    }
+    // Recargar sin filtros
+    reloadFilesWithFilters(phaseId);
   }
   
   // Ejecutar después de que la página se cargue completamente

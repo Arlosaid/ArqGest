@@ -4,60 +4,58 @@
 {% for file in files %}
 <div class="file-item" id="file-{{ file.id }}">
     <div class="file-card">
-        
-        <a href="{{ file.file.url }}" target="_blank" class="text-decoration-none">
+        <a href="{{ file.file.url }}" target="_blank" class="text-decoration-none" title="{% trans 'Ver archivo' %}">
             {% if file.extension == 'JPG' or file.extension == 'JPEG' or file.extension == 'PNG' or file.extension == 'GIF' or file.extension == 'TIFF' %}
-                <div class="file-icon file-image"><i class="fas fa-image"></i></div>
+                <div class="file-icon image"><i class="fas fa-image"></i></div>
             {% elif file.extension == 'PDF' %}
-                <div class="file-icon file-pdf"><i class="fas fa-file-pdf"></i></div>
-            {% elif file.extension == 'DWG' or file.extension == 'DXF' or file.extension == 'RVT' or file.extension == 'SKP' %}
-                <div class="file-icon file-cad"><i class="fas fa-drafting-compass"></i></div>
+                <div class="file-icon pdf"><i class="fas fa-file-pdf"></i></div>
+            {% elif file.extension == 'DWG' or file.extension == 'DXF' %}
+                <div class="file-icon cad"><i class="fas fa-drafting-compass"></i></div>
+            {% elif file.extension == 'RVT' %}
+                <div class="file-icon revit"><i class="fas fa-building"></i></div>
+            {% elif file.extension == 'SKP' %}
+                <div class="file-icon sketchup"><i class="fas fa-cube"></i></div>
             {% elif file.extension == 'DOC' or file.extension == 'DOCX' %}
-                <div class="file-icon file-doc"><i class="fas fa-file-word"></i></div>
+                <div class="file-icon word"><i class="fas fa-file-word"></i></div>
             {% elif file.extension == 'XLS' or file.extension == 'XLSX' %}
-                <div class="file-icon file-excel"><i class="fas fa-file-excel"></i></div>
+                <div class="file-icon excel"><i class="fas fa-file-excel"></i></div>
             {% elif file.extension == 'PPT' or file.extension == 'PPTX' %}
-                <div class="file-icon file-ppt"><i class="fas fa-file-powerpoint"></i></div>
+                <div class="file-icon ppt"><i class="fas fa-file-powerpoint"></i></div>
             {% elif file.extension == 'ZIP' or file.extension == 'RAR' %}
-                <div class="file-icon file-archive"><i class="fas fa-file-archive"></i></div>
-            {% elif file.extension == 'TXT' or file.extension == 'MD' %}
-                <div class="file-icon file-text"><i class="fas fa-file-alt"></i></div>
+                <div class="file-icon archive"><i class="fas fa-file-archive"></i></div>
             {% else %}
-                <div class="file-icon file-default"><i class="fas fa-file"></i></div>
+                <div class="file-icon default"><i class="fas fa-file"></i></div>
             {% endif %}
         </a>
 
         <div class="file-info">
-            <div class="file-name" title="{{ file.filename }}">
-                <span class="file-name-full d-none d-md-block">{{ file.filename|truncatechars:20 }}</span>
-                <span class="file-name-short d-md-none">{{ file.filename|truncatechars:15 }}</span>
+            <h6 class="file-name" title="{{ file.filename }}">{{ file.filename|truncatechars:30 }}</h6>
+            <div class="file-meta">
+                <span class="file-meta-item"><i class="fas fa-tag"></i>{{ file.extension }}</span>
+                <span class="file-meta-item"><i class="fas fa-weight-hanging"></i>{{ file.size|filesizeformat }}</span>
             </div>
         </div>
-        <div class="file-meta">
-            <span class="file-size">{{ file.size|filesizeformat }}</span>
-            <span class="file-type">{{ file.extension }}</span>
-        </div>
-        <div class="file-date">{{ file.uploaded_at|date:"d/m/Y" }}</div>
-        <div class="file-uploader">{{ file.uploaded_by.get_full_name|default:"N/A"|truncatechars:12 }}</div>
 
         <div class="file-actions">
-            <a href="{{ file.file.url }}" class="btn btn-sm btn-primary" download>
+            <a href="{{ file.file.url }}" class="file-action-btn download" download title="{% trans 'Descargar' %}">
                 <i class="fas fa-download"></i>
             </a>
-            <button class="btn btn-sm btn-outline-danger file-delete-btn"
+            <button class="file-action-btn delete file-delete-btn"
                     data-delete-url="{% url 'files:delete_file' file.id %}"
                     data-file-id="{{ file.id }}"
-                    type="button">
-                <i class="fas fa-trash"></i>
+                    type="button"
+                    title="{% trans 'Eliminar' %}">
+                <i class="fas fa-trash-alt"></i>
             </button>
         </div>
     </div>
 </div>
 {% empty %}
 {% if not has_existing_files %}
-<div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #6b7280;" id="no-files-message">
-    <i class="fas fa-folder-open" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
-    <p>{% trans "No se encontraron documentos" %}</p>
+<div class="files-empty-state" id="no-files-message">
+    <i class="fas fa-folder-open files-empty-icon"></i>
+    <h6 class="files-empty-title">{% trans "Sin documentos" %}</h6>
+    <p class="files-empty-text">{% trans "Sube archivos para verlos aquí" %}</p>
 </div>
 {% endif %}
 {% endfor %}

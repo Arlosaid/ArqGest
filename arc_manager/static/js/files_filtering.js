@@ -3,6 +3,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Configurar filtros inmediatamente
     setupFileFilters();
     
+    // IMPORTANTE: Usar delegación de eventos para el botón de limpiar
+    // Esto asegura que funcione incluso si el DOM cambia
+    document.body.addEventListener('click', function(e) {
+        const clearBtn = e.target.closest('[id^="clearFilters-"]');
+        if (clearBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const phaseId = clearBtn.id.replace('clearFilters-', '');
+            clearFilters(phaseId);
+            return false;
+        }
+    }, true); // Usar capture phase para mayor prioridad
+    
     // IMPORTANTE: Reconfigurar cuando se carga contenido dinámico (accordions, tabs)
     document.body.addEventListener('htmx:afterSettle', function(event) {
         // Esperar un momento para que el DOM se actualice
@@ -62,22 +75,8 @@ function setupFileFilters() {
         filter.addEventListener('change', filter._filterHandler);
     });
     
-    // Configurar botones de limpiar
-    const clearButtons = document.querySelectorAll('[id^="clearFilters-"]');
-    
-    clearButtons.forEach(button => {
-        const phaseId = button.id.replace('clearFilters-', '');
-        
-        // Remover listeners anteriores para evitar duplicados
-        if (button._clearHandler) {
-            button.removeEventListener('click', button._clearHandler);
-        }
-        
-        button._clearHandler = () => {
-            clearFilters(phaseId);
-        };
-        button.addEventListener('click', button._clearHandler);
-    });
+    // NOTA: El botón de limpiar ahora usa delegación de eventos en el body
+    // por lo que no necesitamos configurarlo aquí
 }
 
 function applyFilters(phaseId) {
@@ -101,7 +100,7 @@ function applyFilters(phaseId) {
     const baseUrl = hxGetAttr.split('?')[0];
     
     // Construir URL con filtros
-    let url = `${baseUrl}?offset=0&limit=20`;
+    let url = `${baseUrl}?offset=0&limit=18`;
     
     if (typeValue) {
         url += `&type=${encodeURIComponent(typeValue)}`;
@@ -193,12 +192,74 @@ function hideFilterLoadingIndicator(container) {
 function clearFilters(phaseId) {
     const typeFilter = document.getElementById(`fileTypeFilter-${phaseId}`);
     const dateFilter = document.getElementById(`fileDateFilter-${phaseId}`);
+    const container = document.getElementById(`files-container-${phaseId}`);
     
-    if (typeFilter) typeFilter.value = '';
-    if (dateFilter) dateFilter.value = '';
+    // Resetear valores de los filtros
+    if (typeFilter) {
+        typeFilter.value = '';
+        typeFilter.selectedIndex = 0;
+    }
+    if (dateFilter) {
+        dateFilter.value = '';
+        dateFilter.selectedIndex = 0;
+    }
     
-    // Aplicar filtros vacíos
-    applyFilters(phaseId);
+    // Verificar que el contenedor existe
+    if (!container) {
+        return;
+    }
+    
+    // Obtener la URL base del contenedor
+    const hxGetAttr = container.getAttribute('hx-get');
+    if (!hxGetAttr) {
+        return;
+    }
+    
+    const baseUrl = hxGetAttr.split('?')[0];
+    
+    // Construir URL sin filtros
+    const url = `${baseUrl}?offset=0&limit=18`;
+    
+    // Actualizar el atributo hx-get del contenedor
+    container.setAttribute('hx-get', url);
+    
+    // Mostrar indicador de carga
+    showFilterLoadingIndicator(container);
+    
+    // Usar fetch para recargar los archivos sin filtros
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'HX-Request': 'true',
+            'HX-Target': `files-container-${phaseId}`
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.text();
+    })
+    .then(html => {
+        // Reemplazar contenido del contenedor
+        container.innerHTML = html;
+        
+        hideFilterLoadingIndicator(container);
+        
+        // Reinicializar event listeners en el nuevo contenido
+        if (window.htmx) {
+            htmx.process(container);
+        }
+    })
+    .catch((error) => {
+        hideFilterLoadingIndicator(container);
+        
+        // Mostrar notificación de error
+        if (window.notifications) {
+            window.notifications.error('Error al limpiar filtros');
+        }
+    });
 }
 
 // Funciones globales para compatibilidad
