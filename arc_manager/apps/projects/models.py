@@ -488,8 +488,8 @@ class Task(models.Model):
             
             # Log cambios si hay - DEBUG: Cambios de tarea son operaciones frecuentes
             if changes:
-                logger = logging.getLogger('apps.projects')
-                logger.debug(
+                task_logger = logging.getLogger('apps.projects')
+                task_logger.debug(
                     f"Task '{self.title}' updated: {len(changes)} change(s)",
                     extra={
                         'event': 'TASK_CHANGED',
@@ -702,9 +702,10 @@ class ProjectPayment(models.Model):
         
         # OPTIMIZACIÓN: Invalidar caché financiero después de guardar
         from django.core.cache import cache
+        from .finance_cache import safe_delete_pattern
         cache.delete(f"project_total_paid:{self.project.id}")
         cache.delete(f"project_finance_stats:{self.project.id}")
-        cache.delete_pattern(f"org_finance_stats:{self.project.organization.id}")
+        safe_delete_pattern(f"org_finance_stats:{self.project.organization.id}")
     
     def delete(self, *args, **kwargs):
         """Override delete para logging e invalidación de caché."""
@@ -715,9 +716,10 @@ class ProjectPayment(models.Model):
         
         # OPTIMIZACIÓN: Invalidar caché financiero antes de eliminar
         from django.core.cache import cache
+        from .finance_cache import safe_delete_pattern
         cache.delete(f"project_total_paid:{project_id}")
         cache.delete(f"project_finance_stats:{project_id}")
-        cache.delete_pattern(f"org_finance_stats:{org_id}")
+        safe_delete_pattern(f"org_finance_stats:{org_id}")
         
         super().delete(*args, **kwargs)
         

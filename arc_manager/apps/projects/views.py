@@ -57,7 +57,7 @@ def log_project_operation(operation, user_email, error_code=None, level='INFO', 
     return log_msg, log_data
 
 from apps.files.models import ProjectFile
-from .forms import ProjectForm, TaskForm, PhaseTemplateForm, PhaseFormSet
+from .forms import ProjectForm, TaskForm, PhaseTemplateForm, PhaseFormSet, BudgetConfigForm
 from .services import create_phases_for_project  # Importar el nuevo servicio
 from django.http import JsonResponse
 from django.contrib.auth import get_user_model
@@ -2085,10 +2085,11 @@ class FinanceDashboardView(LoginRequiredMixin, OrganizationAdminMixin, ProjectPa
         # OPTIMIZACIÓN: Usar manager optimizado con financial_data
         queryset = Project.objects.with_financial_data().filter(
             organization=self.request.user.organization
-        ).exclude(status=Project.Status.ARCHIVED)  # Excluir proyectos archivados
+        )
         
         # Filtros
         search = self.request.GET.get('search', '').strip()
+        status = self.request.GET.get('status', 'all')
         budget_status = self.request.GET.get('budget_status', '')
         
         # Filtro de búsqueda (por nombre de proyecto o cliente)
@@ -2097,6 +2098,12 @@ class FinanceDashboardView(LoginRequiredMixin, OrganizationAdminMixin, ProjectPa
                 Q(name__icontains=search) |
                 Q(client__name__icontains=search)
             )
+        
+        # Filtro de estado
+        if status == 'active':
+            queryset = queryset.filter(status=Project.Status.ACTIVE)
+        elif status == 'archived':
+            queryset = queryset.filter(status=Project.Status.ARCHIVED)
         
         # Filtro de estado de presupuesto
         if budget_status == 'configured':
@@ -2122,6 +2129,7 @@ class FinanceDashboardView(LoginRequiredMixin, OrganizationAdminMixin, ProjectPa
         # Parámetros de filtros actuales
         current_filters = {
             'search': self.request.GET.get('search', ''),
+            'status': self.request.GET.get('status', 'all'),
             'budget_status': self.request.GET.get('budget_status', ''),
         }
         
@@ -2131,6 +2139,50 @@ class FinanceDashboardView(LoginRequiredMixin, OrganizationAdminMixin, ProjectPa
         extra_params = params.urlencode()
         if extra_params:
             extra_params = f"{extra_params}&"
+
+        # Datos para el gráfico de ingresos mensuales (últimos 6 meses)
+        from django.db.models.functions import TruncMonth
+        from django.db.models import Sum
+        import datetime
+        
+        today = timezone.now().date()
+        # Calcular fecha de inicio (6 meses atrás)
+        start_date = today.replace(day=1)
+        for _ in range(5):
+            start_date = (start_date - datetime.timedelta(days=1)).replace(day=1)
+            
+        monthly_income = ProjectPayment.objects.filter(
+            project__organization=self.request.user.organization,
+            date__gte=start_date
+        ).annotate(
+            month=TruncMonth('date')
+        ).values('month').annotate(
+            total=Sum('amount')
+        ).order_by('month')
+        
+        income_labels = []
+        income_data = []
+        
+        # Generar lista de meses
+        curr = start_date
+        while curr <= today:
+            spanish_months = {
+                1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun',
+                7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'
+            }
+            income_labels.append(spanish_months.get(curr.month, curr.strftime('%b')))
+            
+            # Buscar datos
+            total = 0
+            for entry in monthly_income:
+                if entry['month'].year == curr.year and entry['month'].month == curr.month:
+                    total = float(entry['total'])
+                    break
+            income_data.append(total)
+            
+            # Siguiente mes
+            next_month = curr.replace(day=28) + datetime.timedelta(days=4)
+            curr = next_month.replace(day=1)
 
         # Usar estadísticas desde caché Redis
         context.update({
@@ -2144,6 +2196,8 @@ class FinanceDashboardView(LoginRequiredMixin, OrganizationAdminMixin, ProjectPa
             'overall_percentage': finance_stats['overall_percentage'],
             'current_filters': current_filters,
             'extra_params': extra_params,
+            'income_labels': income_labels,
+            'income_data': income_data,
         })
         
         return context
@@ -2190,8 +2244,9 @@ class ProjectFinanceDetailView(LoginRequiredMixin, OrganizationAdminMixin, Detai
 class ProjectBudgetConfigView(LoginRequiredMixin, OrganizationAdminMixin, UpdateView):
     """Vista para configurar el presupuesto de un proyecto (solo admin)."""
     model = Project
-    fields = ['total_budget']
+    form_class = BudgetConfigForm
     template_name = 'projects/finance/budget_config.html'
+    context_object_name = 'project'
     
     def get_object(self):
         """Verificar acceso al proyecto."""

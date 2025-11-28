@@ -7,8 +7,115 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/finance.css' %}">
+<link href="{% static 'css/project_list.css' %}?v=6.0" rel="stylesheet">
 <meta name="allowed-extensions" content="PDF,JPG,JPEG,PNG,GIF,DOC,DOCX">
 <meta name="max-file-size" content="5">
+<style>
+    /* Custom overrides for this form */
+    .form-compact-container {
+        max-width: 600px;
+        margin: 2rem auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border: 1px solid #e5e7eb;
+        overflow: hidden;
+    }
+    
+    .form-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+        background: #f9fafb;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .form-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #111827;
+    }
+    
+    .form-body {
+        padding: 2rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control-custom {
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+    
+    .form-control-custom:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .file-input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .file-input-button {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        background-color: #f3f4f6;
+        color: #374151;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .file-input-button:hover {
+        background-color: #e5e7eb;
+        border-color: #9ca3af;
+    }
+    
+    .file-name-display {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-style: italic;
+    }
+    
+    .hidden-file-input {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+    }
+
+    .stats-overview-section {
+        margin-bottom: 2rem;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -33,105 +140,185 @@
         </div>
     </div>
 
-    <div class="project-info-card">
-        <div class="project-info-header">
-            <div class="project-avatar">
-                {{ project.name|slice:":1"|upper }}
+    <!-- Metrics Grid (Consistent with project_list.html) -->
+    <div class="stats-overview-section">
+        <div class="stat-card-modern total">
+            <div class="stat-icon-wrapper">
+                <i class="fas fa-dollar-sign"></i>
             </div>
-            <div class="project-info">
-                <h3>{{ project.name }}</h3>
-                <div class="project-financial-summary">
-                    <div class="financial-item">
-                        <span class="financial-label">Presupuesto:</span>
-                        <span class="financial-value">${{ project.total_budget|floatformat:0 }}</span>
-                    </div>
-                    <div class="financial-item">
-                        <span class="financial-label">Pagado:</span>
-                        <span class="financial-value paid">${{ project.total_paid|floatformat:0 }}</span>
-                    </div>
-                    <div class="financial-item">
-                        <span class="financial-label">Pendiente:</span>
-                        <span class="financial-value remaining">${{ project.remaining_amount|floatformat:0 }}</span>
-                    </div>
-                </div>
+            <div class="stat-info">
+                <span class="stat-value">${{ project.total_budget|unlocalize|floatformat:0 }}</span>
+                <span class="stat-label">Presupuesto Total</span>
+            </div>
+        </div>
+        
+        <div class="stat-card-modern completed">
+            <div class="stat-icon-wrapper">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">${{ project.total_paid|unlocalize|floatformat:0 }}</span>
+                <span class="stat-label">Total Pagado</span>
+            </div>
+        </div>
+        
+        <div class="stat-card-modern archived">
+            <div class="stat-icon-wrapper">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">${{ project.remaining_amount|unlocalize|floatformat:0 }}</span>
+                <span class="stat-label">Pendiente</span>
             </div>
         </div>
 
-        <div class="progress-section">
-            <div class="progress-bar">
-                <div class="progress-fill" 
-                     style="width: {{ project.payment_percentage }}%; 
-                            background: {% if project.payment_status == 'completed' %}var(--arc-color-success){% elif project.payment_status == 'almost_complete' %}var(--arc-color-warning){% elif project.payment_status == 'in_progress' %}var(--arc-color-primary){% else %}var(--arc-color-danger){% endif %};">
-                </div>
+        <div class="stat-card-modern active-projects">
+            <div class="stat-icon-wrapper">
+                <i class="fas fa-chart-pie"></i>
             </div>
-            <div class="progress-text">{{ project.payment_percentage }}% pagado</div>
+            <div class="stat-info">
+                <span class="stat-value">{{ project.payment_percentage }}%</span>
+                <span class="stat-label">Completado</span>
+            </div>
         </div>
     </div>
 
-    <div id="paymentFormContainer" class="payment-form-simple" data-remaining="{{ project.remaining_amount|unlocalize }}" data-amount-input-id="{{ form.amount.id_for_label }}" data-date-input-id="{{ form.date.id_for_label }}">
-        {% if is_edit %}
-            <h3>Editar Pago</h3>
-        {% else %}
-            <h3>Registrar Pago</h3>
-        {% endif %}
-            
-        <form method="post" enctype="multipart/form-data" class="form-simple">
-            {% csrf_token %}
-            
-            <div class="form-field">
-                <label for="{{ form.amount.id_for_label }}">Monto</label>
-                <div class="input-simple">
-                    <span class="currency">$</span>
-                    {{ form.amount }}
-                </div>
-                <small>Máximo: ${{ project.remaining_amount|floatformat:0 }}</small>
-                {% if form.amount.errors %}
-                    <div class="error">{{ form.amount.errors.0 }}</div>
-                {% endif %}
-                <div id="amount-feedback" class="feedback-simple"></div>
-            </div>
+    <!-- Form Container -->
+    <style>
+        .custom-form-input input, .custom-form-input textarea, .custom-form-input select {
+            display: block;
+            width: 100%;
+            padding: 0.375rem 0.75rem;
+            font-size: 1rem;
+            font-weight: 400;
+            line-height: 1.5;
+            color: #212529;
+            background-color: #fff;
+            background-clip: padding-box;
+            border: 1px solid #ced4da;
+            appearance: none;
+            border-radius: 0.375rem;
+            transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+        }
+        .custom-form-input input:focus, .custom-form-input textarea:focus, .custom-form-input select:focus {
+            color: #212529;
+            background-color: #fff;
+            border-color: #86b7fe;
+            outline: 0;
+            box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
+        }
+        .input-group-text {
+            display: flex;
+            align-items: center;
+            padding: 0.375rem 0.75rem;
+            font-size: 1rem;
+            font-weight: 400;
+            line-height: 1.5;
+            color: #212529;
+            text-align: center;
+            white-space: nowrap;
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 0.375rem;
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+        .input-group .custom-form-input input {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+    </style>
 
-            <div class="form-field">
-                <label for="{{ form.date.id_for_label }}">Fecha</label>
-                <input type="date" 
-                       id="{{ form.date.id_for_label }}" 
-                       name="{{ form.date.name }}" 
-                       value="{% if form.date.value %}{{ form.date.value|date:'Y-m-d' }}{% else %}{{ today|date:'Y-m-d' }}{% endif %}"
-                       class="form-control"
-                       onkeydown="return false" onpaste="return false" autocomplete="off"
-                       required>
-                {% if form.date.errors %}
-                    <div class="error">{{ form.date.errors.0 }}</div>
-                {% endif %}
-            </div>
-
-            <div class="form-field">
-                <label for="{{ form.description.id_for_label }}">Descripción</label>
-                {{ form.description }}
-                {% if form.description.errors %}
-                    <div class="error">{{ form.description.errors.0 }}</div>
-                {% endif %}
-            </div>
-
-            <div class="form-field">
-                <label for="id_receipt">Comprobante/Archivo</label>
-                <input type="file" 
-                       id="id_receipt" 
-                       name="receipt" 
-                       accept="image/*,.pdf,.doc,.docx"
-                       class="form-control">
-                <small>Puedes adjuntar una imagen del comprobante o un archivo PDF (máx. 5MB)</small>
-            </div>
-
-            <div class="form-actions-simple">
+    <div class="form-compact-container">
+        <div class="form-header">
+            <h3>
                 {% if is_edit %}
-                    <button type="submit" class="btn-simple primary">Actualizar</button>
+                    <i class="fas fa-edit"></i> Editar Pago
                 {% else %}
-                    <button type="submit" class="btn-simple primary">Registrar</button>
+                    <i class="fas fa-file-invoice-dollar"></i> Registrar Pago
                 {% endif %}
-                <a href="{% url 'projects:finance-project-detail' project.pk %}" class="btn-simple">Cancelar</a>
-            </div>
-        </form>
+            </h3>
+        </div>
+
+        <div class="form-body" id="paymentFormContainer" data-remaining="{{ project.remaining_amount|unlocalize }}" data-amount-input-id="{{ form.amount.id_for_label }}" data-date-input-id="{{ form.date.id_for_label }}">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-6 form-group">
+                        <label for="{{ form.amount.id_for_label }}" class="form-label">Monto</label>
+                        <div class="d-flex">
+                            <span class="input-group-text">$</span>
+                            <div class="custom-form-input flex-grow-1">
+                                {{ form.amount }}
+                            </div>
+                        </div>
+                        <small class="text-muted d-block mt-1">Máximo: ${{ project.remaining_amount|floatformat:0 }}</small>
+                        {% if form.amount.errors %}
+                            <div class="text-danger small">{{ form.amount.errors.0 }}</div>
+                        {% endif %}
+                        <div id="amount-feedback" class="feedback-simple"></div>
+                    </div>
+
+                    <div class="col-md-6 form-group">
+                        <label for="{{ form.date.id_for_label }}" class="form-label">Fecha</label>
+                        <input type="date" 
+                               id="{{ form.date.id_for_label }}" 
+                               name="{{ form.date.name }}" 
+                               value="{% if form.date.value %}{{ form.date.value|date:'Y-m-d' }}{% else %}{{ today|date:'Y-m-d' }}{% endif %}"
+                               class="form-control"
+                               onkeydown="return false" onpaste="return false" autocomplete="off"
+                               required>
+                        {% if form.date.errors %}
+                            <div class="text-danger small">{{ form.date.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.description.id_for_label }}" class="form-label">Descripción</label>
+                    <div class="custom-form-input">
+                        {{ form.description }}
+                    </div>
+                    {% if form.description.errors %}
+                        <div class="text-danger small">{{ form.description.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Comprobante</label>
+                    <div class="file-input-wrapper">
+                        <label for="id_receipt" class="file-input-button btn btn-light border">
+                            <i class="fas fa-paperclip me-2"></i> Seleccionar archivo
+                        </label>
+                        <span id="file-name-display" class="file-name-display ms-2">Ningún archivo seleccionado</span>
+                        <input type="file" 
+                               id="id_receipt" 
+                               name="receipt" 
+                               accept="image/*,.pdf,.doc,.docx"
+                               class="hidden-file-input"
+                               onchange="document.getElementById('file-name-display').textContent = this.files[0] ? this.files[0].name : 'Ningún archivo seleccionado'">
+                    </div>
+                    <small class="text-muted d-block mt-1">Formatos: PDF, JPG, PNG (Máx. 5MB)</small>
+                    {% if form.receipt.errors %}
+                        <div class="text-danger small">{{ form.receipt.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                    <a href="{% url 'projects:finance-project-detail' project.pk %}" class="btn btn-light border">Cancelar</a>
+                    {% if is_edit %}
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> Actualizar Pago
+                        </button>
+                    {% else %}
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-check me-1"></i> Registrar Pago
+                        </button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

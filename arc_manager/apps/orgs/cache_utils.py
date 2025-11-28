@@ -6,9 +6,42 @@ from django.core.cache import cache
 from django.conf import settings
 from functools import wraps
 import hashlib
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Timeout por defecto para cache de organización
 ORG_CACHE_TIMEOUT = 60 * 15  # 15 minutos
+
+
+def safe_delete_pattern(pattern):
+    """
+    Elimina claves de cache que coincidan con el patrón de forma segura.
+    Funciona con django-redis (tiene delete_pattern) y backends que no lo soportan.
+    
+    Args:
+        pattern: Patrón glob (ej: 'org_finance_stats:*')
+    
+    Returns:
+        bool: True si se ejecutó exitosamente, False si hubo error o no está soportado
+    """
+    try:
+        # Verificar si el backend soporta delete_pattern (django-redis)
+        if hasattr(cache, 'delete_pattern'):
+            cache.delete_pattern(pattern)
+            logger.debug(f"Deleted cache pattern: {pattern}")
+            return True
+        else:
+            # Fallback: log warning pero no fallar
+            logger.warning(
+                f"Cache backend does not support delete_pattern. "
+                f"Pattern '{pattern}' was not deleted. "
+                f"Consider using explicit cache keys instead."
+            )
+            return False
+    except Exception as e:
+        logger.error(f"Error deleting cache pattern '{pattern}': {e}")
+        return False
 
 def cache_organization_data(timeout=ORG_CACHE_TIMEOUT):
     """
@@ -103,9 +136,9 @@ class OrganizationCacheMixin:
             f"user_perms:*:{organization_id}:*"
         ]
         
-        # Django-redis permite eliminar por patrón
+        # Usar safe_delete_pattern para compatibilidad con backends sin soporte
         for pattern in cache_patterns:
-            cache.delete_pattern(pattern)
+            safe_delete_pattern(pattern)
 
 # Funciones de utilidad específicas para el proyecto
 def cache_plans_list(timeout=60*60):  # 1 hora
