@@ -4,6 +4,8 @@
 {% block title %}Gestión de Usuarios - ArqGest{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/finance.css' %}">
+<link href="{% static 'css/project_list.css' %}?v=6.2" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/user_management.css' %}">
 <link rel="stylesheet" href="{% static 'css/delete_modal.css' %}">
 <link rel="stylesheet" href="{% static 'css/status-toggle.css' %}">
@@ -96,7 +98,7 @@ function updateUserStats(stats) {
     const remainingSlots = Math.max(0, maxUsers - stats.total_users);
     
     // Actualizar el texto del total en la tarjeta (sin mostrar espacios disponibles)
-    const statValueElements = document.querySelectorAll('.stat-value-advanced');
+    const statValueElements = document.querySelectorAll('.stat-value');
     if (statValueElements.length > 0) {
         statValueElements[0].innerHTML = `<span id="totalUsers">${stats.total_users}</span>/${maxUsers}`;
     }
@@ -292,154 +294,140 @@ function confirmAndDelete(userId) {
     </div>
     {% endif %}
 
-    <div class="stats-grid-advanced">
-        <div class="stat-card-advanced">
-            <div class="stat-header-advanced">
-                <div class="stat-icon-advanced users">
-                    <i class="fas fa-users"></i>
+    <div class="row g-4 mb-4">
+        <!-- Metrics Grid - Full Width -->
+        <div class="col-12">
+            <div class="stats-overview-section" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                <div class="stat-card-modern total">
+                    <div class="stat-icon-wrapper" style="background: #ecfdf5; color: #059669;">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value"><span id="totalUsers">{{ total_users|default:"1" }}</span>/{{ max_users|default:"2" }}</span>
+                        <span class="stat-label">Total Usuarios</span>
+                    </div>
                 </div>
-                <div class="stat-main-advanced">
-                    <div class="stat-title-advanced">Total Usuarios</div>
-                    <div class="stat-value-advanced"><span id="totalUsers">{{ total_users|default:"1" }}</span>/{{ max_users|default:"2" }}</div>
-                    <div class="stat-subtitle-advanced">Límite del plan actual</div>
+                
+                <div class="stat-card-modern active-projects">
+                    <div class="stat-icon-wrapper" style="background: #eff6ff; color: #2563eb;">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="activeUsers">{{ active_users|default:"1" }}</span>
+                        <span class="stat-label">Usuarios Activos</span>
+                    </div>
                 </div>
-            </div>
-        </div>
-        
-        <div class="stat-card-advanced">
-            <div class="stat-header-advanced">
-                <div class="stat-icon-advanced active">
-                    <i class="fas fa-user-check"></i>
-                </div>
-                <div class="stat-main-advanced">
-                    <div class="stat-title-advanced">Usuarios Activos</div>
-                    <div class="stat-value-advanced" id="activeUsers">{{ active_users|default:"1" }}</div>
-                    <div class="stat-subtitle-advanced">Con acceso al sistema</div>
-                </div>
-            </div>
-        </div>
 
-        <div class="stat-card-advanced">
-            <div class="stat-header-advanced">
-                <div class="stat-icon-advanced inactive">
-                    <i class="fas fa-user-times"></i>
-                </div>
-                <div class="stat-main-advanced">
-                    <div class="stat-title-advanced">Usuarios Inactivos</div>
-                    <div class="stat-value-advanced" id="inactiveUsers">{{ inactive_users|default:"0" }}</div>
-                    <div class="stat-subtitle-advanced">Acceso suspendido</div>
+                <div class="stat-card-modern archived">
+                    <div class="stat-icon-wrapper" style="background: #fffbeb; color: #d97706;">
+                        <i class="fas fa-user-times"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="inactiveUsers">{{ inactive_users|default:"0" }}</span>
+                        <span class="stat-label">Usuarios Inactivos</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="table-container">
-        <div class="table-header">
-            <h3>Lista de Usuarios</h3>
-
-            <div class="table-search-container">
-                <form method="get" class="table-search-box">
-                    <input type="text" 
-                           name="search" 
-                           value="{{ search }}" 
-                           class="table-search-input" 
-                           placeholder="Buscar por nombre o email..."
-                           autocomplete="off">
-                    <i class="fas fa-search table-search-icon"></i>
-                    {% if search %}
-                        <a href="{% url 'users:user_list' %}" class="clear-search-btn">
-                            <i class="fas fa-times"></i>
-                        </a>
-                    {% endif %}
-                </form>
-            </div>
-            
-            <span class="result-count">
-                {% if is_paginated %}
-                    {% if search %}
-                        {{ page_obj.paginator.count }} resultado{{ page_obj.paginator.count|pluralize }} para "{{ search }}"
-                    {% else %}
-                        {{ page_obj.paginator.count }} usuario{{ page_obj.paginator.count|pluralize }}
-                    {% endif %}
-                {% else %}
-                    {% if search %}
-                        {{ users|length }} resultado{{ users|length|pluralize }} para "{{ search }}"
-                    {% else %}
-                        {{ users|length }} usuario{{ users|length|pluralize }}
-                    {% endif %}
+    <!-- Search Toolbar -->
+    <div class="controls-toolbar-section mb-4">
+        <form method="get" class="table-search-box w-100">
+            <div class="search-box-wrapper w-100" style="max-width: 100%;">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" 
+                       class="search-input-modern table-search-input" 
+                       placeholder="Buscar por nombre o email..." 
+                       name="search"
+                       value="{{ search }}"
+                       autocomplete="off">
+                {% if search %}
+                    <a href="{% url 'users:user_list' %}" class="clear-search-btn" style="display: flex;">
+                        <i class="fas fa-times"></i>
+                    </a>
                 {% endif %}
-            </span>
-        </div>
-        
-        {% if users %}
-            
-            <div class="table-wrapper">
-                <table class="modern-table">
+            </div>
+        </form>
+    </div>
+
+    {% if users %}
+        <!-- Desktop Table -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden d-none d-lg-block mb-4">
+            <div class="table-responsive">
+                <table class="table finance-table mb-0 w-100">
                     <thead>
                         <tr>
-                            <th style="text-align: center;">Nombre</th>
-                            <th style="text-align: center;">Email</th>
-                            <th style="text-align: center;">Tipo</th>
-                            <th style="text-align: center;">Estado</th>
-                            <th style="text-align: center;">Acciones</th>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Tipo</th>
+                            <th>Estado</th>
+                            <th class="text-end">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for user_item in users %}
                         <tr data-user-id="{{ user_item.pk }}">
-                            <td style="text-align: left; padding-left: 1.5rem;">
-                                <div class="user-info">
-                                    <div class="user-avatar">
+                            <td>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="avatar-initials shadow-sm">
                                         {{ user_item.get_full_name|first|upper }}
                                     </div>
-                                    <div class="user-details">
-                                        <div class="user-name" title="{{ user_item.get_full_name|default:user_item.email }}">
-                                            {{ user_item.get_full_name|default:user_item.email }}
-                                        </div>
+                                    <div>
+                                        <div class="fw-semibold text-dark user-name">{{ user_item.get_full_name|default:user_item.email }}</div>
                                     </div>
                                 </div>
                             </td>
-                            <td style="text-align: center;">
-                                <a href="mailto:{{ user_item.email }}" class="email-link">
+                            <td>
+                                <div class="d-flex align-items-center text-secondary user-email">
+                                    <i class="fas fa-envelope me-2 text-muted"></i>
                                     {{ user_item.email }}
-                                </a>
+                                </div>
                             </td>
-                            <td style="text-align: center;">
+                            <td>
                                 {% if user_item.is_org_admin %}
-                                    <span class="role-badge admin">Admin</span>
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1">Admin</span>
                                 {% else %}
-                                    <span class="role-badge developer">Usuario</span>
+                                    <span class="badge bg-light text-secondary border px-3 py-1">Usuario</span>
                                 {% endif %}
                             </td>
-                            <td style="text-align: center;">
-                                {% if user.is_org_admin and user_item != user and not user_item.is_superuser %}
-                                    <!-- Toggle interactivo para cambiar estado -->
-                                    <div class="status-toggle-container"
-                                         data-toggle-status="user"
-                                         data-entity-id="{{ user_item.pk }}"
-                                         data-entity-name="{{ user_item.get_full_name|default:user_item.email }}"
-                                         data-current-status="{{ user_item.is_active|yesno:'true,false' }}">
-                                        <div class="toggle-switch {% if user_item.is_active %}active{% else %}inactive{% endif %}"></div>
-                                        <span class="toggle-status-text {% if user_item.is_active %}status-active{% else %}status-inactive{% endif %}">
+                            <td>
+                                {% if user.is_org_admin or user.is_superuser %}
+                                    {% if user_item != user and not user_item.is_superuser %}
+                                        <div class="status-toggle-container"
+                                             data-toggle-status="user"
+                                             data-entity-id="{{ user_item.pk }}"
+                                             data-entity-name="{{ user_item.get_full_name|default:user_item.email }}"
+                                             data-current-status="{{ user_item.is_active|yesno:'true,false' }}">
+                                            <div class="toggle-switch {% if user_item.is_active %}active{% else %}inactive{% endif %}"></div>
+                                            <span class="toggle-status-text {% if user_item.is_active %}status-active{% else %}status-inactive{% endif %}">
+                                                {% if user_item.is_active %}Activo{% else %}Inactivo{% endif %}
+                                            </span>
+                                        </div>
+                                    {% else %}
+                                        <span class="badge rounded-pill {% if user_item.is_active %}bg-success-subtle text-success border border-success-subtle{% else %}bg-danger-subtle text-danger border border-danger-subtle{% endif %} px-3 py-1">
                                             {% if user_item.is_active %}Activo{% else %}Inactivo{% endif %}
                                         </span>
-                                    </div>
+                                    {% endif %}
                                 {% else %}
-                                    <!-- Solo badge visual (sin toggle) -->
-                                    <span class="status-badge {% if user_item.is_active %}active{% else %}inactive{% endif %}">
+                                    <span class="badge rounded-pill {% if user_item.is_active %}bg-success-subtle text-success border border-success-subtle{% else %}bg-danger-subtle text-danger border border-danger-subtle{% endif %} px-3 py-1">
                                         {% if user_item.is_active %}Activo{% else %}Inactivo{% endif %}
                                     </span>
                                 {% endif %}
                             </td>
-                            <td style="text-align: center;">
-                                <div class="action-buttons">
+                            <td class="text-end">
+                                <div class="d-flex justify-content-end align-items-center gap-2">
                                     <a href="{% url 'users:edit' user_item.pk %}" 
-                                       class="action-btn edit">
+                                       class="action-btn edit" 
+                                       title="Editar"
+                                       style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; text-decoration: none; transition: all 0.2s ease; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     
                                     <a href="{% url 'users:detail' user_item.pk %}" 
-                                       class="action-btn view">
+                                       class="action-btn view" 
+                                       title="Ver detalles"
+                                       style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; text-decoration: none; transition: all 0.2s ease; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;">
                                         <i class="fas fa-eye"></i>
                                     </a>
 
@@ -447,17 +435,10 @@ function confirmAndDelete(userId) {
                                         <button type="button"
                                                 class="action-btn delete"
                                                 onclick="confirmAndDelete({{ user_item.pk }})"
-                                                title="Eliminar usuario">
+                                                title="Eliminar usuario"
+                                                style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: all 0.2s ease; background: #fef2f2; color: #ef4444; border: 1px solid #fecaca;">
                                             <i class="fas fa-trash-alt"></i>
                                         </button>
-                                    {% elif user_item != user %}
-                                        <span class="action-btn delete disabled">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </span>
-                                    {% else %}
-                                        <span class="action-btn delete disabled">
-                                            <i class="fas fa-ban"></i>
-                                        </span>
                                     {% endif %}
                                 </div>
                             </td>
@@ -466,72 +447,117 @@ function confirmAndDelete(userId) {
                     </tbody>
                 </table>
             </div>
+        </div>
 
-            {% include 'partials/pagination.html' with page_obj=page_obj page_param='page' extra_params=extra_params item_label='usuarios' %}
-            
-        {% else %}
-            
-            <div class="empty-state-enhanced">
-                {% if search %}
-                    <div class="empty-icon">
-                        <i class="fas fa-search"></i>
+        <!-- Mobile Cards -->
+        <div class="d-lg-none">
+            <div class="projects-grid">
+                {% for user_item in users %}
+                <div class="project-card h-100 mobile-user-card" data-user-id="{{ user_item.pk }}">
+                    <div class="project-card-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="project-image">
+                                <div class="image-placeholder">
+                                    <span class="fw-bold">{{ user_item.get_full_name|first|upper }}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="project-title text-white mb-0 user-name" style="font-size: 1rem;">{{ user_item.get_full_name|default:user_item.email }}</h3>
+                                <small class="text-white-50 user-email">{{ user_item.email }}</small>
+                            </div>
+                        </div>
+                        
+                        {% if user_item.is_org_admin %}
+                            <span class="badge bg-white text-primary rounded-pill px-3 py-1 fw-bold shadow-sm" style="font-size: 0.75rem;">
+                                Admin
+                            </span>
+                        {% else %}
+                            <span class="badge bg-white text-secondary rounded-pill px-3 py-1 fw-bold shadow-sm" style="font-size: 0.75rem;">
+                                Usuario
+                            </span>
+                        {% endif %}
                     </div>
-                    <h3>No se encontraron usuarios</h3>
-                    <p>No hay usuarios que coincidan con la búsqueda "<strong>{{ search }}</strong>".</p>
-                    <div class="search-suggestions">
-                        <p><strong>Sugerencias:</strong></p>
-                        <ul>
-                            <li>Verifica la ortografía</li>
-                            <li>Intenta con términos más generales</li>
-                            <li>Busca por nombre, email o usuario</li>
-                        </ul>
-                    </div>
-                    <a href="{% url 'users:user_list' %}" class="btn-primary-prominent">
-                        <i class="fas fa-times"></i>
-                        Limpiar búsqueda
-                    </a>
-                {% else %}
-                    <div class="empty-icon">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <h3>¡Bienvenido!</h3>
-                    <p>Comienza creando tu primer usuario para gestionar el acceso a tu organización.</p>
 
-                    <div class="onboarding-steps">
-                        <div class="onboarding-step">
-                            <div class="onboarding-step-icon">
-                                <i class="fas fa-user-plus"></i>
+                    <div class="project-card-body d-flex flex-column">
+                        <div class="row g-2 mb-3">
+                            <div class="col-12">
+                                <div class="p-2 rounded bg-light border d-flex justify-content-between align-items-center">
+                                    <span class="text-muted small text-uppercase">Estado</span>
+                                    {% if user.is_org_admin or user.is_superuser %}
+                                        {% if user_item != user and not user_item.is_superuser %}
+                                            <div class="status-toggle-container"
+                                                 data-toggle-status="user"
+                                                 data-entity-id="{{ user_item.pk }}"
+                                                 data-entity-name="{{ user_item.get_full_name|default:user_item.email }}"
+                                                 data-current-status="{{ user_item.is_active|yesno:'true,false' }}">
+                                                <div class="toggle-switch {% if user_item.is_active %}active{% else %}inactive{% endif %}"></div>
+                                                <span class="toggle-status-text {% if user_item.is_active %}status-active{% else %}status-inactive{% endif %}">
+                                                    {% if user_item.is_active %}Activo{% else %}Inactivo{% endif %}
+                                                </span>
+                                            </div>
+                                        {% else %}
+                                            <span class="badge rounded-pill {% if user_item.is_active %}bg-success-subtle text-success border border-success-subtle{% else %}bg-danger-subtle text-danger border border-danger-subtle{% endif %} px-3 py-1 status-badge {% if user_item.is_active %}active{% endif %}">
+                                                {% if user_item.is_active %}Activo{% else %}Inactivo{% endif %}
+                                            </span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge rounded-pill {% if user_item.is_active %}bg-success-subtle text-success border border-success-subtle{% else %}bg-danger-subtle text-danger border border-danger-subtle{% endif %} px-3 py-1 status-badge {% if user_item.is_active %}active{% endif %}">
+                                            {% if user_item.is_active %}Activo{% else %}Inactivo{% endif %}
+                                        </span>
+                                    {% endif %}
+                                </div>
                             </div>
-                            <span>Crear Usuario</span>
-                        </div>
-                        <div class="onboarding-step">
-                            <div class="onboarding-step-icon">
-                                <i class="fas fa-id-card"></i>
-                            </div>
-                            <span>Asignar Permisos</span>
-                        </div>
-                        <div class="onboarding-step">
-                            <div class="onboarding-step-icon">
-                                <i class="fas fa-envelope"></i>
-                            </div>
-                            <span>Enviar Credenciales</span>
-                        </div>
-                        <div class="onboarding-step">
-                            <div class="onboarding-step-icon">
-                                <i class="fas fa-check-circle"></i>
-                            </div>
-                            <span>¡Listo!</span>
                         </div>
                     </div>
-                    
-                    <a href="{% url 'users:create' %}" class="btn-primary-prominent">
-                        <i class="fas fa-user-plus"></i> 
-                        Crear mi primer usuario
-                    </a>
-                {% endif %}
+
+                    <div class="project-card-footer">
+                        <a href="{% url 'users:edit' user_item.pk %}" class="btn btn-light btn-sm flex-grow-1 d-flex align-items-center justify-content-center gap-2 border text-primary">
+                            <i class="fas fa-edit"></i> Editar
+                        </a>
+                        <a href="{% url 'users:detail' user_item.pk %}" class="btn btn-light btn-sm border text-secondary d-flex align-items-center justify-content-center" style="width: 40px;" title="Ver detalles">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        {% if user.is_org_admin and user.organization and user_item.organization == user.organization and user_item != user %}
+                            <button type="button" 
+                                    class="btn btn-light btn-sm border text-danger d-flex align-items-center justify-content-center" 
+                                    style="width: 40px;" 
+                                    onclick="confirmAndDelete({{ user_item.pk }})"
+                                    title="Eliminar">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
             </div>
-        {% endif %}
-    </div>
+        </div>
+
+        {% include 'partials/pagination.html' with page_obj=page_obj page_param='page' extra_params=extra_params item_label='usuarios' %}
+
+    {% else %}
+        <!-- Empty State (Enhanced) -->
+        <div class="empty-state-enhanced">
+             {% if search %}
+                <div class="empty-icon">
+                    <i class="fas fa-search"></i>
+                </div>
+                <h3>No se encontraron usuarios</h3>
+                <p>No hay usuarios que coincidan con la búsqueda "<strong>{{ search }}</strong>".</p>
+                <a href="{% url 'users:user_list' %}" class="btn btn-primary mt-3">
+                    <i class="fas fa-times me-2"></i>Limpiar búsqueda
+                </a>
+            {% else %}
+                <div class="empty-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3>¡Bienvenido!</h3>
+                <p>Comienza creando tu primer usuario.</p>
+                <a href="{% url 'users:create' %}" class="btn btn-primary mt-3">
+                    <i class="fas fa-user-plus me-2"></i>Crear Usuario
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
 </div>
 
 {% csrf_token %}

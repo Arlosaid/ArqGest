@@ -1,104 +1,180 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{{ user_to_view.first_name }} {{ user_to_view.last_name }} - Detalle - ArqGest{% endblock %}
+{% block title %}{{ user_to_view.get_full_name }} - Detalle - ArqGest{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/user_management.css' %}">
-{% endblock %}
+<style>
+    .profile-card {
+        border: none;
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    .profile-header {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        height: 160px;
+        position: relative;
+    }
+    
+    .profile-avatar {
+        width: 120px;
+        height: 120px;
+        background-color: #fff;
+        border: 4px solid #fff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: 700;
+        color: #2563eb;
+        position: absolute;
+        bottom: -60px;
+        left: 50%;
+        transform: translateX(-50%);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    .profile-body {
+        padding-top: 70px;
+        padding-bottom: 2rem;
+        text-align: center;
+    }
 
-{% block extra_js %}
-<script src="{% static 'js/user_management.js' %}"></script>
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+        text-align: left;
+    }
+
+    .info-item {
+        padding: 1rem;
+        background-color: #f8fafc;
+        border-radius: 0.75rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    .info-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+        margin-bottom: 0.25rem;
+        font-weight: 600;
+    }
+
+    .info-value {
+        font-weight: 500;
+        color: #1e293b;
+        font-size: 0.95rem;
+    }
+
+    .status-badge {
+        padding: 0.35em 0.8em;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="page-container user-management-page">
+<div class="container py-4" style="max-width: 800px;">
     
-    <div class="user-detail-hero">
-        <div class="hero-content">
-            <div class="hero-left">
-                <div class="user-hero-avatar">
-                    {{ user_to_view.first_name|first|upper }}{{ user_to_view.last_name|first|upper }}
-                    <div class="user-status-indicator {% if user_to_view.is_active %}{% if user_to_view.last_login %}active{% else %}never-logged{% endif %}{% else %}inactive{% endif %}"></div>
-                </div>
+    <!-- Header & Back -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <a href="{% url 'users:user_list' %}" class="btn btn-white border shadow-sm rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                <i class="fas fa-arrow-left text-secondary"></i>
+            </a>
+            <h1 class="h4 fw-bold mb-0 text-dark">Perfil de Usuario</h1>
+        </div>
+        <a href="{% url 'users:edit' user_to_view.pk %}" class="btn btn-primary shadow-sm">
+            <i class="fas fa-edit me-2"></i>Editar
+        </a>
+    </div>
+
+    <div class="card profile-card bg-white">
+        <div class="profile-header">
+            <div class="profile-avatar">
+                {{ user_to_view.get_full_name|first|upper|default:user_to_view.email|first|upper }}
+            </div>
+        </div>
+        
+        <div class="card-body profile-body px-4 px-md-5">
+            <h2 class="h3 fw-bold text-dark mb-1">{{ user_to_view.get_full_name|default:user_to_view.email }}</h2>
+            <p class="text-muted mb-3">{{ user_to_view.email }}</p>
+            
+            <div class="d-flex justify-content-center gap-2 mb-4">
+                {% if user_to_view.is_org_admin %}
+                    <span class="status-badge bg-primary-subtle text-primary border border-primary-subtle">
+                        <i class="fas fa-crown"></i> Administrador
+                    </span>
+                {% else %}
+                    <span class="status-badge bg-light text-secondary border">
+                        <i class="fas fa-user"></i> Usuario
+                    </span>
+                {% endif %}
                 
-                <div class="hero-info">
-                    <h1 class="user-hero-name unified-title-primary">{{ user_to_view.first_name }} {{ user_to_view.last_name }}</h1>
-                    
-                    <div class="hero-badges">
-                        <span class="hero-badge {% if user_to_view.is_active %}status-active{% else %}status-inactive{% endif %}">
-                            <i class="fas fa-{% if user_to_view.is_active %}check-circle{% else %}times-circle{% endif %}"></i>
-                            {% if user_to_view.is_active %}Usuario Activo{% else %}Usuario Inactivo{% endif %}
-                        </span>
-                        
-                        {% if user_to_view.is_org_admin %}
-                        <span class="hero-badge role-admin">
-                            <i class="fas fa-crown"></i>
-                            Administrador
-                        </span>
+                {% if user_to_view.is_active %}
+                    <span class="status-badge bg-success-subtle text-success border border-success-subtle">
+                        <i class="fas fa-check-circle"></i> Activo
+                    </span>
+                {% else %}
+                    <span class="status-badge bg-danger-subtle text-danger border border-danger-subtle">
+                        <i class="fas fa-times-circle"></i> Inactivo
+                    </span>
+                {% endif %}
+            </div>
+
+            <hr class="text-muted opacity-25 my-4">
+
+            <div class="info-grid">
+                {% if user_to_view.organization %}
+                <div class="info-item">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <div class="bg-white rounded-circle shadow-sm d-flex align-items-center justify-content-center text-primary fw-bold border" style="width: 32px; height: 32px;">
+                            {{ user_to_view.organization.name|first|upper }}
+                        </div>
+                        <div class="info-label mb-0">Organización</div>
+                    </div>
+                    <div class="info-value ps-1">
+                        {{ user_to_view.organization.name }}
+                        {% if user.is_org_admin %}
+                        <div class="mt-1">
+                            <a href="{% url 'orgs:organization_detail' user_to_view.organization.pk %}" class="text-primary text-decoration-none small">
+                                Ver detalles <i class="fas fa-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-calendar-alt me-1"></i> Fecha de Registro</div>
+                    <div class="info-value">{{ user_to_view.date_joined|date:"d M Y" }}</div>
+                </div>
+
+                <div class="info-item">
+                    <div class="info-label"><i class="fas fa-clock me-1"></i> Último Acceso</div>
+                    <div class="info-value">
+                        {% if user_to_view.last_login %}
+                            {{ user_to_view.last_login|date:"d M Y H:i" }}
+                        {% else %}
+                            <span class="text-muted fst-italic">Nunca</span>
                         {% endif %}
                     </div>
                 </div>
             </div>
-            
-            <div class="hero-right">
-                <div class="hero-actions">
-                    <a href="{% url 'users:edit' user_to_view.pk %}" class="btn-hero-primary">
-                        <i class="fas fa-edit"></i>
-                        Editar Usuario
-                    </a>
-                    <a href="{% url 'users:user_list' %}" class="btn-hero-secondary">
-                        <i class="fas fa-arrow-left"></i>
-                        Volver a Lista
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="main-content-centered">
-        
-        <div class="card mb-3">
-            <div class="card-header">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="fas fa-address-card"></i>
-                    <h3 class="unified-title-tertiary">Información Personal</h3>
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="info-row">
-                    <div class="info-label">Nombre completo:</div>
-                    <div class="info-value">{{ user_to_view.first_name }} {{ user_to_view.last_name }}</div>
-                </div>
-                
-                <div class="info-row">
-                    <div class="info-label">Email:</div>
-                    <div class="info-value">
-                        <a href="mailto:{{ user_to_view.email }}" class="email-link">
-                            <i class="fas fa-envelope"></i> {{ user_to_view.email }}
-                        </a>
-                    </div>
-                </div>
-
-                <div class="info-row">
-                    <div class="info-label">Registrado:</div>
-                    <div class="info-value">{{ user_to_view.date_joined|date:"d/m/Y" }}</div>
-                </div>
-                
-                {% if user_to_view.organization %}
-                <div class="info-row">
-                    <div class="info-label">Organización:</div>
-                    <div class="info-value">
-                        {{ user_to_view.organization.name }}
-                        {% with org_info=user_to_view.organization.can_add_user_detailed %}
-                        <small class="text-muted">• {{ org_info.active_users }} de {{ org_info.max_users }} usuarios</small>
-                        {% endwith %}
-                    </div>
-                </div>
-                {% endif %}
-            </div>
         </div>
     </div>
 </div>
-{% endblock %} 
-
+{% endblock %}

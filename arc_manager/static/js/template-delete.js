@@ -31,9 +31,15 @@ class TemplateDeleteManager {
         const isPhase = deleteUrl.includes('defaultphase') || deleteUrl.includes('/phases/');
         
         // Extraer información del elemento a eliminar
-        const row = link.closest('tr, .template-card, .phase-card');
+        let row = link.closest('tr, .template-card, .phase-card');
+        
+        // Si no hay row, verificar si estamos en el formulario de edición
         if (!row) {
-            return;
+             const form = document.getElementById('phase-template-form');
+             if (form) {
+                 // Estamos en el formulario
+                 row = form; 
+             }
         }
 
         if (isTemplate) {
@@ -89,6 +95,14 @@ class TemplateDeleteManager {
      * Extraer nombre del elemento
      */
     extractName(row) {
+        if (!row) return 'Elemento';
+        
+        // Check if row is the form itself
+        if (row.tagName === 'FORM') {
+             const nameInput = row.querySelector('input[name="name"]');
+             return nameInput ? nameInput.value : 'Plantilla Actual';
+        }
+
         const nameElement = row.querySelector('.template-name, .phase-name, .list-name, td:nth-child(2), strong');
         return nameElement ? nameElement.textContent.trim() : 'Elemento';
     }
@@ -97,6 +111,14 @@ class TemplateDeleteManager {
      * Extraer cantidad de fases
      */
     extractPhaseCount(row) {
+        if (!row) return 0;
+
+        // Check if row is the form itself
+        if (row.tagName === 'FORM') {
+             const phases = row.querySelectorAll('.phase-item:not([style*="display: none"])');
+             return phases.length;
+        }
+
         // Intentar obtener desde data attribute primero
         if (row.dataset.phases) {
             return parseInt(row.dataset.phases);

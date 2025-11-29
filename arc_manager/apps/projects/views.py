@@ -883,9 +883,10 @@ class ProjectPhasesEditView(LoginRequiredMixin, OrganizationAdminMixin, View):
 
             # CRÍTICO: Verificar si hay tareas o archivos asociados que se perderán
             from django.db.models import Count, Q
+            # IMPORTANTE: Usar distinct=True para evitar conteos duplicados cuando hay múltiples relaciones
             phases_with_data = project.phases.annotate(
-                task_count=Count('tasks'),
-                file_count=Count('files')
+                task_count=Count('tasks', distinct=True),
+                file_count=Count('files', distinct=True)
             ).filter(Q(task_count__gt=0) | Q(file_count__gt=0))
             
             total_tasks = sum(p.task_count for p in phases_with_data)

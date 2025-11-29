@@ -42,22 +42,22 @@
             
             <!-- Due Date -->
             {% if task.due_date %}
-            <div class="d-flex align-items-center {% if task.is_overdue %}text-danger fw-bold bg-danger-subtle px-2 py-1 rounded{% else %}text-muted{% endif %}" style="font-size: 0.7rem;" title="{% if task.is_overdue %}{% trans 'Vencida' %}{% else %}{% trans 'Vence el' %}{% endif %} {{ task.due_date|date:'d M Y' }}">
+            <div class="d-flex align-items-center {% if task.is_overdue %}text-danger fw-bold bg-danger-subtle px-2 py-1 rounded{% elif task.is_due_soon %}text-warning-emphasis fw-bold bg-warning-subtle px-2 py-1 rounded{% else %}text-muted{% endif %}" style="font-size: 0.7rem;" title="{% if task.is_overdue %}{% trans 'Vencida' %}{% elif task.is_due_soon %}{% trans 'Vence pronto' %}{% else %}{% trans 'Vence el' %}{% endif %} {{ task.due_date|date:'d M Y' }}">
                 <i class="far fa-calendar-alt me-1"></i>
                 <span>{{ task.due_date|date:"d M" }}</span>
             </div>
             {% endif %}
         </div>
 
-        <!-- Desktop Actions (View, Edit, Delete) -->
-        <div class="d-none d-md-flex justify-content-center align-items-center gap-2 mt-1 pt-1 border-top border-light opacity-75 hover-opacity-100 w-100">
-            <button type="button" class="btn btn-link p-0 text-muted border-0" onclick="event.stopPropagation(); window.openTaskModal('detail', '{{ task.id }}')" style="font-size: 0.9rem;" title="{% trans 'Ver detalles' %}">
+        <!-- Actions (View, Edit, Delete) - Visible on all devices -->
+        <div class="d-flex justify-content-center align-items-center gap-4 mt-2 pt-2 border-top border-light w-100">
+            <button type="button" class="btn btn-link p-0 text-secondary border-0" onclick="event.stopPropagation(); window.openTaskModal('detail', '{{ task.id }}')" style="font-size: 1.1rem;" title="{% trans 'Ver detalles' %}">
                 <i class="fas fa-eye"></i>
             </button>
-            <button type="button" class="btn btn-link p-0 text-primary border-0" onclick="event.stopPropagation(); window.openTaskModal('edit', '{{ task.id }}')" style="font-size: 0.9rem;" title="{% trans 'Editar' %}">
+            <button type="button" class="btn btn-link p-0 text-primary border-0" onclick="event.stopPropagation(); window.openTaskModal('edit', '{{ task.id }}')" style="font-size: 1.1rem;" title="{% trans 'Editar' %}">
                 <i class="fas fa-pencil-alt"></i>
             </button>
-            <button type="button" class="btn btn-link p-0 text-danger border-0" onclick="event.stopPropagation(); window.kanbanManager.deleteTask('{{ task.id }}')" style="font-size: 0.9rem;" title="{% trans 'Eliminar' %}">
+            <button type="button" class="btn btn-link p-0 text-danger border-0" onclick="event.stopPropagation(); window.kanbanManager.deleteTask('{{ task.id }}')" style="font-size: 1.1rem;" title="{% trans 'Eliminar' %}">
                 <i class="fas fa-trash-alt"></i>
             </button>
         </div>

@@ -4,98 +4,328 @@
 {% block title %}Mi Organización - ArqGest{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/organization_management.css' %}">
+<style>
+    /* Estilos homologados según GUIA_HOMOLOGACION_ESTILOS_VISTAS.md */
+    
+    /* Header Section */
+    .header-section {
+        background: linear-gradient(135deg, #f8faff 0%, #eef5ff 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        border: 1px solid #e8f2ff;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .header-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .header-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #4285f4, #3367d6);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+        margin-right: 1rem;
+    }
+
+    .header-title h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .header-title .text-muted {
+        font-size: 0.875rem;
+        color: #94a3b8;
+        margin: 0;
+        font-weight: 400;
+        line-height: 1.3;
+    }
+
+    /* Info Cards */
+    .info-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s;
+        border-radius: 12px;
+        height: 100%;
+        padding: 1.25rem;
+    }
+    
+    .info-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        border-color: #cbd5e1;
+    }
+
+    .info-icon-wrapper {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+
+    .info-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        color: #64748b;
+        margin-bottom: 0.25rem;
+    }
+
+    .info-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1e293b;
+        line-height: 1.2;
+    }
+    
+    .info-subtext {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        margin-top: 0.25rem;
+    }
+
+    /* Quick Actions */
+    .action-card-simple {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        transition: all 0.2s;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .action-card-simple:hover {
+        border-color: #4285f4;
+        background: #f8faff;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .action-icon-circle {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: #eff6ff;
+        color: #4285f4;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+        transition: all 0.2s;
+    }
+
+    .action-card-simple:hover .action-icon-circle {
+        background: #4285f4;
+        color: white;
+    }
+
+    .action-title {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+    }
+
+    .action-desc {
+        font-size: 0.8rem;
+        color: #64748b;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="page-container">
-    <!-- Header Section -->
+    
+    <!-- Header Section Homologado -->
     <div class="header-section">
         <div class="header-content">
             <div class="header-title">
                 <div class="header-icon">
                     <i class="fas fa-building"></i>
                 </div>
-                <h1>{{ organization.name }}</h1>
+                <div>
+                    <h1>{{ organization.name }}</h1>
+                    <div class="text-muted">
+                        {% if organization.description %}
+                            {{ organization.description|truncatechars:60 }}
+                        {% else %}
+                            Gestión y administración de la organización
+                        {% endif %}
+                    </div>
+                </div>
             </div>
-            <div class="d-flex align-items-center gap-3">
-                {% if user.is_org_admin %}
-                    <span class="role-badge admin">
-                        <i class="fas fa-crown"></i> Administrador
-                    </span>
-                {% else %}
-                    <span class="role-badge developer">
-                        <i class="fas fa-user"></i> Miembro
+            
+            <div class="d-flex gap-2 align-items-center">
+                {% if organization.is_founder_member %}
+                    <span class="badge rounded-pill" style="background: linear-gradient(135deg, #f59e0b, #d97706); padding: 0.5rem 1rem;">
+                        <i class="fas fa-star me-1"></i> Fundador
                     </span>
                 {% endif %}
                 
                 {% if organization.is_active %}
-                    <span class="status-badge active">
-                        <i class="fas fa-check-circle"></i> Activa
+                    <span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2">
+                        <i class="fas fa-check-circle me-1"></i> Activa
                     </span>
                 {% else %}
-                    <span class="status-badge inactive">
-                        <i class="fas fa-exclamation-triangle"></i> Inactiva
+                    <span class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3 py-2">
+                        <i class="fas fa-exclamation-circle me-1"></i> Inactiva
                     </span>
                 {% endif %}
             </div>
         </div>
     </div>
 
-    <div class="stats-grid-advanced">
+    <!-- Grid de Información Principal -->
+    <div class="row g-4 mb-5">
         
-        <div class="stat-card-advanced">
-            <div class="stat-header-advanced">
-                <div class="stat-icon-advanced plan">
-                    <i class="fas fa-box"></i>
-                </div>
-                <div class="stat-main-advanced">
-                    <div class="stat-title-advanced">Plan Actual</div>
-                    <div class="stat-value-advanced">
-                        {% if organization.plan %}
-                            {{ organization.plan.display_name }}
-                        {% else %}
-                            Sin Plan
-                        {% endif %}
+        <!-- Plan Actual -->
+        <div class="col-md-4 col-lg-4">
+            <div class="info-card">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="info-icon-wrapper" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #3b82f6;">
+                        <i class="fas fa-box"></i>
                     </div>
-                    <div class="stat-subtitle-advanced">
-                        {% if organization.plan and organization.plan.price > 0 %}
-                            ${{ organization.plan.price|floatformat:0 }}/mes
-                        {% elif organization.plan %}
-                            Gratuito
-                        {% else %}
-                            No asignado
-                        {% endif %}
+                    <div class="flex-grow-1">
+                        <div class="info-label">Plan Actual</div>
+                        <div class="info-value">
+                            {% if organization.plan %}
+                                {{ organization.plan.display_name }}
+                            {% else %}
+                                Sin Plan
+                            {% endif %}
+                        </div>
+                        <div class="info-subtext">
+                            {% if organization.plan and organization.plan.price > 0 %}
+                                ${{ organization.plan.price|floatformat:0 }}/mes
+                            {% else %}
+                                Gratuito
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="stat-card-advanced">
-            <div class="stat-header-advanced">
-                <div class="stat-icon-advanced users">
-                    <i class="fas fa-users"></i>
-                </div>
-                <div class="stat-main-advanced">
-                    <div class="stat-title-advanced">Usuarios</div>
-                    <div class="stat-value-advanced">{{ organization.get_active_user_count }}/{{ organization.get_max_users|default:"∞" }}</div>
-                    <div class="stat-subtitle-advanced">{{ organization.get_active_user_count }} activos</div>
+        <!-- Usuarios -->
+        <div class="col-md-4 col-lg-4">
+            <div class="info-card">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="info-icon-wrapper" style="background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); color: #10b981;">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="info-label">Usuarios</div>
+                        <div class="info-value">
+                            {{ organization.get_active_user_count }} <span class="text-muted fw-normal fs-6">/ {{ organization.get_max_users|default:"∞" }}</span>
+                        </div>
+                        <div class="info-subtext">
+                            Miembros activos en el equipo
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="stat-card-advanced">
-            <div class="stat-header-advanced">
-                <div class="stat-icon-advanced subscription">
-                    <i class="fas fa-credit-card"></i>
-                </div>
-                <div class="stat-main-advanced">
-                    <div class="stat-title-advanced">Suscripción</div>
-                    <div class="stat-value-advanced">
-                        {% if organization.is_subscription_active %}Activa{% else %}Inactiva{% endif %}
+        <!-- Estado Suscripción -->
+        <div class="col-md-4 col-lg-4">
+            <div class="info-card">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="info-icon-wrapper" style="background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); color: #8b5cf6;">
+                        <i class="fas fa-credit-card"></i>
                     </div>
-                    <div class="stat-subtitle-advanced">
-                        {% if organization.is_subscription_active %}Funcionando correctamente{% else %}Necesita atención{% endif %}
+                    <div class="flex-grow-1">
+                        <div class="info-label">Suscripción</div>
+                        <div class="info-value">
+                            {% if organization.is_subscription_active %}Activa{% else %}Inactiva{% endif %}
+                        </div>
+                        <div class="info-subtext">
+                            {% if organization.is_subscription_active %}
+                                Plan vigente
+                            {% else %}
+                                Requiere atención
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Proyectos -->
+        <div class="col-md-4 col-lg-4">
+            <div class="info-card">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="info-icon-wrapper" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #d97706;">
+                        <i class="fas fa-project-diagram"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="info-label">Proyectos</div>
+                        <div class="info-value">{{ organization.projects.count }}</div>
+                        <div class="info-subtext">Proyectos registrados</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Clientes -->
+        <div class="col-md-4 col-lg-4">
+            <div class="info-card">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="info-icon-wrapper" style="background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%); color: #ea580c;">
+                        <i class="fas fa-briefcase"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="info-label">Clientes</div>
+                        <div class="info-value">{{ organization.clients.count }}</div>
+                        <div class="info-subtext">Cartera de clientes</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Almacenamiento -->
+        <div class="col-md-4 col-lg-4">
+            <div class="info-card">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="info-icon-wrapper" style="background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); color: #0284c7;">
+                        <i class="fas fa-hdd"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="info-label">Almacenamiento</div>
+                        <div class="info-value">{{ organization.get_total_storage_limit_gb }} GB</div>
+                        <div class="info-subtext">Espacio total disponible</div>
                     </div>
                 </div>
             </div>
@@ -103,58 +333,60 @@
     </div>
 
     {% if user.is_org_admin %}
-        <div class="quick-actions-section">
-            <div class="section-header">
-                <h3><i class="fas fa-bolt"></i> Acciones Rápidas</h3>
-            </div>
-            
-            <div class="actions-grid">
-                <a href="{% url 'users:user_list' %}" class="action-card-modern">
-                    <div class="action-icon-modern users">
-                        <i class="fas fa-users"></i>
+    <div class="mb-4">
+        <h3 class="h5 mb-3 fw-bold text-dark border-bottom pb-2">Acciones Rápidas</h3>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <a href="{% url 'users:user_list' %}" class="action-card-simple">
+                    <div class="action-icon-circle">
+                        <i class="fas fa-user-plus"></i>
                     </div>
-                    <div class="action-text">
-                        <h4>Gestionar Usuarios</h4>
-                        <p>Crear, editar y administrar usuarios de la organización</p>
-                    </div>
+                    <div class="action-title">Gestionar Usuarios</div>
+                    <div class="action-desc">Agregar o eliminar miembros del equipo</div>
                 </a>
-                
-                <a href="{% url 'plans:subscription_dashboard' %}" class="action-card-modern">
-                    <div class="action-icon-modern subscription">
+            </div>
+            <div class="col-md-4">
+                <a href="{% url 'plans:subscription_dashboard' %}" class="action-card-simple">
+                    <div class="action-icon-circle">
                         <i class="fas fa-chart-pie"></i>
                     </div>
-                    <div class="action-text">
-                        <h4>Mi Suscripción</h4>
-                        <p>Dashboard de plan y métricas de uso</p>
-                    </div>
+                    <div class="action-title">Mi Suscripción</div>
+                    <div class="action-desc">Ver detalles de facturación y consumo</div>
                 </a>
-                
-                <a href="{% url 'plans:request_upgrade' %}" class="action-card-modern">
-                    <div class="action-icon-modern upgrade">
+            </div>
+            <div class="col-md-4">
+                <a href="{% url 'plans:request_upgrade' %}" class="action-card-simple">
+                    <div class="action-icon-circle">
                         <i class="fas fa-arrow-up"></i>
                     </div>
-                    <div class="action-text">
-                        <h4>Solicitar Upgrade</h4>
-                        <p>Mejorar plan y obtener más funciones</p>
-                    </div>
+                    <div class="action-title">Mejorar Plan</div>
+                    <div class="action-desc">Obtener más capacidad y funciones</div>
                 </a>
             </div>
         </div>
+    </div>
     {% endif %}
 
-    <div class="support-card">
-        <div class="support-icon">
+    <div class="alert alert-light border d-flex align-items-center gap-3 p-3 rounded-3 mt-5" role="alert">
+        <div class="d-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle" style="width: 40px; height: 40px; flex-shrink: 0;">
             <i class="fas fa-headset"></i>
         </div>
-        <div class="support-text">
-            <h4>¿Necesitas ayuda?</h4>
-            <p>Para cambios en la organización o soporte técnico, contacta: <span class="support-email">admin@arqgest.com</span></p>
+        <div>
+            <h5 class="alert-heading h6 mb-1 fw-bold text-dark">¿Necesitas ayuda con tu organización?</h5>
+            <p class="mb-0 text-muted small">
+                Para cambios en la configuración o soporte técnico, contacta a:
+                <br>
+                <i class="fas fa-envelope me-1"></i> <a href="mailto:{{ SUPPORT_EMAIL }}" class="fw-semibold text-decoration-none">{{ SUPPORT_EMAIL }}</a>
+                <span class="mx-2">|</span>
+                <i class="fas fa-phone me-1"></i> <span class="fw-semibold">{{ SUPPORT_PHONE }}</span>
+            </p>
         </div>
     </div>
-    </div>
+
+</div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/organization_management.js' %}"></script>
+<!-- No se requiere JS adicional para esta vista estática -->
 {% endblock %} 
 

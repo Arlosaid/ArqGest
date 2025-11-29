@@ -85,6 +85,9 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="kanban-tab" data-bs-toggle="tab" data-bs-target="#kanban" type="button" role="tab" aria-controls="kanban" aria-selected="false">
                     <i class="fas fa-clipboard-list"></i> {% trans "Centro de Tareas" %}
+                    {% if tasks_total > 0 %}
+                        <span class="badge bg-secondary ms-1 rounded-pill" style="font-size: 0.7em;">{{ tasks_total }}</span>
+                    {% endif %}
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -245,6 +248,13 @@
                               {% endfor %}
                             </select>
                           </div>
+                          
+                          <div class="d-none d-md-flex align-items-center ms-2">
+                              <span class="text-muted small">
+                                  <i class="fas fa-list-check me-1"></i> <strong>{{ tasks_total }}</strong> {% trans "tareas en total" %}
+                              </span>
+                          </div>
+
                           <div class="ms-auto">
                             <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addTaskModal">
                               <i class="fas fa-plus"></i> {% trans "Nueva Tarea" %}

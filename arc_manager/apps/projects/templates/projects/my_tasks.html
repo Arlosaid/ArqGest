@@ -147,7 +147,7 @@
                             <span>{{ task.phase.name|truncatechars:20 }}</span>
                         </div>
                         {% if task.due_date %}
-                        <div class="task-compact-date {% if task.due_date < today %}overdue{% elif task.is_due_soon %}due-soon{% endif %}" title="Vence: {{ task.due_date|date:'d/m/Y' }}">
+                        <div class="task-compact-date {% if task.is_overdue %}overdue{% elif task.is_due_soon %}due-soon{% endif %}" title="Vence: {{ task.due_date|date:'d/m/Y' }}">
                             <i class="fas fa-calendar-alt"></i>
                             <span>{{ task.due_date|date:'d/m' }}</span>
                         </div>
