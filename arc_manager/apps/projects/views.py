@@ -471,8 +471,14 @@ class ProjectCreateView(LoginRequiredMixin, OrganizationAdminMixin, CreateView):
 
         # Invalidar cache después de crear proyecto
         from .cache_utils import invalidate_project_cache, invalidate_kanban_projects_cache, invalidate_user_accessible_projects_cache
+        from .finance_cache import invalidate_finance_cache
         invalidate_project_cache(self.object.organization.id, self.object.id)
         invalidate_kanban_projects_cache(self.object.organization.id)
+        # Invalidar cache financiero para que el nuevo proyecto aparezca en finanzas
+        invalidate_finance_cache(
+            organization_id=self.object.organization.id,
+            project_id=self.object.id
+        )
         # Asegurar que el nuevo proyecto aparezca para el creador (owner)
         try:
             invalidate_user_accessible_projects_cache(self.request.user.id, self.object.organization.id, self.request.user.is_org_admin)

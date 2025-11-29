@@ -207,6 +207,16 @@ document.addEventListener('DOMContentLoaded', function() {
   updateOrder();
   wireDeleteButtons(document);
 
+  // Auto-add first phase when switching to manual and no phases exist
+  creationMethodRadios.forEach(radio => radio.addEventListener('change', function() {
+    if (this.value === 'manual' && formsetContainer) {
+      const existingForms = formsetContainer.querySelectorAll('.phase-form:not(.deleted)');
+      if (existingForms.length === 0) {
+        appendNewPhaseAndFocus('');
+      }
+    }
+  }));
+
   // ============================================
   // QUICK CLIENT CREATION FUNCTIONALITY
   // ============================================

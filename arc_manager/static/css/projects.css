@@ -313,15 +313,26 @@
 #phase-forms-container {
     display: flex;
     flex-direction: column;
-    gap: .75rem;
+    gap: .5rem;
 }
 
 .phase-form {
     border: 1px solid var(--project-border);
-    border-radius: .5rem;
+    border-radius: .375rem;
     background: var(--project-surface);
-    box-shadow: var(--project-shadow);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     overflow: hidden;
+}
+
+.phase-form .card-header {
+    padding: .5rem .75rem !important;
+    min-height: auto;
+}
+
+.phase-form .card-header .form-control {
+    height: 34px;
+    padding: .25rem .5rem;
+    font-size: .875rem;
 }
 
 .phase-form.deleted {
