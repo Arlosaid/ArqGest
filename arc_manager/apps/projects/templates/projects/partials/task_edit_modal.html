@@ -1,71 +1,142 @@
 {% load i18n %}
 
-<form method="post" action="{% url 'projects:task-edit' task.pk %}" id="editTaskForm">
+<style>
+    /* Ocultar el header por defecto del modal contenedor */
+    #taskUniversalModal .modal-header {
+        display: none !important;
+    }
+
+    /* Hacemos el modal más ancho en pantallas grandes */
+    @media (min-width: 992px) {
+        #taskUniversalModal .modal-dialog {
+            max-width: 900px !important;
+        }
+    }
+
+    .form-label-modern {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control-modern, .form-select-modern {
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        padding: 0.625rem 0.875rem;
+        font-size: 0.95rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        background-color: #fff;
+    }
+    
+    .form-control-modern:focus, .form-select-modern:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        outline: 0;
+    }
+    
+    .modal-header-modern {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #e5e7eb;
+        background-color: #f9fafb;
+        /* El borde redondeado lo maneja el modal-content */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .modal-title-modern {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #111827;
+        margin: 0;
+    }
+    
+    .modal-body-modern {
+        padding: 1.5rem;
+    }
+    
+    .modal-footer-modern {
+        padding: 1rem 1.5rem;
+        background-color: #f9fafb;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+    }
+</style>
+
+<form method="post" action="{% url 'projects:task-edit' task.pk %}" id="editTaskForm" class="needs-validation" novalidate>
     {% csrf_token %}
     
-    <div class="modal-body">
-        <div class="mb-3">
-            <label for="title" class="form-label">{% trans "Título" %} *</label>
-            <input type="text" class="form-control" id="title" name="title" value="{{ task.title }}" required>
-        </div>
-        
-        <div class="mb-3">
-            <label for="description" class="form-label">{% trans "Descripción" %}</label>
-            <textarea class="form-control" id="description" name="description" rows="3">{{ task.description }}</textarea>
-        </div>
-        
+    <div class="modal-header-modern">
+        <h5 class="modal-title-modern">{% trans "Editar Tarea" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    
+    <div class="modal-body-modern">
         <div class="row">
-            <div class="col-md-6">
-                <div class="mb-3">
-                    <label for="priority" class="form-label">{% trans "Prioridad" %}</label>
-                    <select class="form-select" id="priority" name="priority">
-                        <option value="LOW" {% if task.priority == 'LOW' %}selected{% endif %}>{% trans "Baja" %}</option>
-                        <option value="MEDIUM" {% if task.priority == 'MEDIUM' %}selected{% endif %}>{% trans "Media" %}</option>
-                        <option value="HIGH" {% if task.priority == 'HIGH' %}selected{% endif %}>{% trans "Alta" %}</option>
-                    </select>
+            <!-- Left Column: Title & Description -->
+            <div class="col-lg-8 border-end pe-lg-4">
+                <div class="mb-4">
+                    <label for="title" class="form-label-modern">{% trans "Título" %} <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control form-control-modern" id="title" name="title" value="{{ task.title }}" required placeholder="Ej: Revisar documentación...">
+                </div>
+                
+                <div class="mb-2">
+                    <label for="description" class="form-label-modern">{% trans "Descripción" %}</label>
+                    <textarea class="form-control form-control-modern" id="description" name="description" rows="12" placeholder="Detalles adicionales..." style="min-height: 250px;">{{ task.description }}</textarea>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="mb-3">
-                    <label for="assigned_to" class="form-label">{% trans "Asignado a" %}</label>
-                    <select class="form-select" id="assigned_to" name="assigned_to">
-                        <option value="">{% trans "Sin asignar" %}</option>
-                        {% for user in users %}
-                            <option value="{{ user.id }}" {% if task.assigned_to == user %}selected{% endif %}>
-                                {{ user.get_full_name|default:user.email }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-        </div>
-        
-        <div class="row">
-            <div class="col-md-6">
-                <div class="mb-3">
-                    <label for="phase" class="form-label">{% trans "Fase" %}</label>
-                    <select class="form-select" id="phase" name="phase">
-                        {% for phase in phases %}
-                            <option value="{{ phase.id }}" {% if task.phase == phase %}selected{% endif %}>
-                                {{ phase.name }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="mb-3">
-                    <label for="due_date" class="form-label">{% trans "Fecha de vencimiento" %}</label>
-                    <input type="date" class="form-control" id="due_date" name="due_date" 
-                           value="{% if task.due_date %}{{ task.due_date|date:'Y-m-d' }}{% endif %}">
+
+            <!-- Right Column: Meta Fields -->
+            <div class="col-lg-4 ps-lg-4">
+                <div class="d-flex flex-column gap-3">
+                    <div>
+                        <label for="priority" class="form-label-modern">{% trans "Prioridad" %}</label>
+                        <select class="form-select form-select-modern" id="priority" name="priority">
+                            <option value="LOW" {% if task.priority == 'LOW' %}selected{% endif %}>{% trans "Baja" %}</option>
+                            <option value="MEDIUM" {% if task.priority == 'MEDIUM' %}selected{% endif %}>{% trans "Media" %}</option>
+                            <option value="HIGH" {% if task.priority == 'HIGH' %}selected{% endif %}>{% trans "Alta" %}</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="assigned_to" class="form-label-modern">{% trans "Asignado a" %}</label>
+                        <select class="form-select form-select-modern" id="assigned_to" name="assigned_to">
+                            <option value="">{% trans "Sin asignar" %}</option>
+                            {% for user in users %}
+                                <option value="{{ user.id }}" {% if task.assigned_to == user %}selected{% endif %}>
+                                    {{ user.get_full_name|default:user.email }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="phase" class="form-label-modern">{% trans "Fase" %}</label>
+                        <select class="form-select form-select-modern" id="phase" name="phase">
+                            {% for phase in phases %}
+                                <option value="{{ phase.id }}" {% if task.phase == phase %}selected{% endif %}>
+                                    {{ phase.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="due_date" class="form-label-modern">{% trans "Fecha de vencimiento" %}</label>
+                        <input type="date" class="form-control form-control-modern" id="due_date" name="due_date" 
+                               value="{% if task.due_date %}{{ task.due_date|date:'Y-m-d' }}{% endif %}">
+                    </div>
                 </div>
             </div>
         </div>
     </div>
     
-    <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancelar" %}</button>
-        <button type="submit" class="btn btn-primary">{% trans "Guardar" %}</button>
+    <div class="modal-footer-modern">
+        <button type="button" class="btn btn-light border" data-bs-dismiss="modal">{% trans "Cancelar" %}</button>
+        <button type="submit" class="btn btn-primary px-4">{% trans "Guardar" %}</button>
     </div>
 </form>
 

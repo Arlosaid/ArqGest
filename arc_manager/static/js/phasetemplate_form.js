@@ -24,40 +24,80 @@ document.addEventListener('DOMContentLoaded', function() {
     formsetContainer.addEventListener('click', function(e) {
         const btn = e.target.closest('.delete-phase-btn');
         if (!btn) return;
-        const wrapper = btn.closest('.phase-form');
+        const wrapper = btn.closest('.phase-item');
         if (!wrapper) return;
         
-        // Para fases nuevas (sin ID), simplemente eliminar del DOM
-        const idInput = wrapper.querySelector('input[name$="-id"]');
-        const isNewPhase = !idInput || !idInput.value;
+        // Para fases nuevas (sin data-is-existing), simplemente eliminar del DOM
+        const isExisting = wrapper.dataset.isExisting === 'true';
         
-        if (isNewPhase) {
+        if (!isExisting) {
             // Fase nueva: eliminar completamente del DOM
             wrapper.remove();
             formNum--;
             totalForms.value = formNum;
+            updateOrder();
         } else {
-            // Fase existente: marcar para eliminar y ocultar
+            // Fase existente: toggle marcar para eliminar
             const deleteInput = wrapper.querySelector('input[type="checkbox"][name$="-DELETE"]');
             const nameInput = wrapper.querySelector('input[name$="-name"]');
+            const icon = btn.querySelector('i');
+            
             if (deleteInput) {
-                deleteInput.checked = true;
+                // Toggle estado
+                const isDeleting = !deleteInput.checked;
+                deleteInput.checked = isDeleting;
+                
+                if (isDeleting) {
+                    wrapper.classList.add('phase-deleted');
+                    if (nameInput) nameInput.readOnly = true;
+                    if (icon) {
+                        icon.classList.remove('fa-trash-alt');
+                        icon.classList.add('fa-undo');
+                    }
+                    btn.title = "Deshacer eliminación";
+                    btn.classList.remove('btn-outline-danger');
+                    btn.classList.add('btn-outline-secondary');
+                } else {
+                    wrapper.classList.remove('phase-deleted');
+                    if (nameInput) nameInput.readOnly = false;
+                    if (icon) {
+                        icon.classList.remove('fa-undo');
+                        icon.classList.add('fa-trash-alt');
+                    }
+                    btn.title = "Eliminar fase";
+                    btn.classList.remove('btn-outline-secondary');
+                    btn.classList.add('btn-outline-danger');
+                }
             }
-            if (nameInput) {
-                nameInput.required = false;
-            }
-            wrapper.style.display = 'none';
+            // No ocultamos ni actualizamos orden para fases existentes
+            updateOrder();
         }
-        
-        updateOrder();
     });
 
     function updateOrder() {
-        const forms = formsetContainer.querySelectorAll('.phase-form:not([style*="display: none"])');
-        forms.forEach((form, index) => {
-            const orderInput = form.querySelector('input[name$="-order"]');
-            if (orderInput) {
-                orderInput.value = index;
+        const forms = formsetContainer.querySelectorAll('.phase-item:not([style*="display: none"])');
+        let visibleIndex = 0;
+        
+        forms.forEach((form) => {
+            const deleteInput = form.querySelector('input[type="checkbox"][name$="-DELETE"]');
+            const isDeleted = deleteInput && deleteInput.checked;
+            const numberBadge = form.querySelector('.phase-number');
+            
+            if (!isDeleted) {
+                const orderInput = form.querySelector('input[name$="-order"]');
+                if (orderInput) {
+                    orderInput.value = visibleIndex;
+                }
+                // Actualizar número visual
+                if (numberBadge) {
+                    numberBadge.textContent = visibleIndex + 1;
+                }
+                visibleIndex++;
+            } else {
+                // Para elementos borrados, mostrar icono de basura en lugar de número
+                if (numberBadge) {
+                    numberBadge.innerHTML = '<i class="fas fa-trash-alt" style="font-size: 0.7rem;"></i>';
+                }
             }
         });
     }
@@ -76,26 +116,52 @@ document.addEventListener('DOMContentLoaded', function() {
         // SortableJS no está disponible o falló la inicialización
     }
 
+    // Inicializar estado visual al cargar (por si hay errores de validación y vuelve con datos)
+    const existingForms = formsetContainer.querySelectorAll('.phase-item');
+    existingForms.forEach(form => {
+        const deleteInput = form.querySelector('input[type="checkbox"][name$="-DELETE"]');
+        if (deleteInput && deleteInput.checked) {
+            form.classList.add('phase-deleted');
+            const nameInput = form.querySelector('input[name$="-name"]');
+            if (nameInput) nameInput.readOnly = true;
+            
+            const btn = form.querySelector('.delete-phase-btn');
+            if (btn) {
+                const icon = btn.querySelector('i');
+                if (icon) {
+                    icon.classList.remove('fa-trash-alt');
+                    icon.classList.add('fa-undo');
+                }
+                btn.title = "Deshacer eliminación";
+                btn.classList.remove('btn-outline-danger');
+                btn.classList.add('btn-outline-secondary');
+            }
+        }
+    });
+
     updateOrder();
 
     formEl.addEventListener('submit', function() {
-        const forms = formsetContainer.querySelectorAll('.phase-form:not([style*="display: none"])');
+        const forms = formsetContainer.querySelectorAll('.phase-item:not([style*="display: none"])');
         forms.forEach((form) => {
             const nameInput = form.querySelector('input[name$="-name"]');
             const deleteInput = form.querySelector('input[type="checkbox"][name$="-DELETE"]');
-            // Solo marcar para eliminar fases que existen en la BD y están vacías
-            const idInput = form.querySelector('input[name$="-id"]');
-            const hasId = idInput && idInput.value;
+            const isExisting = form.dataset.isExisting === 'true';
             
-            if (nameInput && !nameInput.value.trim() && deleteInput && hasId) {
+            // Si es una fase existente marcada para borrar, asegurarse que se envíe
+            if (isExisting && deleteInput && deleteInput.checked) {
+                return; // Ya está marcada, dejarla así
+            }
+
+            if (nameInput && !nameInput.value.trim() && deleteInput && isExisting) {
                 deleteInput.checked = true;
                 form.style.display = 'none';
-            } else if (nameInput && !nameInput.value.trim() && !hasId) {
+            } else if (nameInput && !nameInput.value.trim() && !isExisting) {
                 // Fases nuevas sin nombre: eliminar del DOM
                 form.remove();
             }
         });
-        updateOrder();
+        // No llamamos updateOrder aquí para no reordenar justo antes de enviar si no es necesario
     });
 });
 

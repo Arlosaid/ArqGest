@@ -60,6 +60,17 @@ class ClientListView(LoginRequiredMixin, PageSizeMixin, ListView):
         if extra_params:
             extra_params = f"{extra_params}&"
         context['extra_params'] = extra_params
+
+        # Agregar estadísticas de clientes
+        if hasattr(self.request.user, 'organization') and self.request.user.organization:
+            org = self.request.user.organization
+            total_clients = org.clients.count()
+            active_clients = org.clients.filter(is_active=True).count()
+            inactive_clients = total_clients - active_clients
+            
+            context['total_clients'] = total_clients
+            context['active_clients'] = active_clients
+            context['inactive_clients'] = inactive_clients
         
         return context
 

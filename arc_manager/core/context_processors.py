@@ -15,6 +15,9 @@ def global_settings(request):
         # Inject unified upload settings
         'MAX_UPLOAD_SIZE_MB': getattr(settings, 'MAX_UPLOAD_SIZE_MB', 1500),
         'ALLOWED_UPLOAD_EXTENSIONS': getattr(settings, 'ALLOWED_UPLOAD_EXTENSIONS', []),
+        # Support info
+        'SUPPORT_EMAIL': getattr(settings, 'SUPPORT_EMAIL', 'soporte@tuempresa.com'),
+        'SUPPORT_PHONE': getattr(settings, 'SUPPORT_PHONE', '55 1234 5678'),
     }
 
 

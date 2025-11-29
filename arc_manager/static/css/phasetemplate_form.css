@@ -4,3 +4,27 @@ input[type="checkbox"][name$="-DELETE"] { display: none !important; }
 .phase-form .form-control { min-width: 220px; }
 .drag-handle { color: #6c757d; cursor: move; }
 
+/* Estilos para fases marcadas para eliminar */
+.phase-item.phase-deleted {
+    opacity: 0.6;
+    background-color: #fff1f2; /* Rojo muy claro */
+    border-color: #fecaca;
+}
+
+.phase-item.phase-deleted .modern-input {
+    text-decoration: line-through;
+    color: #9ca3af;
+    background-color: #f9fafb;
+}
+
+.phase-item.phase-deleted .phase-number {
+    background-color: #fee2e2;
+    color: #ef4444;
+    text-decoration: none;
+}
+
+.phase-item.phase-deleted .drag-handle {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+

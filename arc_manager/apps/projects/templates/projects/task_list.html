@@ -121,7 +121,7 @@
                                     {% if task.due_date %}
                                         <div class="task-due-date">
                                             <i class="fas fa-calendar-alt"></i>
-                                            <span class="{% if task.due_date < today %}text-danger{% endif %}">
+                                            <span class="{% if task.is_overdue %}text-danger fw-bold{% elif task.is_due_soon %}text-warning fw-bold{% endif %}">
                                                 {{ task.due_date|date:"d M Y" }}
                                             </span>
                                         </div>

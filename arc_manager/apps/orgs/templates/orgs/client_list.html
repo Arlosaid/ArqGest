@@ -4,13 +4,90 @@
 {% block title %}Gestión de Clientes - ArqGest{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/client_management.css' %}">
+<link rel="stylesheet" href="{% static 'css/finance.css' %}">
+<link href="{% static 'css/project_list.css' %}?v=6.2" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/user_management.css' %}">
+<link rel="stylesheet" href="{% static 'css/delete_modal.css' %}">
 <link rel="stylesheet" href="{% static 'css/status-toggle.css' %}">
 {% endblock %}
-            
-{% block content %}
-<div class="page-container client-management-page">
+
+{% block extra_js %}
+<script>
+// Script único y directo para búsqueda de clientes
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('👥 INICIALIZANDO BÚSQUEDA DE CLIENTES');
     
+    const searchInput = document.querySelector('.table-search-input');
+    const searchForm = document.querySelector('.table-search-box');
+    
+    if (!searchInput || !searchForm) {
+        console.error('❌ No se encontraron elementos de búsqueda de clientes');
+        return;
+    }
+    
+    console.log('✅ Elementos de clientes encontrados, configurando búsqueda...');
+    
+    let searchTimeout;
+    let isSearching = false;
+    
+    // Event listener principal para búsqueda
+    searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.trim();
+        console.log('📝 Búsqueda de clientes:', searchTerm);
+        
+        // Prevenir múltiples búsquedas simultáneas
+        if (isSearching) {
+            console.log('⏳ Búsqueda de clientes en progreso, esperando...');
+            return;
+        }
+        
+        // Limpiar timeout anterior
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+        
+        // Configurar nuevo timeout
+        searchTimeout = setTimeout(function() {
+            console.log('🚀 Enviando búsqueda de clientes:', searchTerm);
+            isSearching = true;
+            
+            // Cambiar icono a loading
+            const icon = document.querySelector('.table-search-icon');
+            if (icon) {
+                icon.className = 'fas fa-spinner fa-spin table-search-icon';
+            }
+            
+            // Enviar formulario
+            try {
+                searchForm.submit();
+            } catch (error) {
+                console.error('❌ Error al enviar formulario de clientes:', error);
+                isSearching = false;
+            }
+        }, 500);
+    });
+    
+    // Event listener para tecla Escape
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && this.value) {
+            console.log('🧹 Limpiando búsqueda de clientes con Escape');
+            this.value = '';
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+            searchForm.submit();
+        }
+    });
+    
+    console.log('✅ Búsqueda de clientes configurada correctamente');
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<!-- Usar el container estándar de base.css -->
+<div class="page-container user-management-page">
+    <!-- Header Section (estilo tareas unificado) -->
     <div class="header-section">
         <div class="header-content">
             <div class="header-title">
@@ -28,89 +105,114 @@
         </div>
     </div>
 
-    <div class="table-container">
-        <div class="table-header">
-            <h3 class="unified-title-tertiary">Lista de Clientes</h3>
+    <div class="row g-4 mb-4">
+        <!-- Metrics Grid - Full Width -->
+        <div class="col-12">
+            <div class="stats-overview-section" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                <div class="stat-card-modern total">
+                    <div class="stat-icon-wrapper" style="background: #ecfdf5; color: #059669;">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value">{{ total_clients|default:"0" }}</span>
+                        <span class="stat-label">Total Clientes</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card-modern active-projects">
+                    <div class="stat-icon-wrapper" style="background: #eff6ff; color: #2563eb;">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value">{{ active_clients|default:"0" }}</span>
+                        <span class="stat-label">Clientes Activos</span>
+                    </div>
+                </div>
 
-            <div class="table-search-container">
-                <form method="get" class="table-search-box">
-                    <input type="text" 
-                           name="search" 
-                           value="{{ search }}" 
-                           class="table-search-input" 
-                           placeholder="Buscar por nombre, email o teléfono..."
-                           autocomplete="off">
-                    <i class="fas fa-search table-search-icon"></i>
-                    {% if search %}
-                        <a href="{% url 'orgs:client_list' %}" class="clear-search-btn">
-                            <i class="fas fa-times"></i>
-                        </a>
-                    {% endif %}
-                </form>
+                <div class="stat-card-modern archived">
+                    <div class="stat-icon-wrapper" style="background: #fffbeb; color: #d97706;">
+                        <i class="fas fa-user-times"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value">{{ inactive_clients|default:"0" }}</span>
+                        <span class="stat-label">Clientes Inactivos</span>
+                    </div>
+                </div>
             </div>
-            
-            <span class="result-count">
-                {% if is_paginated %}
-                    {% if search %}
-                        {{ page_obj.paginator.count }} resultado{{ page_obj.paginator.count|pluralize }} para "{{ search }}"
-                    {% else %}
-                        {{ page_obj.paginator.count }} cliente{{ page_obj.paginator.count|pluralize }}
-                    {% endif %}
-                {% else %}
-                    {% if search %}
-                        {{ clients|length }} resultado{{ clients|length|pluralize }} para "{{ search }}"
-                    {% else %}
-                        {{ clients|length }} cliente{{ clients|length|pluralize }}
-                    {% endif %}
-                {% endif %}
-            </span>
         </div>
-        
-        {% if clients %}
-            
-            <div class="table-wrapper">
-                <table class="modern-table">
+    </div>
+
+    <!-- Search Toolbar -->
+    <div class="controls-toolbar-section mb-4">
+        <form method="get" class="table-search-box w-100">
+            <div class="search-box-wrapper w-100" style="max-width: 100%;">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" 
+                       class="search-input-modern table-search-input" 
+                       placeholder="Buscar por nombre, email o teléfono..." 
+                       name="search"
+                       value="{{ search }}"
+                       autocomplete="off">
+                {% if search %}
+                    <a href="{% url 'orgs:client_list' %}" class="clear-search-btn" style="display: flex;">
+                        <i class="fas fa-times"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    {% if clients %}
+        <!-- Desktop Table -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden d-none d-lg-block mb-4">
+            <div class="table-responsive">
+                <table class="table finance-table mb-0 w-100">
                     <thead>
                         <tr>
                             <th>Cliente</th>
                             <th>Email</th>
                             <th>Teléfono</th>
                             <th>Estado</th>
-                            <th>Acciones</th>
+                            <th class="text-end">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for client in clients %}
-                        <tr data-client-id="{{ client.pk }}" data-projects="{{ client.projects.count }}">
+                        <tr data-client-id="{{ client.pk }}">
                             <td>
-                                <div class="client-info">
-                                    <div class="client-avatar">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="avatar-initials shadow-sm">
                                         {{ client.name|first|upper }}
                                     </div>
-                                    <div class="client-details">
-                                        <div class="client-name" title="{{ client.name }}">{{ client.name }}</div>
+                                    <div>
+                                        <div class="fw-semibold text-dark client-name">{{ client.name }}</div>
                                     </div>
                                 </div>
                             </td>
                             <td>
                                 {% if client.email %}
-                                    <a href="mailto:{{ client.email }}" class="email-link">
-                                        {{ client.email }}
-                                    </a>
+                                    <div class="d-flex align-items-center text-secondary client-email">
+                                        <i class="fas fa-envelope me-2 text-muted"></i>
+                                        <a href="mailto:{{ client.email }}" class="text-decoration-none text-secondary">
+                                            {{ client.email }}
+                                        </a>
+                                    </div>
                                 {% else %}
-                                    <span class="text-muted">N/A</span>
+                                    <span class="text-muted small">No registrado</span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if client.phone_number %}
-                                    {{ client.phone_number }}
+                                    <div class="d-flex align-items-center text-secondary">
+                                        <i class="fas fa-phone me-2 text-muted"></i>
+                                        {{ client.phone_number }}
+                                    </div>
                                 {% else %}
-                                    <span class="text-muted">N/A</span>
+                                    <span class="text-muted small">No registrado</span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if user.is_org_admin %}
-                                    <!-- Toggle interactivo para cambiar estado -->
                                     <div class="status-toggle-container"
                                          data-toggle-status="client"
                                          data-entity-id="{{ client.pk }}"
@@ -122,29 +224,31 @@
                                         </span>
                                     </div>
                                 {% else %}
-                                    <!-- Solo badge visual (sin toggle) -->
-                                    <span class="status-badge {% if client.is_active %}active{% else %}inactive{% endif %}">
+                                    <span class="badge rounded-pill {% if client.is_active %}bg-success-subtle text-success border border-success-subtle{% else %}bg-danger-subtle text-danger border border-danger-subtle{% endif %} px-3 py-1">
                                         {% if client.is_active %}Activo{% else %}Inactivo{% endif %}
                                     </span>
                                 {% endif %}
                             </td>
-                            <td>
-                                <div class="action-buttons">
+                            <td class="text-end">
+                                <div class="d-flex justify-content-end align-items-center gap-2">
                                     <a href="{% url 'orgs:client_edit' client.pk %}" 
-                                       class="action-btn edit"
-                                       title="Editar cliente">
+                                       class="action-btn edit" 
+                                       title="Editar"
+                                       style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; text-decoration: none; transition: all 0.2s ease; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     
                                     <a href="{% url 'orgs:client_detail' client.pk %}" 
-                                       class="action-btn view"
-                                       title="Ver detalles">
+                                       class="action-btn view" 
+                                       title="Ver detalles"
+                                       style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; text-decoration: none; transition: all 0.2s ease; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    
-                                    <a href="{% url 'orgs:client_delete' client.pk %}" 
+
+                                    <a href="{% url 'orgs:client_delete' client.pk %}"
                                        class="action-btn delete"
-                                       title="Eliminar cliente">
+                                       title="Eliminar cliente"
+                                       style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: all 0.2s ease; background: #fef2f2; color: #ef4444; border: 1px solid #fecaca;">
                                         <i class="fas fa-trash-alt"></i>
                                     </a>
                                 </div>
@@ -154,55 +258,110 @@
                     </tbody>
                 </table>
             </div>
+        </div>
 
-            {% if is_paginated %}
-                {% include 'partials/pagination.html' with page_obj=page_obj page_param='page' extra_params=extra_params item_label='clientes' %}
-            {% endif %}
-            
-        {% else %}
-            
-            <div class="empty-state-enhanced">
-                {% if search %}
-                    <div class="empty-icon">
-                        <i class="fas fa-search"></i>
+        <!-- Mobile Cards -->
+        <div class="d-lg-none">
+            <div class="projects-grid">
+                {% for client in clients %}
+                <div class="project-card h-100 mobile-client-card" data-client-id="{{ client.pk }}">
+                    <div class="project-card-header">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="project-image">
+                                <div class="image-placeholder">
+                                    <span class="fw-bold">{{ client.name|first|upper }}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="project-title text-white mb-0 client-name" style="font-size: 1rem;">{{ client.name }}</h3>
+                                <small class="text-white-50 client-email">{{ client.email|default:"Sin email" }}</small>
+                            </div>
+                        </div>
                     </div>
-                    <h3>No se encontraron clientes</h3>
-                    <p>No hay clientes que coincidan con la búsqueda "<strong>{{ search }}</strong>".</p>
-                    <div class="search-suggestions">
-                        <p><strong>Sugerencias:</strong></p>
-                        <ul>
-                            <li>Verifica la ortografía</li>
-                            <li>Intenta con términos más generales</li>
-                            <li>Busca por nombre, email o teléfono</li>
-                        </ul>
+
+                    <div class="project-card-body d-flex flex-column">
+                        <div class="row g-2 mb-3">
+                            <div class="col-12">
+                                <div class="p-2 rounded bg-light border d-flex justify-content-between align-items-center">
+                                    <span class="text-muted small text-uppercase">Estado</span>
+                                    {% if user.is_org_admin %}
+                                        <div class="status-toggle-container"
+                                             data-toggle-status="client"
+                                             data-entity-id="{{ client.pk }}"
+                                             data-entity-name="{{ client.name }}"
+                                             data-current-status="{{ client.is_active|yesno:'true,false' }}">
+                                            <div class="toggle-switch {% if client.is_active %}active{% else %}inactive{% endif %}"></div>
+                                            <span class="toggle-status-text {% if client.is_active %}status-active{% else %}status-inactive{% endif %}">
+                                                {% if client.is_active %}Activo{% else %}Inactivo{% endif %}
+                                            </span>
+                                        </div>
+                                    {% else %}
+                                        <span class="badge rounded-pill {% if client.is_active %}bg-success-subtle text-success border border-success-subtle{% else %}bg-danger-subtle text-danger border border-danger-subtle{% endif %} px-3 py-1 status-badge {% if client.is_active %}active{% endif %}">
+                                            {% if client.is_active %}Activo{% else %}Inactivo{% endif %}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if client.phone_number %}
+                            <div class="col-12">
+                                <div class="p-2 rounded bg-light border d-flex align-items-center gap-2">
+                                    <i class="fas fa-phone text-muted"></i>
+                                    <span class="text-dark">{{ client.phone_number }}</span>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
                     </div>
-                    <a href="{% url 'orgs:client_list' %}" class="btn-primary-prominent">
-                        <i class="fas fa-times"></i>
-                        Limpiar búsqueda
-                    </a>
-                {% else %}
-                    <div class="empty-icon">
-                        <i class="fas fa-user-tie"></i>
+
+                    <div class="project-card-footer">
+                        <a href="{% url 'orgs:client_edit' client.pk %}" class="btn btn-light btn-sm flex-grow-1 d-flex align-items-center justify-content-center gap-2 border text-primary">
+                            <i class="fas fa-edit"></i> Editar
+                        </a>
+                        <a href="{% url 'orgs:client_detail' client.pk %}" class="btn btn-light btn-sm border text-secondary d-flex align-items-center justify-content-center" style="width: 40px;" title="Ver detalles">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{% url 'orgs:client_delete' client.pk %}" 
+                           class="btn btn-light btn-sm border text-danger d-flex align-items-center justify-content-center" 
+                           style="width: 40px;" 
+                           title="Eliminar">
+                            <i class="fas fa-trash-alt"></i>
+                        </a>
                     </div>
-                    <h3>¡Bienvenido!</h3>
-                    <p>Comienza registrando tu primer cliente para poder asignarlo a tus proyectos.</p>
-                    
-                    <a href="{% url 'orgs:client_create' %}" class="btn-primary-prominent">
-                        <i class="fas fa-user-plus"></i> 
-                        Crear mi primer cliente
-                    </a>
-                {% endif %}
+                </div>
+                {% endfor %}
             </div>
-        {% endif %}
-    </div>
+        </div>
+
+        {% include 'partials/pagination.html' with page_obj=page_obj page_param='page' extra_params=extra_params item_label='clientes' %}
+
+    {% else %}
+        <!-- Empty State (Enhanced) -->
+        <div class="empty-state-enhanced">
+             {% if search %}
+                <div class="empty-icon">
+                    <i class="fas fa-search"></i>
+                </div>
+                <h3>No se encontraron clientes</h3>
+                <p>No hay clientes que coincidan con la búsqueda "<strong>{{ search }}</strong>".</p>
+                <a href="{% url 'orgs:client_list' %}" class="btn btn-primary mt-3">
+                    <i class="fas fa-times me-2"></i>Limpiar búsqueda
+                </a>
+            {% else %}
+                <div class="empty-icon">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <h3>¡Bienvenido!</h3>
+                <p>Comienza registrando tu primer cliente.</p>
+                <a href="{% url 'orgs:client_create' %}" class="btn btn-primary mt-3">
+                    <i class="fas fa-user-plus me-2"></i>Crear Cliente
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
 </div>
 
 {% csrf_token %}
 
-{% endblock %}
-
-{% block extra_js %}
-<!-- Script de gestión de estado de clientes -->
+<!-- Scripts de gestión de clientes -->
 <script src="{% static 'js/status-toggle.js' %}"></script>
-<script src="{% static 'js/client-delete.js' %}"></script>
 {% endblock %}

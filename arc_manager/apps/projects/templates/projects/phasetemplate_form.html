@@ -12,129 +12,247 @@
 
 {% block extra_css %}
 <link href="{% static 'css/projects.css' %}?v=1.2" rel="stylesheet">
+<link href="{% static 'css/user_management.css' %}" rel="stylesheet">
 <link href="{% static 'css/phasetemplate_form.css' %}?v=1.0" rel="stylesheet">
+<style>
+    .phase-item {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        transition: all 0.2s;
+    }
+    .phase-item:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .drag-handle {
+        cursor: grab;
+        color: #94a3b8;
+        padding: 0.5rem;
+    }
+    .drag-handle:hover {
+        color: #64748b;
+    }
+    .phase-number {
+        width: 24px;
+        height: 24px;
+        background: #f1f5f9;
+        color: #64748b;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<!-- Usar el container estándar de base.css -->
-<div class="page-container">
-    <!-- Header Section (viene de base.css) -->
-            <div class="header-section">
-                <div class="header-content">
-                    <div class="header-title">
-                        <div class="header-icon">
-                            <i class="fas fa-layer-group"></i>
-                        </div>
-                        <h1>
-                            {% if form.instance.pk %}
-                                {% trans "Editar Plantilla de Fase" %}
-                            {% else %}
-                                {% trans "Crear Plantilla de Fase" %}
-                            {% endif %}
-                        </h1>
-                        <div class="text-muted">{% trans "Define las fases y tareas estándar para tus proyectos" %}</div>
-                    </div>
-                    <div class="d-flex gap-2">
-                        {% if form.instance.pk %}
-                        <a href="{% url 'projects:phasetemplate-delete' form.instance.pk %}" class="btn btn-danger">
-                            <i class="fas fa-trash-alt"></i> {% trans "Eliminar Plantilla" %}
-                        </a>
-                        {% endif %}
-                        <a href="{% url 'projects:phasetemplate-list' %}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left"></i> {% trans "Volver a Plantillas" %}
-                        </a>
-                    </div>
+<div class="page-container user-management-page">
+    
+    <div class="header-section">
+        <div class="header-content">
+            <div class="header-title">
+                <div class="header-icon">
+                    <i class="fas fa-layer-group"></i>
                 </div>
+                <h1>
+                    {% if form.instance.pk %}
+                        {% trans "Editar Plantilla" %}
+                    {% else %}
+                        {% trans "Nueva Plantilla" %}
+                    {% endif %}
+                </h1>
+                <div class="text-muted">{% trans "Define las fases estándar para tus proyectos" %}</div>
             </div>
-
-    <div class="card shadow">
-        <div class="card-header">
-            <h3>
-                {% if form.instance.pk %}
-                    {% trans "Editar Plantilla de Fase" %}
-                {% else %}
-                    {% trans "Crear Plantilla de Fase" %}
-                {% endif %}
-            </h3>
+            <div>
+                <a href="{% url 'projects:phasetemplate-list' %}" class="btn-secondary-outline">
+                    <i class="fas fa-arrow-left"></i>
+                    {% trans "Volver a Plantillas" %}
+                </a>
+            </div>
         </div>
-        <div class="card-body">
-            <form method="post" id="phase-template-form" novalidate>
-                {% csrf_token %}
-                
-                {{ form.as_p }}
+    </div>
 
-                <hr>
-
-                <h4>{% trans "Fases" %}</h4>
-                {% if phase_formset.non_form_errors %}
-                    <div class="alert alert-danger">{{ phase_formset.non_form_errors }}</div>
-                {% endif %}
+    <div class="main-content-grid">
+        
+        <div class="left-content">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3>{% trans "Información de la Plantilla" %}</h3>
+                    {% if form.instance.pk %}
+                    <a href="{% url 'projects:phasetemplate-delete' form.instance.pk %}" class="btn btn-outline-danger btn-sm">
+                        <i class="fas fa-trash-alt"></i> {% trans "Eliminar Plantilla" %}
+                    </a>
+                    {% endif %}
+                </div>
                 
-                <div id="phase-formset">
-                    {{ phase_formset.management_form }}
-                    <div id="phase-forms-container">
-                        {% for form in phase_formset %}
-                            <div class="phase-form mb-2 p-2 border rounded d-flex align-items-center" data-form-index="{{ forloop.counter0 }}">
-                                <div class="row align-items-center">
-                                    <div class="col-auto">
-                                        <i class="fas fa-bars drag-handle"></i>
+                <div class="card-body">
+                    <form method="post" id="phase-template-form" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <div class="form-section-icon">
+                                    <i class="fas fa-info"></i>
+                                </div>
+                                {% trans "Datos Básicos" %}
+                            </div>
+
+                            <div class="modern-form-group">
+                                <label for="{{ form.name.id_for_label }}" class="modern-label">
+                                    {% trans "Nombre de la Plantilla" %}<span class="required">*</span>
+                                </label>
+                                <input type="text" name="{{ form.name.name }}" 
+                                       id="{{ form.name.id_for_label }}" 
+                                       class="modern-input" 
+                                       value="{{ form.name.value|default:'' }}"
+                                       placeholder="Ej: Desarrollo Web Estándar"
+                                       {% if form.name.field.required %}required{% endif %}>
+                                {% if form.name.errors %}
+                                    <div class="error-message">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        {% for error in form.name.errors %}{{ error }}{% endfor %}
                                     </div>
-                                    <div class="col">
-                                        {{ form.name }}
-                                        {{ form.order }}
-                                        {% if form.instance.pk %}{{ form.id }}{% endif %}
+                                {% endif %}
+                            </div>
+
+                            <div class="modern-form-group">
+                                <label for="{{ form.description.id_for_label }}" class="modern-label">
+                                    {% trans "Descripción" %}
+                                </label>
+                                <textarea name="{{ form.description.name }}" 
+                                          id="{{ form.description.id_for_label }}" 
+                                          class="modern-input" 
+                                          rows="3"
+                                          placeholder="Describe el propósito de esta plantilla...">{{ form.description.value|default:'' }}</textarea>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <div class="form-section-title d-flex justify-content-between align-items-center w-100">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="form-section-icon">
+                                        <i class="fas fa-list-ol"></i>
+                                    </div>
+                                    {% trans "Fases del Proyecto" %}
+                                </div>
+                                <button type="button" id="add-form" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus"></i> {% trans "Añadir Fase" %}
+                                </button>
+                            </div>
+
+                            {% if phase_formset.non_form_errors %}
+                                <div class="alert alert-danger">{{ phase_formset.non_form_errors }}</div>
+                            {% endif %}
+                            
+                            <div id="phase-formset" class="mt-3">
+                                {{ phase_formset.management_form }}
+                                <div id="phase-forms-container" class="d-flex flex-column gap-2">
+                                    {% for form in phase_formset %}
+                                        <div class="phase-item p-3 d-flex align-items-center gap-3" data-form-index="{{ forloop.counter0 }}" data-is-existing="true">
+                                            <div class="drag-handle">
+                                                <i class="fas fa-grip-vertical"></i>
+                                            </div>
+                                            <div class="phase-number">
+                                                {{ forloop.counter }}
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                {{ form.name }}
+                                                {{ form.order }}
+                                            </div>
+                                            <div class="col-auto">
+                                                {% if phase_formset.can_delete %}
+                                                    <button type="button" class="btn btn-outline-danger btn-sm delete-phase-btn border-0" title="{% trans 'Eliminar fase' %}">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
+                                                    <div class="d-none">
+                                                        {{ form.DELETE }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div id="empty-form" class="d-none">
+                                <div class="phase-item p-3 d-flex align-items-center gap-3" data-form-index="__prefix__">
+                                    <div class="drag-handle">
+                                        <i class="fas fa-grip-vertical"></i>
+                                    </div>
+                                    <div class="phase-number">#</div>
+                                    <div class="flex-grow-1">
+                                        {{ phase_formset.empty_form.name }}
+                                        {{ phase_formset.empty_form.order }}
                                     </div>
                                     <div class="col-auto">
                                         {% if phase_formset.can_delete %}
-                                            <button type="button" class="btn btn-outline-danger btn-sm delete-phase-btn" title="{% trans 'Eliminar fase' %}">
+                                            <button type="button" class="btn btn-outline-danger btn-sm delete-phase-btn border-0" title="{% trans 'Eliminar fase' %}">
                                                 <i class="fas fa-trash-alt"></i>
                                             </button>
-                                            {{ form.DELETE }}
+                                            <div class="d-none">
+                                                {{ phase_formset.empty_form.DELETE }}
+                                            </div>
                                         {% endif %}
                                     </div>
                                 </div>
                             </div>
-                        {% endfor %}
-                    </div>
-                </div>
+                        </div>
 
-                <div id="empty-form" class="d-none">
-                    <div class="phase-form mb-2 p-2 border rounded d-flex align-items-center" data-form-index="__prefix__">
-                        <div class="row align-items-center">
-                            <div class="col-auto">
-                                <i class="fas fa-bars drag-handle"></i>
-                            </div>
-                            <div class="col">
-                                {{ phase_formset.empty_form.name }}
-                                {{ phase_formset.empty_form.order }}
-                            </div>
-                            <div class="col-auto">
-                                {% if phase_formset.can_delete %}
-                                    <button type="button" class="btn btn-outline-danger btn-sm delete-phase-btn" title="{% trans 'Eliminar fase' %}">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
-                                    {{ phase_formset.empty_form.DELETE }}
-                                {% endif %}
-                            </div>
+                        <div class="form-actions mt-4">
+                            <button type="submit" class="btn-primary-large">
+                                <i class="fas fa-save"></i> {% trans "Guardar Plantilla" %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-sidebar">
+            <div class="process-guide">
+                <div class="process-header">
+                    <i class="fas fa-lightbulb"></i>
+                    <h4>{% trans "Guía Rápida" %}</h4>
+                </div>
+                
+                <div class="process-steps">
+                    <div class="process-step">
+                        <div class="step-icon">
+                            <i class="fas fa-pen"></i>
+                        </div>
+                        <div class="step-content">
+                            <h5>{% trans "Nombre Descriptivo" %}</h5>
+                            <p>{% trans "Usa un nombre claro que identifique el tipo de proyecto." %}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="process-step">
+                        <div class="step-icon">
+                            <i class="fas fa-sort-amount-down"></i>
+                        </div>
+                        <div class="step-content">
+                            <h5>{% trans "Orden Lógico" %}</h5>
+                            <p>{% trans "Arrastra las fases para ordenarlas cronológicamente." %}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="process-step">
+                        <div class="step-icon">
+                            <i class="fas fa-tasks"></i>
+                        </div>
+                        <div class="step-content">
+                            <h5>{% trans "Granularidad" %}</h5>
+                            <p>{% trans "Divide el trabajo en fases manejables (ej: Diseño, Desarrollo, QA)." %}</p>
                         </div>
                     </div>
                 </div>
-
-                <button type="button" id="add-form" class="btn btn-outline-primary btn-sm mt-2">
-                    <i class="fas fa-plus"></i> {% trans "Añadir Fase" %}
-                </button>
-                <hr>
-                <button type="submit" class="btn btn-primary me-2">
-                    <i class="fas fa-save"></i> {% trans "Guardar Plantilla" %}
-                </button>
-                <a href="{% url 'projects:phasetemplate-list' %}" class="btn btn-secondary">
-                    <i class="fas fa-times"></i> {% trans "Cancelar" %}
-                </a>
-            </form>
+            </div>
         </div>
     </div>
 </div>
-
 {% endblock content %}
 
 {% block extra_js %}
