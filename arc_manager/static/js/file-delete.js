@@ -249,16 +249,58 @@ class FileDeleteManager {
     }
 
     extractFileName(fileElement) {
-        // Intentar obtener de varios lugares
-        const nameElement = fileElement.querySelector('.file-name, .file-name-full, [title]');
-        if (nameElement) {
-            // Usar innerText para evitar texto oculto duplicado
-            return nameElement.innerText.trim() || nameElement.getAttribute('title');
+        // Intentar obtener el nombre del archivo de varios lugares
+        
+        // 1. Buscar elemento con clase .file-name que tenga el atributo title con el nombre real
+        const fileNameElement = fileElement.querySelector('.file-name[title]');
+        if (fileNameElement) {
+            const title = fileNameElement.getAttribute('title');
+            if (title && title !== 'Ver archivo') {
+                return title;
+            }
+            const text = fileNameElement.innerText.trim();
+            if (text) return text;
         }
-        return 'Archivo sin nombre';
+        
+        // 2. Buscar cualquier elemento .file-name o .file-name-full
+        const nameElement = fileElement.querySelector('.file-name, .file-name-full');
+        if (nameElement) {
+            const text = nameElement.innerText.trim();
+            if (text) return text;
+        }
+        
+        // 3. En tablas, buscar el enlace dentro de la primera celda
+        const firstCell = fileElement.querySelector('td a');
+        if (firstCell) {
+            const spanInLink = firstCell.querySelector('span');
+            if (spanInLink) {
+                return spanInLink.innerText.trim();
+            }
+        }
+        
+        // 4. Buscar cualquier span con clase fw-semibold (usado en tablas)
+        const boldSpan = fileElement.querySelector('span.fw-semibold');
+        if (boldSpan) {
+            return boldSpan.innerText.trim();
+        }
+        
+        return 'Archivo seleccionado';
     }
 
     extractFileMeta(fileElement) {
+        // Buscar metadatos en diferentes formatos de HTML
+        // Formato 1: file-meta-item spans (files_optimized.html)
+        const metaItems = fileElement.querySelectorAll('.file-meta-item');
+        if (metaItems.length > 0) {
+            const parts = [];
+            metaItems.forEach(item => {
+                const text = item.textContent.trim();
+                if (text) parts.push(text);
+            });
+            if (parts.length > 0) return parts.join(' • ');
+        }
+        
+        // Formato 2: Clases específicas (files_table.html)
         const sizeElement = fileElement.querySelector('.file-size');
         const typeElement = fileElement.querySelector('.file-type');
         const dateElement = fileElement.querySelector('.file-date');
@@ -267,8 +309,24 @@ class FileDeleteManager {
         if (sizeElement) parts.push(sizeElement.textContent.trim());
         if (typeElement) parts.push(typeElement.textContent.trim());
         if (dateElement) parts.push(dateElement.textContent.trim());
+        
+        if (parts.length > 0) return parts.join(' • ');
+        
+        // Formato 3: Celdas de tabla (tr > td)
+        const cells = fileElement.querySelectorAll('td');
+        if (cells.length >= 5) {
+            // Columnas: Archivo, Tipo, Subido por, Fecha, Tamaño
+            const tipo = cells[1]?.textContent.trim();
+            const fecha = cells[3]?.textContent.trim();
+            const tamano = cells[4]?.textContent.trim();
+            const tableParts = [];
+            if (tamano) tableParts.push(tamano);
+            if (tipo) tableParts.push(tipo);
+            if (fecha) tableParts.push(fecha);
+            if (tableParts.length > 0) return tableParts.join(' • ');
+        }
 
-        return parts.length > 0 ? parts.join(' • ') : 'Sin metadatos';
+        return 'Archivo seleccionado';
     }
 
     extractFileIcon(fileElement) {

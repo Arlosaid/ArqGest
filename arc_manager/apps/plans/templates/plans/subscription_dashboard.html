@@ -4,459 +4,679 @@
 {% block title %}Mi Suscripción - ArqGest{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/plans.css' %}?v=10.4">
+<link rel="stylesheet" href="{% static 'css/plans.css' %}?v=10.6">
+<style>
+    /* --- ESTILOS PREMIUM & LLAMATIVOS --- */
+    
+    /* Tarjeta Principal (Hero) */
+    .plan-hero-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        overflow: hidden;
+        position: relative;
+        margin-bottom: 30px;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    /* Fondo especial para Trial/Free - PREMIUM DARK THEME */
+    .plan-hero-card.trial-mode {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); /* Dark Slate Professional */
+        color: white;
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    /* Fondo especial para Plan Básico - DARK GREEN THEME */
+    .plan-hero-card.basic-mode {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        color: white;
+        box-shadow: 0 20px 40px rgba(16, 185, 129, 0.15);
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .plan-hero-content {
+        padding: 30px 40px; /* Compacto pero elegante */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 30px;
+    }
+
+    .hero-info h1 {
+        font-size: 2.2rem;
+        font-weight: 800;
+        margin: 0 0 8px 0;
+        letter-spacing: -0.5px;
+    }
+    
+    .trial-mode .hero-info h1 {
+        background: linear-gradient(90deg, #ffffff, #cbd5e1);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 2.2rem;
+    }
+
+    .basic-mode .hero-info h1 {
+        background: linear-gradient(90deg, #ffffff, #cbd5e1);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 2.2rem;
+    }
+
+    .hero-info p {
+        font-size: 1.05rem;
+        opacity: 0.8;
+        margin: 0;
+        max-width: 500px;
+        line-height: 1.5;
+        color: #94a3b8; /* Slate-400 for better readability on dark */
+    }
+    
+    .trial-mode .hero-info p {
+        color: #cbd5e1;
+    }
+
+    .basic-mode .hero-info p {
+        color: #cbd5e1;
+    }
+    
+    /* Botón de Acción - High Contrast Orange */
+    .trial-mode .cta-button {
+        background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+        color: white;
+        border: none;
+        box-shadow: 0 4px 15px rgba(234, 88, 12, 0.4);
+        padding: 14px 32px;
+        font-size: 1.05rem;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    
+    .trial-mode .cta-button:hover {
+        background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(234, 88, 12, 0.5);
+        color: white;
+    }
+
+    /* Mini-Grid de Beneficios dentro del Hero */
+    .hero-benefits {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+        margin-top: 25px;
+        padding-top: 25px;
+        border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .hero-benefit-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #cbd5e1;
+        font-size: 0.9rem;
+    }
+    
+    .hero-benefit-item i {
+        color: #f97316; /* Orange accent */
+        font-size: 1rem;
+        width: 20px;
+        text-align: center;
+    }
+
+    /* Green Accents for Basic Mode */
+    .basic-mode .hero-benefit-item i {
+        color: #10b981; /* Emerald 500 */
+    }
+
+    /* Contador Circular o Grande */
+    .hero-timer {
+        text-align: center;
+        background: rgba(255,255,255,0.1);
+        padding: 15px 25px;
+        border-radius: 16px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.1);
+        min-width: 160px;
+        transition: transform 0.3s ease;
+    }
+
+    .hero-timer:hover {
+        transform: translateY(-2px);
+    }
+
+    /* Timer for Basic Mode */
+    .basic-mode .hero-timer {
+         background: linear-gradient(135deg, #059669 0%, #047857 100%); /* Emerald Gradient */
+         border: 1px solid rgba(255,255,255,0.2);
+         color: white;
+         box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+    }
+    
+    .basic-mode .hero-timer .expiration-date {
+        border-top-color: rgba(255,255,255,0.3);
+    }
+
+    /* URGENCY BOX - High Contrast Orange Box */
+    .hero-timer.urgent {
+        background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+        border: 1px solid rgba(255,255,255,0.2);
+        color: white;
+        box-shadow: 0 8px 20px rgba(234, 88, 12, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Shine effect for urgency */
+    .hero-timer.urgent::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        animation: shine 3s infinite;
+    }
+    
+    @keyframes shine {
+        0% { left: -100%; }
+        20% { left: 100%; }
+        100% { left: 100%; }
+    }
+    
+    .trial-mode .hero-timer.urgent {
+        /* Ensure it pops against dark background */
+        background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+        border-color: rgba(255,255,255,0.3);
+        color: white;
+    }
+
+    .hero-timer .days {
+        font-size: 2.8rem;
+        font-weight: 800;
+        line-height: 1;
+        display: block;
+        margin-bottom: 5px;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .hero-timer .label {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        opacity: 0.95;
+        margin-bottom: 8px;
+        display: block;
+        font-weight: 700;
+    }
+
+    .hero-timer .expiration-date {
+        font-size: 0.8rem;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255,255,255,0.2);
+        opacity: 0.9;
+        font-weight: 500;
+    }
+    
+    .trial-mode .hero-timer .expiration-date {
+         border-top-color: rgba(255,255,255,0.3);
+    }
+    
+    .hero-timer.urgent .expiration-date {
+        border-top-color: rgba(255,255,255,0.3);
+    }
+
+    /* Sección de Beneficios (Grid) */
+    .benefits-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+
+    .benefit-card {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        transition: transform 0.2s, box-shadow 0.2s;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .benefit-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+        border-color: var(--arc-color-primary);
+    }
+
+    .benefit-icon {
+        width: 50px;
+        height: 50px;
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--arc-color-primary);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 15px;
+    }
+
+    .benefit-card h3 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin: 0 0 8px 0;
+        color: #1e293b;
+    }
+
+    .benefit-card p {
+        font-size: 0.95rem;
+        color: #64748b;
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    /* Botón de Acción Principal */
+    .cta-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        padding: 16px 36px;
+        border-radius: 50px;
+        font-weight: 700;
+        font-size: 1.15rem;
+        text-decoration: none;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.1), 0 2px 4px -1px rgba(37, 99, 235, 0.06);
+        border: 1px solid rgba(255,255,255,0.1);
+        text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cta-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.3), 0 10px 10px -5px rgba(37, 99, 235, 0.2);
+        filter: brightness(1.1);
+    }
+    
+    .cta-button.warning {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+    }
+
+    /* Upgrade Process Card */
+    .upgrade-process-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 30px;
+        margin-bottom: 40px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+    }
+    
+    .process-header {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .process-icon {
+        width: 56px;
+        height: 56px;
+        background: #eff6ff;
+        color: #3b82f6;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1);
+    }
+    
+    .process-steps {
+        display: flex;
+        justify-content: space-between;
+        position: relative;
+        margin: 30px 0;
+        padding: 0 20px;
+    }
+    
+    .process-steps::before {
+        content: '';
+        position: absolute;
+        top: 20px;
+        left: 40px;
+        right: 40px;
+        height: 3px;
+        background: #f1f5f9;
+        z-index: 0;
+    }
+    
+    .step-item {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        flex: 1;
+    }
+    
+    .step-circle {
+        width: 42px;
+        height: 42px;
+        background: white;
+        border: 3px solid #e2e8f0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 12px;
+        font-weight: 700;
+        color: #94a3b8;
+        transition: all 0.3s ease;
+        font-size: 1.1rem;
+    }
+    
+    .step-item.active .step-circle {
+        border-color: #3b82f6;
+        background: #3b82f6;
+        color: white;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+    }
+    
+    .step-item.completed .step-circle {
+        border-color: #10b981;
+        background: #10b981;
+        color: white;
+    }
+    
+    .step-label {
+        font-size: 0.9rem;
+        color: #64748b;
+        font-weight: 500;
+    }
+    
+    .step-item.active .step-label {
+        color: #1e293b;
+        font-weight: 700;
+    }
+
+    /* Sección de Límites (Simple) */
+    .limits-strip {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        margin-bottom: 30px;
+        border: 1px solid #e2e8f0;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .limit-item {
+        text-align: center;
+    }
+
+    .limit-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .limit-label {
+        font-size: 0.85rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .limit-premium {
+        color: var(--arc-color-primary);
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-top: 4px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .plan-hero-content {
+            flex-direction: column;
+            text-align: center;
+            padding: 30px 20px;
+        }
+        
+        .hero-info h1 { font-size: 2rem; }
+        
+        .limits-strip {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .limit-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        .limit-item:last-child { border-bottom: none; }
+    }
+</style>
 {% endblock %}
 
 {% block extra_js %}{% endblock %}
 
 {% block content %}
 <div class="page-container">
-    <!-- Header Section simplificado -->
-    <div class="header-section">
-        <div class="header-content">
-            <div class="header-title">
-                <div class="header-icon">
-                    <i class="fas fa-crown"></i>
-                </div>
-                <div>
-                    <h1>Mi Suscripción</h1>
-                    {# Información de vigencia eliminada por redundancia; el recuadro muestra estos datos #}
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="main-content-grid">
-        
-        <div class="left-content">
-
-            {% if pending_upgrade_request and pending_upgrade_request.status == 'pending' %}
-                <div class="request-status-card pending">
-                    <div class="status-icon">
-                        <i class="fas fa-clock"></i>
+    <!-- 1. HERO SECTION: Estado del Plan (Diseño Impactante) -->
+    <div class="plan-hero-card {% if subscription.plan.is_trial %}trial-mode{% elif not subscription.is_expired %}basic-mode{% endif %}">
+        <div class="plan-hero-content">
+            <div class="hero-info">
+                {% if subscription.plan.is_trial %}
+                    <div style="display: inline-block; background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; margin-bottom: 15px;">
+                        ✨ Estás en el Periodo de Prueba
                     </div>
-                    <div class="status-content">
-                        <h3>Tu solicitud de actualización está en proceso</h3>
-                        <p>
-                            Hemos recibido tu solicitud para actualizar al plan 
-                            <strong>{{ pending_upgrade_request.requested_plan.display_name }}</strong>.
-                        </p>
-                        <div class="status-details">
-                            <div class="detail">
-                                <span class="label">Plan solicitado:</span>
-                                <span class="value">{{ pending_upgrade_request.requested_plan.display_name }}</span>
-                            </div>
-                            <div class="detail">
-                                <span class="label">Fecha de solicitud:</span>
-                                <span class="value">{{ pending_upgrade_request.created_at|date:"d/m/Y" }}</span>
-                            </div>
-                            <div class="detail">
-                                <span class="label">Estado:</span>
-                                <span class="badge pending">En proceso</span>
-                            </div>
+                    <h1>Desbloquea todo el potencial</h1>
+                    <p>Estás disfrutando de la versión de prueba. Actualiza al Plan Básico para eliminar límites y asegurar el acceso continuo a tus proyectos.</p>
+                    
+                    <div style="margin-top: 25px;">
+                        <a href="{% url 'plans:request_upgrade' %}" class="cta-button">
+                            <i class="fas fa-rocket"></i> Mejorar mi Plan Ahora
+                        </a>
+                    </div>
+                    
+                    <!-- Beneficios Premium Integrados -->
+                    <div class="hero-benefits">
+                        <div class="hero-benefit-item">
+                            <i class="fas fa-infinity"></i>
+                            <span>Proyectos Ilimitados</span>
                         </div>
-                        <div class="next-steps">
-                            <h4>¿Qué sigue?</h4>
-                            <p>
-                                <strong>1.</strong> Realiza el pago de <strong>${{ pending_upgrade_request.amount|floatformat:2 }} MXN</strong> mediante transferencia o depósito.<br>
-                                <strong>2.</strong> Contacta al equipo en <strong>{{ support_phone }}</strong> o <strong>{{ support_email }}</strong> con tu comprobante de pago.<br>
-                                <strong>3.</strong> Una vez verificado el pago, el administrador aprobará la actualización y tu plan se activará automáticamente.
+                        <div class="hero-benefit-item">
+                            <i class="fas fa-users"></i>
+                            <span>Colaboración Total</span>
+                        </div>
+                        <div class="hero-benefit-item">
+                            <i class="fas fa-headset"></i>
+                            <span>Soporte Prioritario</span>
+                        </div>
+                        <div class="hero-benefit-item">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <span>Más Almacenamiento</span>
+                        </div>
+                    </div>
+                {% elif subscription.is_expired %}
+                    <div style="display: inline-block; background: #ef4444; color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; margin-bottom: 15px;">
+                        ⚠️ Suscripción Vencida
+                    </div>
+                    <h1 style="color: #1e293b;">Tu plan ha expirado</h1>
+                    <p style="color: #64748b;">Renueva ahora para recuperar el acceso completo a todas las funcionalidades.</p>
+                    <div style="margin-top: 25px;">
+                        <a href="{% url 'plans:renew_subscription' %}" class="cta-button warning">
+                            <i class="fas fa-sync-alt"></i> Renovar Suscripción
+                        </a>
+                    </div>
+                {% else %}
+                    <!-- Plan Activo Normal (Básico) -->
+                    <div style="display: inline-block; background: rgba(16, 185, 129, 0.2); color: #6ee7b7; padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; margin-bottom: 15px; border: 1px solid rgba(16, 185, 129, 0.3);">
+                        ✅ Plan Activo
+                    </div>
+                    <h1>{{ subscription.plan.display_name }}</h1>
+                    <p>¡Felicidades! Ya tienes el mejor paquete para potenciar tu productividad.</p>
+                    
+                    <!-- Status Note instead of Feature List -->
+                    <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); padding: 15px; border-radius: 12px; margin-top: 25px; display: flex; align-items: start; gap: 12px;">
+                        <i class="fas fa-check-circle" style="color: #10b981; font-size: 1.2rem; margin-top: 2px;"></i>
+                        <div>
+                            <h4 style="margin: 0 0 4px 0; color: white; font-size: 0.95rem; font-weight: 600;">Cuenta al 100%</h4>
+                            <p style="margin: 0; font-size: 0.85rem; color: #cbd5e1; line-height: 1.4;">
+                                Tienes acceso total. Te notificaremos días antes de tu renovación para asegurar la continuidad de tu servicio.
                             </p>
                         </div>
                     </div>
-                </div>
-            {% endif %}
-
-            {% if pending_renewal_request and pending_renewal_request.status == 'pending' %}
-                <div class="request-status-card pending renewal">
-                    <div class="status-icon">
-                        <i class="fas fa-hourglass-half"></i>
-                    </div>
-                    <div class="status-content">
-                        <h3><i class="fas fa-check-circle" style="color:#28a745;"></i> Solicitud de renovación enviada</h3>
-                        <p>
-                            Hemos recibido tu solicitud para renovar el plan 
-                            <strong>{{ pending_renewal_request.subscription.plan.display_name }}</strong>.
-                        </p>
-
-                        <div class="status-details" style="background:#f8f9fa; padding:16px; border-radius:8px; margin:16px 0;">
-                            <h4 style="margin:0 0 12px 0; color:#0d6efd;"><i class="fas fa-calendar-alt"></i> Información de vigencias</h4>
-                            
-                            {% if subscription.is_expired %}
-                                
-                                <div class="detail" style="padding:8px; background:#fff3cd; border-left:3px solid #ffc107; margin-bottom:8px;">
-                                    <span class="label" style="color:#856404;"><strong>⚠️ Suscripción actual:</strong></span>
-                                    <span class="value" style="color:#856404;"><strong>Expiró el {{ subscription.end_date|date:"d/m/Y" }}</strong></span>
-                                </div>
-                            {% else %}
-                                
-                                <div class="detail" style="padding:8px; background:#d1ecf1; border-left:3px solid #0d6efd;">
-                                    <span class="label"><strong>📅 Tu plan actual vence:</strong></span>
-                                    <span class="value"><strong>{{ subscription.end_date|date:"d/m/Y" }}</strong> ({{ subscription.days_remaining }} día{{ subscription.days_remaining|pluralize:"s" }} restante{{ subscription.days_remaining|pluralize:"s" }})</span>
-                                </div>
-                            {% endif %}
-
-                            {% with now=subscription.end_date|default:pending_renewal_request.created_at %}
-                                {% with new_start=subscription.end_date new_days=pending_renewal_request.renewal_days %}
-                                <div class="detail" style="padding:8px; background:#d4edda; border-left:3px solid #28a745; margin-top:8px;">
-                                    <span class="label"><strong>✅ Nueva vigencia (cuando se apruebe):</strong></span>
-                                    <span class="value" style="color:#28a745;">
-                                        <strong>
-                                            {% if subscription.end_date %}
-                                                {{ subscription.end_date|date:"d/m/Y" }}
-                                            {% else %}
-                                                (Al aprobar)
-                                            {% endif %}
-                                            → 
-                                            {% if subscription.end_date %}
-                                                {{ subscription.end_date|date:"d/m/Y" }}
-                                            {% endif %}
-                                            + {{ new_days }} días
-                                        </strong>
-                                    </span>
-                                </div>
-                                
-                                {% if not subscription.is_expired %}
-                                <div style="padding:8px; margin-top:8px; background:#e7f3ff; border-radius:4px;">
-                                    <small style="color:#0d6efd;">
-                                        <i class="fas fa-info-circle"></i> 
-                                        <strong>Renovación anticipada:</strong> La nueva vigencia comienza cuando termine tu plan actual, 
-                                        por lo que no pierdes ningún día de servicio ya pagado.
-                                    </small>
-                                </div>
-                                {% endif %}
-                                {% endwith %}
-                            {% endwith %}
-                        </div>
-
-                        <div class="status-details">
-                            <div class="detail">
-                                <span class="label">Plan:</span>
-                                <span class="value">{{ pending_renewal_request.subscription.plan.display_name }}</span>
-                            </div>
-                            <div class="detail">
-                                <span class="label">Monto a pagar:</span>
-                                <span class="value"><strong>${{ pending_renewal_request.renewal_amount|floatformat:2 }} MXN</strong></span>
-                            </div>
-                            <div class="detail">
-                                <span class="label">Período:</span>
-                                <span class="value">{{ pending_renewal_request.renewal_days }} días</span>
-                            </div>
-                            <div class="detail">
-                                <span class="label">Fecha de solicitud:</span>
-                                <span class="value">{{ pending_renewal_request.created_at|date:"d/m/Y H:i" }}</span>
-                            </div>
-                            <div class="detail">
-                                <span class="label">Estado:</span>
-                                <span class="badge pending"><i class="fas fa-clock"></i> Pendiente de aprobación</span>
-                            </div>
-                        </div>
-
-                        <div class="next-steps">
-                            <h4><i class="fas fa-list-check"></i> Siguientes pasos</h4>
-                            <p>
-                                <strong>1. Realiza el pago</strong><br>
-                                Transfiere o deposita <strong>${{ pending_renewal_request.renewal_amount|floatformat:2 }} MXN</strong> en la cuenta del equipo.
-                            </p>
-                            <p>
-                                <strong>2. Envía tu comprobante</strong><br>
-                                Contacta al equipo en <strong>{{ support_phone }}</strong> o <strong>{{ support_email }}</strong> con tu comprobante de pago.
-                            </p>
-                            <p>
-                                <strong>3. Espera la aprobación</strong><br>
-                                Una vez verificado el pago, el administrador aprobará tu solicitud y tu suscripción se renovará automáticamente.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            {% endif %}
-
-            {% if subscription.plan.is_trial and not pending_upgrade_request and not pending_renewal_request and is_org_admin %}
-                <div class="upgrade-motivator-card attention">
-                    <div class="motivator-icon"><i class="fas fa-bolt"></i></div>
-                    <div class="motivator-content">
-                        <h3>Prueba gratuita</h3>
-                        <p>
-                            {% if subscription.days_remaining > 0 %}
-                                Evita interrupciones y asegura tu acceso continuo. Termina el <strong>{{ subscription.end_date|date:"d/m/Y" }}</strong>.
-                            {% else %}
-                                Activa un plan para continuar usando Arc Manager sin interrupciones.
-                            {% endif %}
-                        </p>
-                        <div class="motivator-action">
-                            <a href="{% url 'plans:request_upgrade' %}" class="upgrade-btn">
-                                <i class="fas fa-arrow-up"></i>
-                                Mejorar ahora
-                            </a>
-                            {% if subscription.days_remaining > 0 %}
-                                <p class="upgrade-note">Tardas menos de 1 minuto</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="motivator-side">
-                        {% if subscription.days_remaining > 0 %}
-                            <div class="days-counter">
-                                <div class="days-number">{{ subscription.days_remaining }}</div>
-                                <div class="days-label">días restantes</div>
-                            </div>
-                        {% else %}
-                            <div class="days-counter expired">
-                                <div class="days-number">0</div>
-                                <div class="days-label">prueba finalizada</div>
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-            {% endif %}
-
-            {% if not subscription.plan.is_trial %}
-                {# Ventana de renovación anticipada: mostrar CTA si está dentro de la ventana, no hay solicitud pendiente y no está expirada #}
-                {% if subscription.end_date and not subscription.is_expired and not pending_renewal_request and is_org_admin %}
-                    {% if subscription.days_remaining <= renewal_window_days and subscription.days_remaining >= 0 %}
-                    <div class="upgrade-motivator-card attention">
-                        <div class="motivator-icon"><i class="fas fa-redo"></i></div>
-                        <div class="motivator-content">
-                            <h3>Tu suscripción vence pronto</h3>
-                            <p>
-                                Renueva ahora y evita interrupciones. Vence el <strong>{{ subscription.end_date|date:"d/m/Y" }}</strong>.
-                                La nueva vigencia comenzará cuando termine tu plan actual, por lo que no pierdes días pagados.
-                            </p>
-                            <div class="motivator-action">
-                                <a href="{% url 'plans:renew_subscription' %}" class="upgrade-btn renewal-btn">
-                                    <i class="fas fa-redo"></i>
-                                    Renovar Suscripción
-                                </a>
-                                <p class="upgrade-note">Disponible desde {{ renewal_window_days }} día{{ renewal_window_days|pluralize }} antes del vencimiento</p>
-                            </div>
-                        </div>
-                        <div class="motivator-side">
-                            {% if subscription.days_remaining > 0 %}
-                                <div class="days-counter warning">
-                                    <div class="days-number">{{ subscription.days_remaining }}</div>
-                                    <div class="days-label">día{{ subscription.days_remaining|pluralize }} restante{{ subscription.days_remaining|pluralize }}</div>
-                                </div>
-                            {% endif %}
-                        </div>
+                    
+                    {% if available_plans %}
+                    <div style="margin-top: 25px;">
+                        <a href="{% url 'plans:request_upgrade' %}" class="cta-button" style="background: white; color: #059669; border: none;">
+                            Ver Planes Superiores
+                        </a>
                     </div>
                     {% endif %}
                 {% endif %}
-                {% if subscription.is_expired and not pending_renewal_request and is_org_admin %}
-                    
-                    <div class="upgrade-motivator-card expired">
-                        <div class="motivator-icon"><i class="fas fa-exclamation-triangle"></i></div>
-                        <div class="motivator-content">
-                            <h3>Suscripción Vencida</h3>
-                            <p>
-                                Tu plan <strong>{{ subscription.plan.display_name }}</strong> venció el 
-                                <strong>{{ subscription.end_date|date:"d/m/Y" }}</strong>.
-                            </p>
-                            <p>Renueva ahora para recuperar el acceso completo a todas las funciones.</p>
-                            <div class="motivator-action">
-                                <a href="{% url 'plans:renew_subscription' %}" class="upgrade-btn renewal-btn">
-                                    <i class="fas fa-redo"></i>
-                                    Renovar Suscripción
-                                </a>
-                                <p class="upgrade-note">Solicita renovación y realiza el pago</p>
-                            </div>
-                        </div>
-                        <div class="motivator-side">
-                            <div class="days-counter expired">
-                                <div class="days-number">0</div>
-                                <div class="days-label">suscripción vencida</div>
-                            </div>
-                        </div>
-                    </div>
-                {% elif subscription.is_in_grace_period and not pending_renewal_request and is_org_admin %}
-                    {# Período de gracia: tratar como expirado y urgente #}
-                    <div class="upgrade-motivator-card expired">
-                        <div class="motivator-icon"><i class="fas fa-exclamation-triangle"></i></div>
-                        <div class="motivator-content">
-                            <h3>Suscripción Vencida - Período de Gracia</h3>
-                            <p>
-                                Tu plan <strong>{{ subscription.plan.display_name }}</strong> venció el 
-                                <strong>{{ subscription.end_date|date:"d/m/Y" }}</strong>.
-                            </p>
-                            <p><strong>⚠️ Acceso limitado hasta el {{ subscription.grace_end_date|date:"d/m/Y" }}.</strong> Renueva ahora para mantener todas las funciones activas.</p>
-                            <div class="motivator-action">
-                                <a href="{% url 'plans:renew_subscription' %}" class="upgrade-btn renewal-btn">
-                                    <i class="fas fa-redo"></i>
-                                    Renovar Suscripción Urgente
-                                </a>
-                                <p class="upgrade-note">Solicita renovación y realiza el pago</p>
-                            </div>
-                        </div>
-                        <div class="motivator-side">
-                            <div class="days-counter expired">
-                                <div class="days-number">!</div>
-                                <div class="days-label">período de gracia</div>
-                            </div>
-                        </div>
-                    </div>
-                {% elif not pending_renewal_request %}
-                    
-                    <div class="upgrade-motivator-card success">
-                        <div class="motivator-icon"><i class="fas fa-check-circle"></i></div>
-                        <div class="motivator-content">
-                            <h3>Plan activo</h3>
-                            <p>Tu plan actual es <strong>{{ subscription.plan.display_name }}</strong>.</p>
-                            <p>Vence el <strong>{{ subscription.end_date|date:"d/m/Y" }}</strong>.</p>
-                        </div>
-                        <div class="motivator-side">
-                            {% if subscription.days_remaining > 0 %}
-                                <div class="days-counter">
-                                    <div class="days-number">{{ subscription.days_remaining }}</div>
-                                    <div class="days-label">días restantes</div>
-                                </div>
-                            {% else %}
-                                <div class="days-counter expired">
-                                    <div class="days-number">0</div>
-                                    <div class="days-label">suscripción vencida</div>
-                                </div>
-                            {% endif %}
-                        </div>
+            </div>
+
+            <!-- Timer / Status Visual -->
+            <div class="hero-timer {% if subscription.plan.is_trial %}urgent{% endif %}">
+                {% if subscription.is_expired %}
+                    <span class="days" style="color: #ef4444;">0</span>
+                    <span class="label" style="color: #ef4444;">Días Restantes</span>
+                {% else %}
+                    <span class="days">{{ subscription.days_remaining }}</span>
+                    <span class="label">Días de Vigencia</span>
+                    <div class="expiration-date">
+                        Vence: {{ subscription.end_date|date:"d M Y" }}
                     </div>
                 {% endif %}
-            {% endif %}
-
-            {# Se elimina la tarjeta de Detalles del Plan Actual para evitar redundancia con el banner superior #}
-
-            <div class="usage-card">
-                <div class="card-header">
-                    <h3><i class="fas fa-chart-bar"></i> Uso Actual</h3>
-                </div>
-                <div class="card-body">
-                    <div class="usage-items">
-                        <div class="usage-item">
-                            <div class="usage-header">
-                                <div class="usage-icon users">
-                                    <i class="fas fa-users"></i>
-                                </div>
-                                <div class="usage-info">
-                                    <div class="usage-label">Usuarios</div>
-                                    <div class="usage-count">{{ organization.users.count }}/{{ subscription.plan.max_users }}</div>
-                                </div>
-                            </div>
-                            <div class="usage-progress">
-                                <div class="progress-bar">
-                                    {% with percentage=organization.users.count|percentage:subscription.plan.max_users %}
-                                        <div class="progress-fill" style="--usage-percentage: {{ percentage }}%"></div>
-                                    {% endwith %}
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="usage-item">
-                            <div class="usage-header">
-                                <div class="usage-icon projects">
-                                    <i class="fas fa-folder"></i>
-                                </div>
-                                <div class="usage-info">
-                                    <div class="usage-label">Proyectos</div>
-                                    <div class="usage-count">{{ organization.projects.count }}</div>
-                                </div>
-                            </div>
-                            {% if subscription.plan.is_trial %}
-                                <div class="usage-note">
-                                    <small>Con un plan premium: proyectos ilimitados</small>
-                                </div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="usage-item">
-                            <div class="usage-header">
-                                <div class="usage-icon storage">
-                                    <i class="fas fa-hdd"></i>
-                                </div>
-                                <div class="usage-info">
-                                    <div class="usage-label">Almacenamiento</div>
-                                    <div class="usage-count">
-                                        {{ organization.get_total_storage_limit_gb }} GB disponibles
-                                        {% if organization.extra_storage_gb > 0 %}
-                                            <small>({{ organization.extra_storage_gb }} GB extra)</small>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="usage-note">
-                                <small>
-                                    Plan: {{ subscription.plan.max_storage_gb|default:"No configurado" }} GB
-                                    {% if organization.extra_storage_gb > 0 %}+ {{ organization.extra_storage_gb }} GB adicionales{% endif %}
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
-
-            <div class="features-card">
-                <div class="card-header">
-                    <h3><i class="fas fa-star"></i> Características Incluidas</h3>
-                </div>
-                <div class="card-body">
-                    <div class="features-list">
-                        {% for feature in subscription.plan.get_feature_list|slice:":6" %}
-                            <div class="feature-item">
-                                <i class="fas fa-check"></i>
-                                <span>{{ feature }}</span>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <div class="right-sidebar">
-            
-            {% if not pending_request and available_plans and is_org_admin and not subscription.is_expired %}
-            <div class="upgrade-motivator-card attention">
-                <div class="motivator-content">
-                    <h3>Desbloquea más con un plan superior</h3>
-                    <p>Mejora tu experiencia y escala sin límites con capacidades avanzadas.</p>
-                    <div class="benefits-preview">
-                        <h4>Beneficios al actualizar</h4>
-                        <ul>
-                            <li><i class="fas fa-check"></i> Más usuarios para tu organización</li>
-                            <li><i class="fas fa-check"></i> Proyectos ilimitados</li>
-                            <li><i class="fas fa-check"></i> Soporte prioritario</li>
-                        </ul>
-                    </div>
-                    {# Botón de "Actualizar plan" removido por redundancia #}
-                </div>
-            </div>
-            {% endif %}
-
-            <div class="support-card">
-                <div class="card-header">
-                    <h3><i class="fas fa-headset"></i> ¿Necesitas ayuda?</h3>
-                </div>
-                <div class="card-body">
-                    <p style="margin-bottom: 1rem;">Si tienes preguntas sobre tu plan o necesitas asistencia, contáctanos:</p>
-                    <div class="support-info" style="display: flex; flex-direction: column; gap: 1rem;">
-                        <div class="support-row" style="display: flex; align-items: center; padding: 1rem; background: var(--arc-bg-secondary); border-radius: var(--arc-border-radius-sm); border: 1px solid var(--arc-border-color);">
-                            <div style="background: var(--arc-color-primary); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 1rem; flex-shrink: 0;">
-                                <i class="fas fa-phone"></i>
-                            </div>
-                            <div>
-                                <span class="label" style="display: block; font-size: 0.875rem; color: var(--arc-text-secondary); margin-bottom: 0.25rem;">Teléfono</span>
-                                <span class="value" style="font-size: 1.1rem; font-weight: 600; color: var(--arc-text-primary);">{{ support_phone }}</span>
-                            </div>
-                        </div>
-                        <div class="support-row" style="display: flex; align-items: center; padding: 1rem; background: var(--arc-bg-secondary); border-radius: var(--arc-border-radius-sm); border: 1px solid var(--arc-border-color);">
-                            <div style="background: var(--arc-color-primary); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 1rem; flex-shrink: 0;">
-                                <i class="fas fa-envelope"></i>
-                            </div>
-                            <div>
-                                <span class="label" style="display: block; font-size: 0.875rem; color: var(--arc-text-secondary); margin-bottom: 0.25rem;">Correo</span>
-                                <span class="value" style="font-size: 1.1rem; font-weight: 600; color: var(--arc-text-primary); word-break: break-all;">{{ support_email }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
         </div>
     </div>
+
+    <!-- 2. NOTIFICACIONES PENDIENTES (Solo si existen) -->
+    {% if pending_upgrade_request and pending_upgrade_request.status == 'pending' %}
+        <div class="upgrade-process-card">
+            <div class="process-header">
+                <div class="process-icon">
+                    <i class="fas fa-rocket"></i>
+                </div>
+                <div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                        <h3 style="margin: 0; color: #1e293b; font-size: 1.25rem;">Mejora a {{ pending_upgrade_request.requested_plan.display_name }}</h3>
+                        <span style="background: #eff6ff; color: #2563eb; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; border: 1px solid #bfdbfe; letter-spacing: 0.5px;">EN CURSO</span>
+                    </div>
+                    <p style="margin: 0; color: #64748b;">Sigue los pasos para completar la activación.</p>
+                </div>
+            </div>
+            
+            <div class="process-steps">
+                <!-- Step 1: Request (Completed) -->
+                <div class="step-item completed">
+                    <div class="step-circle"><i class="fas fa-check"></i></div>
+                    <div class="step-label">Solicitud Enviada</div>
+                </div>
+                
+                <!-- Step 2: Payment (Active) -->
+                <div class="step-item active">
+                    <div class="step-circle">2</div>
+                    <div class="step-label">Enviar Comprobante</div>
+                </div>
+                
+                <!-- Step 3: Activation (Pending) -->
+                <div class="step-item">
+                    <div class="step-circle">3</div>
+                    <div class="step-label">Activación</div>
+                </div>
+            </div>
+            
+            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-top: 25px; border-left: 4px solid #3b82f6;">
+                <p style="margin: 0; font-size: 0.95rem; color: #334155;">
+                    <strong>Acción requerida:</strong> Por favor envía tu comprobante de pago a <a href="mailto:{{ support_email }}" style="color: #3b82f6; font-weight: 600;">{{ support_email }}</a> o contáctanos al <strong>{{ support_phone }}</strong>.
+                </p>
+                <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #64748b;">
+                    <i class="fas fa-hourglass-half" style="color: #3b82f6;"></i>
+                    <span>Tu solicitud será revisada y aprobada en un plazo máximo de <strong>24 horas</strong>.</span>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- 3. COMPARATIVA DE LÍMITES (Simple y Directa) -->
+    <div class="limits-strip">
+        <div class="limit-item">
+            <div class="limit-label">Proyectos Activos</div>
+            <div class="limit-value">{{ organization.projects.count }}</div>
+            {% if subscription.plan.is_trial %}
+                <div class="limit-premium"><i class="fas fa-lock"></i> Ilimitados con Plan Básico</div>
+            {% endif %}
+        </div>
+        <div class="limit-item">
+            <div class="limit-label">Usuarios del Equipo</div>
+            <div class="limit-value">{{ organization.users.count }} <span style="font-size: 1rem; color: #94a3b8;">/ {{ subscription.plan.max_users }}</span></div>
+            {% if subscription.plan.is_trial %}
+                <div class="limit-premium"><i class="fas fa-arrow-up"></i> Hasta 5 usuarios con Plan Básico</div>
+            {% endif %}
+        </div>
+        <div class="limit-item">
+            <div class="limit-label">Almacenamiento</div>
+            <div class="limit-value">{{ organization.get_total_storage_limit_gb }} GB</div>
+            {% if subscription.plan.is_trial %}
+                <div class="limit-premium"><i class="fas fa-cloud"></i> Hasta 100 GB con Plan Básico</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 4. BENEFICIOS PREMIUM (Invitación a mejorar) -->
+    {% if available_plans and not subscription.plan.is_trial %}
+    <h2 style="text-align: center; margin-bottom: 30px; font-size: 1.8rem; color: #1e293b;">¿Por qué elegir el Plan Básico?</h2>
+    <div class="benefits-grid">
+        <div class="benefit-card">
+            <div class="benefit-icon"><i class="fas fa-infinity"></i></div>
+            <h3>Proyectos Ilimitados</h3>
+            <p>Olvídate de los límites. Crea y gestiona tantos proyectos como necesites sin restricciones.</p>
+        </div>
+        <div class="benefit-card">
+            <div class="benefit-icon"><i class="fas fa-users"></i></div>
+            <h3>Colaboración Total</h3>
+            <p>Invita a todo tu equipo. El Plan Básico permite más usuarios simultáneos.</p>
+        </div>
+        <div class="benefit-card">
+            <div class="benefit-icon"><i class="fas fa-headset"></i></div>
+            <h3>Soporte Prioritario</h3>
+            <p>Tus dudas son nuestra prioridad. Recibe atención preferencial vía teléfono y correo.</p>
+        </div>
+        <div class="benefit-card">
+            <div class="benefit-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+            <h3>Más Almacenamiento</h3>
+            <p>Sube archivos más grandes y almacena todo el historial de tus proyectos sin preocupaciones.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 5. FOOTER DE SOPORTE (Discreto) -->
+    <div style="text-align: center; margin-top: 50px; padding-top: 30px; border-top: 1px solid #e2e8f0; color: #64748b;">
+        <p style="margin-bottom: 10px;">¿Tienes alguna otra duda?</p>
+        <div style="display: inline-flex; gap: 20px; font-weight: 500;">
+            <span><i class="fas fa-phone"></i> {{ support_phone }}</span>
+            <span><i class="fas fa-envelope"></i> {{ support_email }}</span>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
 

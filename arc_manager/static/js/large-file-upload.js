@@ -266,7 +266,7 @@ class LargeFileUploader {
             // Paso 3: Confirmar upload en el backend
             await this.confirmUpload(presignedData.key, projectId, phaseId, file.size, file.type);
             
-            this.updateProgress(progressBar, statusDiv, 100, '¡Upload completado exitosamente!');
+            this.updateProgress(progressBar, statusDiv, 100, '¡Subida completada exitosamente!');
             progressBar.classList.remove('progress-bar-animated', 'bg-primary', 'bg-gradient-primary');
             progressBar.classList.add('bg-success');
             
@@ -337,7 +337,7 @@ class LargeFileUploader {
 
             xhr.addEventListener('load', () => {
                 if (xhr.status >= 200 && xhr.status < 300) {
-                    this.updateProgress(progressBar, statusDiv, 100, '¡Upload completado!');
+                    this.updateProgress(progressBar, statusDiv, 100, '¡Subida completada!');
                     progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated', 'bg-primary', 'bg-gradient-primary');
                     progressBar.classList.add('bg-success');
                     
