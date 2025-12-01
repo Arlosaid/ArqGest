@@ -179,8 +179,16 @@ def upload_file(request, project_id, phase_id):
             if any(char in uploaded_file.name for char in dangerous_chars):
                 file_errors.append(f"Nombre de archivo contiene caracteres no permitidos")
                 
-        except Exception:
-            pass
+        except Exception as e:
+            log_warning(
+                event="file_validation_check_failed",
+                message="Error durante validación de archivo",
+                error_message=str(e),
+                file_name=uploaded_file.name if uploaded_file else 'unknown',
+                project_id=project_id,
+                phase_id=phase_id,
+                logger_name='apps.files'
+            )
         
         # Validar tamaño
         if size_mb > MAX_FILE_SIZE_MB:
@@ -229,8 +237,15 @@ def upload_file(request, project_id, phase_id):
             # Asegurar que el puntero del archivo esté al inicio antes de guardar
             try:
                 uploaded_file.seek(0)
-            except Exception:
-                pass
+            except Exception as e:
+                log_warning(
+                    event="file_seek_failed",
+                    message="No se pudo resetear puntero de archivo",
+                    error_message=str(e),
+                    file_name=uploaded_file.name,
+                    project_id=project_id,
+                    logger_name='apps.files'
+                )
             
             # Crear el registro en DB
             instance = ProjectFile.objects.create(

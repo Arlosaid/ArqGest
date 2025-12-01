@@ -5,15 +5,22 @@ from django.utils import timezone
 from django.urls import reverse
 from django.core.cache import cache
 
+import logging
+import time
+from core.structured_logging import log_error, log_warning, log_info, log_slow_operation
+
 from apps.projects.models import Project, Task
 from apps.orgs.models import Client
 from apps.files.models import ProjectFile
 
 User = get_user_model()
+logger = logging.getLogger('apps.main')
+
 
 @login_required
 def home(request):
     return render(request, 'home.html')
+
 
 @login_required
 def dashboard(request):
@@ -21,10 +28,18 @@ def dashboard(request):
     Vista del dashboard principal enfocada en la experiencia del arquitecto.
     Muestra información relevante y accionable para el usuario actual.
     """
+    start_time = time.time()
     current_user = request.user
     organization = getattr(current_user, 'organization', None)
 
     if not organization:
+        log_warning(
+            event="dashboard_no_organization",
+            message="Usuario intentó acceder al dashboard sin organización",
+            user_id=current_user.id,
+            user_email=current_user.email,
+            logger_name='apps.main'
+        )
         # Si por alguna razón el usuario no tiene una organización,
         # podríamos redirigirlo a una página de error o de "espera".
         return render(request, 'error_page.html', {'message': 'No estás asociado a ninguna organización.'})
@@ -161,5 +176,20 @@ def dashboard(request):
         'tasks': my_tasks, 
         'is_subscription_expired': is_subscription_expired,
     }
+    
+    # Performance logging para operaciones lentas (threshold 1.5s para dashboard)
+    duration_ms = (time.time() - start_time) * 1000
+    if duration_ms > 1500:
+        log_slow_operation(
+            operation="dashboard_load",
+            duration_ms=duration_ms,
+            threshold_ms=1500,
+            user_id=current_user.id,
+            organization_id=organization.id,
+            total_projects=total_projects,
+            total_tasks=total_tasks,
+            is_admin=current_user.is_org_admin,
+            logger_name='apps.main'
+        )
     
     return render(request, 'dashboard.html', context)

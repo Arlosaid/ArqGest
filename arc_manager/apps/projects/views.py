@@ -176,9 +176,15 @@ class ProjectListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
                         project_stats['active_projects_count'] = projects_all.filter(status='ACTIVE').count()
                         project_stats['completed_projects_count'] = projects_all.filter(status='COMPLETED').count()
                         project_stats['archived_projects_count'] = projects_all.filter(status='ARCHIVED').count()
-                    except Exception:
+                    except Exception as e:
                         # Si el modelo no tiene estos estados, usar valores por defecto
-                        pass
+                        log_warning(
+                            event="project_stats_count_failed",
+                            message="Error calculando estadísticas de proyectos por estado",
+                            error_message=str(e),
+                            organization_id=org_id,
+                            user_email=self.request.user.email
+                        )
                     
                     # Cache por 5 minutos
                     cache.set(cache_key, project_stats, 300)
@@ -426,8 +432,14 @@ class ProjectCreateView(LoginRequiredMixin, OrganizationAdminMixin, CreateView):
             try:
                 # Solo marcar, el valor ya viene en form.instance.total_budget
                 form.instance.budget_configured = True
-            except Exception:
-                pass
+            except Exception as e:
+                log_warning(
+                    event="project_budget_config_failed",
+                    message="Error configurando presupuesto del proyecto",
+                    error_message=str(e),
+                    project_name=project_name,
+                    user_email=self.request.user.email
+                )
         
         try:
             self.object = form.save()
@@ -482,8 +494,15 @@ class ProjectCreateView(LoginRequiredMixin, OrganizationAdminMixin, CreateView):
         # Asegurar que el nuevo proyecto aparezca para el creador (owner)
         try:
             invalidate_user_accessible_projects_cache(self.request.user.id, self.object.organization.id, self.request.user.is_org_admin)
-        except Exception:
-            pass
+        except Exception as e:
+            log_warning(
+                event="cache_invalidation_failed",
+                message="Error invalidando cache de proyectos accesibles",
+                error_message=str(e),
+                user_id=self.request.user.id,
+                project_id=self.object.id,
+                organization_id=self.object.organization.id
+            )
 
         return redirect(self.get_success_url())
 
@@ -851,7 +870,14 @@ class ProjectPhasesEditView(LoginRequiredMixin, OrganizationAdminMixin, View):
             templates = PhaseTemplate.objects.filter(
                 Q(organization=request.user.organization) | Q(organization__isnull=True)
             ).order_by('name')
-        except Exception:
+        except Exception as e:
+            log_warning(
+                event="phase_templates_query_failed",
+                message="Error obteniendo plantillas de fases",
+                error_message=str(e),
+                organization_id=request.user.organization.id,
+                user_email=request.user.email
+            )
             templates = PhaseTemplate.objects.none()
         context = {
             'project': project,
@@ -973,7 +999,14 @@ class ProjectPhasesEditView(LoginRequiredMixin, OrganizationAdminMixin, View):
 
                     try:
                         order = int(item.get('order') or 0)
-                    except Exception:
+                    except Exception as e:
+                        log_warning(
+                            event="phase_order_parse_failed",
+                            message="Error parseando orden de fase, usando valor por defecto",
+                            error_message=str(e),
+                            raw_order=str(item.get('order')),
+                            project_id=project.id
+                        )
                         order = 0
 
                     if phase_id and phase_id in existing:
@@ -1151,7 +1184,15 @@ def task_create(request, project_pk):
                             is_superuser=False
                         )
                         assignee_exists = eligible_qs.exists()
-                    except Exception:
+                    except Exception as e:
+                        log_warning(
+                            event="task_assignee_validation_failed",
+                            message="Error validando usuario asignado a tarea",
+                            error_message=str(e),
+                            assigned_to_id=assigned_to_id,
+                            project_id=project.id,
+                            organization_id=project.organization.id
+                        )
                         assignee_exists = False
                     if assignee_exists:
                         task.assigned_to_id = assigned_to_id
@@ -1579,7 +1620,15 @@ def task_edit(request, pk):
         # Obtener fase
         try:
             phase = project.phases.get(id=phase_id)
-        except:
+        except Exception as e:
+            log_warning(
+                event="task_edit_phase_not_found",
+                message="Fase no encontrada al editar tarea, manteniendo fase actual",
+                error_message=str(e),
+                phase_id=phase_id,
+                task_id=task.id,
+                project_id=project.id
+            )
             phase = task.phase  # Mantener la fase actual si hay error
         
         # Obtener usuario asignado
@@ -1587,8 +1636,15 @@ def task_edit(request, pk):
         if assigned_to_id:
             try:
                 assigned_to = project.organization.users.get(id=assigned_to_id)
-            except:
-                pass
+            except Exception as e:
+                log_warning(
+                    event="task_edit_assignee_not_found",
+                    message="Usuario asignado no encontrado al editar tarea",
+                    error_message=str(e),
+                    assigned_to_id=assigned_to_id,
+                    task_id=task.id,
+                    project_id=project.id
+                )
         
         # Actualizar tarea
         try:
@@ -2515,9 +2571,16 @@ class PaymentUpdateView(LoginRequiredMixin, OrganizationAdminMixin, UpdateView):
         try:
             if uploaded and old_receipt_name and default_storage.exists(old_receipt_name):
                 default_storage.delete(old_receipt_name)
-        except Exception:
+        except Exception as e:
             # No bloquear el flujo si falla la eliminación; se puede limpiar con tareas programadas
-            pass
+            log_warning(
+                event="payment_receipt_delete_failed",
+                message="Error al eliminar recibo anterior de pago",
+                error_message=str(e),
+                old_receipt_name=old_receipt_name,
+                project_id=self.project.id,
+                payment_id=form.instance.pk
+            )
 
         messages.success(
             self.request, 
@@ -2565,8 +2628,14 @@ class PaymentDeleteView(LoginRequiredMixin, OrganizationAdminMixin, DeleteView):
         try:
             if old_receipt_name and default_storage.exists(old_receipt_name):
                 default_storage.delete(old_receipt_name)
-        except Exception:
-            pass
+        except Exception as e:
+            log_warning(
+                event="payment_receipt_delete_on_payment_delete_failed",
+                message="Error al eliminar recibo al eliminar pago",
+                error_message=str(e),
+                old_receipt_name=old_receipt_name,
+                project_id=self.project.id
+            )
         messages.success(request, 'Pago eliminado correctamente')
         return response
 

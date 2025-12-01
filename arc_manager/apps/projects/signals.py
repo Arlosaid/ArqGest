@@ -3,6 +3,8 @@ from django.dispatch import receiver
 from .models import Task, Phase
 import logging
 
+from core.structured_logging import log_warning
+
 logger = logging.getLogger(__name__)
 
 @receiver(post_save, sender=Task)
@@ -15,11 +17,21 @@ def update_phase_status_on_task_change(sender, instance, created, **kwargs):
     """
     # Invalidate Kanban Cache
     from .cache_utils import invalidate_task_cache
-    invalidate_task_cache(
-        instance.phase.project.organization.id, 
-        instance.phase.project.id,
-        instance.assigned_to.id if instance.assigned_to else None
-    )
+    try:
+        invalidate_task_cache(
+            instance.phase.project.organization.id, 
+            instance.phase.project.id,
+            instance.assigned_to.id if instance.assigned_to else None
+        )
+    except Exception as e:
+        log_warning(
+            event="kanban_cache_invalidation_failed",
+            message="Error invalidando cache Kanban al cambiar tarea",
+            error_message=str(e),
+            task_id=instance.id,
+            phase_id=instance.phase.id if instance.phase else None,
+            logger_name='apps.projects'
+        )
 
     phase = instance.phase
     
@@ -80,8 +92,14 @@ def update_phase_status_on_task_delete(sender, instance, **kwargs):
             instance.phase.project.id,
             instance.assigned_to.id if instance.assigned_to else None
         )
-    except Exception:
-        pass
+    except Exception as e:
+        log_warning(
+            event="kanban_cache_invalidation_on_delete_failed",
+            message="Error invalidando cache Kanban al eliminar tarea",
+            error_message=str(e),
+            task_id=instance.id,
+            logger_name='apps.projects'
+        )
 
     try:
         phase = instance.phase

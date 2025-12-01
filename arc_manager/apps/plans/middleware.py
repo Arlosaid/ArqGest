@@ -8,6 +8,7 @@ from django.conf import settings
 import logging
 
 from .services import SubscriptionService
+from core.structured_logging import log_warning
 
 logger = logging.getLogger(__name__)
 
@@ -117,8 +118,16 @@ class SubscriptionAccessMiddleware(MiddlewareMixin):
             if hasattr(subscription, 'update_status'):
                 if subscription.update_status():
                     subscription.refresh_from_db()
-        except Exception:
-            pass
+        except Exception as e:
+            log_warning(
+                event="subscription_status_update_failed",
+                message="Error al sincronizar estado de suscripción",
+                error_message=str(e),
+                subscription_id=subscription.id if subscription else None,
+                organization_id=request.user.organization.id,
+                user_id=request.user.id,
+                logger_name='apps.plans'
+            )
 
         # Verificar permisos de acceso
         access_result = SubscriptionService.check_access_permissions(subscription, current_module)
@@ -229,8 +238,16 @@ class SubscriptionInfoMiddleware(MiddlewareMixin):
                     if hasattr(subscription, 'update_status'):
                         if subscription.update_status():
                             subscription.refresh_from_db()
-                except Exception:
-                    pass
+                except Exception as e:
+                    log_warning(
+                        event="subscription_info_status_update_failed",
+                        message="Error al actualizar estado de suscripción en info middleware",
+                        error_message=str(e),
+                        subscription_id=subscription.id if subscription else None,
+                        organization_id=request.user.organization.id,
+                        user_id=request.user.id,
+                        logger_name='apps.plans'
+                    )
 
                 # Verificar si hay solicitudes pendientes (CON CACHE para evitar queries en cada request)
                 from django.core.cache import cache
