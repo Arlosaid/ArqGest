@@ -516,13 +516,18 @@ class TestPasswordStrengthValidation:
             organization=org
         )
         
-        # Lista de contraseñas débiles
+        # Lista de contraseñas débiles según nuestros validadores:
+        # - CustomMinimumLengthValidator: mínimo 8 caracteres
+        # - CustomNumericPasswordValidator: no solo números
+        # - PasswordComplexityValidator: al menos 1 número
+        # - WeakPasswordValidator: sin patrones de teclado (qwerty, asdfgh)
+        # NOTA: No usamos CommonPasswordValidator de Django (muy restrictivo)
         weak_passwords = [
-            ('abc123', 'muy corta'),
+            ('abc123', 'muy corta (menos de 8 caracteres)'),
             ('12345678', 'solo números'),
-            ('password', 'muy común'),
-            ('qwerty123', 'muy común'),
-            ('abc12345', 'corta y común'),
+            ('abcdefgh', 'sin números'),
+            ('qwerty123', 'patrón de teclado'),
+            ('asdfgh99', 'patrón de teclado'),
         ]
         
         # ACT & ASSERT: Cada contraseña débil debe ser rechazada

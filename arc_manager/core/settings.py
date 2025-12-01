@@ -75,7 +75,13 @@ if os.environ.get('RAILWAY_ENVIRONMENT'):
         if domain not in ALLOWED_HOSTS:
             ALLOWED_HOSTS.append(domain)
 
-TESTING = bool(os.environ.get('TESTING')) or ('test' in sys.argv)
+# Detectar si estamos en modo testing (pytest o manage.py test)
+TESTING = (
+    bool(os.environ.get('TESTING')) or 
+    ('test' in sys.argv) or 
+    ('pytest' in sys.argv[0] if sys.argv else False) or
+    any('pytest' in arg for arg in sys.argv)
+)
 
 # En desarrollo o testing se permite configuración laxa
 if DEBUG or TESTING:

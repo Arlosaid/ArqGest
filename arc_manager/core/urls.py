@@ -6,7 +6,7 @@ from django.conf.urls.static import static
 from django.http import JsonResponse
 from apps.plans.views import SubscriptionInfoAPIView
 from apps.main.admin import financial_dashboard_view
-from .test_views import test_resend_api
+from .admin_test_views import test_resend_api
 from .health import health_check, readiness_check, liveness_check, database_diagnostic
 
 def root_redirect(request):
@@ -44,7 +44,7 @@ if settings.DEBUG:
     ] + urlpatterns
     
     # Rutas de test para errores (solo en desarrollo)
-    from .test_views import test_400, test_403, test_404, test_500
+    from .admin_test_views import test_400, test_403, test_404, test_500
     urlpatterns += [
         path('test-400/', test_400, name='test_400'),
         path('test-403/', test_403, name='test_403'),
