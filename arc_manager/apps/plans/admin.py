@@ -173,6 +173,10 @@ class PaymentInline(admin.TabularInline):
 @admin.register(Subscription)
 class SubscriptionAdmin(ImportExportModelAdmin):
     resource_class = SubscriptionResource
+    
+    # Template personalizado con instrucciones
+    change_form_template = 'admin/plans/subscription/change_form.html'
+    
     list_display = ('organization', 'get_founder_indicator', 'plan', 'subscription_status', 'end_date_formatted', 'days_remaining_display', 'is_active')
     list_filter = ('subscription_status', 'plan__name', 'organization__is_founder_member')
     search_fields = ('organization__name', 'plan__display_name')
@@ -476,6 +480,9 @@ class SubscriptionAdmin(ImportExportModelAdmin):
 
 @admin.register(UpgradeRequest)
 class UpgradeRequestAdmin(admin.ModelAdmin):
+    # Template personalizado con instrucciones
+    change_form_template = 'admin/plans/upgraderequest/change_form.html'
+    
     list_display = [
         'organization', 'current_plan', 'requested_plan', 
         'amount', 'status_display', 'created_at', 'approved_by', 'actions_column'
@@ -614,6 +621,9 @@ class UpgradeRequestAdmin(admin.ModelAdmin):
 
 @admin.register(Payment)
 class PaymentAdmin(ImportExportModelAdmin):
+    # Template personalizado con instrucciones
+    change_form_template = 'admin/plans/payment/change_form.html'
+    
     # No se define resource_class para que sea de solo lectura
     list_display = [
         'subscription', 'amount', 'payment_method', 'payment_type', 'status', 
@@ -639,6 +649,9 @@ class PaymentAdmin(ImportExportModelAdmin):
 
 @admin.register(RenewalRequest)
 class RenewalRequestAdmin(ImportExportModelAdmin):
+    # Template personalizado con instrucciones
+    change_form_template = 'admin/plans/renewalrequest/change_form.html'
+    
     list_display = [
         'organization', 'subscription', 'renewal_amount', 'renewal_days', 
         'status', 'created_at', 'processed_at', 'approved_by'

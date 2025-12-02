@@ -101,6 +101,10 @@ class OrganizationAdminForm(ModelForm):
 class OrganizationAdmin(ImportExportModelAdmin):
     resource_class = OrganizationResource
     form = OrganizationAdminForm
+    
+    # Template personalizado con instrucciones
+    change_form_template = 'admin/orgs/organization/change_form.html'
+    
     list_display = ['name', 'get_active_status', 'get_founder_badge', 'user_count', 'get_storage_info', 'get_subscription_status', 'get_subscription_link', 'created_at']
     list_filter = ['is_active', 'is_founder_member', 'created_at']
     search_fields = ['name', 'description']

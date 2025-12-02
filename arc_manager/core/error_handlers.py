@@ -15,10 +15,37 @@ Este módulo solo debe:
 """
 import logging
 from django.shortcuts import render, redirect
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseRedirect
 from django.contrib import messages
+from django.urls import reverse, NoReverseMatch
 
 logger = logging.getLogger(__name__)
+
+
+def _get_safe_redirect_url(request):
+    """
+    Obtener URL de redirección segura.
+    Intenta redirigir al referer, luego al dashboard, y finalmente a la raíz.
+    """
+    # Intentar redirigir a la página anterior
+    referer = request.META.get('HTTP_REFERER')
+    if referer and request.build_absolute_uri() != referer:
+        return referer
+    
+    # Intentar redirigir al dashboard
+    try:
+        return reverse('dashboard')
+    except NoReverseMatch:
+        pass
+    
+    # Intentar con namespace
+    try:
+        return reverse('main:dashboard')
+    except NoReverseMatch:
+        pass
+    
+    # Fallback a la raíz
+    return '/'
 
 
 def custom_400_view(request, exception=None):
@@ -36,11 +63,7 @@ def custom_400_view(request, exception=None):
     # Para requests normales: mensaje amigable y redirigir
     messages.warning(request, 'La información enviada no es válida. Por favor, verifica e intenta nuevamente.')
     
-    # Intentar redirigir a la página anterior, si no existe ir al dashboard
-    referer = request.META.get('HTTP_REFERER')
-    if referer and request.build_absolute_uri() != referer:
-        return redirect(referer)
-    return redirect('dashboard')
+    return HttpResponseRedirect(_get_safe_redirect_url(request))
 
 
 def custom_403_view(request, exception=None):
@@ -58,11 +81,7 @@ def custom_403_view(request, exception=None):
     # Para requests normales: mensaje amigable
     messages.error(request, 'No tienes permisos para acceder a esta página. Si crees que esto es un error, contacta con tu administrador.')
     
-    # Redirigir a la página anterior o al dashboard
-    referer = request.META.get('HTTP_REFERER')
-    if referer and request.build_absolute_uri() != referer:
-        return redirect(referer)
-    return redirect('dashboard')
+    return HttpResponseRedirect(_get_safe_redirect_url(request))
 
 
 def custom_404_view(request, exception=None):
@@ -96,10 +115,13 @@ def custom_500_view(request):
         }, status=500)
     
     # Para requests normales: mensaje amigable y tranquilizador
-    messages.error(
-        request, 
-        'Algo salió mal de nuestro lado. Ya estamos trabajando en solucionarlo. Por favor, intenta nuevamente en unos momentos.'
-    )
+    try:
+        messages.error(
+            request, 
+            'Algo salió mal de nuestro lado. Ya estamos trabajando en solucionarlo. Por favor, intenta nuevamente en unos momentos.'
+        )
+    except Exception:
+        pass  # Si falla el mensaje, no romper
     
     # Redirigir al dashboard (NO mostrar template 500.html)
-    return redirect('dashboard')
+    return HttpResponseRedirect(_get_safe_redirect_url(request))

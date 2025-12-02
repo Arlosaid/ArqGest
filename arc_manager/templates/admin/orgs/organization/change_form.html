@@ -1,0 +1,261 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls static %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .help-panel {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        border: 1px solid #86efac;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .help-panel-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    
+    .help-panel-header i {
+        font-size: 1.5rem;
+        color: #16a34a;
+    }
+    
+    .help-panel-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #14532d;
+    }
+    
+    .help-steps {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+    }
+    
+    .help-step {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .step-number {
+        width: 28px;
+        height: 28px;
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.875rem;
+        flex-shrink: 0;
+    }
+    
+    .step-content h4 {
+        margin: 0 0 0.25rem 0;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+    
+    .step-content p {
+        margin: 0;
+        font-size: 0.8rem;
+        color: #64748b;
+        line-height: 1.4;
+    }
+    
+    .info-box {
+        background: #dbeafe;
+        border: 1px solid #93c5fd;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .info-box.warning {
+        background: #fef3c7;
+        border-color: #fcd34d;
+    }
+    
+    .info-box i {
+        color: #2563eb;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+    
+    .info-box.warning i {
+        color: #d97706;
+    }
+    
+    .info-box-content {
+        flex: 1;
+    }
+    
+    .info-box-content strong {
+        display: block;
+        color: #1e40af;
+        margin-bottom: 0.25rem;
+    }
+    
+    .info-box.warning .info-box-content strong {
+        color: #92400e;
+    }
+    
+    .info-box-content p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #1e3a8a;
+    }
+    
+    .info-box.warning .info-box-content p {
+        color: #a16207;
+    }
+    
+    /* Mejorar los fieldsets */
+    fieldset.module {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #e2e8f0;
+        margin-bottom: 1.5rem;
+    }
+    
+    fieldset.module h2 {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        padding: 1rem 1.25rem;
+        margin: 0;
+        border-radius: 12px 12px 0 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1e293b;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    /* Campo destacado */
+    .form-row.field-name {
+        background: #f0fdf4;
+        border-left: 4px solid #22c55e;
+        margin: 0;
+        padding: 1.25rem !important;
+    }
+    
+    .next-steps {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .next-steps h4 {
+        margin: 0 0 0.75rem 0;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .next-steps h4 i {
+        color: #16a34a;
+    }
+    
+    .next-steps ol {
+        margin: 0;
+        padding-left: 1.25rem;
+    }
+    
+    .next-steps li {
+        font-size: 0.85rem;
+        color: #475569;
+        margin-bottom: 0.35rem;
+        line-height: 1.4;
+    }
+</style>
+{% endblock %}
+
+{% block content_title %}
+<h1><i class="fas fa-building" style="color: #16a34a; margin-right: 10px;"></i> {% if add %}Crear Nueva Organización{% else %}Editar Organización{% endif %}</h1>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'admin:index' %}" class="back-to-admin">
+    <i class="fas fa-arrow-left"></i> Volver al Panel Principal
+</a>
+
+{% if add %}
+<div class="help-panel">
+    <div class="help-panel-header">
+        <i class="fas fa-building"></i>
+        <h3>¿Cómo crear una organización?</h3>
+    </div>
+    
+    <div class="help-steps">
+        <div class="help-step">
+            <span class="step-number">1</span>
+            <div class="step-content">
+                <h4>Nombre de la empresa</h4>
+                <p>Ingresa el nombre de la organización o estudio de arquitectura.</p>
+            </div>
+        </div>
+        
+        <div class="help-step">
+            <span class="step-number">2</span>
+            <div class="step-content">
+                <h4>Descripción (opcional)</h4>
+                <p>Agrega una breve descripción del giro o especialidad.</p>
+            </div>
+        </div>
+        
+        <div class="help-step">
+            <span class="step-number">3</span>
+            <div class="step-content">
+                <h4>Activar la organización</h4>
+                <p>Marca "Está activa" para que los usuarios puedan acceder.</p>
+            </div>
+        </div>
+        
+        <div class="help-step">
+            <span class="step-number">4</span>
+            <div class="step-content">
+                <h4>Guardar</h4>
+                <p>Una vez guardada, necesitarás crear una suscripción.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="next-steps">
+        <h4><i class="fas fa-tasks"></i> Después de crear la organización:</h4>
+        <ol>
+            <li><strong>Crear una suscripción</strong> → Ve a Planes > Suscripciones > Agregar</li>
+            <li><strong>Crear el usuario administrador</strong> → Ve a Cuentas > Usuarios > Agregar</li>
+            <li>Asignar el usuario a esta organización y marcarlo como "Admin de org"</li>
+        </ol>
+    </div>
+    
+    <div class="info-box warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <div class="info-box-content">
+            <strong>⚠️ Recuerda</strong>
+            <p>Una organización sin suscripción activa no permitirá el acceso a sus usuarios. Asegúrate de crear la suscripción después.</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{{ block.super }}
+{% endblock %}

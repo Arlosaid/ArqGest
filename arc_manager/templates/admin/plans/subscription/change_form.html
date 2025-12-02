@@ -1,0 +1,302 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls static %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .help-panel {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border: 1px solid #fcd34d;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .help-panel-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    
+    .help-panel-header i {
+        font-size: 1.5rem;
+        color: #d97706;
+    }
+    
+    .help-panel-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #92400e;
+    }
+    
+    .help-steps {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+    }
+    
+    .help-step {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .step-number {
+        width: 28px;
+        height: 28px;
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.875rem;
+        flex-shrink: 0;
+    }
+    
+    .step-content h4 {
+        margin: 0 0 0.25rem 0;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+    
+    .step-content p {
+        margin: 0;
+        font-size: 0.8rem;
+        color: #64748b;
+        line-height: 1.4;
+    }
+    
+    .info-box {
+        background: #dbeafe;
+        border: 1px solid #93c5fd;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .info-box.success {
+        background: #dcfce7;
+        border-color: #86efac;
+    }
+    
+    .info-box i {
+        color: #2563eb;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+    
+    .info-box.success i {
+        color: #16a34a;
+    }
+    
+    .info-box-content {
+        flex: 1;
+    }
+    
+    .info-box-content strong {
+        display: block;
+        color: #1e40af;
+        margin-bottom: 0.25rem;
+    }
+    
+    .info-box.success .info-box-content strong {
+        color: #166534;
+    }
+    
+    .info-box-content p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #1e3a8a;
+    }
+    
+    .info-box.success .info-box-content p {
+        color: #14532d;
+    }
+    
+    /* Mejorar los fieldsets */
+    fieldset.module {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #e2e8f0;
+        margin-bottom: 1.5rem;
+    }
+    
+    fieldset.module h2 {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        padding: 1rem 1.25rem;
+        margin: 0;
+        border-radius: 12px 12px 0 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1e293b;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    /* Campo destacado */
+    .form-row.field-organization,
+    .form-row.field-plan {
+        background: #fef3c7;
+        border-left: 4px solid #f59e0b;
+        margin: 0;
+        padding: 1.25rem !important;
+    }
+    
+    .plan-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+    
+    .plan-info-card {
+        background: white;
+        border-radius: 8px;
+        padding: 0.75rem;
+        text-align: center;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .plan-info-card .value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+    
+    .plan-info-card .label {
+        font-size: 0.75rem;
+        color: #64748b;
+    }
+</style>
+{% endblock %}
+
+{% block content_title %}
+<h1><i class="fas fa-credit-card" style="color: #d97706; margin-right: 10px;"></i> {% if add %}Crear Nueva Suscripción{% else %}Editar Suscripción{% endif %}</h1>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'admin:index' %}" class="back-to-admin">
+    <i class="fas fa-arrow-left"></i> Volver al Panel Principal
+</a>
+
+{% if add %}
+<div class="help-panel">
+    <div class="help-panel-header">
+        <i class="fas fa-credit-card"></i>
+        <h3>¿Cómo crear una suscripción?</h3>
+    </div>
+    
+    <div class="help-steps">
+        <div class="help-step">
+            <span class="step-number">1</span>
+            <div class="step-content">
+                <h4>Seleccionar organización</h4>
+                <p>Elige la organización que tendrá esta suscripción.</p>
+            </div>
+        </div>
+        
+        <div class="help-step">
+            <span class="step-number">2</span>
+            <div class="step-content">
+                <h4>Elegir el plan</h4>
+                <p>Selecciona el plan contratado (Trial, Básico, etc.)</p>
+            </div>
+        </div>
+        
+        <div class="help-step">
+            <span class="step-number">3</span>
+            <div class="step-content">
+                <h4>Fecha de vencimiento</h4>
+                <p>Se calcula automáticamente (30 días por defecto).</p>
+            </div>
+        </div>
+        
+        <div class="help-step">
+            <span class="step-number">4</span>
+            <div class="step-content">
+                <h4>Guardar</h4>
+                <p>El estado se actualizará automáticamente.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="plan-info-grid">
+        <div class="plan-info-card">
+            <div class="value">Trial</div>
+            <div class="label">30 días gratis</div>
+        </div>
+        <div class="plan-info-card">
+            <div class="value">Básico</div>
+            <div class="label">$299/mes</div>
+        </div>
+        <div class="plan-info-card">
+            <div class="value">Fundador</div>
+            <div class="label">$199/mes</div>
+        </div>
+    </div>
+    
+    <div class="info-box success">
+        <i class="fas fa-check-circle"></i>
+        <div class="info-box-content">
+            <strong>✅ Proceso automático</strong>
+            <p>Al guardar, el sistema calculará automáticamente las fechas y el estado de la suscripción. No necesitas hacer nada más.</p>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="help-panel">
+    <div class="help-panel-header">
+        <i class="fas fa-edit"></i>
+        <h3>Gestión de Suscripción</h3>
+    </div>
+    
+    <div class="help-steps">
+        <div class="help-step">
+            <span class="step-number"><i class="fas fa-calendar-plus"></i></span>
+            <div class="step-content">
+                <h4>Extender suscripción</h4>
+                <p>Usa la acción "Extender suscripción" para agregar días.</p>
+            </div>
+        </div>
+        
+        <div class="help-step">
+            <span class="step-number"><i class="fas fa-exchange-alt"></i></span>
+            <div class="step-content">
+                <h4>Cambiar plan</h4>
+                <p>Modifica el campo "Plan" para upgrade/downgrade.</p>
+            </div>
+        </div>
+        
+        <div class="help-step">
+            <span class="step-number"><i class="fas fa-history"></i></span>
+            <div class="step-content">
+                <h4>Historial de pagos</h4>
+                <p>Revisa la sección "Pagos" al final del formulario.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="info-box">
+        <i class="fas fa-info-circle"></i>
+        <div class="info-box-content">
+            <strong>ℹ️ Nota</strong>
+            <p>El estado de la suscripción se actualiza automáticamente según las fechas. No modifiques el estado manualmente.</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{{ block.super }}
+{% endblock %}

@@ -510,7 +510,7 @@ class TestProjectFileEdgeCases:
         assert 'ñ' in file_obj.filename or 'n' in file_obj.filename  # Puede ser sanitizado
     
     def test_very_long_filename(self, use_local_storage):
-        """Nombre muy largo se maneja correctamente"""
+        """Nombre muy largo se trunca correctamente para evitar errores de filesystem"""
         long_name = "a" * 200 + ".pdf"
         
         file_obj = ProjectFileFactory(
@@ -522,6 +522,8 @@ class TestProjectFileEdgeCases:
         )
         
         assert file_obj.filename
+        # El nombre debe ser truncado a max 100 caracteres (incluyendo extensión)
+        assert len(file_obj.filename) <= 100, f"Filename too long: {len(file_obj.filename)} chars"
     
     def test_empty_checksum_is_allowed(self, use_local_storage):
         """Checksum vacío es permitido"""

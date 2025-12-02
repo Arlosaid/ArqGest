@@ -161,6 +161,21 @@
             MAX_FILE_SIZE_MB: {{ MAX_UPLOAD_SIZE_MB|default:1500 }},
             ALLOWED_EXTENSIONS: {{ ALLOWED_UPLOAD_EXTENSIONS|safe|default:"[]" }}
         };
+        
+        {# Storage info for pre-upload validation #}
+        {% if STORAGE_INFO %}
+        window.STORAGE_INFO = {
+            available_bytes: {{ STORAGE_INFO.available_bytes|stringformat:"d" }},
+            used_gb: {{ STORAGE_INFO.used_gb|stringformat:".4f" }},
+            limit_gb: {{ STORAGE_INFO.limit_gb|stringformat:".2f" }},
+            remaining_gb: {{ STORAGE_INFO.remaining_gb|stringformat:".4f" }},
+            usage_percentage: {{ STORAGE_INFO.usage_percentage|stringformat:".2f" }},
+            status: "{{ STORAGE_INFO.status }}",
+            is_over_limit: {{ STORAGE_INFO.is_over_limit|yesno:"true,false" }}
+        };
+        {% else %}
+        window.STORAGE_INFO = null;
+        {% endif %}
     </script>
 
     {# Cargar configuración PRIMERO #}

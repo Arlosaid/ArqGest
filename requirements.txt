@@ -53,3 +53,9 @@ django-storages==1.14.2
 django-tables2
 django-widget-tweaks
 sentry-sdk
+
+# E2E Testing con Playwright
+pytest-playwright==0.4.4
+
+# Image processing (for E2E test fixtures)
+Pillow==10.2.0

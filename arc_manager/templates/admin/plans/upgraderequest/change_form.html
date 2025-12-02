@@ -1,0 +1,225 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls static %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .help-panel {
+        background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+        border: 1px solid #d8b4fe;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .help-panel-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    
+    .help-panel-header i {
+        font-size: 1.5rem;
+        color: #9333ea;
+    }
+    
+    .help-panel-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #581c87;
+    }
+    
+    .status-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: white;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+    
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        font-weight: 700;
+        font-size: 0.875rem;
+    }
+    
+    .status-badge.pending {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    .status-badge.approved {
+        background: #dcfce7;
+        color: #166534;
+    }
+    
+    .status-badge.rejected {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    
+    .action-guide {
+        background: white;
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin-top: 1rem;
+    }
+    
+    .action-guide h4 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .action-guide h4 i {
+        color: #9333ea;
+    }
+    
+    .action-buttons-guide {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .action-btn-guide {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .action-btn-guide.approve {
+        background: #dcfce7;
+        color: #166534;
+        border: 2px solid #86efac;
+    }
+    
+    .action-btn-guide.approve:hover {
+        background: #bbf7d0;
+    }
+    
+    .action-btn-guide.reject {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 2px solid #fecaca;
+    }
+    
+    .action-btn-guide.reject:hover {
+        background: #fecaca;
+    }
+    
+    .info-box {
+        background: #dbeafe;
+        border: 1px solid #93c5fd;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .info-box i {
+        color: #2563eb;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+    
+    .info-box-content {
+        flex: 1;
+    }
+    
+    .info-box-content strong {
+        display: block;
+        color: #1e40af;
+        margin-bottom: 0.25rem;
+    }
+    
+    .info-box-content p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #1e3a8a;
+    }
+    
+    /* Mejorar los fieldsets */
+    fieldset.module {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #e2e8f0;
+        margin-bottom: 1.5rem;
+    }
+    
+    fieldset.module h2 {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        padding: 1rem 1.25rem;
+        margin: 0;
+        border-radius: 12px 12px 0 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1e293b;
+        border-bottom: 1px solid #e2e8f0;
+    }
+</style>
+{% endblock %}
+
+{% block content_title %}
+<h1><i class="fas fa-arrow-up" style="color: #9333ea; margin-right: 10px;"></i> Solicitud de Upgrade</h1>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'admin:index' %}" class="back-to-admin">
+    <i class="fas fa-arrow-left"></i> Volver al Panel Principal
+</a>
+
+<div class="help-panel">
+    <div class="help-panel-header">
+        <i class="fas fa-arrow-circle-up"></i>
+        <h3>¿Cómo procesar una solicitud de upgrade?</h3>
+    </div>
+    
+    <div class="action-guide">
+        <h4><i class="fas fa-tasks"></i> Pasos para procesar</h4>
+        
+        <ol style="margin: 0 0 1rem 0; padding-left: 1.25rem; color: #475569;">
+            <li style="margin-bottom: 0.5rem;"><strong>Verifica el pago:</strong> Confirma que el cliente haya realizado el pago del upgrade.</li>
+            <li style="margin-bottom: 0.5rem;"><strong>Revisa los datos:</strong> Verifica la organización, plan actual y plan solicitado.</li>
+            <li style="margin-bottom: 0.5rem;"><strong>Aprueba o rechaza:</strong> Usa los botones de la lista o cambia el estado.</li>
+            <li style="margin-bottom: 0.5rem;"><strong>El sistema hace el resto:</strong> Al aprobar, el plan se actualiza automáticamente.</li>
+        </ol>
+        
+        <div class="action-buttons-guide">
+            <span class="action-btn-guide approve">
+                <i class="fas fa-check"></i> Aprobar = Cambia el plan automáticamente
+            </span>
+            <span class="action-btn-guide reject">
+                <i class="fas fa-times"></i> Rechazar = Mantiene el plan actual
+            </span>
+        </div>
+    </div>
+    
+    <div class="info-box">
+        <i class="fas fa-magic"></i>
+        <div class="info-box-content">
+            <strong>🔮 Automatización</strong>
+            <p>Al aprobar, el sistema automáticamente: cambia el plan, recalcula la fecha de vencimiento y registra el pago. ¡No tienes que hacer nada más!</p>
+        </div>
+    </div>
+</div>
+
+{{ block.super }}
+{% endblock %}

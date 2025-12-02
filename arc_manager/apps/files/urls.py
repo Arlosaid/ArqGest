@@ -19,4 +19,5 @@ urlpatterns = [
     path('api/upload-stats/', api.upload_stats, name='upload_stats'),
     path('api/optimize-settings/', api.optimize_upload_settings, name='optimize_upload_settings'),
     path('api/file-limits/', api.get_file_limits, name='get_file_limits'),
+    path('api/storage-availability/', api.get_storage_availability, name='storage_availability'),
 ]

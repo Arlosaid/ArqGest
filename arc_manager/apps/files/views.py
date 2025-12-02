@@ -256,13 +256,20 @@ def upload_file(request, project_id, phase_id):
             
             successful_uploads += 1
             
+            # Detectar si el archivo fue renombrado automáticamente
+            was_renamed = hasattr(instance, '_renamed_to') and instance._renamed_to
+            original_name = getattr(instance, '_original_filename', uploaded_file.name)
+            final_name = instance.filename
+            
             # Log exitoso de creación de archivo
             log_business_event(
                 event="file_uploaded",
                 action="created",
                 entity_type="file",
                 entity_id=instance.id,
-                file_name=uploaded_file.name,  # Cambiado de filename a file_name (evitar conflicto con LogRecord)
+                file_name=final_name,
+                original_name=original_name if was_renamed else None,
+                was_renamed=was_renamed,
                 size_mb=round(size_mb, 2),
                 extension=ext,
                 project_id=project_id,
@@ -285,58 +292,17 @@ def upload_file(request, project_id, phase_id):
                     instance.checksum_sha256 = hasher.hexdigest()
                     instance.save(update_fields=["checksum_sha256"])
                     
-                # Detectar archivos duplicados por checksum
-                if instance.checksum_sha256:
-                    duplicate = ProjectFile.objects.filter(
-                        phase=phase,
-                        checksum_sha256=instance.checksum_sha256
-                    ).exclude(pk=instance.pk).first()
-                    
-                    if duplicate:
-                        log_warning(
-                            event="file_duplicate_detected",
-                            message="Archivo duplicado detectado y eliminado",
-                            error_code=FileErrorCodes.FILE_UPLOAD_DUPLICATE_CHECKSUM,
-                            file_id=instance.id,
-                            duplicate_file_id=duplicate.id,
-                            checksum=instance.checksum_sha256,
-                            filename=uploaded_file.name,
-                            duplicate_filename=duplicate.filename
-                        )
-                            
-                        # Eliminar el archivo duplicado recién subido
-                        instance.file.delete(save=False)
-                        instance.delete()
-                        
-                        # Notificar al usuario sobre el duplicado
-                        duplicate_msg = f"Este archivo ya existe como '{duplicate.filename}' (subido el {duplicate.uploaded_at.strftime('%d/%m/%Y')})"
-                        
-                        if request.headers.get('HX-Request') == 'true':
-                            html_response = f'''
-                            <script>
-                                if (window.notifications) {{
-                                    window.notifications.warning('{duplicate_msg}');
-                                }} else if (window.showGlobalNotification) {{
-                                    window.showGlobalNotification('{duplicate_msg}', 'warning');
-                                }}
-                                
-                                // Trigger para recargar la lista
-                                setTimeout(() => {{
-                                    const container = document.getElementById('files-container-{phase.id}');
-                                    if (container && window.htmx) {{
-                                        htmx.trigger(container, 'fileUploaded');
-                                    }}
-                                }}, 100);
-                            </script>
-                            '''
-                            return HttpResponse(html_response)
-                        else:
-                            return JsonResponse({
-                                "success": False,
-                                "duplicate": True,
-                                "existing_file_id": duplicate.id,
-                                "message": duplicate_msg
-                            }, status=200)  # 200 porque técnicamente no es un error
+                # NOTA: Detección de duplicados DESACTIVADA para MVP
+                # Los arquitectos necesitan subir múltiples versiones del mismo archivo
+                # sin fricciones. El sistema renombra automáticamente: archivo (1).pdf, archivo (2).pdf
+                # 
+                # Para futuras versiones: implementar versionado real de archivos
+                # donde el usuario pueda ver historial de versiones de un documento.
+                #
+                # El checksum se sigue calculando y guardando para:
+                # - Verificar integridad de archivos
+                # - Posible uso futuro en reportes/analytics
+                # - Detección opcional de duplicados en el futuro
 
                     
             except Exception as e:
@@ -388,6 +354,14 @@ def upload_file(request, project_id, phase_id):
 
     # Para HTMX, no usar Django messages, usar notificaciones JavaScript
     # messages.success(request, "Archivo(s) subido(s) exitosamente.")
+    
+    # Preparar mensaje de éxito (incluir info de renombrado si aplica)
+    if was_renamed:
+        success_msg = f"Archivo guardado como '{final_name}'"
+        notification_type = 'info'
+    else:
+        success_msg = '¡Archivo subido exitosamente!'
+        notification_type = 'success'
 
     # Si es una petición HTMX, devolvemos solo la lista actualizada
     if request.headers.get('HX-Request') == 'true':
@@ -399,23 +373,23 @@ def upload_file(request, project_id, phase_id):
         if 'files-container' in hx_target:
             # Respuesta optimizada que dispara un evento para recargar los archivos
             # En lugar de renderizar todo inmediatamente (que causa timeout en Railway)
-            html_response = '''
+            html_response = f'''
             <script>
                 // Mostrar notificación de éxito usando el sistema personalizado
-                if (window.notifications) {
-                    window.notifications.success('¡Archivo subido exitosamente!');
-                } else if (window.showGlobalNotification) {
-                    window.showGlobalNotification('¡Archivo subido exitosamente!', 'success');
-                }
+                if (window.notifications) {{
+                    window.notifications.{notification_type}('{success_msg}');
+                }} else if (window.showGlobalNotification) {{
+                    window.showGlobalNotification('{success_msg}', '{notification_type}');
+                }}
                 
                 // Trigger inmediato para recargar los archivos después del upload exitoso
-                setTimeout(() => {
-                    const container = document.getElementById('files-container-' + ''' + str(phase.id) + ''');
-                    if (container) {
+                setTimeout(() => {{
+                    const container = document.getElementById('files-container-{phase.id}');
+                    if (container) {{
                         // Disparar recarga sin bloquear la respuesta del upload
                         htmx.trigger(container, 'fileUploaded');
-                    }
-                }, 100);
+                    }}
+                }}, 100);
             </script>
             '''
             return HttpResponse(html_response)
@@ -434,19 +408,19 @@ def upload_file(request, project_id, phase_id):
         else:
             # Target por defecto: usar notificaciones personalizadas + trigger de recarga
             # No devolver contenido HTML para el target, solo script para notificar y recargar
-            html_response = '''
+            html_response = f'''
             <script>
                 // Mostrar notificación de éxito usando el sistema personalizado
-                if (window.notifications) {
-                    window.notifications.success('¡Archivo subido exitosamente!');
-                } else if (window.showGlobalNotification) {
-                    window.showGlobalNotification('¡Archivo subido exitosamente!', 'success');
-                }
+                if (window.notifications) {{
+                    window.notifications.{notification_type}('{success_msg}');
+                }} else if (window.showGlobalNotification) {{
+                    window.showGlobalNotification('{success_msg}', '{notification_type}');
+                }}
                 
                 // Trigger para recargar la lista completa
-                setTimeout(() => {
+                setTimeout(() => {{
                     document.body.dispatchEvent(new CustomEvent('fileUploaded'));
-                }, 100);
+                }}, 100);
             </script>
             '''
             return HttpResponse(html_response)
@@ -606,7 +580,7 @@ def get_presigned_upload(request, project_id, phase_id):
                 error_code=FileErrorCodes.FILE_UPLOAD_STORAGE_LIMIT,
                 project_id=project_id,
                 phase_id=phase_id,
-                filename=filename,
+                file_name=filename,
                 file_size_mb=round(file_size / (1024 * 1024), 2),
                 storage_used_gb=storage_data['total_gb'],
                 storage_limit_gb=storage_data['plan_limit_gb']
@@ -661,7 +635,7 @@ def get_presigned_upload(request, project_id, phase_id):
             error_message=str(e),
             project_id=project_id,
             phase_id=phase_id,
-            filename=filename
+            file_name=filename
         )
         return JsonResponse({"error": "Error generando URL de subida"}, status=500)
 

@@ -4,17 +4,15 @@
  * Enhanced with drag & drop support and better UX feedback.
  */
 
-console.log('🚀 Files validation script loaded!');
-
 const FILE_VALIDATION = {
     // Usar configuración centralizada con límites específicos por dispositivo
     MAX_SIZE_MB: window.FILE_UPLOAD_CONFIG?.MAX_FILE_SIZE_MB || 1500,
     MAX_SIZE_MOBILE_MB: window.FILE_UPLOAD_CONFIG?.MAX_FILE_SIZE_MOBILE_MB || 1500,
     ALLOWED_EXTENSIONS: window.FILE_UPLOAD_CONFIG?.ALLOWED_EXTENSIONS || ['PDF', 'JPG', 'JPEG', 'PNG', 'GIF', 'TIFF', 'DWG', 'DXF', 'RVT', 'SKP', 'DOC', 'DOCX', 'XLS', 'XLSX', 'PPT', 'PPTX', 'ZIP', 'RAR', 'TXT', 'MD'],
     
-    // Log del límite cargado
+    // Inicialización silenciosa
     init: function() {
-        console.log(`✅ Límites: Desktop=${this.MAX_SIZE_MB}MB, Mobile=${this.MAX_SIZE_MOBILE_MB}MB`);
+        // Ready
     },
     
     // Detectar si es dispositivo móvil
@@ -29,13 +27,96 @@ const FILE_VALIDATION = {
         return exts.join(', ') + '...';
     },
     
+    // Verificar espacio de storage disponible
+    checkStorageAvailability: function(fileSize) {
+        // Si no hay info de storage, permitir (el backend validará)
+        if (!window.STORAGE_INFO) {
+            return { hasSpace: true, error: null };
+        }
+        
+        const availableBytes = window.STORAGE_INFO.available_bytes;
+        
+        // Verificar si el archivo excede el espacio disponible
+        if (fileSize > availableBytes) {
+            const fileSizeMB = (fileSize / (1024 * 1024)).toFixed(2);
+            const availableMB = (availableBytes / (1024 * 1024)).toFixed(2);
+            const limitGB = window.STORAGE_INFO.limit_gb;
+            
+            return {
+                hasSpace: false,
+                error: `No tienes espacio suficiente. El archivo ocupa ${fileSizeMB} MB pero solo tienes ${availableMB} MB disponibles de tu límite de ${limitGB} GB.`
+            };
+        }
+        
+        return { hasSpace: true, error: null };
+    },
+    
+    // Actualizar info de storage (llamar después de upload exitoso)
+    refreshStorageInfo: async function() {
+        try {
+            const response = await fetch('/api/storage-availability/');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.status === 'success') {
+                    window.STORAGE_INFO = data.data;
+                    // Actualizar indicador visual si existe
+                    this.updateStorageIndicator();
+                }
+            }
+        } catch (error) {
+            // Silently fail - backend will validate
+        }
+    },
+    
+    // Actualizar indicador visual de storage
+    updateStorageIndicator: function() {
+        const indicators = document.querySelectorAll('.storage-indicator');
+        if (!indicators.length || !window.STORAGE_INFO) return;
+        
+        indicators.forEach(indicator => {
+            const usedEl = indicator.querySelector('.storage-used');
+            const limitEl = indicator.querySelector('.storage-limit');
+            const barEl = indicator.querySelector('.storage-bar-fill');
+            
+            if (usedEl) usedEl.textContent = window.STORAGE_INFO.used_gb.toFixed(2);
+            if (limitEl) limitEl.textContent = window.STORAGE_INFO.limit_gb;
+            if (barEl) {
+                barEl.style.width = `${Math.min(100, window.STORAGE_INFO.usage_percentage)}%`;
+                // Cambiar color según estado
+                barEl.classList.remove('bg-success', 'bg-warning', 'bg-danger');
+                if (window.STORAGE_INFO.status === 'critical') {
+                    barEl.classList.add('bg-danger');
+                } else if (window.STORAGE_INFO.status === 'warning') {
+                    barEl.classList.add('bg-warning');
+                } else {
+                    barEl.classList.add('bg-success');
+                }
+            }
+        });
+    },
+    
     // Validar un archivo individual
     validateFile: function(file) {
         const errors = [];
         const maxSizeMB = this.isMobile() ? this.MAX_SIZE_MOBILE_MB : this.MAX_SIZE_MB;
         const maxSizeBytes = maxSizeMB * 1024 * 1024;
         
-        // Validar tamaño
+        // Validar espacio de storage disponible PRIMERO
+        const storageCheck = this.checkStorageAvailability(file.size);
+        if (!storageCheck.hasSpace) {
+            errors.push({
+                type: 'storage',
+                message: storageCheck.error
+            });
+            // Retornar inmediatamente - no tiene sentido validar más si no hay espacio
+            return {
+                valid: false,
+                errors: errors,
+                file: file
+            };
+        }
+        
+        // Validar tamaño máximo por archivo
         if (file.size > maxSizeBytes) {
             const fileSizeMB = (file.size / 1024 / 1024).toFixed(1);
             errors.push({
@@ -132,6 +213,21 @@ function showValidationErrors(errors, phaseId) {
         return msg;
     });
     
+    // Determinar el título del error según el tipo
+    let errorTitle = 'Error de validación';
+    if (errors.length > 0) {
+        const firstError = errors[0];
+        if (firstError.type === 'storage') {
+            errorTitle = 'Sin espacio disponible';
+        } else if (firstError.type === 'size') {
+            errorTitle = 'Archivo muy grande';
+        } else if (firstError.type === 'extension') {
+            errorTitle = 'Tipo no permitido';
+        } else if (firstError.type === 'count') {
+            errorTitle = 'Demasiados archivos';
+        }
+    }
+    
     // Usar un solo mensaje si hay un solo error
     const errorContent = errorMessages.length === 1 
         ? `<p style="margin: 0; font-size: 0.75rem; color: #991b1b;">${errorMessages[0]}</p>`
@@ -140,7 +236,7 @@ function showValidationErrors(errors, phaseId) {
     errorContainer.innerHTML = `
         <div class="validation-error-header">
             <i class="fas fa-exclamation-circle"></i>
-            <strong>Tipo no permitido</strong>
+            <strong>${errorTitle}</strong>
         </div>
         ${errorContent}
     `;
@@ -324,11 +420,10 @@ function resetUploadForm(phaseId) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('✅ DOMContentLoaded fired in files tab!');
     initFileInputs();
     initDragAndDrop();
     
-    // Inicializar validación y mostrar límite cargado
+    // Inicializar validación
     FILE_VALIDATION.init();
 });
 
@@ -347,6 +442,8 @@ document.body.addEventListener('htmx:afterRequest', function(evt) {
         if (!window.fileListUpdater) {
             document.body.dispatchEvent(new CustomEvent('fileUploaded'));
         }
+        // Refrescar info de storage después de upload exitoso
+        FILE_VALIDATION.refreshStorageInfo();
     }
 });
 

@@ -270,3 +270,48 @@ def get_file_limits(request):
             'status': 'error',
             'message': f'Error obteniendo límites: {str(e)}'
         }, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_storage_availability(request):
+    """
+    API para obtener el espacio de almacenamiento disponible para la organización del usuario.
+    Usado por el frontend para validar ANTES de iniciar un upload.
+    """
+    try:
+        from apps.orgs.storage_service import StorageService
+        
+        # Verificar que el usuario tenga organización
+        if not hasattr(request.user, 'organization') or not request.user.organization:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Usuario sin organización asignada'
+            }, status=400)
+        
+        organization = request.user.organization
+        storage_summary = StorageService.get_storage_summary(organization)
+        
+        # Convertir remaining_gb a bytes para validación precisa en frontend
+        remaining_bytes = int(storage_summary['remaining_gb'] * 1024 * 1024 * 1024)
+        
+        return JsonResponse({
+            'status': 'success',
+            'data': {
+                'available_bytes': remaining_bytes,
+                'used_gb': storage_summary['used_gb'],
+                'limit_gb': storage_summary['total_gb'],
+                'remaining_gb': storage_summary['remaining_gb'],
+                'usage_percentage': storage_summary['percentage'],
+                'status': storage_summary['status'],
+                'is_over_limit': storage_summary['is_over_limit'],
+                'file_count': storage_summary['file_count'],
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Error obteniendo disponibilidad de storage: {e}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Error obteniendo disponibilidad: {str(e)}'
+        }, status=500)

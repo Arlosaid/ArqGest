@@ -1,0 +1,297 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls static %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .help-panel {
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        border: 1px solid #93c5fd;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .help-panel-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    
+    .help-panel-header i {
+        font-size: 1.5rem;
+        color: #2563eb;
+    }
+    
+    .help-panel-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1e3a8a;
+    }
+    
+    .action-guide {
+        background: white;
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin-top: 1rem;
+    }
+    
+    .action-guide h4 {
+        margin: 0 0 1rem 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .action-guide h4 i {
+        color: #2563eb;
+    }
+    
+    .security-tips {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .security-tips li {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background: #f8fafc;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+    }
+    
+    .security-tips li:last-child {
+        margin-bottom: 0;
+    }
+    
+    .security-tips li i {
+        color: #2563eb;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+    
+    .security-tips li strong {
+        color: #1e293b;
+    }
+    
+    .security-tips li p {
+        margin: 0.25rem 0 0 0;
+        font-size: 0.85rem;
+        color: #64748b;
+    }
+    
+    .warning-box {
+        background: #fef3c7;
+        border: 1px solid #fcd34d;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .warning-box i {
+        color: #d97706;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+    
+    .warning-box-content {
+        flex: 1;
+    }
+    
+    .warning-box-content strong {
+        display: block;
+        color: #92400e;
+        margin-bottom: 0.25rem;
+    }
+    
+    .warning-box-content p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #78350f;
+    }
+    
+    .info-box {
+        background: #f3e8ff;
+        border: 1px solid #d8b4fe;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .info-box i {
+        color: #9333ea;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+    
+    .info-box-content {
+        flex: 1;
+    }
+    
+    .info-box-content strong {
+        display: block;
+        color: #6b21a8;
+        margin-bottom: 0.25rem;
+    }
+    
+    .info-box-content p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #581c87;
+    }
+    
+    .role-badges {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-top: 0.5rem;
+    }
+    
+    .role-badge {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    
+    .role-badge.admin {
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #fcd34d;
+    }
+    
+    .role-badge.staff {
+        background: #dbeafe;
+        color: #1e40af;
+        border: 1px solid #93c5fd;
+    }
+    
+    .role-badge.user {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #cbd5e1;
+    }
+    
+    /* Mejorar los fieldsets */
+    fieldset.module {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #e2e8f0;
+        margin-bottom: 1.5rem;
+    }
+    
+    fieldset.module h2 {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        padding: 1rem 1.25rem;
+        margin: 0;
+        border-radius: 12px 12px 0 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1e293b;
+        border-bottom: 1px solid #e2e8f0;
+    }
+</style>
+{% endblock %}
+
+{% block content_title %}
+<h1><i class="fas fa-user-edit" style="color: #2563eb; margin-right: 10px;"></i> Editar Usuario</h1>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'admin:index' %}" class="back-to-admin">
+    <i class="fas fa-arrow-left"></i> Volver al Panel Principal
+</a>
+
+<div class="help-panel">
+    <div class="help-panel-header">
+        <i class="fas fa-user-cog"></i>
+        <h3>Editando información del usuario</h3>
+    </div>
+    
+    <div style="margin-bottom: 1rem;">
+        <strong style="color: #374151;">Tipos de usuario:</strong>
+        <div class="role-badges">
+            <span class="role-badge admin">
+                <i class="fas fa-crown"></i> Superusuario - Acceso total
+            </span>
+            <span class="role-badge staff">
+                <i class="fas fa-user-tie"></i> Staff - Acceso al admin
+            </span>
+            <span class="role-badge user">
+                <i class="fas fa-user"></i> Normal - Solo frontend
+            </span>
+        </div>
+    </div>
+    
+    <div class="action-guide">
+        <h4><i class="fas fa-shield-alt"></i> Permisos y seguridad</h4>
+        
+        <ul class="security-tips">
+            <li>
+                <i class="fas fa-toggle-on"></i>
+                <div>
+                    <strong>Activo</strong>
+                    <p>Desactiva para bloquear el acceso sin eliminar el usuario.</p>
+                </div>
+            </li>
+            <li>
+                <i class="fas fa-user-shield"></i>
+                <div>
+                    <strong>Es staff</strong>
+                    <p>Permite acceso al panel de administración.</p>
+                </div>
+            </li>
+            <li>
+                <i class="fas fa-crown"></i>
+                <div>
+                    <strong>Es superusuario</strong>
+                    <p>Otorga TODOS los permisos. ¡Usar con precaución!</p>
+                </div>
+            </li>
+            <li>
+                <i class="fas fa-building"></i>
+                <div>
+                    <strong>Organización</strong>
+                    <p>Asocia el usuario a una organización para que pueda usar el sistema.</p>
+                </div>
+            </li>
+        </ul>
+    </div>
+    
+    <div class="warning-box">
+        <i class="fas fa-exclamation-triangle"></i>
+        <div class="warning-box-content">
+            <strong>⚠️ Cambio de contraseña</strong>
+            <p>Para cambiar la contraseña, usa el enlace especial en el formulario. No puedes ver la contraseña actual por seguridad.</p>
+        </div>
+    </div>
+    
+    <div class="info-box">
+        <i class="fas fa-history"></i>
+        <div class="info-box-content">
+            <strong>📊 Historial del usuario</strong>
+            <p>Puedes ver cuándo fue creado, su último acceso y su historial de cambios al final de esta página.</p>
+        </div>
+    </div>
+</div>
+
+{{ block.super }}
+{% endblock %}
