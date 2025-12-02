@@ -5,153 +5,171 @@
 
 {% block extrahead %}
 {{ block.super }}
-<style>
-    /* Ocultar elementos repetitivos del sidebar */
-    .module h2 {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 12px 15px;
-        margin: 0;
-        font-size: 14px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .module {
-        margin-bottom: 20px;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    /* Simplificar la navegación del sidebar */
-    #content-related .module:not(:first-child) {
-        display: none; /* Ocultar módulos duplicados */
-    }
-    
-    /* Mejorar el aspecto de los enlaces en el sidebar */
-    .module table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    
-    .module table th,
-    .module table td {
-        padding: 12px 15px;
-        border-bottom: 1px solid #f0f0f1;
-    }
-    
-    .module table th {
-        background: #f8f9fa;
-        font-weight: 600;
-        color: #2c3e50;
-    }
-    
-    .module table tr:hover {
-        background: #f8f9fa;
-    }
-    
-    .module table a {
-        color: #3498db;
-        text-decoration: none;
-        font-weight: 500;
-    }
-    
-    .module table a:hover {
-        color: #2980b9;
-        text-decoration: underline;
-    }
-    
-    /* Mejorar botones de acción */
-    .addlink, .changelink, .viewlink {
-        padding: 6px 12px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .addlink {
-        background: #27ae60;
-        color: white !important;
-    }
-    
-    .addlink:hover {
-        background: #229954;
-        color: white !important;
-    }
-    
-    .changelink {
-        background: #3498db;
-        color: white !important;
-    }
-    
-    .changelink:hover {
-        background: #2980b9;
-        color: white !important;
-    }
-    
-    .viewlink {
-        background: #95a5a6;
-        color: white !important;
-    }
-    
-    .viewlink:hover {
-        background: #7f8c8d;
-        color: white !important;
-    }
-    
-    /* Personalizar header */
-    #header {
-        background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
-        color: white;
-    }
-    
-    #header h1 {
-        color: white;
-    }
-    
-    #header h1 a {
-        color: white;
-    }
-    
-    /* Personalizar breadcrumbs */
-    .breadcrumbs {
-        background: #ecf0f1;
-        padding: 10px 20px;
-        font-size: 13px;
-    }
-    
-    .breadcrumbs a {
-        color: #3498db;
-        text-decoration: none;
-    }
-    
-    .breadcrumbs a:hover {
-        text-decoration: underline;
-    }
-</style>
+<link rel="stylesheet" href="{% static 'css/custom_admin.css' %}?v={{ STATIC_VERSION|default:'1.0' }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mobile Menu Toggle
+        const toggleBtn = document.createElement('button');
+        toggleBtn.id = 'mobile-menu-toggle';
+        toggleBtn.innerHTML = '<i class="fas fa-bars"></i>';
+        toggleBtn.setAttribute('aria-label', 'Toggle Menu');
+        
+        const header = document.getElementById('header');
+        if (header) {
+            header.insertBefore(toggleBtn, header.firstChild);
+        }
+        
+        const sidebar = document.getElementById('nav-sidebar');
+        const content = document.getElementById('content');
+        
+        // Create overlay element
+        const overlay = document.createElement('div');
+        overlay.id = 'sidebar-overlay';
+        overlay.style.cssText = 'display:none; position:fixed; top:56px; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1040;';
+        document.body.appendChild(overlay);
+        
+        if (toggleBtn && sidebar) {
+            toggleBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const isOpen = sidebar.classList.toggle('open');
+                overlay.style.display = isOpen ? 'block' : 'none';
+                document.body.classList.toggle('sidebar-open', isOpen);
+            });
+            
+            // Close sidebar when clicking overlay
+            overlay.addEventListener('click', function() {
+                sidebar.classList.remove('open');
+                overlay.style.display = 'none';
+                document.body.classList.remove('sidebar-open');
+            });
+            
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', function(e) {
+                if (window.innerWidth <= 991.98 && 
+                    sidebar.classList.contains('open') && 
+                    !sidebar.contains(e.target) && 
+                    e.target !== toggleBtn &&
+                    !toggleBtn.contains(e.target)) {
+                    sidebar.classList.remove('open');
+                    overlay.style.display = 'none';
+                    document.body.classList.remove('sidebar-open');
+                }
+            });
+            
+            // Handle resize
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 991.98) {
+                    sidebar.classList.remove('open');
+                    overlay.style.display = 'none';
+                    document.body.classList.remove('sidebar-open');
+                }
+            });
+        }
+        
+        // Add data-label to table cells for mobile responsive view
+        const tables = document.querySelectorAll('#changelist table');
+        tables.forEach(table => {
+            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+            const rows = table.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                cells.forEach((cell, index) => {
+                    if (headers[index]) {
+                        cell.setAttribute('data-label', headers[index]);
+                    }
+                });
+            });
+        });
+    });
+</script>
 {% endblock %}
 
 {% block branding %}
 <h1 id="site-name">
     <a href="{% url 'admin:index' %}">
-        🏗️ ArqGest
+        <i class="fas fa-building"></i> ArqGest
     </a>
 </h1>
 {% endblock %}
 
+{% block usertools %}
+{# Usamos nuestro propio menú de usuario en nav-global #}
+{% endblock %}
+
 {% block nav-global %}
-<div style="background: rgba(255,255,255,0.1); padding: 12px 20px; font-size: 13px; display: flex; justify-content: space-between; align-items: center;">
-    <div>
-        <strong>Panel de Administración Ejecutivo</strong> - Gestión integral del sistema
-    </div>
-    <div style="margin-left: 20px;">
-        <a href="/" style="background: #27ae60; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; box-shadow: 0 3px 6px rgba(0,0,0,0.15); transition: all 0.2s ease;">
-            🏠 Ir al Inicio
-        </a>
+<div class="admin-nav-global">
+    <span class="admin-user-greeting">
+        Hola, <strong>{{ user.get_short_name|default:user.get_username }}</strong>
+    </span>
+    
+    <a href="/" class="view-site-link">
+        <i class="fas fa-external-link-alt"></i>
+        <span class="link-text">Ver Sitio</span>
+    </a>
+    
+    <div class="admin-user-dropdown">
+        <button class="admin-user-btn" id="adminUserBtn" type="button">
+            <span class="admin-user-avatar">
+                {{ user.get_short_name|default:user.get_username|slice:":1"|upper }}
+            </span>
+            <i class="fas fa-chevron-down admin-chevron"></i>
+        </button>
+        <div class="admin-dropdown-menu" id="adminDropdownMenu">
+            <div class="admin-dropdown-header">
+                <div class="admin-dropdown-name">{{ user.get_full_name|default:user.get_username }}</div>
+                <div class="admin-dropdown-email">{{ user.email }}</div>
+            </div>
+            <div class="admin-dropdown-divider"></div>
+            <a href="/" class="admin-dropdown-item view-site-mobile">
+                <i class="fas fa-external-link-alt"></i>
+                Ver Sitio
+            </a>
+            <a href="{% url 'admin:password_change' %}" class="admin-dropdown-item">
+                <i class="fas fa-key"></i>
+                Cambiar Contraseña
+            </a>
+            <div class="admin-dropdown-divider"></div>
+            <a href="{% url 'admin:logout' %}" class="admin-dropdown-item admin-dropdown-logout">
+                <i class="fas fa-sign-out-alt"></i>
+                Cerrar Sesión
+            </a>
+        </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const userBtn = document.getElementById('adminUserBtn');
+    const dropdownMenu = document.getElementById('adminDropdownMenu');
+    
+    if (userBtn && dropdownMenu) {
+        userBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropdownMenu.classList.toggle('show');
+            userBtn.classList.toggle('active');
+        });
+        
+        // Cerrar al hacer clic fuera
+        document.addEventListener('click', function(e) {
+            if (!userBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                dropdownMenu.classList.remove('show');
+                userBtn.classList.remove('active');
+            }
+        });
+        
+        // Cerrar con Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                dropdownMenu.classList.remove('show');
+                userBtn.classList.remove('active');
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

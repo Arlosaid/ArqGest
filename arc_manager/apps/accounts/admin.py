@@ -97,6 +97,10 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
     resource_class = UserResource
     form = UserChangeForm
     add_form = UserCreationForm
+    
+    # Templates personalizados con instrucciones
+    add_form_template = 'admin/accounts/user/add_form.html'
+    change_form_template = 'admin/accounts/user/change_form.html'
 
     list_display = ('email', 'email_status_display', 'full_name', 'get_organization_link', 'get_role_display', 'is_active', 'date_joined')
     list_filter = ('is_active', 'is_staff', 'is_org_admin', 'organization__name', 'date_joined')
