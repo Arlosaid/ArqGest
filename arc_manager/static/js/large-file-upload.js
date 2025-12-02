@@ -111,17 +111,12 @@ class LargeFileUploader {
 
     handleFileSelection(fileInput, form) {
         const files = Array.from(fileInput.files);
-        // const fileInfoContainer = form.querySelector('.file-info-container');
         
         if (files.length === 0) {
-            // if (fileInfoContainer) fileInfoContainer.style.display = 'none';
             return;
         }
 
-        // Mostrar información del archivo seleccionado
-        const file = files[0]; // MVP: solo 1 archivo
-        // const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
-        // const extension = file.name.split('.').pop().toUpperCase();
+        const file = files[0];
         
         // Validar archivo
         const validation = this.validateFile(file);
@@ -165,6 +160,21 @@ class LargeFileUploader {
             return { isValid: false, error: 'Archivo vacío' };
         }
         
+        // Validar espacio de storage disponible PRIMERO
+        if (window.STORAGE_INFO) {
+            const availableBytes = window.STORAGE_INFO.available_bytes;
+            if (file.size > availableBytes) {
+                const fileSizeMB = sizeInMB.toFixed(2);
+                const availableMB = (availableBytes / (1024 * 1024)).toFixed(2);
+                const limitGB = window.STORAGE_INFO.limit_gb;
+                return { 
+                    isValid: false, 
+                    error: `Sin espacio suficiente. Necesitas ${fileSizeMB} MB pero solo tienes ${availableMB} MB disponibles de ${limitGB} GB`,
+                    errorType: 'storage'
+                };
+            }
+        }
+        
         if (sizeInMB > this.options.maxFileSize) {
             return { isValid: false, error: `Muy grande (máx: ${this.options.maxFileSize}MB)` };
         }
@@ -201,6 +211,28 @@ class LargeFileUploader {
 
         const file = files[0];
         const sizeInMB = file.size / (1024 * 1024);
+        
+        // VALIDACIÓN DE STORAGE - Bloquear ANTES de intentar subir
+        const validation = this.validateFile(file);
+        
+        if (!validation.isValid) {
+            // Mostrar error y NO continuar
+            this.showNotification(validation.error, 'error');
+            
+            // Mostrar error en la UI del formulario
+            const progressContainer = form.querySelector('.upload-progress-container');
+            if (progressContainer) {
+                const progressBar = progressContainer.querySelector('.progress-bar');
+                const statusDiv = progressContainer.querySelector('.upload-status');
+                progressContainer.style.display = 'block';
+                progressBar.classList.remove('bg-primary', 'bg-gradient-primary', 'progress-bar-striped', 'progress-bar-animated');
+                progressBar.classList.add('bg-danger');
+                progressBar.style.width = '100%';
+                statusDiv.textContent = validation.error;
+            }
+            
+            return; // NO continuar con el upload
+        }
         
         // Verificar si storage externo está habilitado
         const config = window.FILE_UPLOAD_CONFIG || {};
@@ -341,7 +373,30 @@ class LargeFileUploader {
                     progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated', 'bg-primary', 'bg-gradient-primary');
                     progressBar.classList.add('bg-success');
                     
+                    // Actualizar también el detailsDiv para limpiar "Procesando:"
+                    if (detailsDiv) {
+                        detailsDiv.textContent = '✓ Archivo procesado correctamente';
+                    }
+                    
                     this.showNotification('¡Archivo subido exitosamente!', 'success');
+                    
+                    // Ejecutar cualquier script que venga en la respuesta (para HTMX)
+                    try {
+                        const responseText = xhr.responseText;
+                        if (responseText && responseText.includes('<script>')) {
+                            const scriptMatch = responseText.match(/<script>([\s\S]*?)<\/script>/);
+                            if (scriptMatch && scriptMatch[1]) {
+                                eval(scriptMatch[1]);
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Error ejecutando script de respuesta:', e);
+                    }
+                    
+                    // Refrescar info de storage después de upload exitoso
+                    if (window.FILE_VALIDATION && window.FILE_VALIDATION.refreshStorageInfo) {
+                        window.FILE_VALIDATION.refreshStorageInfo();
+                    }
                     
                     setTimeout(() => {
                         this.reloadFilesList(form);
@@ -365,6 +420,8 @@ class LargeFileUploader {
                 } else {
                     // Intentar obtener mensaje de error específico del servidor
                     let errorMessage = `Error ${xhr.status}: ${xhr.statusText}`;
+                    let isStorageError = false;
+                    
                     try {
                         const errorData = JSON.parse(xhr.responseText);
                         if (errorData.error) errorMessage = errorData.error;
@@ -375,12 +432,34 @@ class LargeFileUploader {
                             const firstError = errorData[firstKey];
                             errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
                         }
+                        
+                        // Detectar si es error de storage
+                        if (errorData.error_type === 'storage_limit' || xhr.status === 413) {
+                            isStorageError = true;
+                            // Refrescar storage info para actualizar el indicador
+                            if (window.FILE_VALIDATION && window.FILE_VALIDATION.refreshStorageInfo) {
+                                window.FILE_VALIDATION.refreshStorageInfo();
+                            }
+                        }
                     } catch (e) {}
+                    
+                    // Mensaje más claro para error de storage
+                    if (xhr.status === 413 && !errorMessage.includes('espacio') && !errorMessage.includes('storage')) {
+                        errorMessage = 'No tienes espacio de almacenamiento suficiente. Libera espacio o contacta al administrador para aumentar tu límite.';
+                    }
+                    
                     reject(new Error(errorMessage));
                 }
             });
 
-            xhr.addEventListener('error', () => reject(new Error('Error de red al subir el archivo')));
+            xhr.addEventListener('error', () => {
+                // Verificar si podría ser un problema de storage
+                if (window.STORAGE_INFO && window.STORAGE_INFO.is_over_limit) {
+                    reject(new Error('No tienes espacio de almacenamiento disponible. Libera espacio o aumenta tu plan.'));
+                } else {
+                    reject(new Error('Error de conexión al subir el archivo. Verifica tu conexión a internet e inténtalo de nuevo.'));
+                }
+            });
             xhr.addEventListener('abort', () => reject(new Error('Subida cancelada')));
             
             xhr.open('POST', form.action);

@@ -175,28 +175,32 @@
         </div>
         
         <div class="metrics-grid">
-            <a href="{% url 'admin:accounts_user_changelist' %}" class="metric-card users" data-tooltip="Ver lista completa de usuarios">
+            <a href="{% url 'admin:accounts_user_changelist' %}" class="metric-card users" title="Ver lista completa de usuarios">
+                <span class="metric-color-bar"></span>
                 <div class="metric-icon"><i class="fas fa-users"></i></div>
                 <div class="metric-value">{{ dashboard_stats.users.total }}</div>
                 <div class="metric-label">Usuarios Totales</div>
                 <div class="metric-detail">{{ dashboard_stats.users.active }} activos</div>
             </a>
 
-            <a href="{% url 'admin:orgs_organization_changelist' %}" class="metric-card orgs" data-tooltip="Ver todas las organizaciones">
+            <a href="{% url 'admin:orgs_organization_changelist' %}" class="metric-card orgs" title="Ver todas las organizaciones">
+                <span class="metric-color-bar"></span>
                 <div class="metric-icon"><i class="fas fa-building"></i></div>
                 <div class="metric-value">{{ dashboard_stats.organizations.total }}</div>
                 <div class="metric-label">Organizaciones</div>
                 <div class="metric-detail">{{ dashboard_stats.organizations.active }} activas</div>
             </a>
 
-            <a href="{% url 'admin_financial_dashboard' %}" class="metric-card financial" data-tooltip="Ir al dashboard financiero">
+            <a href="{% url 'admin_financial_dashboard' %}" class="metric-card financial" title="Ir al dashboard financiero">
+                <span class="metric-color-bar"></span>
                 <div class="metric-icon"><i class="fas fa-dollar-sign"></i></div>
                 <div class="metric-value">${{ dashboard_stats.financial.total_revenue|default:"0" }}</div>
                 <div class="metric-label">Ingresos Totales</div>
                 <div class="metric-detail">${{ dashboard_stats.financial.monthly_revenue|default:"0" }} este mes</div>
             </a>
 
-            <a href="{% url 'admin:plans_subscription_changelist' %}" class="metric-card subscriptions" data-tooltip="Gestionar suscripciones">
+            <a href="{% url 'admin:plans_subscription_changelist' %}" class="metric-card subscriptions" title="Gestionar suscripciones">
+                <span class="metric-color-bar"></span>
                 <div class="metric-icon"><i class="fas fa-credit-card"></i></div>
                 <div class="metric-value">{{ dashboard_stats.subscriptions.active }}</div>
                 <div class="metric-label">Suscripciones Activas</div>

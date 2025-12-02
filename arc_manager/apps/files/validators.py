@@ -3,11 +3,18 @@
 Validadores de archivos optimizados para producción
 """
 import os
-import magic
 import logging
 from django.core.exceptions import ValidationError
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
+
+# python-magic es opcional - si no está disponible, se omite validación MIME
+try:
+    import magic
+    MAGIC_AVAILABLE = True
+except ImportError:
+    magic = None
+    MAGIC_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -151,6 +158,11 @@ class FileValidator:
     def _validate_mime_type(self, uploaded_file, extension):
         """Validar MIME type contra extensión"""
         errors = []
+        
+        # Si python-magic no está disponible, omitir validación MIME
+        if not MAGIC_AVAILABLE:
+            logger.debug("python-magic no disponible, omitiendo validación MIME")
+            return errors
         
         try:
             # Leer primeros bytes para detectar MIME type

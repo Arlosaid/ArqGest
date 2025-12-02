@@ -22,7 +22,9 @@
             {% elif file.extension == 'PPT' or file.extension == 'PPTX' %}
                 <div class="file-icon ppt"><i class="fas fa-file-powerpoint"></i></div>
             {% elif file.extension == 'ZIP' or file.extension == 'RAR' %}
-                <div class="file-icon archive"><i class="fas fa-file-archive"></i></div>
+                <div class="file-icon archive"><i class="fas fa-file-zipper"></i></div>
+            {% elif file.extension == 'TXT' or file.extension == 'MD' %}
+                <div class="file-icon text"><i class="fas fa-file-lines"></i></div>
             {% else %}
                 <div class="file-icon default"><i class="fas fa-file"></i></div>
             {% endif %}

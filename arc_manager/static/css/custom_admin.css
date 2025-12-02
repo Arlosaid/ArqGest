@@ -1150,7 +1150,8 @@ input[type="submit"]:hover, .submit-row input:hover {
     box-shadow: var(--shadow-md);
 }
 
-.metric-card::before {
+/* Barra de color lateral usando un elemento interno para evitar conflicto con tooltips */
+.metric-card .metric-color-bar {
     content: '';
     position: absolute;
     top: 0;
@@ -1158,12 +1159,19 @@ input[type="submit"]:hover, .submit-row input:hover {
     width: 4px;
     height: 100%;
     background: var(--primary-color);
+    border-radius: var(--radius-md) 0 0 var(--radius-md);
 }
 
-.metric-card.users::before { background: var(--primary-color); }
-.metric-card.orgs::before { background: var(--danger-color); }
-.metric-card.financial::before { background: var(--success-color); }
-.metric-card.subscriptions::before { background: var(--warning-color); }
+.metric-card.users .metric-color-bar { background: var(--primary-color); }
+.metric-card.orgs .metric-color-bar { background: var(--danger-color); }
+.metric-card.financial .metric-color-bar { background: var(--success-color); }
+.metric-card.subscriptions .metric-color-bar { background: var(--warning-color); }
+
+/* Desactivar tooltips en metric-cards para evitar conflictos de posicionamiento */
+.metric-card[data-tooltip]::before,
+.metric-card[data-tooltip]::after {
+    display: none;
+}
 
 .metric-card.users .metric-icon { color: var(--primary-color); }
 .metric-card.orgs .metric-icon { color: var(--danger-color); }

@@ -217,7 +217,7 @@ class ProjectFileAdmin(admin.ModelAdmin):
                     message=f"Archivo '{obj.filename}' actualizado con {len(changes)} cambio(s)",
                     logger_name='apps.files',
                     file_id=obj.id,
-                    filename=obj.filename,
+                    file_name=obj.filename,
                     file_extension=obj.ext_upper,
                     file_size_bytes=obj.size_bytes,
                     phase_id=obj.phase.id if obj.phase else None,
@@ -241,7 +241,7 @@ class ProjectFileAdmin(admin.ModelAdmin):
                     message=f"Archivo '{obj.filename}' subido exitosamente",
                     logger_name='apps.files',
                     file_id=obj.id,
-                    filename=obj.filename,
+                    file_name=obj.filename,
                     file_extension=obj.ext_upper,
                     file_size_bytes=obj.size_bytes,
                     phase_id=obj.phase.id if obj.phase else None,
@@ -257,7 +257,7 @@ class ProjectFileAdmin(admin.ModelAdmin):
                 error_code='FILE001',
                 error_message=str(e),
                 logger_name='apps.files',
-                filename=getattr(obj, 'filename', 'Desconocido'),
+                file_name=getattr(obj, 'filename', 'Desconocido'),
                 action='create' if not change else 'update',
                 performed_by=request.user.email if request.user else 'Sistema'
             )
@@ -386,7 +386,7 @@ class ProjectFileAdmin(admin.ModelAdmin):
                         error_message=f"Error exportando archivo {file_obj.id}: {str(e)}",
                         logger_name='apps.files',
                         file_id=file_obj.id,
-                        filename=getattr(file_obj, 'filename', 'Desconocido'),
+                        file_name=getattr(file_obj, 'filename', 'Desconocido'),
                         performed_by=request.user.email if request.user else 'Sistema'
                     )
             

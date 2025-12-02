@@ -11,6 +11,20 @@
 <div class="files-tab-container">
     <div class="files-tab-header">
         <h6><i class="fas fa-folder-open"></i>{% trans "Documentos del Proyecto" %}</h6>
+        
+        {% if STORAGE_INFO %}
+        <!-- Indicador de espacio de almacenamiento -->
+        <div class="storage-indicator" title="Espacio de almacenamiento">
+            <div class="storage-info-text">
+                <i class="fas fa-hdd"></i>
+                <span><span class="storage-used">{{ STORAGE_INFO.used_gb }}</span> / <span class="storage-limit">{{ STORAGE_INFO.limit_gb }}</span> GB</span>
+            </div>
+            <div class="storage-bar">
+                <div class="storage-bar-fill {% if STORAGE_INFO.status == 'critical' %}bg-danger{% elif STORAGE_INFO.status == 'warning' %}bg-warning{% else %}bg-success{% endif %}" 
+                     style="width: {{ STORAGE_INFO.usage_percentage }}%;"></div>
+            </div>
+        </div>
+        {% endif %}
     </div>
     <div class="files-tab-body">
         {% if phases %}

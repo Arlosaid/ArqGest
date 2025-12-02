@@ -4,11 +4,66 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from apps.projects.models import Phase
 import os
+import re
 import logging
 
 from core.structured_logging import log_error, log_warning, log_info, log_business_event
 
 logger = logging.getLogger(__name__)
+
+
+def get_unique_filename(phase_id, filename):
+    """
+    Genera un nombre de archivo único para una fase.
+    
+    Si el archivo 'documento.pdf' ya existe, retorna 'documento (1).pdf'.
+    Si 'documento (1).pdf' existe, retorna 'documento (2).pdf', etc.
+    
+    Args:
+        phase_id: ID de la fase donde se sube el archivo
+        filename: Nombre original del archivo
+        
+    Returns:
+        str: Nombre único del archivo
+    """
+    # Importar aquí para evitar import circular
+    from apps.files.models import ProjectFile
+    
+    # Obtener nombre base y extensión
+    name, ext = os.path.splitext(filename)
+    
+    # Buscar archivos existentes en esta fase que coincidan con el patrón
+    # Usamos una consulta eficiente con el índice existente (phase, uploaded_at)
+    existing_files = set(
+        ProjectFile.objects.filter(phase_id=phase_id)
+        .values_list('file', flat=True)
+    )
+    
+    # Extraer solo los nombres de archivo (sin la ruta)
+    existing_names = {os.path.basename(f) for f in existing_files}
+    
+    # Si el nombre original no existe, usarlo
+    if filename not in existing_names:
+        return filename
+    
+    # Buscar el siguiente número disponible
+    # Patrón: "nombre (N).ext" donde N es un número
+    pattern = re.compile(rf'^{re.escape(name)} \((\d+)\){re.escape(ext)}$')
+    
+    max_num = 0
+    for existing_name in existing_names:
+        match = pattern.match(existing_name)
+        if match:
+            num = int(match.group(1))
+            max_num = max(max_num, num)
+    
+    # Generar nuevo nombre con el siguiente número
+    new_filename = f"{name} ({max_num + 1}){ext}"
+    
+    logger.debug(f"Archivo renombrado: '{filename}' -> '{new_filename}'")
+    
+    return new_filename
+
 
 def project_file_path(instance, filename):
     """
@@ -35,23 +90,45 @@ def project_file_path(instance, filename):
     # Get just the basename (no directory components)
     sanitized_filename = os.path.basename(sanitized_filename)
     
+    # Calcular la longitud del path base para determinar cuánto espacio queda para el filename
+    # Path structure: organizations/{org_id}/projects/{proj_id}/phases/{phase_id}/
+    path_prefix = (f'organizations/{instance.phase.project.organization.id}/'
+                   f'projects/{instance.phase.project.id}/'
+                   f'phases/{instance.phase.id}/')
+    
     # Truncate long filenames to prevent filesystem errors
-    # Max filename length on most filesystems is 255 bytes
-    if len(sanitized_filename) > 255:
+    # Windows MAX_PATH is 260, but we need to leave room for:
+    # - MEDIA_ROOT path (can be long in tests/production)
+    # - path_prefix (organizations/X/projects/Y/phases/Z/)
+    # - Some buffer for safety
+    # Using a conservative max of 100 characters for the filename
+    MAX_FILENAME_LENGTH = 100
+    
+    if len(sanitized_filename) > MAX_FILENAME_LENGTH:
         # Keep the extension
         name, ext = os.path.splitext(sanitized_filename)
-        max_name_length = 255 - len(ext)
+        max_name_length = MAX_FILENAME_LENGTH - len(ext)
         sanitized_filename = name[:max_name_length] + ext
+        logger.debug(f"Filename truncated from {len(name)+len(ext)} to {len(sanitized_filename)} chars")
+    
+    # Generar nombre único si ya existe un archivo con ese nombre en la fase
+    unique_filename = get_unique_filename(instance.phase.id, sanitized_filename)
+    
+    # Guardar el nombre original para notificación posterior (si se renombró)
+    if unique_filename != sanitized_filename:
+        instance._original_filename = sanitized_filename
+        instance._renamed_to = unique_filename
     
     return (f'organizations/{instance.phase.project.organization.id}/'
             f'projects/{instance.phase.project.id}/'
-            f'phases/{instance.phase.id}/{sanitized_filename}')
+            f'phases/{instance.phase.id}/{unique_filename}')
 
 class ProjectFile(models.Model):
     """Represents a file associated with a project's phase."""
     
     # Import the manager
     from .managers import ProjectFileManager
+    from .storage import get_project_file_storage
     
     phase = models.ForeignKey(
         Phase,
@@ -59,9 +136,14 @@ class ProjectFile(models.Model):
         related_name='files',
         verbose_name=_("Phase")
     )
+    # max_length=255 para permitir rutas largas:
+    # organizations/{org_id}/projects/{proj_id}/phases/{phase_id}/{filename}
+    # Ejemplo: organizations/1234567890/projects/1234567890/phases/1234567890/archivo.pdf
     file = models.FileField(
         _("File"),
-        upload_to=project_file_path
+        upload_to=project_file_path,
+        storage=get_project_file_storage,
+        max_length=255
     )
     uploaded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
