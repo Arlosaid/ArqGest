@@ -107,6 +107,9 @@ class CustomLoginView(LoginView):
         # Guardar timestamp de login en la sesión para calcular duración
         self.request.session['_auth_user_login_time'] = timezone.now().isoformat()
         
+        # Toast de advertencia de suscripción (solo para org_admins)
+        self._show_subscription_toast(user)
+        
         # Log consolidado de login exitoso (UN SOLO LOG) - Incluye estado de org
         org_status = f"Org: {user_info['organization']}"
         if user_info['organization_id']:
@@ -194,6 +197,91 @@ class CustomLoginView(LoginView):
         else:
             ip = self.request.META.get('REMOTE_ADDR', 'Desconocida')
         return ip
+    
+    def _show_subscription_toast(self, user):
+        """
+        Muestra un toast de advertencia de suscripción SOLO para org_admins
+        cuando la suscripción vence hoy (día 0) y no hay solicitud pendiente.
+        Solo se muestra una vez por sesión.
+        """
+        # Solo para administradores de organización
+        if not getattr(user, 'is_org_admin', False):
+            return
+        
+        # Verificar si ya se mostró en esta sesión
+        toast_key = 'subscription_expiry_toast_shown'
+        if self.request.session.get(toast_key):
+            return
+        
+        # Verificar organización y suscripción
+        if not hasattr(user, 'organization') or not user.organization:
+            return
+        
+        try:
+            from apps.plans.services import SubscriptionService
+            from apps.plans.models import RenewalRequest, UpgradeRequest
+            
+            subscription = SubscriptionService.get_subscription_or_create(user.organization)
+            if not subscription:
+                return
+            
+            # Solo mostrar si vence HOY (days_remaining == 0 pero aún activo)
+            # O si está expirado (is_expired)
+            days_remaining = subscription.days_remaining
+            is_expired = subscription.is_expired
+            is_trial = subscription.plan.is_trial
+            
+            if days_remaining != 0 and not is_expired:
+                return
+            
+            # Verificar si hay solicitud pendiente
+            if is_trial:
+                has_pending = UpgradeRequest.objects.filter(
+                    organization=user.organization,
+                    status='pending'
+                ).exists()
+            else:
+                has_pending = RenewalRequest.objects.filter(
+                    organization=user.organization,
+                    status='pending'
+                ).exists()
+            
+            if has_pending:
+                return
+            
+            # Mostrar toast diferenciado según trial o básico
+            if is_trial:
+                if is_expired:
+                    messages.warning(
+                        self.request,
+                        'Tu prueba gratuita ha terminado. Activa tu plan para continuar usando todas las funciones.',
+                        extra_tags='subscription-toast'
+                    )
+                else:
+                    messages.warning(
+                        self.request,
+                        'Tu prueba gratuita vence hoy. Activa tu plan para no perder acceso.',
+                        extra_tags='subscription-toast'
+                    )
+            else:
+                if is_expired:
+                    messages.warning(
+                        self.request,
+                        'Tu suscripción ha expirado. Renueva ahora para recuperar el acceso completo.',
+                        extra_tags='subscription-toast'
+                    )
+                else:
+                    messages.warning(
+                        self.request,
+                        'Tu suscripción vence hoy. Renueva ahora para evitar interrupciones.',
+                        extra_tags='subscription-toast'
+                    )
+            
+            # Marcar como mostrado para no repetir en esta sesión
+            self.request.session[toast_key] = True
+            
+        except Exception as e:
+            logger.debug(f"Error mostrando toast de suscripción: {str(e)}")
 
 class CustomLogoutView(View):
     """Vista personalizada para logout con logging"""

@@ -7,7 +7,7 @@ from datetime import timedelta
 import logging
 import time
 
-from apps.plans.models import Subscription
+from apps.plans.models import Subscription, RenewalRequest
 from core.email_utils import send_resend_email
 
 
@@ -15,7 +15,7 @@ logger = logging.getLogger('plans.reminders')
 
 
 class Command(BaseCommand):
-    help = 'Envía UN recordatorio de renovación a organizaciones cuya suscripción vence en las próximas 24-48 horas'
+    help = 'Envía recordatorio de renovación a organizaciones con plan básico que vence en exactamente 3 días'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -51,23 +51,26 @@ class Command(BaseCommand):
                 except Exception:
                     logger.warning("No se pudo limpiar cache (método no soportado)")
             
-            end_window = now + timedelta(hours=48)
+            # Buscar suscripciones que vencen en EXACTAMENTE 3 días
+            # Solo plan básico activo (no trial)
+            target_date_start = (now + timedelta(days=3)).replace(hour=0, minute=0, second=0, microsecond=0)
+            target_date_end = target_date_start + timedelta(days=1)
             
-            subs_expiring_soon = Subscription.objects.filter(
-                end_date__gte=now,
-                end_date__lte=end_window,
-                subscription_status__in=['trial_active', 'basic_active']
+            subs_expiring_in_3_days = Subscription.objects.filter(
+                end_date__gte=target_date_start,
+                end_date__lt=target_date_end,
+                subscription_status='basic_active'  # Solo plan básico, no trial
             ).select_related('organization', 'plan')
 
-            total_subs = subs_expiring_soon.count()
+            total_subs = subs_expiring_in_3_days.count()
             
             if total_subs == 0:
-                self.stdout.write('No hay suscripciones por vencer')
+                self.stdout.write('No hay suscripciones básicas por vencer en 3 días')
                 return
             
             logger.debug(f"Suscripciones encontradas: {total_subs}")
             if dry_run:
-                self.stdout.write(self.style.WARNING(f'[DRY RUN] {total_subs} emails por enviar'))
+                self.stdout.write(self.style.WARNING(f'[DRY RUN] {total_subs} organizaciones con plan por vencer'))
             
             sent_count = 0
             failed_count = 0
@@ -76,7 +79,7 @@ class Command(BaseCommand):
             site_name = getattr(settings, 'SITE_NAME', 'ArqGest')
             site_url = getattr(settings, 'SITE_URL', 'https://arcmanager.up.railway.app')
 
-            for sub in subs_expiring_soon:
+            for sub in subs_expiring_in_3_days:
                 org = sub.organization
                 expiry_date = sub.end_date.strftime('%Y-%m-%d')
                 org_cache_key = f'renewal_reminder_{org.id}_{expiry_date}'
@@ -86,31 +89,38 @@ class Command(BaseCommand):
                     skipped_count += 1
                     continue
                 
-                # Obtener administradores de la organización
-                org_admins = org.users.filter(is_org_admin=True)
-                admin_emails = [admin.email for admin in org_admins] if org_admins.exists() else []
+                # Verificar si hay RenewalRequest pendiente
+                has_pending_renewal = RenewalRequest.objects.filter(
+                    organization=org,
+                    status='pending'
+                ).exists()
                 
-                if not admin_emails:
-                    first_user = org.users.first()
-                    admin_emails = [first_user.email] if first_user else []
-                
-                if not admin_emails:
-                    logger.warning(f"Sin emails: {org.name}")
+                if has_pending_renewal:
+                    logger.debug(f"Omitido: {org.name} tiene renovación pendiente")
                     skipped_count += 1
                     continue
                 
-                days_left = (sub.end_date - now).days
+                # Obtener SOLO administradores de la organización
+                org_admins = org.users.filter(is_org_admin=True)
+                admin_emails = [admin.email for admin in org_admins]
+                
+                if not admin_emails:
+                    logger.warning(f"Sin admins: {org.name}")
+                    skipped_count += 1
+                    continue
+                
                 emails_sent_for_org = 0
                 
                 # Enviar email a todos los administradores
                 for user_email in admin_emails:
                     try:
                         if dry_run:
+                            self.stdout.write(f"  [DRY RUN] Enviaría a: {user_email} ({org.name})")
                             sent_count += 1
                             emails_sent_for_org += 1
                             continue
                         
-                        subject = f'¡Tu suscripción vence mañana! - {site_name}' if days_left <= 1 else f'Tu suscripción vence en {days_left} días - {site_name}'
+                        subject = f'Tu plan vence en 3 días - {site_name}'
                         
                         context = {
                             'site_name': site_name,
@@ -119,8 +129,8 @@ class Command(BaseCommand):
                             'organization_name': org.name,
                             'plan_name': sub.plan.display_name,
                             'renewal_url': f'{site_url}/plans/subscription/',
-                            'days_left': days_left,
-                            'is_urgent': days_left <= 1,
+                            'days_left': 3,
+                            'is_urgent': False,
                         }
                         
                         html = render_to_string('emails/renewal_reminder_email.html', context)
@@ -142,7 +152,7 @@ class Command(BaseCommand):
                 
                 # Marcar en cache solo si se envió al menos un email
                 if emails_sent_for_org > 0:
-                    cache.set(org_cache_key, True, timeout=604800)
+                    cache.set(org_cache_key, True, timeout=604800)  # 7 días
             
             summary = f"Enviados: {sent_count} | Fallidos: {failed_count} | Omitidos: {skipped_count}"
             

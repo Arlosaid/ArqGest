@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tu prueba ha terminado - {{ site_name }}</title>
+    <style>
+        @media only screen and (max-width: 600px) {
+            .email-container { width: 100% !important; max-width: 100% !important; }
+            .email-content { padding: 15px !important; }
+            .email-header { padding: 20px !important; }
+            .email-footer { padding: 15px !important; }
+            .logo { width: 40px !important; height: 40px !important; }
+            .header-title { font-size: 20px !important; }
+            .content-text { font-size: 14px !important; }
+            .button-container { width: 100% !important; }
+            .button-link { display: block !important; width: 100% !important; text-align: center !important; }
+            .plan-features { padding: 15px !important; }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: Arial, sans-serif;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f5f5f5;">
+        <tr>
+            <td style="padding: 20px;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="email-container" style="margin: 0 auto; max-width: 600px; background-color: #ffffff;">
+                    
+                    <!-- Header con Logo -->
+                    <tr>
+                        <td class="email-header" style="background-color: #2c3e50; padding: 30px; text-align: center;">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                <tr>
+                                    <td style="text-align: center; padding-bottom: 15px;">
+                                        <img src="{{ protocol }}://{{ domain }}/static/images/logo.png" alt="{{ site_name }}" width="50" height="50" class="logo" style="display: block; margin: 0 auto;">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="text-align: center;">
+                                        <h1 class="header-title" style="margin: 0; font-size: 24px; font-weight: normal; color: #ffffff;">Tu prueba gratuita ha terminado</h1>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Contenido Principal -->
+                    <tr>
+                        <td class="email-content" style="padding: 30px; color: #333333; line-height: 1.6; text-align: center;">
+                            <p class="content-text" style="margin: 0 0 20px 0; font-size: 16px;">Hola <strong>{{ organization_name }}</strong>,</p>
+                            
+                            <p class="content-text" style="margin: 0 0 20px 0; font-size: 15px;">
+                                Tu período de prueba gratuita finalizó el <strong>{{ trial_end_date|date:"d/m/Y" }}</strong>.
+                            </p>
+                            
+                            <p class="content-text" style="margin: 0 0 25px 0; font-size: 15px;">
+                                Para seguir disfrutando de todas las funcionalidades de {{ site_name }}, 
+                                activa tu <strong>{{ basic_plan.name }}</strong>.
+                            </p>
+
+                            <!-- Info del Plan Básico -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" class="plan-features" style="margin: 0 auto 25px auto; background-color: #f8f9fa; border-radius: 8px; padding: 20px; width: 100%; max-width: 400px;">
+                                <tr>
+                                    <td style="text-align: center; padding-bottom: 15px;">
+                                        <strong style="font-size: 18px; color: #2c3e50;">{{ basic_plan.name }}</strong>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="text-align: center;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                                            <tr>
+                                                <td style="padding: 5px 0; text-align: left; color: #555;">
+                                                    <span style="color: #27ae60;">✓</span> Hasta {{ basic_plan.max_users }} usuario{% if basic_plan.max_users != 1 %}s{% endif %}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 5px 0; text-align: left; color: #555;">
+                                                    <span style="color: #27ae60;">✓</span> {{ basic_plan.max_storage_gb }} GB de almacenamiento
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 5px 0; text-align: left; color: #555;">
+                                                    <span style="color: #27ae60;">✓</span> Proyectos ilimitados
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 5px 0; text-align: left; color: #555;">
+                                                    <span style="color: #27ae60;">✓</span> Soporte por email
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="text-align: center; padding-top: 15px;">
+                                        <span style="font-size: 24px; font-weight: bold; color: #3498db;">${{ basic_plan.price }}</span>
+                                        <span style="color: #888; font-size: 14px;"> / {{ basic_plan.billing_cycle_days }} días</span>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Botón CTA -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" class="button-container" style="margin: 0 auto 25px auto;">
+                                <tr>
+                                    <td style="background-color: #27ae60; text-align: center; border-radius: 5px;">
+                                        <a href="{{ upgrade_url }}" class="button-link" style="display: inline-block; padding: 16px 40px; font-size: 16px; color: #ffffff; text-decoration: none; font-weight: bold;">Activar Mi Plan</a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p class="content-text" style="margin: 20px 0 0 0; padding: 15px; background-color: #fff3cd; border: 1px solid #ffc107; text-align: center; font-size: 14px; color: #856404; border-radius: 6px;">
+                                <strong>⚠️ Importante:</strong> Tu acceso está limitado hasta que actives tu plan.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td class="email-footer" style="background-color: #f5f5f5; padding: 20px; text-align: center; border-top: 1px solid #dddddd;">
+                            <p class="content-text" style="margin: 0 0 5px 0; font-size: 13px; color: #666666;">Este mensaje fue generado automáticamente.</p>
+                            <p class="content-text" style="margin: 0 0 15px 0; font-size: 13px; color: #666666;">Por favor no respondas a este email.</p>
+                            <p style="margin: 0; font-size: 14px; font-weight: bold; color: #333333;">{{ site_name }}</p>
+                            <p style="margin: 5px 0 0 0; font-size: 12px; color: #999999;">Sistema de Gestión de Proyectos</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
