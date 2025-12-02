@@ -217,34 +217,47 @@ AXES_VERBOSE = False
 # El logging se maneja directamente en accounts/views.py
 
 
-# Configuración de cache (usando Redis)
+# Configuración de cache (usando Redis o LocMem para tests)
 REDIS_URL = os.environ.get('REDIS_URL', 'redis://redis:6379/0')
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': REDIS_URL,
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
-            'CONNECTION_POOL_KWARGS': {
-                'max_connections': 50,
-                'retry_on_timeout': True,
-            }
+if TESTING:
+    # Para tests, usar cache en memoria en lugar de Redis
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-tests',
         },
-        'KEY_PREFIX': 'arc_manager',
-        'TIMEOUT': 300,
-    },
-    'sessions': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': REDIS_URL,
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        },
-        'KEY_PREFIX': 'arc_sessions',
-        'TIMEOUT': 86400,  # 24 hours
+        'sessions': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-sessions',
+        }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+                'CONNECTION_POOL_KWARGS': {
+                    'max_connections': 50,
+                    'retry_on_timeout': True,
+                }
+            },
+            'KEY_PREFIX': 'arc_manager',
+            'TIMEOUT': 300,
+        },
+        'sessions': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            },
+            'KEY_PREFIX': 'arc_sessions',
+            'TIMEOUT': 86400,  # 24 hours
+        }
+    }
 
 TEMPLATES = [
     {
@@ -272,20 +285,38 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 import dj_database_url
 
-DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///' + str(BASE_DIR / 'db.sqlite3'))
-DATABASES = {
-    'default': dj_database_url.parse(DATABASE_URL)
-}
-
-# Conexiones persistentes a DB
-DATABASES['default']['CONN_MAX_AGE'] = int(os.environ.get('CONN_MAX_AGE', '120'))
-
-# Configuración de timeouts para PostgreSQL (evitar connection timeout en Railway)
-if DATABASES['default']['ENGINE'] == 'django.db.backends.postgresql':
-    DATABASES['default']['OPTIONS'] = {
-        'connect_timeout': 10,
-        'options': '-c statement_timeout=30000'  # 30 segundos
+# Para tests, usar SQLite en lugar de PostgreSQL
+if TESTING:
+    import tempfile
+    _test_db_path = os.path.join(tempfile.gettempdir(), 'test_arc_manager.db')
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': _test_db_path,
+            'TEST': {
+                'NAME': _test_db_path,
+                'MIRROR': None,
+            },
+            'OPTIONS': {
+                'timeout': 20,
+            },
+        }
     }
+else:
+    DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///' + str(BASE_DIR / 'db.sqlite3'))
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL)
+    }
+
+    # Conexiones persistentes a DB
+    DATABASES['default']['CONN_MAX_AGE'] = int(os.environ.get('CONN_MAX_AGE', '120'))
+
+    # Configuración de timeouts para PostgreSQL (evitar connection timeout en Railway)
+    if DATABASES['default']['ENGINE'] == 'django.db.backends.postgresql':
+        DATABASES['default']['OPTIONS'] = {
+            'connect_timeout': 10,
+            'options': '-c statement_timeout=30000'  # 30 segundos
+        }
 
 
 # Password validation

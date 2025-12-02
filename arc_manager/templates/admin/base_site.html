@@ -133,10 +133,13 @@
                 Cambiar Contraseña
             </a>
             <div class="admin-dropdown-divider"></div>
-            <a href="{% url 'admin:logout' %}" class="admin-dropdown-item admin-dropdown-logout">
-                <i class="fas fa-sign-out-alt"></i>
-                Cerrar Sesión
-            </a>
+            <form id="admin-logout-form" method="post" action="{% url 'admin:logout' %}" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="admin-dropdown-item admin-dropdown-logout" style="width: 100%; border: none; background: none; cursor: pointer; text-align: left;">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Cerrar Sesión
+                </button>
+            </form>
         </div>
     </div>
 </div>
