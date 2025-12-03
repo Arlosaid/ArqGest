@@ -15,7 +15,7 @@ logger = logging.getLogger('plans.reminders')
 
 
 class Command(BaseCommand):
-    help = 'Envía recordatorio de renovación a organizaciones con plan básico que vence en exactamente 3 días'
+    help = 'Envía recordatorio de renovación a organizaciones con plan básico que vence en 3 días o menos'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -61,12 +61,12 @@ class Command(BaseCommand):
                 subscription_status='basic_active'
             ).select_related('organization', 'plan')
 
-            # Filtrar solo las que tienen exactamente 3 días restantes
-            subs_3_days = [sub for sub in subs_expiring_soon if sub.days_remaining == 3]
-            total_subs = len(subs_3_days)
+            # Filtrar las que tienen 3 días o menos restantes
+            subs_expiring = [sub for sub in subs_expiring_soon if sub.days_remaining <= 3]
+            total_subs = len(subs_expiring)
             
             if total_subs == 0:
-                self.stdout.write('No hay suscripciones básicas con 3 días restantes')
+                self.stdout.write('No hay suscripciones básicas con 3 días o menos restantes')
                 return
             
             logger.debug(f"Suscripciones encontradas: {total_subs}")
@@ -80,7 +80,7 @@ class Command(BaseCommand):
             site_name = getattr(settings, 'SITE_NAME', 'ArqGest')
             site_url = getattr(settings, 'SITE_URL', 'https://arcmanager.up.railway.app')
 
-            for sub in subs_3_days:
+            for sub in subs_expiring:
                 org = sub.organization
                 days_remaining = sub.days_remaining  # Usar propiedad del modelo
                 org_cache_key = f'renewal_reminder_{org.id}_{days_remaining}d_{sub.end_date.strftime("%Y-%m-%d")}'
