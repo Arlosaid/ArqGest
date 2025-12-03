@@ -117,7 +117,10 @@ class Command(BaseCommand):
                         sent_count += 1
                         continue
                     
-                    subject = f'Tu plan vence en 3 días - {site_name}'
+                    # Calcular días reales restantes
+                    days_remaining = (sub.end_date.date() - now.date()).days
+                    
+                    subject = f'Tu plan vence en {days_remaining} días - {site_name}'
                     
                     context = {
                         'site_name': site_name,
@@ -126,8 +129,8 @@ class Command(BaseCommand):
                         'organization_name': org.name,
                         'plan_name': sub.plan.display_name,
                         'renewal_url': f'{site_url}/plans/dashboard/',
-                        'days_left': 3,
-                        'is_urgent': False,
+                        'days_left': days_remaining,
+                        'is_urgent': days_remaining <= 1,
                     }
                     
                     html = render_to_string('emails/renewal_reminder_email.html', context)
