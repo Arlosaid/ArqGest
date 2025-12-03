@@ -531,6 +531,31 @@
                     <h1>{{ subscription.plan.display_name }}</h1>
                     <p>¡Felicidades! Ya tienes el mejor paquete para potenciar tu productividad.</p>
                     
+                    {% if subscription.days_remaining <= 3 %}
+                    <!-- Aviso de Renovación Anticipada -->
+                    <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(234, 88, 12, 0.1) 100%); border: 1px solid rgba(245, 158, 11, 0.3); padding: 18px; border-radius: 12px; margin-top: 25px;">
+                        <div style="display: flex; align-items: start; gap: 12px;">
+                            <i class="fas fa-clock" style="color: #f59e0b; font-size: 1.3rem; margin-top: 2px;"></i>
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0 0 6px 0; color: white; font-size: 1rem; font-weight: 700;">
+                                    {% if subscription.days_remaining == 1 %}
+                                        ¡Tu plan vence mañana!
+                                    {% elif subscription.days_remaining == 0 %}
+                                        ¡Tu plan vence hoy!
+                                    {% else %}
+                                        Tu plan vence en {{ subscription.days_remaining }} días
+                                    {% endif %}
+                                </h4>
+                                <p style="margin: 0 0 12px 0; font-size: 0.9rem; color: #fcd34d; line-height: 1.5;">
+                                    Renueva ahora para no perder acceso. <strong>La nueva vigencia comienza al terminar la actual</strong>, así no pierdes ningún día pagado.
+                                </p>
+                                <a href="{% url 'plans:renew_subscription' %}" style="display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); color: white; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; text-decoration: none; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3); transition: all 0.2s ease;">
+                                    <i class="fas fa-sync-alt"></i> Renovar Ahora
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
                     <!-- Status Note instead of Feature List -->
                     <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); padding: 15px; border-radius: 12px; margin-top: 25px; display: flex; align-items: start; gap: 12px;">
                         <i class="fas fa-check-circle" style="color: #10b981; font-size: 1.2rem; margin-top: 2px;"></i>
@@ -541,6 +566,7 @@
                             </p>
                         </div>
                     </div>
+                    {% endif %}
                     
                     {% if available_plans %}
                     <div style="margin-top: 25px;">

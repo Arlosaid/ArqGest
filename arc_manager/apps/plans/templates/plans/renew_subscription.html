@@ -4,104 +4,854 @@
 {% block title %}Solicitar Renovación - ArqGest{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/plans.css' %}?v=10.4">
+<link rel="stylesheet" href="{% static 'css/plans.css' %}?v=10.5">
+<style>
+    /* ===== RENEWAL PAGE - PREMIUM DESIGN ===== */
+    .renewal-hero {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        border-radius: 20px;
+        padding: 40px;
+        margin-bottom: 30px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
+    }
+    
+    .renewal-hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    
+    .renewal-hero-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 40px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .renewal-hero-info {
+        flex: 1;
+    }
+    
+    .renewal-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(16, 185, 129, 0.2);
+        color: #6ee7b7;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 20px;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    
+    .renewal-hero h1 {
+        font-size: 2.2rem;
+        font-weight: 800;
+        background: linear-gradient(90deg, #ffffff, #cbd5e1);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0 0 12px 0;
+        letter-spacing: -0.5px;
+    }
+    
+    .renewal-hero-subtitle {
+        color: #94a3b8;
+        font-size: 1.05rem;
+        line-height: 1.6;
+        margin: 0;
+        max-width: 500px;
+    }
+    
+    .renewal-timer {
+        text-align: center;
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        padding: 20px 30px;
+        border-radius: 16px;
+        min-width: 160px;
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .renewal-timer .days {
+        font-size: 2.8rem;
+        font-weight: 800;
+        color: white;
+        line-height: 1;
+        display: block;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .renewal-timer .label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: rgba(255,255,255,0.9);
+        font-weight: 600;
+        margin-top: 5px;
+        display: block;
+    }
+    
+    .renewal-timer .expiry-date {
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.8);
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    /* Content Grid */
+    .renewal-content-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 30px;
+        align-items: start;
+    }
+    
+    /* Summary Card */
+    .renewal-summary-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .summary-header {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        padding: 20px 25px;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .summary-header-icon {
+        width: 42px;
+        height: 42px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.1rem;
+        box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);
+    }
+    
+    .summary-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+    
+    .summary-body {
+        padding: 25px;
+    }
+    
+    .summary-items {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .summary-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 0;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .summary-item:last-child {
+        border-bottom: none;
+    }
+    
+    .summary-item .item-label {
+        color: #64748b;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .summary-item .item-label i {
+        color: #94a3b8;
+        width: 16px;
+        text-align: center;
+    }
+    
+    .summary-item .item-value {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 0.95rem;
+    }
+    
+    .summary-item.total {
+        background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+        margin: 15px -25px -25px -25px;
+        padding: 20px 25px;
+        border-radius: 0 0 16px 16px;
+        border-top: 2px solid #10b981;
+    }
+    
+    .summary-item.total .item-label {
+        font-weight: 700;
+        color: #059669;
+        font-size: 1.05rem;
+    }
+    
+    .summary-item.total .item-value {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: #059669;
+    }
+    
+    /* Process Card */
+    .renewal-process-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        padding: 25px;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .process-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0 0 20px 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .process-title i {
+        color: #3b82f6;
+    }
+    
+    .process-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .process-step {
+        display: flex;
+        gap: 15px;
+        position: relative;
+        padding-bottom: 20px;
+    }
+    
+    .process-step:last-child {
+        padding-bottom: 0;
+    }
+    
+    .process-step:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 32px;
+        bottom: 0;
+        width: 2px;
+        background: #e2e8f0;
+    }
+    
+    .step-number {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+        box-shadow: 0 4px 10px rgba(59, 130, 246, 0.25);
+        position: relative;
+        z-index: 1;
+    }
+    
+    .step-content h4 {
+        margin: 0 0 4px 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+    
+    .step-content p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #64748b;
+        line-height: 1.5;
+    }
+    
+    /* Info Box */
+    .renewal-info-box {
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        border: 1px solid #bfdbfe;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-top: 20px;
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+    }
+    
+    .renewal-info-box i {
+        color: #3b82f6;
+        font-size: 1.1rem;
+        margin-top: 2px;
+    }
+    
+    .renewal-info-box p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: #1e40af;
+        line-height: 1.5;
+    }
+    
+    /* Bank Details Card */
+    .bank-details-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.05);
+        margin-top: 30px;
+    }
+    
+    .bank-header {
+        background: linear-gradient(135deg, #004481 0%, #002d56 100%);
+        padding: 18px 25px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .bank-logo {
+        background: white;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: #004481;
+        letter-spacing: 1px;
+    }
+    
+    .bank-header h3 {
+        margin: 0;
+        color: white;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+    
+    .bank-body {
+        padding: 25px;
+    }
+    
+    .bank-details-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+    
+    .bank-detail-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .bank-detail-item.full-width {
+        grid-column: 1 / -1;
+    }
+    
+    .bank-detail-item .detail-label {
+        font-size: 0.8rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+    
+    .bank-detail-item .detail-value {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .bank-detail-item .detail-value.account-number {
+        font-family: 'Courier New', monospace;
+        font-size: 1.15rem;
+        letter-spacing: 1px;
+        background: #f8fafc;
+        padding: 10px 14px;
+        border-radius: 8px;
+        border: 1px dashed #cbd5e1;
+    }
+    
+    .copy-btn {
+        background: #e2e8f0;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        color: #64748b;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .copy-btn:hover {
+        background: #10b981;
+        color: white;
+    }
+    
+    .copy-btn.copied {
+        background: #10b981;
+        color: white;
+    }
+    
+    .bank-note {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+    }
+    
+    .bank-note i {
+        color: #f59e0b;
+        font-size: 1rem;
+        margin-top: 2px;
+    }
+    
+    .bank-note p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #64748b;
+        line-height: 1.5;
+    }
+    
+    @media (max-width: 576px) {
+        .bank-details-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    /* Form Section */
+    .renewal-form-section {
+        margin-top: 30px;
+    }
+    
+    .form-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        padding: 25px;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .message-field {
+        margin-bottom: 20px;
+    }
+    
+    .message-field label {
+        display: block;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 8px;
+        font-size: 0.95rem;
+    }
+    
+    .message-field textarea {
+        width: 100%;
+        padding: 14px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        resize: vertical;
+        min-height: 80px;
+        transition: all 0.2s ease;
+        font-family: inherit;
+    }
+    
+    .message-field textarea:focus {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+    
+    .message-field textarea::placeholder {
+        color: #94a3b8;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+    
+    .btn-cancel {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 14px 24px;
+        background: #f1f5f9;
+        color: #64748b;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-cancel:hover {
+        background: #e2e8f0;
+        color: #475569;
+    }
+    
+    .btn-submit {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 28px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+    
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+    }
+    
+    .btn-submit:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    /* Support Footer */
+    .renewal-support {
+        text-align: center;
+        margin-top: 40px;
+        padding-top: 30px;
+        border-top: 1px solid #e2e8f0;
+    }
+    
+    .renewal-support p {
+        color: #64748b;
+        margin-bottom: 12px;
+        font-size: 0.95rem;
+    }
+    
+    .support-links {
+        display: inline-flex;
+        gap: 25px;
+        font-weight: 600;
+        color: #1e293b;
+    }
+    
+    .support-links span {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .support-links i {
+        color: #10b981;
+    }
+    
+    /* Responsive */
+    @media (max-width: 968px) {
+        .renewal-content-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .renewal-hero-content {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .renewal-hero-subtitle {
+            max-width: 100%;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .renewal-hero {
+            padding: 25px 20px;
+        }
+        
+        .renewal-hero h1 {
+            font-size: 1.6rem;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .btn-cancel, .btn-submit {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="page-container">
-    <!-- Header Section -->
-    <div class="header-section">
-        <div class="header-content">
-            <div class="header-title">
-                <div class="header-icon">
-                    <i class="fas fa-redo"></i>
+    
+    <!-- Hero Section -->
+    <div class="renewal-hero">
+        <div class="renewal-hero-content">
+            <div class="renewal-hero-info">
+                <div class="renewal-badge">
+                    <i class="fas fa-sync-alt"></i>
+                    Renovación de Suscripción
                 </div>
-                <div>
-                    <h1>Solicitar Renovación</h1>
-                    <p>Envía una solicitud para renovar tu plan actual y continuar disfrutando de todos los servicios</p>
+                <h1>Renueva tu Plan {{ subscription.plan.display_name }}</h1>
+                <p class="renewal-hero-subtitle">
+                    Continúa disfrutando de todos los beneficios sin interrupciones. 
+                    Tu nueva vigencia comenzará al terminar la actual.
+                </p>
+            </div>
+            <div class="renewal-timer">
+                <span class="days">{{ subscription.days_remaining }}</span>
+                <span class="label">Días restantes</span>
+                <div class="expiry-date">
+                    Vence: {{ subscription.end_date|date:"d M Y" }}
                 </div>
             </div>
         </div>
     </div>
-
-    <div class="main-content-grid">
-        <div class="left-content">
-            <div class="renewal-cta-card">
-                <div class="card-body">
-                    <form method="post" class="renewal-form">
-                        {% csrf_token %}
-
-                        <div class="renewal-summary compact">
-                            <div class="summary-row"><span class="label">Plan</span><span class="value">{{ subscription.plan.display_name }}</span></div>
-                            <div class="summary-row"><span class="label">Vence actualmente</span><span class="value">{{ subscription.end_date|date:"d/m/Y" }}</span></div>
-                            <div class="summary-row"><span class="label">Período de renovación</span><span class="value">{{ renewal_days }} días</span></div>
-                            <div class="summary-row"><span class="label">Nueva fecha de vencimiento</span><span class="value">{{ new_end_date|date:"d/m/Y" }}</span></div>
-                            <div class="summary-row total"><span class="label">Total</span><span class="value">${{ renewal_amount|floatformat:2 }}</span></div>
+    
+    <form method="post" class="renewal-form" id="renewalForm">
+        {% csrf_token %}
+        
+        <!-- Content Grid: Bank Details + Process -->
+        <div class="renewal-content-grid">
+            
+            <!-- Bank Details Card (Primero para que sepan dónde pagar) -->
+            <div class="bank-details-card" style="margin-top: 0;">
+                <div class="bank-header">
+                    <div class="bank-logo">BBVA</div>
+                    <h3>Datos para Transferencia / Depósito</h3>
+                </div>
+                <div class="bank-body">
+                    <div class="bank-details-grid">
+                        <div class="bank-detail-item">
+                            <span class="detail-label">Banco</span>
+                            <span class="detail-value">BBVA México</span>
                         </div>
-                        
-                        <div class="alert alert-info" style="margin-top:16px;padding:12px;background:#e7f3ff;border-left:3px solid #2196F3;border-radius:4px;">
-                            <i class="fas fa-info-circle"></i>
-                            <strong>Renovación anticipada:</strong> La nueva vigencia comienza cuando termine tu suscripción actual ({{ subscription.end_date|date:"d/m/Y" }}), por lo que no pierdes ningún día pagado.
+                        <div class="bank-detail-item">
+                            <span class="detail-label">Titular</span>
+                            <span class="detail-value">Roberto Alonso De La Cruz Hernandez</span>
                         </div>
-                        
-                        <div class="alert alert-warning" style="margin-top:12px;padding:12px;background:#fff8e1;border-left:3px solid #ff9800;border-radius:4px;">
-                            <i class="fas fa-hand-holding-usd"></i>
-                            <strong>Proceso de pago:</strong>
-                            <ol style="margin:8px 0 0 0;padding-left:20px;font-size:0.95rem;">
-                                <li>Envía esta solicitud haciendo clic en el botón de abajo</li>
-                                <li>Realiza el pago por <strong>${{ renewal_amount|floatformat:2 }} MXN</strong> mediante transferencia/depósito</li>
-                                <li>Contacta al equipo en <strong>{{ support_phone }}</strong> o <strong>{{ support_email }}</strong> con tu comprobante</li>
-                                <li>Una vez verificado el pago, tu suscripción se renovará automáticamente</li>
-                            </ol>
+                        <div class="bank-detail-item full-width">
+                            <span class="detail-label">CLABE Interbancaria</span>
+                            <span class="detail-value account-number">
+                                012 180 01521162743 4
+                                <button type="button" class="copy-btn" onclick="copyToClipboard('012180015211627434', this)">
+                                    <i class="fas fa-copy"></i> Copiar
+                                </button>
+                            </span>
                         </div>
-
-                        <div class="form-actions" style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
-                            <button type="button" class="btn btn-outline-secondary" onclick="history.back()">
-                                <i class="fas fa-arrow-left"></i>
-                                Cancelar
-                            </button>
-                            <button type="submit" class="btn btn-primary renewal-btn">
-                                <i class="fas fa-paper-plane"></i>
-                                Enviar Solicitud
-                            </button>
+                        <div class="bank-detail-item full-width">
+                            <span class="detail-label">Número de Cuenta</span>
+                            <span class="detail-value">152 116 2743</span>
                         </div>
-
-                        <div class="reason-field" style="margin-top:12px;">
-                            <label for="reason" class="form-label" style="font-weight:500;">Motivo (opcional)</label>
-                            <textarea name="reason" id="reason" class="form-control" rows="2" placeholder="Mensaje para el equipo (opcional)"></textarea>
+                    </div>
+                    <div class="bank-note">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>
+                            <strong>Importante:</strong> Al realizar tu transferencia, incluye tu nombre o el de tu organización como referencia. Envía tu comprobante al <strong>{{ support_phone }}</strong> o a <strong>{{ support_email }}</strong>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Process Card -->
+            <div class="renewal-process-card">
+                <h4 class="process-title">
+                    <i class="fas fa-list-ol"></i>
+                    Proceso de Renovación
+                </h4>
+                <div class="process-steps">
+                    <div class="process-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>Envía tu solicitud</h4>
+                            <p>Completa este formulario y haz clic en "Enviar Solicitud"</p>
                         </div>
-                    </form>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>Realiza el pago</h4>
+                            <p>Transfiere <strong>${{ renewal_amount|floatformat:2 }} MXN</strong> a nuestra cuenta</p>
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>Envía tu comprobante</h4>
+                            <p>Contáctanos al <strong>{{ support_phone }}</strong> o envíalo a <strong>{{ support_email }}</strong></p>
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h4>¡Listo!</h4>
+                            <p>Una vez verificado, tu plan se renovará automáticamente</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="renewal-info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <p>
+                        <strong>Renovación anticipada:</strong> La nueva vigencia comienza cuando termine tu suscripción actual, así no pierdes ningún día.
+                    </p>
                 </div>
             </div>
         </div>
+        
+        <!-- Summary Card (Abajo) -->
+        <div class="renewal-summary-card" style="margin-top: 30px;">
+            <div class="summary-header">
+                <div class="summary-header-icon">
+                    <i class="fas fa-receipt"></i>
+                </div>
+                <h3>Resumen de Renovación</h3>
+            </div>
+            <div class="summary-body">
+                <div class="summary-items">
+                    <div class="summary-item">
+                        <span class="item-label"><i class="fas fa-box"></i> Plan</span>
+                        <span class="item-value">{{ subscription.plan.display_name }}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="item-label"><i class="fas fa-calendar-times"></i> Vence actualmente</span>
+                        <span class="item-value">{{ subscription.end_date|date:"d/m/Y" }}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="item-label"><i class="fas fa-clock"></i> Período de renovación</span>
+                        <span class="item-value">{{ renewal_days }} días</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="item-label"><i class="fas fa-calendar-check"></i> Nueva fecha de vencimiento</span>
+                        <span class="item-value">{{ new_end_date|date:"d/m/Y" }}</span>
+                    </div>
+                    <div class="summary-item total">
+                        <span class="item-label"><i class="fas fa-tag"></i> Total a pagar</span>
+                        <span class="item-value">${{ renewal_amount|floatformat:2 }} MXN</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Form Section -->
+        <div class="renewal-form-section">
+            <div class="form-card">
+                <div class="message-field">
+                    <label for="reason">
+                        <i class="fas fa-comment-alt" style="color: #10b981; margin-right: 6px;"></i>
+                        Mensaje para el equipo (opcional)
+                    </label>
+                    <textarea name="reason" id="reason" placeholder="Escribe aquí cualquier comentario o solicitud especial..."></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" onclick="history.back()">
+                        <i class="fas fa-arrow-left"></i>
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn-submit" id="submitBtn">
+                        <i class="fas fa-paper-plane"></i>
+                        Enviar Solicitud de Renovación
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+    
+    <!-- Support Footer -->
+    <div class="renewal-support">
+        <p>¿Tienes dudas sobre el proceso de renovación?</p>
+        <div class="support-links">
+            <span><i class="fas fa-phone"></i> {{ support_phone }}</span>
+            <span><i class="fas fa-envelope"></i> {{ support_email }}</span>
+        </div>
     </div>
+    
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+// Función para copiar al portapapeles
+function copyToClipboard(text, button) {
+    navigator.clipboard.writeText(text).then(function() {
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check"></i> Copiado';
+        button.classList.add('copied');
+        
+        setTimeout(function() {
+            button.innerHTML = originalHTML;
+            button.classList.remove('copied');
+        }, 2000);
+    }).catch(function(err) {
+        console.error('Error al copiar:', err);
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Confirmación antes de enviar el formulario
-    const form = document.querySelector('.renewal-form');
-    const submitBtn = document.querySelector('.renewal-btn');
+    const form = document.getElementById('renewalForm');
+    const submitBtn = document.getElementById('submitBtn');
     
     if (form && submitBtn) {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             
             const confirmed = confirm(
-                '¿Estás seguro de que quieres enviar la solicitud de renovación?\n\n' +
-                'Monto a pagar: ${{ renewal_amount|floatformat:2 }} MXN\n' +
-                'Después de enviar la solicitud, deberás realizar el pago y contactar al equipo para que lo verifiquen.\n\n' +
-                'Tu suscripción se renovará una vez que el pago sea aprobado por el administrador.'
+                '¿Confirmas enviar la solicitud de renovación?\n\n' +
+                '💰 Monto a pagar: ${{ renewal_amount|floatformat:2 }} MXN\n' +
+                '📅 Nueva vigencia hasta: {{ new_end_date|date:"d/m/Y" }}\n\n' +
+                'Después de enviar, realiza el pago y envía tu comprobante al equipo.'
             );
             
             if (confirmed) {
-                // Mostrar indicador de carga
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
                 submitBtn.disabled = true;
-                
-                // Enviar el formulario
                 form.submit();
             }
         });

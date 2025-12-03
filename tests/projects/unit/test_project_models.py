@@ -962,18 +962,20 @@ class TestProjectValidations:
     
     def test_project_name_max_length(self):
         """Nombre no debe exceder 100 caracteres"""
+        from django.core.exceptions import ValidationError
         org = OrganizationFactory()
         owner = UserFactory()
         
         # 101 caracteres
         long_name = 'A' * 101
         
-        with pytest.raises(Exception):  # ValidationError o DataError
-            Project.objects.create(
-                organization=org,
-                owner=owner,
-                name=long_name
-            )
+        project = Project(
+            organization=org,
+            owner=owner,
+            name=long_name
+        )
+        with pytest.raises(ValidationError):
+            project.full_clean()
 
 
 # ============================================================================

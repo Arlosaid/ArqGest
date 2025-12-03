@@ -555,16 +555,18 @@ class TestTaskValidations:
     
     def test_task_title_max_length(self):
         """Título no debe exceder 120 caracteres"""
+        from django.core.exceptions import ValidationError
         phase = PhaseFactory()
         
         # 121 caracteres
         long_title = 'A' * 121
         
-        with pytest.raises(Exception):  # ValidationError o DataError
-            Task.objects.create(
-                phase=phase,
-                title=long_title
-            )
+        task = Task(
+            phase=phase,
+            title=long_title
+        )
+        with pytest.raises(ValidationError):
+            task.full_clean()
 
 
 # ============================================================================

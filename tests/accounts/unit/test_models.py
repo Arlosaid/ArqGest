@@ -261,7 +261,7 @@ class TestUserMethods:
     
     def test_is_in_organization_without_org(self, disable_account_signals):
         """is_in_organization debe retornar False si no hay org"""
-        user = UserFactory()
+        user = UserFactory(organization=None, is_active=False)
         
         assert user.is_in_organization(1) is False
     

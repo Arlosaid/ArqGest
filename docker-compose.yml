@@ -217,6 +217,10 @@ services:
       - SITE_DOMAIN=${SITE_DOMAIN:-localhost:8000}
       - SITE_URL=${SITE_URL:-http://localhost:8000}
       
+      # Support contact
+      - SUPPORT_PHONE=${SUPPORT_PHONE:-55 1234 5678}
+      - SUPPORT_EMAIL=${SUPPORT_EMAIL:-soporte@tuempresa.com}
+      
       # Session validation deshabilitada por defecto (permite múltiples dispositivos)
       # - SESSION_VALIDATE_USER_AGENT=false  # Ya es false por defecto en settings.py
     

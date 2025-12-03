@@ -91,26 +91,30 @@ class TestClientValidation:
     
     def test_name_max_length_validation(self):
         """El nombre no debe exceder 100 caracteres - BUG POTENCIAL"""
+        from django.core.exceptions import ValidationError
         org = OrganizationFactory()
         long_name = 'A' * 101
         
-        with pytest.raises(Exception):
-            Client.objects.create(
-                organization=org,
-                name=long_name
-            )
+        client = Client(
+            organization=org,
+            name=long_name
+        )
+        with pytest.raises(ValidationError):
+            client.full_clean()
     
     def test_email_max_length_validation(self):
         """El email no debe exceder 254 caracteres"""
+        from django.core.exceptions import ValidationError
         org = OrganizationFactory()
         long_email = 'a' * 250 + '@test.com'  # > 254 chars
         
-        with pytest.raises(Exception):
-            Client.objects.create(
-                organization=org,
-                name='Test',
-                email=long_email
-            )
+        client = Client(
+            organization=org,
+            name='Test',
+            email=long_email
+        )
+        with pytest.raises(ValidationError):
+            client.full_clean()
     
     def test_email_can_be_blank(self):
         """El email puede estar vacío"""
