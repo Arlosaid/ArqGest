@@ -818,44 +818,92 @@
 
 {% block extra_js %}
 <script>
-// Función para copiar al portapapeles
 function copyToClipboard(text, button) {
     navigator.clipboard.writeText(text).then(function() {
         const originalHTML = button.innerHTML;
         button.innerHTML = '<i class="fas fa-check"></i> Copiado';
         button.classList.add('copied');
-        
         setTimeout(function() {
             button.innerHTML = originalHTML;
             button.classList.remove('copied');
         }, 2000);
-    }).catch(function(err) {
-        console.error('Error al copiar:', err);
     });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('renewalForm');
-    const submitBtn = document.getElementById('submitBtn');
-    
-    if (form && submitBtn) {
+    if (form) {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
-            
-            const confirmed = confirm(
-                '¿Confirmas enviar la solicitud de renovación?\n\n' +
-                '💰 Monto a pagar: ${{ renewal_amount|floatformat:2 }} MXN\n' +
-                '📅 Nueva vigencia hasta: {{ new_end_date|date:"d/m/Y" }}\n\n' +
-                'Después de enviar, realiza el pago y envía tu comprobante al equipo.'
-            );
-            
-            if (confirmed) {
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
-                submitBtn.disabled = true;
-                form.submit();
-            }
+            showConfirmModal(this, {
+                title: 'Confirmar renovación',
+                icon: 'fa-sync-alt',
+                color: '#10b981',
+                details: [
+                    { label: 'Plan', value: '{{ subscription.plan.display_name }}' },
+                    { label: 'Período', value: '{{ renewal_days }} días' },
+                    { label: 'Nueva vigencia hasta', value: '{{ new_end_date|date:"d/m/Y" }}' },
+                    { label: 'Total a pagar', value: '${{ renewal_amount|floatformat:2 }} MXN' }
+                ],
+                note: 'La nueva vigencia comienza al terminar tu suscripción actual. Realiza el pago y envía tu comprobante.',
+                confirmText: 'Enviar solicitud'
+            });
         });
     }
 });
+
+function showConfirmModal(form, config) {
+    const detailsHtml = config.details.map(d => 
+        `<div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0;">
+            <span style="color: #64748b;">${d.label}</span>
+            <span style="font-weight: 600; color: #1e293b;">${d.value}</span>
+        </div>`
+    ).join('');
+    
+    const modalHtml = `
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+            <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 20px 40px rgba(0,0,0,0.15);">
+                <div style="padding: 25px 25px 20px; text-align: center; border-bottom: 1px solid #e2e8f0;">
+                    <div style="width: 50px; height: 50px; background: ${config.color}15; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
+                        <i class="fas ${config.icon}" style="font-size: 1.3rem; color: ${config.color};"></i>
+                    </div>
+                    <h5 style="margin: 0; font-weight: 700; color: #1e293b;">${config.title}</h5>
+                </div>
+                <div style="padding: 20px 25px;">
+                    ${detailsHtml}
+                    <p style="margin: 15px 0 0; font-size: 0.85rem; color: #64748b; line-height: 1.5;">
+                        <i class="fas fa-info-circle" style="color: ${config.color}; margin-right: 6px;"></i>
+                        ${config.note}
+                    </p>
+                </div>
+                <div style="padding: 15px 25px 25px; display: flex; gap: 10px;">
+                    <button type="button" data-bs-dismiss="modal" style="flex: 1; padding: 12px; background: #f1f5f9; color: #64748b; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                        Cancelar
+                    </button>
+                    <button type="button" id="confirmBtn" style="flex: 1; padding: 12px; background: ${config.color}; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                        ${config.confirmText}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>`;
+    
+    document.getElementById('confirmModal')?.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    modal.show();
+    
+    document.getElementById('confirmBtn').addEventListener('click', function() {
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        this.disabled = true;
+        form.submit();
+    });
+    
+    document.getElementById('confirmModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
 </script>
 {% endblock %}
