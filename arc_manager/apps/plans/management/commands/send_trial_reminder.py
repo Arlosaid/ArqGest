@@ -44,23 +44,25 @@ class Command(BaseCommand):
         try:
             now = timezone.now()
             
-            # Buscar trials que vencen en EXACTAMENTE X días
-            target_date_start = (now + timedelta(days=days_before)).replace(hour=0, minute=0, second=0, microsecond=0)
-            target_date_end = target_date_start + timedelta(days=1)
+            # Buscar trials activos que vencen pronto
+            # Filtramos amplio y luego verificamos days_remaining exacto
+            max_days_ahead = now + timedelta(days=days_before + 1)
             
-            trials_expiring = Subscription.objects.filter(
-                end_date__gte=target_date_start,
-                end_date__lt=target_date_end,
+            trials_expiring_soon = Subscription.objects.filter(
+                end_date__lte=max_days_ahead,
+                end_date__gt=now,
                 subscription_status='trial_active'
             ).select_related('organization', 'plan')
             
-            total_subs = trials_expiring.count()
+            # Filtrar solo las que tienen exactamente X días restantes
+            trials_expiring = [sub for sub in trials_expiring_soon if sub.days_remaining == days_before]
+            total_subs = len(trials_expiring)
             
             if total_subs == 0:
-                self.stdout.write(f'No hay trials por vencer en {days_before} día(s)')
+                self.stdout.write(f'No hay trials con {days_before} día(s) restantes')
                 return
             
-            logger.debug(f"Trials por vencer en {days_before} día(s): {total_subs}")
+            logger.debug(f"Trials con {days_before} día(s) restantes: {total_subs}")
             if dry_run:
                 self.stdout.write(self.style.WARNING(f'[DRY RUN] {total_subs} organizaciones con trial por vencer'))
             
@@ -83,8 +85,8 @@ class Command(BaseCommand):
 
             for sub in trials_expiring:
                 org = sub.organization
-                expiry_date = sub.end_date.strftime('%Y-%m-%d')
-                org_cache_key = f'trial_reminder_{days_before}d_{org.id}_{expiry_date}'
+                days_remaining = sub.days_remaining  # Usar propiedad del modelo
+                org_cache_key = f'trial_reminder_{days_remaining}d_{org.id}_{sub.end_date.strftime("%Y-%m-%d")}'
                 
                 # Verificar cache para evitar duplicados
                 if not force and cache.get(org_cache_key):
@@ -119,16 +121,16 @@ class Command(BaseCommand):
                 # Enviar UN solo email por organización
                 try:
                     if dry_run:
-                        self.stdout.write(f"  [DRY RUN] Enviaría a: {user_email} ({org.name}) - Vence: {sub.end_date.strftime('%d/%m/%Y')}")
+                        self.stdout.write(f"  [DRY RUN] Enviaría a: {user_email} ({org.name}) - Vence: {sub.end_date.strftime('%d/%m/%Y')} - Días: {days_remaining}")
                         sent_count += 1
                         continue
                     
-                    if days_before == 1:
+                    if days_remaining == 1:
                         subject = f'Tu prueba gratuita vence mañana - {site_name}'
-                    elif days_before == 0:
+                    elif days_remaining == 0:
                         subject = f'Tu prueba gratuita vence hoy - {site_name}'
                     else:
-                        subject = f'Tu prueba gratuita vence en {days_before} días - {site_name}'
+                        subject = f'Tu prueba gratuita vence en {days_remaining} días - {site_name}'
                     
                     context = {
                         'site_name': site_name,
@@ -136,10 +138,10 @@ class Command(BaseCommand):
                         'domain': site_url.replace('https://', '').replace('http://', ''),
                         'organization_name': org.name,
                         'trial_end_date': sub.end_date,
-                        'days_remaining': days_before,
+                        'days_remaining': days_remaining,  # Usa la propiedad del modelo
                         'upgrade_url': f'{site_url}/plans/solicitar-actualizacion/',
                         'basic_plan': basic_plan_info,
-                        'is_urgent': days_before <= 1,
+                        'is_urgent': days_remaining <= 1,
                     }
                     
                     html = render_to_string('emails/trial_reminder_email.html', context)
@@ -149,7 +151,7 @@ class Command(BaseCommand):
                         logger.info(f"Email trial enviado: {user_email} - {org.name}")
                         sent_count += 1
                         # Marcar en cache para evitar duplicados
-                        cache.set(org_cache_key, True, timeout=604800)  # 7 días
+                        # cache.set(org_cache_key, True, timeout=604800)  # 7 días - temporalmente desactivado
                     else:
                         logger.error(f"Error enviando: {user_email}")
                         failed_count += 1

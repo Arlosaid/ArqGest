@@ -51,21 +51,22 @@ class Command(BaseCommand):
                 except Exception:
                     logger.warning("No se pudo limpiar cache (método no soportado)")
             
-            # Buscar suscripciones que vencen en EXACTAMENTE 3 días
-            # Solo plan básico activo (no trial)
-            target_date_start = (now + timedelta(days=3)).replace(hour=0, minute=0, second=0, microsecond=0)
-            target_date_end = target_date_start + timedelta(days=1)
+            # Buscar suscripciones básicas activas que vencen pronto
+            # Filtramos amplio y luego verificamos days_remaining exacto
+            max_days_ahead = now + timedelta(days=4)  # Margen para incluir 3 días
             
-            subs_expiring_in_3_days = Subscription.objects.filter(
-                end_date__gte=target_date_start,
-                end_date__lt=target_date_end,
-                subscription_status='basic_active'  # Solo plan básico, no trial
+            subs_expiring_soon = Subscription.objects.filter(
+                end_date__lte=max_days_ahead,
+                end_date__gt=now,
+                subscription_status='basic_active'
             ).select_related('organization', 'plan')
 
-            total_subs = subs_expiring_in_3_days.count()
+            # Filtrar solo las que tienen exactamente 3 días restantes
+            subs_3_days = [sub for sub in subs_expiring_soon if sub.days_remaining == 3]
+            total_subs = len(subs_3_days)
             
             if total_subs == 0:
-                self.stdout.write('No hay suscripciones básicas por vencer en 3 días')
+                self.stdout.write('No hay suscripciones básicas con 3 días restantes')
                 return
             
             logger.debug(f"Suscripciones encontradas: {total_subs}")
@@ -79,10 +80,10 @@ class Command(BaseCommand):
             site_name = getattr(settings, 'SITE_NAME', 'ArqGest')
             site_url = getattr(settings, 'SITE_URL', 'https://arcmanager.up.railway.app')
 
-            for sub in subs_expiring_in_3_days:
+            for sub in subs_3_days:
                 org = sub.organization
-                expiry_date = sub.end_date.strftime('%Y-%m-%d')
-                org_cache_key = f'renewal_reminder_{org.id}_{expiry_date}'
+                days_remaining = sub.days_remaining  # Usar propiedad del modelo
+                org_cache_key = f'renewal_reminder_{org.id}_{days_remaining}d_{sub.end_date.strftime("%Y-%m-%d")}'
                 
                 # Verificar cache para evitar duplicados
                 if not force and cache.get(org_cache_key):
@@ -113,12 +114,9 @@ class Command(BaseCommand):
                 # Enviar UN solo email por organización
                 try:
                     if dry_run:
-                        self.stdout.write(f"  [DRY RUN] Enviaría a: {user_email} ({org.name})")
+                        self.stdout.write(f"  [DRY RUN] Enviaría a: {user_email} ({org.name}) - {days_remaining} días")
                         sent_count += 1
                         continue
-                    
-                    # Calcular días reales restantes
-                    days_remaining = (sub.end_date.date() - now.date()).days
                     
                     subject = f'Tu plan vence en {days_remaining} días - {site_name}'
                     

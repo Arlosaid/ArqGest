@@ -358,17 +358,23 @@ class Subscription(models.Model):
 
     @property
     def days_remaining(self):
-        """Calcula los días restantes de forma precisa según el estado de la suscripción."""
-        now = timezone.now()
+        """
+        Calcula los días restantes comparando solo fechas (sin horas).
+        Así el día de hoy siempre cuenta como día completo.
+        Ejemplo: Si hoy es 3 dic y end_date es 2 ene → 30 días
+        """
+        today = timezone.now().date()
 
         if self.is_active and self.end_date:
-            remaining = self.end_date - now
+            end_date = self.end_date.date() if hasattr(self.end_date, 'date') else self.end_date
+            remaining_days = (end_date - today).days
         elif self.is_in_grace_period and self.grace_end_date:
-            remaining = self.grace_end_date - now
+            grace_date = self.grace_end_date.date() if hasattr(self.grace_end_date, 'date') else self.grace_end_date
+            remaining_days = (grace_date - today).days
         else:
-            return 0  # Expirado o sin fecha de referencia
+            return 0
 
-        return max(0, remaining.days)
+        return max(0, remaining_days)
 
     def process_payment(self, amount, processed_by):
         """Procesa un pago, extiende la suscripción y crea un registro de pago."""
