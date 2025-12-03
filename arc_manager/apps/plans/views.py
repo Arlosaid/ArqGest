@@ -417,29 +417,22 @@ def cron_renewal_reminders(request):
         # =============================================
         # RECORDATORIOS PARA TRIAL (Plan Gratuito)
         # =============================================
-        # Enviar a los 2 días antes
-        output_trial_2 = StringIO()
-        call_command('send_trial_reminder', '--days=2', stdout=output_trial_2)
-        trial_2_result = output_trial_2.getvalue().strip()
-        results.append(f"Trial(2d): {trial_2_result}")
-        logger.info(f"CRON Trial 2 días: {trial_2_result}")
-        
-        # Enviar a 1 día antes (aviso urgente)
-        output_trial_1 = StringIO()
-        call_command('send_trial_reminder', '--days=1', stdout=output_trial_1)
-        trial_1_result = output_trial_1.getvalue().strip()
-        results.append(f"Trial(1d): {trial_1_result}")
-        logger.info(f"CRON Trial 1 día: {trial_1_result}")
+        # Enviar a 2 días o menos (solo una vez por cache)
+        output_trial = StringIO()
+        call_command('send_trial_reminder', stdout=output_trial)
+        trial_result = output_trial.getvalue().strip()
+        results.append(f"Trial(<=2d): {trial_result}")
+        logger.info(f"CRON Trial: {trial_result}")
         
         # =============================================
         # RECORDATORIOS PARA PLAN BÁSICO (Renovación)
         # =============================================
-        # Enviar a los 3 días antes
+        # Enviar a 3 días o menos (solo una vez por cache)
         output_renewal = StringIO()
         call_command('send_renewal_reminders', stdout=output_renewal)
         renewal_result = output_renewal.getvalue().strip()
-        results.append(f"Básico(3d): {renewal_result}")
-        logger.info(f"CRON Básico 3 días: {renewal_result}")
+        results.append(f"Básico(<=3d): {renewal_result}")
+        logger.info(f"CRON Básico: {renewal_result}")
         
         combined_result = " | ".join(results)
         logger.info(f"CRON: Finalizado - {combined_result}")

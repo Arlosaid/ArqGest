@@ -14,7 +14,7 @@ logger = logging.getLogger('plans.notifications')
 
 
 class Command(BaseCommand):
-    help = 'Envía recordatorio a organizaciones cuyo trial vence en exactamente 2 días'
+    help = 'Envía recordatorio a organizaciones cuyo trial vence en 2 días o menos'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -31,16 +31,14 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         from core.email_utils import send_resend_email
         
-        days_before = options.get('days', 1)
         force = options.get('force', False)
         dry_run = options.get('dry_run', False)
         
         try:
             now = timezone.now()
             
-            # Buscar trials activos que vencen pronto
-            # Filtramos amplio y luego verificamos days_remaining exacto
-            max_days_ahead = now + timedelta(days=days_before + 1)
+            # Buscar trials activos que vencen pronto (2 días)
+            max_days_ahead = now + timedelta(days=3)
             
             trials_expiring_soon = Subscription.objects.filter(
                 end_date__lte=max_days_ahead,
@@ -48,15 +46,15 @@ class Command(BaseCommand):
                 subscription_status='trial_active'
             ).select_related('organization', 'plan')
             
-            # Filtrar solo las que tienen exactamente X días restantes
-            trials_expiring = [sub for sub in trials_expiring_soon if sub.days_remaining == days_before]
+            # Filtrar las que tienen 2 días o menos restantes
+            trials_expiring = [sub for sub in trials_expiring_soon if sub.days_remaining <= 2]
             total_subs = len(trials_expiring)
             
             if total_subs == 0:
-                self.stdout.write(f'No hay trials con {days_before} día(s) restantes')
+                self.stdout.write('No hay trials con 2 días o menos restantes')
                 return
             
-            logger.debug(f"Trials con {days_before} día(s) restantes: {total_subs}")
+            logger.debug(f"Trials con 2 días o menos restantes: {total_subs}")
             if dry_run:
                 self.stdout.write(self.style.WARNING(f'[DRY RUN] {total_subs} organizaciones con trial por vencer'))
             
@@ -160,7 +158,7 @@ class Command(BaseCommand):
             
             # Solo loguear si hubo actividad relevante
             if sent_count > 0 or failed_count > 0:
-                logger.info(f"Trial reminders ({days_before}d): {summary}")
+                logger.info(f"Trial reminders (1d): {summary}")
             
             if dry_run:
                 self.stdout.write(self.style.WARNING(f'[DRY RUN] {summary}'))
