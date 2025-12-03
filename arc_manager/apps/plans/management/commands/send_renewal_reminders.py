@@ -15,7 +15,7 @@ logger = logging.getLogger('plans.reminders')
 
 
 class Command(BaseCommand):
-    help = 'Envía recordatorio de renovación a organizaciones con plan básico que vence en exactamente 1 día'
+    help = 'Envía recordatorio de renovación a organizaciones con plan básico que vence en exactamente 3 días'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -51,21 +51,21 @@ class Command(BaseCommand):
                 except Exception:
                     logger.warning("No se pudo limpiar cache (método no soportado)")
             
-            # Buscar suscripciones que vencen en EXACTAMENTE 1 día
+            # Buscar suscripciones que vencen en EXACTAMENTE 3 días
             # Solo plan básico activo (no trial)
-            target_date_start = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+            target_date_start = (now + timedelta(days=3)).replace(hour=0, minute=0, second=0, microsecond=0)
             target_date_end = target_date_start + timedelta(days=1)
             
-            subs_expiring_in_1_day = Subscription.objects.filter(
+            subs_expiring_in_3_days = Subscription.objects.filter(
                 end_date__gte=target_date_start,
                 end_date__lt=target_date_end,
                 subscription_status='basic_active'  # Solo plan básico, no trial
             ).select_related('organization', 'plan')
 
-            total_subs = subs_expiring_in_1_day.count()
+            total_subs = subs_expiring_in_3_days.count()
             
             if total_subs == 0:
-                self.stdout.write('No hay suscripciones básicas por vencer en 1 día')
+                self.stdout.write('No hay suscripciones básicas por vencer en 3 días')
                 return
             
             logger.debug(f"Suscripciones encontradas: {total_subs}")
@@ -79,7 +79,7 @@ class Command(BaseCommand):
             site_name = getattr(settings, 'SITE_NAME', 'ArqGest')
             site_url = getattr(settings, 'SITE_URL', 'https://arcmanager.up.railway.app')
 
-            for sub in subs_expiring_in_1_day:
+            for sub in subs_expiring_in_3_days:
                 org = sub.organization
                 expiry_date = sub.end_date.strftime('%Y-%m-%d')
                 org_cache_key = f'renewal_reminder_{org.id}_{expiry_date}'
@@ -120,7 +120,7 @@ class Command(BaseCommand):
                             emails_sent_for_org += 1
                             continue
                         
-                        subject = f'Tu plan vence mañana - {site_name}'
+                        subject = f'Tu plan vence en 3 días - {site_name}'
                         
                         context = {
                             'site_name': site_name,
@@ -129,8 +129,8 @@ class Command(BaseCommand):
                             'organization_name': org.name,
                             'plan_name': sub.plan.display_name,
                             'renewal_url': f'{site_url}/plans/subscription/',
-                            'days_left': 1,
-                            'is_urgent': True,
+                            'days_left': 3,
+                            'is_urgent': False,
                         }
                         
                         html = render_to_string('emails/renewal_reminder_email.html', context)
