@@ -1,28 +1,51 @@
 FROM python:3.11-alpine
 
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
 # Instalar dependencias del sistema necesarias para cron y PostgreSQL
+# Usamos busybox crond que ya viene con Alpine (más compatible con Docker)
 RUN apk add --no-cache \
     postgresql-client \
-    dcron \
     bash \
+    libmagic \
+    gcc \
+    musl-dev \
+    libpq-dev \
     && rm -rf /var/cache/apk/*
 
 WORKDIR /app
 
-# Copiar requirements e instalar dependencias Python
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copiar requirements mínimos para cron e instalar
+COPY requirements.cron.txt .
+RUN pip install --no-cache-dir -r requirements.cron.txt && \
+    rm -rf /root/.cache/pip
 
 # Copiar código de la aplicación
 COPY arc_manager /app/arc_manager
 COPY scripts /app/scripts
 
-# Hacer ejecutable y configurar crontab
-RUN chmod +x /app/scripts/crontab
+# Crear directorio de logs
+RUN mkdir -p /app/logs
 
 # Configurar el directorio de trabajo para Django
 WORKDIR /app/arc_manager
 
-# Comando para iniciar cron en modo foreground
-CMD ["sh", "-c", "cp /app/scripts/crontab /etc/crontabs/root && echo 'Cron configurado' && cat /etc/crontabs/root && crond -f -l 2"]
+# Script de inicio que espera la DB y configura cron
+# Usamos busybox crond con -f (foreground) y -d 8 (log level)
+CMD ["sh", "-c", "\
+    echo 'Waiting for database...' && \
+    until pg_isready -h db -p 5432 > /dev/null 2>&1; do \
+        sleep 2; \
+    done && \
+    echo 'Database ready!' && \
+    echo 'Configuring cron jobs...' && \
+    cp /app/scripts/crontab /etc/crontabs/root && \
+    chmod 600 /etc/crontabs/root && \
+    echo '--- Cron jobs loaded ---' && \
+    cat /etc/crontabs/root && \
+    echo '------------------------' && \
+    echo 'Starting cron daemon (busybox)...' && \
+    crond -f -d 8 \
+"]
 
