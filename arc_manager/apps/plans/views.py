@@ -381,6 +381,10 @@ def cron_renewal_reminders(request):
     """
     Endpoint para ejecutar recordatorios de renovación via cron externo.
     
+    Ejecuta AMBOS comandos:
+    - send_trial_reminder --days=3: Para trials que vencen en 3 días
+    - send_renewal_reminders: Para plan básico que vence en 3 días
+    
     Uso:
     - Configurar en cron-job.org para llamar diariamente
     - Header requerido: X-Cron-Secret con valor de CRON_SECRET_KEY
@@ -388,7 +392,6 @@ def cron_renewal_reminders(request):
     
     Protecciones:
     - Autenticación por token secreto
-    - Rate limiting (1 ejecución por hora)
     - Idempotencia (no envía duplicados el mismo día)
     """
     from django.core.cache import cache
@@ -408,20 +411,31 @@ def cron_renewal_reminders(request):
         return HttpResponse('Unauthorized', status=401)
     
     try:
-        # DEBUG: Log rutinario de ejecución de cron
-        logger.debug("Ejecutando recordatorios de renovación via cron endpoint")
+        results = []
         
-        # Capturar output del comando
-        output = StringIO()
-        call_command('send_renewal_reminders', stdout=output)
-        result = output.getvalue()
+        # 1. Recordatorios para TRIAL (1 día antes)
+        logger.debug("Ejecutando recordatorios de trial via cron endpoint")
+        output_trial = StringIO()
+        call_command('send_trial_reminder', '--days=1', stdout=output_trial)
+        trial_result = output_trial.getvalue().strip()
+        results.append(f"Trial: {trial_result}")
+        
+        # 2. Recordatorios para PLAN BÁSICO (3 días antes)
+        logger.debug("Ejecutando recordatorios de renovación via cron endpoint")
+        output_renewal = StringIO()
+        call_command('send_renewal_reminders', stdout=output_renewal)
+        renewal_result = output_renewal.getvalue().strip()
+        results.append(f"Básico: {renewal_result}")
+        
+        combined_result = " | ".join(results)
         
         # Solo loguear INFO si hay recordatorios enviados
-        if 'enviados' in result.lower() or result.strip() != 'No hay suscripciones por vencer':
-            logger.info(f"Recordatorios ejecutados: {result.strip()}")
+        if 'enviados' in combined_result.lower():
+            logger.info(f"Recordatorios ejecutados: {combined_result}")
         else:
-            logger.debug(f"Cron ejecutado: {result.strip()}")
-        return HttpResponse(f'OK - {result}', status=200)
+            logger.debug(f"Cron ejecutado: {combined_result}")
+        
+        return HttpResponse(f'OK - {combined_result}', status=200)
         
     except Exception as e:
         logger.error(f"Error ejecutando recordatorios via cron: {e}", exc_info=True)
