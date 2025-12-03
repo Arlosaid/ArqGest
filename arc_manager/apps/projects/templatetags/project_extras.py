@@ -204,3 +204,34 @@ def sum_files(phases):
         logger = logging.getLogger(__name__)
         logger.error(f"Error counting files: {e}")
         return 0
+
+
+@register.filter(name='can_delete_file')
+def can_delete_file(file, user):
+    """
+    Verifica si el usuario puede eliminar un archivo.
+    Retorna True si el usuario es admin o si subió el archivo.
+    Funciona con objetos del modelo o diccionarios serializados.
+    Uso: {% if file|can_delete_file:user %}
+    """
+    try:
+        if not user or not user.is_authenticated:
+            return False
+        
+        # Si el usuario es admin, puede eliminar cualquier archivo
+        if getattr(user, 'is_org_admin', False):
+            return True
+        
+        # Obtener uploaded_by_id del archivo (puede ser objeto o diccionario)
+        if isinstance(file, dict):
+            uploaded_by_id = file.get('uploaded_by_id')
+        else:
+            uploaded_by_id = getattr(file, 'uploaded_by_id', None)
+        
+        # Comparar con el ID del usuario
+        if uploaded_by_id is not None and user.id is not None:
+            return int(uploaded_by_id) == int(user.id)
+        
+        return False
+    except Exception:
+        return False

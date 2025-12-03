@@ -34,6 +34,7 @@
                    title="{% trans 'Descargar' %}">
                     <i class="fas fa-download"></i>
                 </a>
+                {% if file|can_delete_file:user %}
                 <button class="file-action-btn delete file-delete-btn"
                         data-delete-url="{% url 'files:delete_file' file.id %}"
                         data-file-id="{{ file.id }}"
@@ -41,6 +42,7 @@
                         title="{% trans 'Eliminar' %}">
                     <i class="fas fa-trash-alt"></i>
                 </button>
+                {% endif %}
             </div>
         </div>
     </div>

@@ -219,6 +219,21 @@ class ProjectsManager {
             const panes = document.querySelectorAll('#projectTabContent .tab-pane');
             panes.forEach(pane => pane.classList.remove('show', 'active'));
             if (targetPane) targetPane.classList.add('show', 'active');
+            
+            // Actualizar URL con el tab actual para que las redirecciones del servidor lo detecten
+            const tabId = targetSelector ? targetSelector.replace('#', '') : null;
+            if (tabId && tabId !== 'details') {
+                const url = new URL(window.location);
+                url.searchParams.set('tab', tabId);
+                url.hash = tabId;
+                window.history.replaceState({}, '', url);
+            } else if (tabId === 'details') {
+                // Limpiar parámetro tab si es details
+                const url = new URL(window.location);
+                url.searchParams.delete('tab');
+                url.hash = '';
+                window.history.replaceState({}, '', url.pathname + url.search);
+            }
         };
 
         tabContainer.addEventListener('shown.bs.tab', (event) => {
@@ -240,28 +255,40 @@ class ProjectsManager {
     normalizeInitialActiveTab() {
         const tabContainer = document.getElementById('projectTab');
         if (!tabContainer) return;
-        let activeBtn = tabContainer.querySelector('.nav-link.active');
-        // Si ninguna pestaña está marcada activa, forzar Detalles por defecto
-        if (!activeBtn) {
-            activeBtn = tabContainer.querySelector('#details-tab') || tabContainer.querySelector('.nav-link');
-            if (activeBtn) activeBtn.classList.add('active');
+        
+        // Verificar si hay un tab en la URL que debemos respetar
+        const params = new URLSearchParams(window.location.search);
+        const tabFromUrl = (params.get('tab') || '').toLowerCase();
+        const hashFromUrl = (window.location.hash || '').replace('#','').toLowerCase();
+        const desiredTab = tabFromUrl || hashFromUrl;
+        const idMap = { details: 'details-tab', phases: 'phases-tab', tasks: 'tasks-tab', files: 'files-tab' };
+        
+        let activeBtn;
+        
+        // Si hay un tab en la URL, usarlo
+        if (desiredTab && idMap[desiredTab]) {
+            activeBtn = document.getElementById(idMap[desiredTab]);
         }
+        
+        // Si no hay tab en URL o no se encontró, usar el activo o el por defecto
+        if (!activeBtn) {
+            activeBtn = tabContainer.querySelector('.nav-link.active');
+            if (!activeBtn) {
+                activeBtn = tabContainer.querySelector('#details-tab') || tabContainer.querySelector('.nav-link');
+            }
+        }
+        
         if (!activeBtn) return;
+        
+        // Activar el botón
+        tabContainer.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+        activeBtn.classList.add('active');
+        
         const targetSelector = activeBtn.getAttribute('data-bs-target');
         const targetPane = targetSelector ? document.querySelector(targetSelector) : null;
         const panes = document.querySelectorAll('#projectTabContent .tab-pane');
         panes.forEach(pane => pane.classList.remove('show', 'active'));
         if (targetPane) targetPane.classList.add('show', 'active');
-        // Reforzar tras breve retraso por si otros scripts alteran el DOM
-        setTimeout(() => {
-            const currentActiveBtn = tabContainer.querySelector('.nav-link.active') || tabContainer.querySelector('#details-tab');
-            const currentTarget = currentActiveBtn?.getAttribute('data-bs-target');
-            const currentPane = currentTarget ? document.querySelector(currentTarget) : null;
-            if (currentPane && !currentPane.classList.contains('active')) {
-                document.querySelectorAll('#projectTabContent .tab-pane').forEach(p => p.classList.remove('show','active'));
-                currentPane.classList.add('show','active');
-            }
-        }, 50);
     }
 
     // Activa una pestaña si hay ?tab= o #hash en la URL

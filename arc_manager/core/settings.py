@@ -851,10 +851,18 @@ SITE_NAME = os.environ.get('SITE_NAME', 'ArqGest')
 SITE_DOMAIN = os.environ.get('SITE_DOMAIN', 'localhost:8000')
 
 
+# Cargar RESEND_API_KEY siempre (para uso en local y producción)
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
+
 if DEBUG:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-    EMAIL_HOST = 'localhost'
-    DEFAULT_FROM_EMAIL = 'ArqGest <noreply@arqgest.local>'
+    # En DEBUG, usar Resend si está configurado, sino consola
+    if RESEND_API_KEY:
+        EMAIL_BACKEND = 'core.backends.resend_backend.ResendBackend'
+        DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'ArqGest <noreply@arqgest.com>')
+    else:
+        EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+        EMAIL_HOST = 'localhost'
+        DEFAULT_FROM_EMAIL = 'ArqGest <noreply@arqgest.local>'
 else:
     # ========================================
     # CONFIGURACIÓN RESEND PARA PRODUCCIÓN

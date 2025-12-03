@@ -207,6 +207,16 @@ services:
       - SAMPLE_RATE=0
       - SLOW_REQUEST_THRESHOLD=5000
       
+      # Email (Resend)
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-ArqGest <noreply@arqgest.com>}
+      - REPLY_TO_EMAIL=${REPLY_TO_EMAIL:-}
+      
+      # Site info
+      - SITE_NAME=${SITE_NAME:-ArqGest}
+      - SITE_DOMAIN=${SITE_DOMAIN:-localhost:8000}
+      - SITE_URL=${SITE_URL:-http://localhost:8000}
+      
       # Session validation deshabilitada por defecto (permite múltiples dispositivos)
       # - SESSION_VALIDATE_USER_AGENT=false  # Ya es false por defecto en settings.py
     

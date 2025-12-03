@@ -27,6 +27,57 @@ from .permissions import (
 from core.error_codes import TaskErrorCodes, ProjectErrorCodes
 from core.structured_logging import log_error, log_warning, log_info, log_slow_operation
 
+
+def get_current_tab_from_referer(request, default='details'):
+    """
+    Obtiene el tab actual desde el referer o parámetros de la URL.
+    Útil para mantener al usuario en el mismo tab después de una acción.
+    """
+    referer = request.META.get('HTTP_REFERER', '')
+    
+    # Primero intentar desde query params del referer (más confiable)
+    if 'tab=' in referer:
+        try:
+            from urllib.parse import urlparse, parse_qs
+            parsed = urlparse(referer)
+            params = parse_qs(parsed.query)
+            tab = params.get('tab', [None])[0]
+            if tab and tab in ['details', 'phases', 'tasks', 'files', 'kanban']:
+                return tab
+        except:
+            pass
+    
+    # Detectar desde el hash (segundo método más confiable)
+    if '#tasks' in referer:
+        return 'tasks'
+    elif '#phases' in referer:
+        return 'phases'
+    elif '#files' in referer:
+        return 'files'
+    
+    # Detectar kanban desde la URL del path (no desde query params)
+    # El kanban tiene su propia URL: /projects/{id}/kanban/
+    if '/kanban/' in referer or '/kanban?' in referer:
+        return 'kanban'
+    
+    # Detectar si viene de la lista de "Mis Tareas" (URL independiente)
+    if '/tasks/my/' in referer or '/my-tasks/' in referer:
+        return 'tasks'
+    
+    return default
+
+
+def redirect_to_project_tab(project_pk, tab='details'):
+    """
+    Redirige al detalle del proyecto manteniendo el tab especificado.
+    """
+    from django.urls import reverse
+    url = reverse('projects:project-detail', kwargs={'pk': project_pk})
+    if tab and tab != 'details':
+        url = f"{url}?tab={tab}#{tab}"
+    return redirect(url)
+
+
 # Enhanced logging helper with error codes
 def log_task_operation(operation, user_email, error_code=None, level='INFO', **kwargs):
     """Enhanced task operation logging with structured error codes"""
@@ -1122,11 +1173,11 @@ def phase_create(request, project_pk):
                 order=order
             )
             messages.success(request, f'Fase "{name}" creada exitosamente.')
-            return redirect('projects:project-detail', pk=project_pk)
+            return redirect_to_project_tab(project_pk, 'phases')
         else:
             messages.error(request, 'El nombre de la fase es requerido.')
     
-    return redirect('projects:project-detail', pk=project_pk)
+    return redirect_to_project_tab(project_pk, 'phases')
 
 # Task Views
 @login_required
@@ -1232,11 +1283,11 @@ def task_create(request, project_pk):
                 # Solo mostrar mensaje Django para peticiones normales (no AJAX)
                 messages.success(request, f'Tarea "{title}" creada exitosamente.')
 
-                # Redirecciones para peticiones normales
-                referer = request.META.get('HTTP_REFERER', '')
-                if 'kanban' in referer or '/tasks/' in referer:
+                # Redirecciones para peticiones normales - mantener tab actual
+                current_tab = get_current_tab_from_referer(request, 'tasks')
+                if current_tab == 'kanban':
                     return redirect('projects:project-kanban', pk=project_pk)
-                return redirect('projects:project-detail', pk=project_pk)
+                return redirect_to_project_tab(project_pk, current_tab)
                     
             except Phase.DoesNotExist:
                 log_msg, log_data = log_task_operation(
@@ -1275,7 +1326,8 @@ def task_create(request, project_pk):
             logger.warning(f"{log_msg} ERROR_CODE: {TaskErrorCodes.TASK_CREATE_MISSING_TITLE if not title else TaskErrorCodes.TASK_CREATE_MISSING_PHASE}")
             messages.error(request, 'El título y la fase son requeridos.')
     
-    return redirect('projects:project-detail', pk=project_pk)
+    current_tab = get_current_tab_from_referer(request, 'tasks')
+    return redirect_to_project_tab(project_pk, current_tab)
 
 class TaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
     paginate_by = 8
@@ -1607,7 +1659,8 @@ def task_edit(request, pk):
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return HttpResponse('El título es requerido', status=400)
             messages.error(request, 'El título es requerido')
-            return redirect('projects:project-detail', pk=project.id)
+            current_tab = get_current_tab_from_referer(request, 'tasks')
+            return redirect_to_project_tab(project.id, current_tab)
         
         # Procesar fecha
         due_date = None
@@ -1661,20 +1714,19 @@ def task_edit(request, pk):
             else:
                 messages.success(request, 'Tarea actualizada correctamente')
                 
-                # Redirección inteligente basada en el referer
-                referer = request.META.get('HTTP_REFERER', '')
-                if f'/projects/{project.id}/' in referer and 'kanban' not in referer and 'tasks' not in referer:
-                    # Si viene del detalle del proyecto, volver allí
-                    return redirect('projects:project-detail', pk=project.id)
-                
-                return redirect('projects:project-kanban', pk=project.id)
+                # Redirección inteligente - mantener tab actual
+                current_tab = get_current_tab_from_referer(request, 'tasks')
+                if current_tab == 'kanban':
+                    return redirect('projects:project-kanban', pk=project.id)
+                return redirect_to_project_tab(project.id, current_tab)
                 
         except Exception as e:
             logger.error(f"Error al actualizar tarea {task.id}: {e}")
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return HttpResponse('Error al guardar la tarea', status=500)
             messages.error(request, 'Error al guardar la tarea')
-            return redirect('projects:project-detail', pk=project.id)
+            current_tab = get_current_tab_from_referer(request, 'tasks')
+            return redirect_to_project_tab(project.id, current_tab)
 
 
     # Para GET, mostrar formulario de edición
@@ -1864,6 +1916,7 @@ def phase_files_paginated(request, project_id, phase_id):
                     'extension': file.ext_upper,
                     'size': file.size,
                     'uploaded_at': file.uploaded_at,
+                    'uploaded_by_id': file.uploaded_by_id,
                     'uploaded_by_name': file.uploaded_by.get_full_name() if file.uploaded_by else 'N/A',
                     'file_url': file.file.url if file.file else None,
                 })
@@ -2027,6 +2080,25 @@ class PhaseTemplateDeleteView(LoginRequiredMixin, OrganizationAdminMixin, Delete
 def task_detail(request, pk):
     """Vista para mostrar los detalles de una tarea en formato modal"""
     task = get_object_or_404(Task, pk=pk, phase__project__organization=request.user.organization)
+    
+    # SEGURIDAD: Verificar que el usuario tiene acceso al proyecto de la tarea
+    if not request.user.is_org_admin:
+        from .cache_utils import get_or_set_user_accessible_projects
+        
+        accessible_data = get_or_set_user_accessible_projects(
+            request.user.id,
+            request.user.organization.id,
+            is_admin=False
+        )
+        
+        all_accessible_ids = (
+            accessible_data['active_ids'] | 
+            accessible_data['completed_ids'] | 
+            accessible_data['archived_ids']
+        )
+        
+        if task.phase.project.id not in all_accessible_ids:
+            raise Http404("Tarea no encontrada")
     
     # Generate a project-specific color based on project ID for consistency
     project_colors = [

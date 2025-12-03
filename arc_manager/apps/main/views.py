@@ -135,14 +135,39 @@ def dashboard(request):
             project._cached_progress = projects_progress.get(project.id, 0)
 
     # 3. Widget "Archivos Recientes" - optimizado (excluir archivados)
-    recent_files = ProjectFile.objects.filter(
-        phase__project__organization=organization
-    ).exclude(
-        phase__project__status='ARCHIVED'
-    ).select_related(
-        'phase__project',
-        'uploaded_by'
-    ).order_by('-uploaded_at')[:5]
+    # SEGURIDAD: Filtrar archivos según permisos del usuario
+    if current_user.is_org_admin:
+        # Admins ven archivos de todos los proyectos
+        recent_files = ProjectFile.objects.filter(
+            phase__project__organization=organization
+        ).exclude(
+            phase__project__status='ARCHIVED'
+        ).select_related(
+            'phase__project',
+            'uploaded_by'
+        ).order_by('-uploaded_at')[:5]
+    else:
+        # Usuarios normales solo ven archivos de proyectos donde están asignados
+        from apps.projects.cache_utils import get_or_set_user_accessible_projects
+        
+        accessible_data = get_or_set_user_accessible_projects(
+            current_user.id,
+            organization.id,
+            is_admin=False
+        )
+        
+        # Combinar IDs accesibles (activos + completados, sin archivados)
+        all_accessible_ids = accessible_data['active_ids'] | accessible_data['completed_ids']
+        
+        recent_files = ProjectFile.objects.filter(
+            phase__project__organization=organization,
+            phase__project__id__in=all_accessible_ids
+        ).exclude(
+            phase__project__status='ARCHIVED'
+        ).select_related(
+            'phase__project',
+            'uploaded_by'
+        ).order_by('-uploaded_at')[:5]
     
     # 4. Widget "Almacenamiento" - usando servicio optimizado con cache
     from apps.orgs.storage_service import StorageService

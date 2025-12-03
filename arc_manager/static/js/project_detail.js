@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const h = (window.location.hash || '').replace('#', '').toLowerCase();
     initial = q || h || 'details';
   } catch (_) {}
-  if (!['details', 'phases', 'kanban', 'files'].includes(initial)) initial = 'details';
+  if (!['details', 'phases', 'tasks', 'files'].includes(initial)) initial = 'details';
   showTabById(initial);
 
   tabContainer.addEventListener('click', (e) => {
@@ -123,10 +123,10 @@ document.addEventListener('DOMContentLoaded', function () {
     if (id) showTabById(id);
   });
 
-  const kanbanTab = document.getElementById('kanban-tab');
-  if (kanbanTab) {
-    kanbanTab.addEventListener('click', function () {
-      showTabById('kanban');
+  const tasksTab = document.getElementById('tasks-tab');
+  if (tasksTab) {
+    tasksTab.addEventListener('click', function () {
+      showTabById('tasks');
     });
   }
 

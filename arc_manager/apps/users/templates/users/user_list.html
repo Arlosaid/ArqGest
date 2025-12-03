@@ -211,6 +211,12 @@ function confirmAndDelete(userId) {
             body: formData
         });
         
+        // Manejar respuestas no-JSON (errores del servidor)
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Error del servidor. Por favor, intenta de nuevo.');
+        }
+        
         const data = await response.json();
         
         if (!data.success) {

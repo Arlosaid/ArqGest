@@ -361,20 +361,37 @@ class UserDeleteAjaxView(LoginRequiredMixin, View):
     """Vista AJAX para obtener información del usuario a eliminar"""
     
     def dispatch(self, request, *args, **kwargs):
-        user_to_delete = get_object_or_404(User, pk=kwargs['pk'])
+        # Verificar si es una petición AJAX
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or \
+                  request.content_type == 'application/x-www-form-urlencoded' or \
+                  'fetch' in request.headers.get('Sec-Fetch-Mode', '')
+        
+        try:
+            user_to_delete = get_object_or_404(User, pk=kwargs['pk'])
+        except:
+            if is_ajax or request.method == 'POST':
+                return JsonResponse({'success': False, 'error': 'Usuario no encontrado'}, status=404)
+            raise
+        
         current_user = request.user
         
         # Excluir superusers de la eliminación
         if user_to_delete.is_superuser:
+            if is_ajax or request.method == 'POST':
+                return JsonResponse({'success': False, 'error': 'Los superusuarios solo se gestionan desde el admin'}, status=403)
             raise PermissionDenied("Los superusuarios solo se gestionan desde el admin")
         
         # Solo org_admin puede eliminar usuarios de su organización
         if not (current_user.is_org_admin and current_user.organization and 
                 user_to_delete.organization == current_user.organization):
+            if is_ajax or request.method == 'POST':
+                return JsonResponse({'success': False, 'error': 'No tienes permisos para eliminar este usuario'}, status=403)
             raise PermissionDenied("No tienes permisos para eliminar este usuario")
         
         # No se puede eliminar a si mismo
         if user_to_delete == current_user:
+            if is_ajax or request.method == 'POST':
+                return JsonResponse({'success': False, 'error': 'No puedes eliminarte a ti mismo'}, status=403)
             raise PermissionDenied("No puedes eliminarte a ti mismo")
         
         return super().dispatch(request, *args, **kwargs)

@@ -1,5 +1,6 @@
 {% load i18n %}
 {% load humanize %}
+{% load project_extras %}
 
 {% with phase_files=phase.files.all %}
 <div id="files-table-{{ phase.id }}" class="table-responsive">
@@ -51,12 +52,14 @@
                 <td class="text-center">{{ file.size|filesizeformat }}</td>
                 <td class="text-right d-flex gap-2 justify-content-end">
                     <a href="{{ file.file.url }}" class="btn btn-sm btn-primary" download>{% trans "Descargar" %}</a>
+                    {% if file|can_delete_file:user %}
                     <button class="btn btn-sm btn-outline-danger file-delete-btn"
                             data-delete-url="{% url 'files:delete_file' file.id %}"
                             data-file-id="{{ file.id }}"
                             type="button">
                         <i class="fas fa-trash"></i>
                     </button>
+                    {% endif %}
                 </td>
             </tr>
         {% empty %}

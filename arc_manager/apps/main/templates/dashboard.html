@@ -32,10 +32,12 @@
                         <div class="stat-value">{{ total_projects }}</div>
                         <div class="stat-label">Proyectos Totales</div>
                     </div>
+                    {% if user.is_org_admin %}
                     <div class="stat-item">
                         <div class="stat-value">{{ total_clients }}</div>
                         <div class="stat-label">Clientes</div>
                     </div>
+                    {% endif %}
                 </div>
             </div>
         </header>

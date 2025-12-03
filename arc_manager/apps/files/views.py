@@ -53,6 +53,33 @@ def upload_file(request, project_id, phase_id):
             user_email=request.user.email
         )
         return HttpResponseForbidden(_("You do not have permission to access this resource."))
+    
+    # SEGURIDAD: Usuarios no-admin solo pueden subir archivos a proyectos donde están asignados
+    if not request.user.is_org_admin:
+        from apps.projects.cache_utils import get_or_set_user_accessible_projects
+        
+        accessible_data = get_or_set_user_accessible_projects(
+            request.user.id,
+            request.user.organization.id,
+            is_admin=False
+        )
+        
+        all_accessible_ids = (
+            accessible_data['active_ids'] | 
+            accessible_data['completed_ids'] | 
+            accessible_data['archived_ids']
+        )
+        
+        if phase.project.id not in all_accessible_ids:
+            log_warning(
+                event="file_upload_project_not_accessible",
+                message="Usuario intentó subir archivo a proyecto no accesible",
+                error_code=FileErrorCodes.FILE_UPLOAD_PERMISSION_DENIED,
+                project_id=project_id,
+                phase_id=phase_id,
+                user_email=request.user.email
+            )
+            return HttpResponseForbidden(_("No tienes acceso a este proyecto."))
 
     files_list = request.FILES.getlist('files')
     total_files = len(files_list)
@@ -449,6 +476,22 @@ def delete_file(request, file_id):
             phase_id=project_file.phase.id
         )
         return HttpResponseForbidden("No tienes permiso para acceder a este recurso.")
+    
+    # SEGURIDAD: Usuarios no-admin solo pueden eliminar archivos que ellos subieron
+    if not request.user.is_org_admin:
+        if project_file.uploaded_by_id != request.user.id:
+            log_warning(
+                event="file_delete_not_owner",
+                message="Usuario intentó eliminar archivo que no le pertenece",
+                error_code=FileErrorCodes.FILE_DOWNLOAD_PERMISSION_DENIED,
+                file_id=file_id,
+                file_owner_id=project_file.uploaded_by_id,
+                user_id=request.user.id,
+                project_id=project_file.phase.project.id
+            )
+            if request.headers.get('HX-Request') == 'true':
+                return JsonResponse({"error": "Solo puedes eliminar archivos que tú hayas subido."}, status=403)
+            return JsonResponse({"success": False, "error": "Solo puedes eliminar archivos que tú hayas subido."}, status=403)
 
     # Guardar información mínima para logging
     file_info = {
