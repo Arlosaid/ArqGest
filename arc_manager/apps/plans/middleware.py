@@ -275,18 +275,40 @@ class SubscriptionInfoMiddleware(MiddlewareMixin):
                     has_pending_renewal = pending_data['renewal']
                     has_pending_upgrade = pending_data['upgrade']
                 
-                # Calcular fecha de inicio de la nueva suscripción (si hay renovación pendiente)
+                # Calcular fecha de inicio de la nueva suscripción (si hay renovación o upgrade pendiente)
                 from django.utils import timezone
                 from datetime import timedelta
                 new_subscription_start = None
                 new_subscription_end = None
                 
-                if has_pending_renewal and subscription.end_date:
+                if (has_pending_renewal or has_pending_upgrade) and subscription.end_date:
                     # La nueva suscripción comienza cuando termina la actual
                     now = timezone.now()
                     base_date = max(now, subscription.end_date)
                     new_subscription_start = base_date
-                    new_subscription_end = base_date + timedelta(days=subscription.plan.billing_cycle_days)
+                    # Para upgrade, intentar obtener el plan solicitado
+                    billing_days = subscription.plan.billing_cycle_days
+                    if has_pending_upgrade:
+                        try:
+                            pending_upgrade = UpgradeRequest.objects.filter(
+                                organization=request.user.organization,
+                                status='pending'
+                            ).first()
+                            if pending_upgrade and pending_upgrade.requested_plan:
+                                billing_days = pending_upgrade.requested_plan.billing_cycle_days
+                        except Exception:
+                            pass
+                    new_subscription_end = base_date + timedelta(days=billing_days)
+                
+                # Calcular expires_soon según tipo de plan:
+                # - Trial (gratuito): banner aparece 2 días antes (days_remaining <= 2)
+                # - Plan Básico: banner aparece el último día (days_remaining <= 1)
+                is_trial = subscription.plan.is_trial
+                days_remaining = subscription.days_remaining
+                if is_trial:
+                    expires_soon = days_remaining <= 2 and days_remaining > 0
+                else:
+                    expires_soon = days_remaining <= 1 and days_remaining > 0
                 
                 # Agregar información útil al request
                 request.subscription_info = {
@@ -295,11 +317,11 @@ class SubscriptionInfoMiddleware(MiddlewareMixin):
                     'is_active': subscription.is_active,
                     'is_expired': subscription.is_expired,
                     'is_in_grace': subscription.is_in_grace_period,
-                    'is_trial': subscription.plan.is_trial,
-                    'days_remaining': subscription.days_remaining,
+                    'is_trial': is_trial,
+                    'days_remaining': days_remaining,
                     'plan_name': subscription.plan.display_name,
                     'end_date': subscription.end_date,
-                    'expires_soon': subscription.days_remaining <= 7 and subscription.days_remaining > 0,
+                    'expires_soon': expires_soon,
                     'needs_attention': subscription.is_expired or subscription.is_in_grace_period,
                     'has_pending_renewal': has_pending_renewal,
                     'has_pending_upgrade': has_pending_upgrade,

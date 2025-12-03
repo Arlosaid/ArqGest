@@ -14,8 +14,10 @@
 # ====================================
 # EMAILS - Recordatorios de renovación
 # ====================================
-# Ejecuta cada día a las 9:00 AM para enviar emails a organizaciones
-# cuyas suscripciones vencen en exactamente 3 días
+# Trial (gratuito): Enviar recordatorio 3 días antes
+0 9 * * * cd /app/arc_manager && python manage.py send_trial_reminder --days=3 >> /app/logs/cron.log 2>&1
+
+# Plan básico: Enviar recordatorio 1 día antes (mañana vence)
 0 9 * * * cd /app/arc_manager && python manage.py send_renewal_reminders >> /app/logs/cron.log 2>&1
 
 # ====================================

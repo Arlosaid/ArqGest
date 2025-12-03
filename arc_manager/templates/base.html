@@ -103,54 +103,62 @@
                             </a>
                         </div>
                     </div>
-                {# Banner azul para solicitudes pendientes SIN expirar (solo admins) #}
+                {# Banner premium para solicitudes pendientes SIN expirar #}
                 {% elif info.has_pending_renewal or info.has_pending_upgrade %}
-                    <div class="alert alert-info alert-dismissible fade subscription-alert" 
-                         role="alert" 
-                         style="margin:12px 12px 0 12px; padding:16px; display:none;"
-                         data-alert-key="subscription-pending-{% if info.has_pending_upgrade %}upgrade{% else %}renewal{% endif %}">
-                        <div style="display:flex; align-items:start; gap:12px;">
-                            <div style="font-size:24px; color:#0d6efd;">
+                    <div class="subscription-premium-banner pending">
+                        <div class="subscription-banner-content">
+                            <div class="subscription-banner-icon pending">
                                 <i class="fas fa-hourglass-half"></i>
                             </div>
-                            <div style="flex:1;">
-                                <strong style="font-size:1.1rem;"><i class="fas fa-check-circle"></i> 
-                                    {% if info.has_pending_upgrade %}Solicitud de upgrade enviada{% else %}Solicitud de renovación enviada{% endif %}
-                                </strong>
-                                <div style="margin-top:8px; line-height:1.6;">
-                                    {% if info.is_expired %}
-                                        <div style="background:#fff3cd; padding:10px; border-radius:6px; margin-top:8px; border-left:3px solid #ffc107;">
-                                            <div style="color:#856404;">
-                                                <strong>⚠️ Tu suscripción expiró el {{ info.end_date|date:"d/m/Y" }}</strong>
-                                            </div>
-                                            {% if info.new_subscription_start %}
-                                            <div style="margin-top:8px; color:#28a745;">
-                                                <strong>✅ Nueva vigencia (cuando se apruebe):</strong> {{ info.new_subscription_start|date:"d/m/Y" }} - {{ info.new_subscription_end|date:"d/m/Y" }}
-                                            </div>
-                                            {% endif %}
-                                        </div>
-                                    {% else %}
-                                        <div style="background:#e7f3ff; padding:10px; border-radius:6px; margin-top:8px;">
-                                            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                                                <span><strong>📅 Tu plan actual vence:</strong></span>
-                                                <span><strong>{{ info.end_date|date:"d/m/Y" }}</strong> ({{ info.days_remaining }} día{{ info.days_remaining|pluralize:"s" }} restante{{ info.days_remaining|pluralize:"s" }})</span>
-                                            </div>
-                                            {% if info.new_subscription_start %}
-                                            <div style="display:flex; justify-content:space-between; color:#28a745;">
-                                                <span><strong>✅ Nueva vigencia (si se aprueba):</strong></span>
-                                                <span><strong>{{ info.new_subscription_start|date:"d/m/Y" }} - {{ info.new_subscription_end|date:"d/m/Y" }}</strong></span>
-                                            </div>
-                                            {% endif %}
-                                        </div>
-                                    {% endif %}
-                                    <p style="margin:10px 0 0 0;">
-                                        <strong>Siguiente paso:</strong> Realiza el pago y contacta al equipo para que aprueben tu solicitud.
-                                        {% if not info.is_expired %}No perderás ningún día de tu plan actual.{% endif %}
-                                    </p>
-                                </div>
+                            <div class="subscription-banner-text">
+                                <span class="subscription-banner-title pending">
+                                    <i class="fas fa-check-circle"></i>
+                                    {% if info.has_pending_upgrade %}¡Solicitud de upgrade enviada!{% else %}¡Solicitud de renovación enviada!{% endif %}
+                                </span>
+                                <span class="subscription-banner-subtitle">
+                                    Tu solicitud está siendo revisada. Te notificaremos cuando sea aprobada.
+                                </span>
                             </div>
+                            <a href="{% url 'plans:subscription_dashboard' %}" class="subscription-banner-btn success">
+                                <i class="fas fa-eye"></i> Ver Estado
+                            </a>
                         </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                    </div>
+                {# Banner amarillo/warning para suscripción que expira pronto SIN solicitud pendiente #}
+                {# Trial (gratuito): 2 días antes | Plan básico: último día de vigencia #}
+                {% elif info.expires_soon and not info.has_pending_renewal and not info.has_pending_upgrade %}
+                    <div class="subscription-premium-banner warning">
+                        <div class="subscription-banner-content">
+                            <div class="subscription-banner-icon warning">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="subscription-banner-text">
+                                <span class="subscription-banner-title warning">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                    {% if info.is_trial %}
+                                        Tu prueba gratuita vence en {{ info.days_remaining }} día{{ info.days_remaining|pluralize:"s" }}
+                                    {% else %}
+                                        Tu suscripción vence en {{ info.days_remaining }} día{{ info.days_remaining|pluralize:"s" }}
+                                    {% endif %}
+                                </span>
+                                <span class="subscription-banner-subtitle">
+                                    {% if info.is_trial %}
+                                        Activa tu plan para no perder acceso a tus proyectos.
+                                    {% else %}
+                                        Renueva ahora para no perder acceso a tus proyectos.
+                                    {% endif %}
+                                </span>
+                            </div>
+                            {% if info.is_trial %}
+                                <a href="{% url 'plans:request_upgrade' %}" class="subscription-banner-btn warning">
+                                    <i class="fas fa-rocket"></i> Activar Plan
+                                </a>
+                            {% else %}
+                                <a href="{% url 'plans:renew_subscription' %}" class="subscription-banner-btn warning">
+                                    <i class="fas fa-sync-alt"></i> Renovar Ahora
+                                </a>
+                            {% endif %}
+                        </div>
                     </div>
                 {# Banner rojo para suscripción expirada SIN solicitud pendiente #}
                 {% elif info.is_expired %}
