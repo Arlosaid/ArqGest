@@ -125,7 +125,7 @@ class Command(BaseCommand):
                         'domain': site_url.replace('https://', '').replace('http://', ''),
                         'organization_name': org.name,
                         'plan_name': sub.plan.display_name,
-                        'renewal_url': f'{site_url}/plans/subscription/',
+                        'renewal_url': f'{site_url}/plans/dashboard/',
                         'days_left': 3,
                         'is_urgent': False,
                     }
