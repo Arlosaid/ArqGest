@@ -1,9 +1,14 @@
-# Ejecutar recordatorios de renovación todos los días a las 9:00 AM (UTC)
-# Para México (UTC-6): 9 AM = 15:00 UTC, 8 AM = 14:00 UTC
-0 14 * * * cd /app/arc_manager && python manage.py send_renewal_reminders 2>&1
+# ArqGest Cron Jobs
+# Horario: México (UTC-6), el cron corre en UTC
 
-# Enviar notificación de trial expirado diariamente a las 9:05 AM (México)
-5 14 * * * cd /app/arc_manager && python manage.py send_trial_expiration_notice 2>&1
+# Actualizar estados de suscripción expiradas cada hora
+0 * * * * cd /app/arc_manager && python manage.py update_expired_subscriptions >> /app/logs/cron.log 2>&1
 
-# Limpiar logs antiguos cada domingo a las 2:00 AM
+# Enviar recordatorio de renovación (3 días antes) - 9:00 AM México = 15:00 UTC
+0 15 * * * cd /app/arc_manager && python manage.py send_renewal_reminders >> /app/logs/cron.log 2>&1
+
+# Enviar notificación de trial expirado (día 0) - 9:05 AM México = 15:05 UTC
+5 15 * * * cd /app/arc_manager && python manage.py send_trial_expiration_notice >> /app/logs/cron.log 2>&1
+
+# Limpiar logs antiguos cada domingo a las 2:00 AM UTC
 0 2 * * 0 find /app/logs -name "*.log" -mtime +30 -delete 2>&1

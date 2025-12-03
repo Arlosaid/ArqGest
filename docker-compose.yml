@@ -215,20 +215,7 @@ services:
   cron:
     build:
       context: .
-      dockerfile: Dockerfile
-    
-    command: >
-      sh -c "
-        until pg_isready -h db -p 5432 -U ${POSTGRES_USER:-postgres} > /dev/null 2>&1; do
-          sleep 2
-        done &&
-        if [ -f /app/scripts/crontab ]; then
-          cp /app/scripts/crontab /etc/crontabs/root &&
-          crond -f -l 2
-        else
-          tail -f /dev/null
-        fi
-      "
+      dockerfile: Dockerfile.cron
     
     volumes:
       - ./arc_manager:/app/arc_manager:cached
@@ -237,6 +224,8 @@ services:
     
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       web:
         condition: service_started
@@ -256,14 +245,35 @@ services:
         compress: "true"
     
     environment:
+      # Core Django
+      - DOCKER_CONTAINER=true
+      - DEBUG=${DEBUG:-True}
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres123}@db:5432/${POSTGRES_DB:-arc_manager_dev}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0}
+      
+      # Redis cache
+      - REDIS_URL=redis://redis:6379/0
+      
+      # Email (Resend)
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-noreply@localhost}
+      - REPLY_TO_EMAIL=${REPLY_TO_EMAIL:-}
+      
+      # Site info
+      - SITE_NAME=${SITE_NAME:-ArqGest}
+      - SITE_DOMAIN=${SITE_DOMAIN:-localhost:8000}
+      - SITE_URL=${SITE_URL:-http://localhost:8000}
+      
+      # Python optimizations
       - PYTHONUNBUFFERED=1
-      # Variables de logging ultra-minimalista (forzadas a true)
+      - PYTHONDONTWRITEBYTECODE=1
+      
+      # Logging
       - LOG_REQUESTS=true
       - LOG_ONLY_ERRORS=true
       - LOG_SLOW_REQUESTS=false
       - SAMPLE_RATE=0
-      - SLOW_REQUEST_THRESHOLD=2000
     
     restart: unless-stopped
 
