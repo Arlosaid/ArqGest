@@ -76,37 +76,5 @@
 </div>
 
 {% if tasks_page_obj.has_other_pages %}
-<div class="pagination-container mt-3">
-    <nav aria-label="Paginación de tareas">
-        <ul class="pagination justify-content-center">
-            {% if tasks_page_obj.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="#" data-page="{{ tasks_page_obj.previous_page_number }}">
-                        <i class="fas fa-chevron-left"></i>
-                    </a>
-                </li>
-            {% endif %}
-            
-            {% for num in tasks_page_obj.paginator.page_range %}
-                {% if num == tasks_page_obj.number %}
-                    <li class="page-item active">
-                        <span class="page-link">{{ num }}</span>
-                    </li>
-                {% elif num|add:'-5' <= tasks_page_obj.number <= num|add:'5' %}
-                    <li class="page-item">
-                        <a class="page-link" href="#" data-page="{{ num }}">{{ num }}</a>
-                    </li>
-                {% endif %}
-            {% endfor %}
-            
-            {% if tasks_page_obj.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="#" data-page="{{ tasks_page_obj.next_page_number }}">
-                        <i class="fas fa-chevron-right"></i>
-                    </a>
-                </li>
-            {% endif %}
-        </ul>
-    </nav>
-</div>
+{% include 'partials/pagination.html' with page_obj=tasks_page_obj page_param='tasks_page' item_label='tareas' ajax_mode=True show_first_last=False %}
 {% endif %}

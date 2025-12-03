@@ -1,37 +1,112 @@
 {% comment %}
+Paginación Unificada - Estilo Moderno Circular
 Uso:
 {% include 'partials/pagination.html' with page_obj=page_obj page_param='page' extra_params='search=foo&' item_label='tareas' %}
+
+Parámetros opcionales:
+- page_obj: Objeto de paginación (requerido)
+- page_param: Nombre del parámetro de página (default: 'page')
+- extra_params: Parámetros adicionales para la URL (ej: 'search=foo&status=active&')
+- item_label: Etiqueta para el contador (default: 'elementos')
+- anchor: Ancla para la URL (ej: 'tabla')
+- show_info: Mostrar contador de elementos (default: True)
+- show_first_last: Mostrar botones primera/última página (default: True)
+- ajax_mode: Usar data-page en lugar de href para AJAX (default: False)
 {% endcomment %}
 
 {% if page_obj and page_obj.paginator.num_pages > 1 %}
 {% with effective_page_param=page_param|default:'page' %}
-<div class="pagination-container">
-	<div class="pagination-info">
-		<span>Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} {{ item_label|default:'elementos' }}</span>
-	</div>
-	<div class="pagination">
-		{% if page_obj.has_previous %}
-			<a href="?{% if extra_params %}{{ extra_params }}{% endif %}{{ effective_page_param }}=1{% if anchor %}#{{ anchor }}{% endif %}" class="pagination-btn">
-				<i class="fas fa-angle-double-left"></i>
-			</a>
-			<a href="?{% if extra_params %}{{ extra_params }}{% endif %}{{ effective_page_param }}={{ page_obj.previous_page_number }}{% if anchor %}#{{ anchor }}{% endif %}" class="pagination-btn">
-				<i class="fas fa-chevron-left"></i>
-				Anterior
-			</a>
-		{% endif %}
-
-		<span class="pagination-current">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-
-		{% if page_obj.has_next %}
-			<a href="?{% if extra_params %}{{ extra_params }}{% endif %}{{ effective_page_param }}={{ page_obj.next_page_number }}{% if anchor %}#{{ anchor }}{% endif %}" class="pagination-btn">
-				Siguiente
-				<i class="fas fa-chevron-right"></i>
-			</a>
-			<a href="?{% if extra_params %}{{ extra_params }}{% endif %}{{ effective_page_param }}={{ page_obj.paginator.num_pages }}{% if anchor %}#{{ anchor }}{% endif %}" class="pagination-btn">
-				<i class="fas fa-angle-double-right"></i>
-			</a>
-		{% endif %}
-	</div>
+<div class="arc-pagination-container">
+    {% if show_info != False %}
+    <div class="arc-pagination-info">
+        <i class="fas fa-list-ul"></i>
+        <span>Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} {{ item_label|default:'elementos' }}</span>
+    </div>
+    {% endif %}
+    
+    <nav aria-label="Navegación de {{ item_label|default:'páginas' }}">
+        <ul class="arc-pagination">
+            {# Botón Primera Página #}
+            {% if show_first_last != False and page_obj.has_previous %}
+            <li class="arc-pagination-item">
+                {% if ajax_mode %}
+                <a class="arc-pagination-btn arc-pagination-nav" href="#" data-page="1" title="Primera página">
+                    <i class="fas fa-angle-double-left"></i>
+                </a>
+                {% else %}
+                <a class="arc-pagination-btn arc-pagination-nav" 
+                   href="?{% if extra_params %}{{ extra_params }}{% endif %}{{ effective_page_param }}=1{% if anchor %}#{{ anchor }}{% endif %}"
+                   title="Primera página">
+                    <i class="fas fa-angle-double-left"></i>
+                </a>
+                {% endif %}
+            </li>
+            {% endif %}
+            
+            {# Botón Anterior #}
+            {% if page_obj.has_previous %}
+            <li class="arc-pagination-item">
+                {% if ajax_mode %}
+                <a class="arc-pagination-btn arc-pagination-nav" href="#" data-page="{{ page_obj.previous_page_number }}" title="Anterior">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                {% else %}
+                <a class="arc-pagination-btn arc-pagination-nav" 
+                   href="?{% if extra_params %}{{ extra_params }}{% endif %}{{ effective_page_param }}={{ page_obj.previous_page_number }}{% if anchor %}#{{ anchor }}{% endif %}"
+                   title="Anterior">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                {% endif %}
+            </li>
+            {% endif %}
+            
+            {# Indicador de Página Actual #}
+            <li class="arc-pagination-item">
+                <span class="arc-pagination-current" title="Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}">
+                    {{ page_obj.number }}
+                </span>
+            </li>
+            
+            {# Separador y Total #}
+            <li class="arc-pagination-item arc-pagination-separator">
+                <span class="arc-pagination-total">/ {{ page_obj.paginator.num_pages }}</span>
+            </li>
+            
+            {# Botón Siguiente #}
+            {% if page_obj.has_next %}
+            <li class="arc-pagination-item">
+                {% if ajax_mode %}
+                <a class="arc-pagination-btn arc-pagination-nav" href="#" data-page="{{ page_obj.next_page_number }}" title="Siguiente">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+                {% else %}
+                <a class="arc-pagination-btn arc-pagination-nav" 
+                   href="?{% if extra_params %}{{ extra_params }}{% endif %}{{ effective_page_param }}={{ page_obj.next_page_number }}{% if anchor %}#{{ anchor }}{% endif %}"
+                   title="Siguiente">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+                {% endif %}
+            </li>
+            {% endif %}
+            
+            {# Botón Última Página #}
+            {% if show_first_last != False and page_obj.has_next %}
+            <li class="arc-pagination-item">
+                {% if ajax_mode %}
+                <a class="arc-pagination-btn arc-pagination-nav" href="#" data-page="{{ page_obj.paginator.num_pages }}" title="Última página">
+                    <i class="fas fa-angle-double-right"></i>
+                </a>
+                {% else %}
+                <a class="arc-pagination-btn arc-pagination-nav" 
+                   href="?{% if extra_params %}{{ extra_params }}{% endif %}{{ effective_page_param }}={{ page_obj.paginator.num_pages }}{% if anchor %}#{{ anchor }}{% endif %}"
+                   title="Última página">
+                    <i class="fas fa-angle-double-right"></i>
+                </a>
+                {% endif %}
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
 </div>
 {% endwith %}
 {% endif %}

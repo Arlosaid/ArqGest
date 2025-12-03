@@ -319,8 +319,8 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
             except (PageNotAnInteger, EmptyPage):
                 return paginator.page(1)
 
-        # Paginación: pestaña Fases (8 por página)
-        phases_page_obj = build_page(phases, 8, 'phases_page')
+        # Paginación: pestaña Fases (5 por página)
+        phases_page_obj = build_page(phases, 5, 'phases_page')
         context['phases_page_obj'] = phases_page_obj
 
         # Simplificado: mostrar todas las fases para archivos (sin paginación)
