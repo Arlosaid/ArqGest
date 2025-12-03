@@ -4,7 +4,329 @@
 {% block title %}Mejorar Plan - ArqGest{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/upgrade_plan.css' %}?v=6.4">
+<link rel="stylesheet" href="{% static 'css/upgrade_plan.css' %}?v=6.6">
+<style>
+    /* ===== UPGRADE PAGE - REDESIGN ===== */
+    
+    /* Two Column Layout */
+    .upgrade-layout {
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        gap: 30px;
+        margin-top: 30px;
+    }
+    
+    /* Bank Details Card */
+    .bank-details-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .bank-header {
+        background: linear-gradient(135deg, #004481 0%, #002d56 100%);
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .bank-logo {
+        background: white;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-weight: 800;
+        font-size: 0.95rem;
+        color: #004481;
+        letter-spacing: 1px;
+    }
+    
+    .bank-header h3 {
+        margin: 0;
+        color: white;
+        font-size: 0.95rem;
+        font-weight: 600;
+    }
+    
+    .bank-body {
+        padding: 20px;
+    }
+    
+    .bank-details-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+    
+    .bank-detail-item {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+    
+    .bank-detail-item .detail-label {
+        font-size: 0.75rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+    
+    .bank-detail-item .detail-value {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    .bank-detail-item .detail-value.account-number {
+        font-family: 'Courier New', monospace;
+        font-size: 1rem;
+        letter-spacing: 1px;
+        background: #f8fafc;
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px dashed #cbd5e1;
+    }
+    
+    .copy-btn {
+        background: #e2e8f0;
+        border: none;
+        padding: 5px 8px;
+        border-radius: 5px;
+        cursor: pointer;
+        color: #64748b;
+        font-size: 0.8rem;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .copy-btn:hover {
+        background: #f97316;
+        color: white;
+    }
+    
+    .copy-btn.copied {
+        background: #10b981;
+        color: white;
+    }
+    
+    .bank-note {
+        margin-top: 15px;
+        padding-top: 12px;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+    }
+    
+    .bank-note i {
+        color: #f59e0b;
+        font-size: 0.9rem;
+        margin-top: 2px;
+    }
+    
+    .bank-note p {
+        margin: 0;
+        font-size: 0.8rem;
+        color: #64748b;
+        line-height: 1.5;
+    }
+    
+    /* Process Card */
+    .upgrade-process-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        padding: 20px;
+        border: 1px solid rgba(0,0,0,0.05);
+        margin-top: 20px;
+    }
+    
+    .process-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0 0 16px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .process-title i {
+        color: #f97316;
+    }
+    
+    .process-steps-compact {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .process-step-compact {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+    }
+    
+    .step-num {
+        width: 26px;
+        height: 26px;
+        background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.8rem;
+        flex-shrink: 0;
+    }
+    
+    .step-text {
+        font-size: 0.85rem;
+        color: #475569;
+        line-height: 1.4;
+        padding-top: 3px;
+    }
+    
+    .step-text strong {
+        color: #1e293b;
+    }
+    
+    /* Info Box */
+    .upgrade-info-box {
+        background: linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%);
+        border: 1px solid #fcd34d;
+        border-radius: 10px;
+        padding: 12px 14px;
+        margin-top: 16px;
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+    }
+    
+    .upgrade-info-box i {
+        color: #f59e0b;
+        font-size: 1rem;
+        margin-top: 1px;
+    }
+    
+    .upgrade-info-box p {
+        margin: 0;
+        font-size: 0.8rem;
+        color: #92400e;
+        line-height: 1.4;
+    }
+    
+    /* Right Sidebar */
+    .upgrade-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        position: sticky;
+        top: 100px;
+    }
+    
+    /* Support Footer */
+    .upgrade-support {
+        text-align: center;
+        padding: 16px;
+        background: #f8fafc;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .upgrade-support p {
+        color: #64748b;
+        margin: 0 0 8px 0;
+        font-size: 0.85rem;
+    }
+    
+    .support-links-compact {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 0.85rem;
+    }
+    
+    .support-links-compact span {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        color: #1e293b;
+        font-weight: 600;
+    }
+    
+    .support-links-compact i {
+        color: #f97316;
+    }
+    
+    /* Support Footer - Full Width */
+    .upgrade-support-full {
+        margin-top: 40px;
+        padding: 20px 25px;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        text-align: center;
+    }
+    
+    .upgrade-support-full p {
+        color: #64748b;
+        margin: 0 0 12px 0;
+        font-size: 0.95rem;
+    }
+    
+    .upgrade-support-full .support-links {
+        display: flex;
+        justify-content: center;
+        gap: 30px;
+        flex-wrap: wrap;
+    }
+    
+    .upgrade-support-full .support-links span {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #1e293b;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+    
+    .upgrade-support-full .support-links i {
+        color: #f97316;
+    }
+    
+    @media (max-width: 968px) {
+        .upgrade-layout {
+            grid-template-columns: 1fr;
+        }
+        
+        .upgrade-sidebar {
+            position: static;
+        }
+        
+        .support-contacts {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .support-contact-item {
+            width: 100%;
+            max-width: 300px;
+            justify-content: center;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -53,9 +375,10 @@
         <form method="post" class="upgrade-form" action="{% url 'plans:request_upgrade' %}" data-disable-loading="true">
             {% csrf_token %}
             
-            <div class="main-content-grid">
+            {% if available_plans %}
+            <div class="upgrade-layout">
+                <!-- Left: Plans Comparison -->
                 <div class="left-content">
-                    
                     <div class="plans-comparison">
                         <div class="comparison-header">
                             <h2>Compara tu plan actual con las mejoras disponibles</h2>
@@ -63,7 +386,6 @@
                         </div>
 
                         <div class="plans-grid">
-                            
                             <div class="plan-card current-plan">
                                 <div class="plan-header">
                                     <div class="plan-badge current">Plan Actual</div>
@@ -93,7 +415,6 @@
                                 </div>
                             </div>
 
-                            {% if available_plans %}
                             {% with target_plan=available_plans.0 %}
                             <div class="plan-card upgrade-plan recommended" id="targetPlanCard">
                                 <div class="plan-header">
@@ -125,26 +446,109 @@
                                 </div>
                             </div>
                             {% endwith %}
-                            {% else %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right: Sidebar with Bank + Process -->
+                <div class="upgrade-sidebar">
+                    <!-- Bank Details Card -->
+                    <div class="bank-details-card">
+                        <div class="bank-header">
+                            <div class="bank-logo">BBVA</div>
+                            <h3>Datos para Depósito</h3>
+                        </div>
+                        <div class="bank-body">
+                            <div class="bank-details-grid">
+                                <div class="bank-detail-item">
+                                    <span class="detail-label">Banco</span>
+                                    <span class="detail-value">BBVA México</span>
+                                </div>
+                                <div class="bank-detail-item">
+                                    <span class="detail-label">Titular</span>
+                                    <span class="detail-value">Roberto Alonso De La Cruz Hernandez</span>
+                                </div>
+                                <div class="bank-detail-item">
+                                    <span class="detail-label">CLABE Interbancaria</span>
+                                    <span class="detail-value account-number">
+                                        012 180 01521162743 4
+                                        <button type="button" class="copy-btn" onclick="copyToClipboard('012180015211627434', this)">
+                                            <i class="fas fa-copy"></i> Copiar
+                                        </button>
+                                    </span>
+                                </div>
+                                <div class="bank-detail-item">
+                                    <span class="detail-label">Número de Cuenta</span>
+                                    <span class="detail-value">152 116 2743</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Process Card -->
+                    <div class="upgrade-process-card">
+                        <h4 class="process-title">
+                            <i class="fas fa-list-ol"></i>
+                            ¿Cómo funciona?
+                        </h4>
+                        <div class="process-steps-compact">
+                            <div class="process-step-compact">
+                                <div class="step-num">1</div>
+                                <div class="step-text"><strong>Haz clic</strong> en "Actualizar al plan"</div>
+                            </div>
+                            <div class="process-step-compact">
+                                <div class="step-num">2</div>
+                                <div class="step-text"><strong>Realiza el pago</strong> con los datos de arriba</div>
+                            </div>
+                            <div class="process-step-compact">
+                                <div class="step-num">3</div>
+                                <div class="step-text"><strong>Envía tu comprobante</strong> al <strong>{{ support_phone }}</strong> o a <strong>{{ support_email }}</strong></div>
+                            </div>
+                            <div class="process-step-compact">
+                                <div class="step-num">4</div>
+                                <div class="step-text"><strong>¡Listo!</strong> Activamos tu plan en menos de 24hrs</div>
+                            </div>
+                        </div>
+                        
+                        <div class="upgrade-info-box">
+                            <i class="fas fa-info-circle"></i>
+                            <p>
+                                Tu nuevo plan comienza inmediatamente después de verificar el pago.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Support Section - Full Width at Bottom -->
+            <div class="upgrade-support-full">
+                <p>¿Tienes dudas sobre el proceso de actualización?</p>
+                <div class="support-links">
+                    <span><i class="fas fa-phone"></i> {{ support_phone }}</span>
+                    <span><i class="fas fa-envelope"></i> {{ support_email }}</span>
+                </div>
+            </div>
+            {% else %}
+            <div class="main-content-grid">
+                <div class="left-content">
+                    <div class="plans-comparison">
+                        <div class="plans-grid">
                             <div class="no-plans-card">
                                 <div class="no-plans-icon">
                                     <i class="fas fa-star"></i>
                                 </div>
                                 <h3>¡Ya tienes el mejor plan disponible!</h3>
                                 <p>Tu plan actual incluye todas las características premium. Si necesitas funcionalidades adicionales, contáctanos.</p>
-                                <a href="mailto:soporte@tuempresa.com" class="contact-support-btn">
+                                <a href="mailto:{{ support_email }}" class="contact-support-btn">
                                     <i class="fas fa-envelope"></i>
                                     Contactar Soporte
                                 </a>
                             </div>
-                            {% endif %}
                         </div>
                     </div>
-
-                    {# Nota removida por simplicidad #}
                 </div>
-
             </div>
+            {% endif %}
         </form>
     {% endif %}
 </div>
@@ -154,5 +558,22 @@
 {{ block.super }}
 <script src="{% static 'js/upgrade_plan.js' %}?v=2.1"></script>
 <script src="{% static 'js/upgrade_plan_confirm.js' %}?v=1.0"></script>
+<script>
+// Función para copiar al portapapeles
+function copyToClipboard(text, button) {
+    navigator.clipboard.writeText(text).then(function() {
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check"></i> Copiado';
+        button.classList.add('copied');
+        
+        setTimeout(function() {
+            button.innerHTML = originalHTML;
+            button.classList.remove('copied');
+        }, 2000);
+    }).catch(function(err) {
+        console.error('Error al copiar:', err);
+    });
+}
+</script>
 {% endblock %}
 

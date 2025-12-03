@@ -103,10 +103,12 @@ class TestOrganizationValidation:
     
     def test_name_max_length_validation(self):
         """El nombre no debe exceder 100 caracteres - BUG POTENCIAL"""
+        from django.core.exceptions import ValidationError
         long_name = 'A' * 101  # 101 caracteres
         
-        with pytest.raises(Exception):  # DataError por exceder max_length
-            Organization.objects.create(name=long_name)
+        org = Organization(name=long_name)
+        with pytest.raises(ValidationError):
+            org.full_clean()
     
     def test_negative_extra_storage_allowed(self):
         """El almacenamiento extra PUEDE ser negativo (reducir del plan base)"""

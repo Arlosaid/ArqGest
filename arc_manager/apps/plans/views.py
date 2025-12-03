@@ -129,6 +129,10 @@ class RequestUpgradeView(LoginRequiredMixin, OrgAdminRequiredMixin, TemplateView
                 is_active=True,
                 price__gt=subscription.plan.price
             ).order_by('price')
+        
+        # Datos de contacto de soporte
+        context['support_phone'] = getattr(settings, 'SUPPORT_PHONE', '55 1234 5678')
+        context['support_email'] = getattr(settings, 'SUPPORT_EMAIL', 'soporte@tuempresa.com')
             
         return context
     

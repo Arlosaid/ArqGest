@@ -68,6 +68,9 @@ staticroot/
 # Django media files (uploaded by users)
 media/
 
+# Django temp uploads directory
+temp_uploads/
+
 # Django logs directory
 logs/
 *.log

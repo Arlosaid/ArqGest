@@ -419,17 +419,19 @@ class TestPhaseValidations:
     
     def test_phase_name_max_length(self):
         """Nombre no debe exceder 100 caracteres"""
+        from django.core.exceptions import ValidationError
         project = ProjectFactory()
         
         # 101 caracteres
         long_name = 'A' * 101
         
-        with pytest.raises(Exception):  # ValidationError o DataError
-            Phase.objects.create(
-                project=project,
-                name=long_name,
-                order=1
-            )
+        phase = Phase(
+            project=project,
+            name=long_name,
+            order=1
+        )
+        with pytest.raises(ValidationError):
+            phase.full_clean()
     
     def test_phase_order_must_be_positive(self):
         """Order debe ser un entero positivo"""

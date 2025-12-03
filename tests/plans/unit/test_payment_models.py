@@ -587,15 +587,18 @@ class TestPaymentEdgeCases:
         BUG POTENCIAL: processed_by tiene max_length=100
         Django debe lanzar error si intentamos guardar más caracteres
         """
+        from django.core.exceptions import ValidationError
         subscription = SubscriptionFactory()
         long_processed_by = 'A' * 200
         
-        # Django debe lanzar DataError al intentar guardar más de 100 caracteres
-        with pytest.raises(Exception):  # DataError de Django
-            PaymentFactory(
-                subscription=subscription,
-                processed_by=long_processed_by
-            )
+        payment = Payment(
+            subscription=subscription,
+            amount=Decimal('100.00'),
+            payment_type='manual',
+            processed_by=long_processed_by
+        )
+        with pytest.raises(ValidationError):
+            payment.full_clean()
     
     def test_multiple_payments_same_subscription(self):
         """Múltiples pagos para la misma suscripción"""
