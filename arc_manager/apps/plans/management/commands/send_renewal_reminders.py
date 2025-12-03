@@ -100,59 +100,53 @@ class Command(BaseCommand):
                     skipped_count += 1
                     continue
                 
-                # Obtener SOLO administradores de la organización
-                org_admins = org.users.filter(is_org_admin=True)
-                admin_emails = [admin.email for admin in org_admins]
+                # Obtener el primer administrador de la organización
+                org_admin = org.users.filter(is_org_admin=True).first()
                 
-                if not admin_emails:
+                if not org_admin:
                     logger.warning(f"Sin admins: {org.name}")
                     skipped_count += 1
                     continue
                 
-                emails_sent_for_org = 0
+                user_email = org_admin.email
                 
-                # Enviar email a todos los administradores
-                for user_email in admin_emails:
-                    try:
-                        if dry_run:
-                            self.stdout.write(f"  [DRY RUN] Enviaría a: {user_email} ({org.name})")
-                            sent_count += 1
-                            emails_sent_for_org += 1
-                            continue
-                        
-                        subject = f'Tu plan vence en 3 días - {site_name}'
-                        
-                        context = {
-                            'site_name': site_name,
-                            'protocol': 'https',
-                            'domain': site_url.replace('https://', '').replace('http://', ''),
-                            'organization_name': org.name,
-                            'plan_name': sub.plan.display_name,
-                            'renewal_url': f'{site_url}/plans/subscription/',
-                            'days_left': 3,
-                            'is_urgent': False,
-                        }
-                        
-                        html = render_to_string('emails/renewal_reminder_email.html', context)
-                        result = send_resend_email(user_email, subject, html)
-                        
-                        if result and result.get('id'):
-                            logger.debug(f"Email enviado: {user_email} - {org.name}")
-                            sent_count += 1
-                            emails_sent_for_org += 1
-                        else:
-                            logger.error(f"Error enviando: {user_email}")
-                            failed_count += 1
-                        
-                        time.sleep(0.6)
-                        
-                    except Exception as e:
-                        logger.error(f"Error {user_email}: {str(e)}")
+                # Enviar UN solo email por organización
+                try:
+                    if dry_run:
+                        self.stdout.write(f"  [DRY RUN] Enviaría a: {user_email} ({org.name})")
+                        sent_count += 1
+                        continue
+                    
+                    subject = f'Tu plan vence en 3 días - {site_name}'
+                    
+                    context = {
+                        'site_name': site_name,
+                        'protocol': 'https',
+                        'domain': site_url.replace('https://', '').replace('http://', ''),
+                        'organization_name': org.name,
+                        'plan_name': sub.plan.display_name,
+                        'renewal_url': f'{site_url}/plans/subscription/',
+                        'days_left': 3,
+                        'is_urgent': False,
+                    }
+                    
+                    html = render_to_string('emails/renewal_reminder_email.html', context)
+                    result = send_resend_email(user_email, subject, html)
+                    
+                    if result and result.get('id'):
+                        logger.info(f"Email renovación enviado: {user_email} - {org.name}")
+                        sent_count += 1
+                        # Marcar en cache para evitar duplicados
+                        cache.set(org_cache_key, True, timeout=604800)  # 7 días
+                    else:
+                        logger.error(f"Error enviando: {user_email}")
                         failed_count += 1
-                
-                # Marcar en cache solo si se envió al menos un email
-                if emails_sent_for_org > 0:
-                    cache.set(org_cache_key, True, timeout=604800)  # 7 días
+                    
+                    time.sleep(0.6)
+                    
+                except Exception as e:
+                    logger.error(f"Error {user_email}: {str(e)}")
+                    failed_count += 1
             
             summary = f"Enviados: {sent_count} | Fallidos: {failed_count} | Omitidos: {skipped_count}"
             
