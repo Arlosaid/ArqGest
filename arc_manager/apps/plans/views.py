@@ -412,31 +412,40 @@ def cron_renewal_reminders(request):
     
     try:
         results = []
+        logger.info("CRON: Iniciando ejecución de recordatorios")
         
-        # 1. Recordatorios para TRIAL (1 día antes)
-        logger.debug("Ejecutando recordatorios de trial via cron endpoint")
-        output_trial = StringIO()
-        call_command('send_trial_reminder', '--days=1', stdout=output_trial)
-        trial_result = output_trial.getvalue().strip()
-        results.append(f"Trial: {trial_result}")
+        # =============================================
+        # RECORDATORIOS PARA TRIAL (Plan Gratuito)
+        # =============================================
+        # Enviar a los 2 días antes
+        output_trial_2 = StringIO()
+        call_command('send_trial_reminder', '--days=2', stdout=output_trial_2)
+        trial_2_result = output_trial_2.getvalue().strip()
+        results.append(f"Trial(2d): {trial_2_result}")
+        logger.info(f"CRON Trial 2 días: {trial_2_result}")
         
-        # 2. Recordatorios para PLAN BÁSICO (3 días antes)
-        logger.debug("Ejecutando recordatorios de renovación via cron endpoint")
+        # Enviar a 1 día antes (aviso urgente)
+        output_trial_1 = StringIO()
+        call_command('send_trial_reminder', '--days=1', stdout=output_trial_1)
+        trial_1_result = output_trial_1.getvalue().strip()
+        results.append(f"Trial(1d): {trial_1_result}")
+        logger.info(f"CRON Trial 1 día: {trial_1_result}")
+        
+        # =============================================
+        # RECORDATORIOS PARA PLAN BÁSICO (Renovación)
+        # =============================================
+        # Enviar a los 3 días antes
         output_renewal = StringIO()
         call_command('send_renewal_reminders', stdout=output_renewal)
         renewal_result = output_renewal.getvalue().strip()
-        results.append(f"Básico: {renewal_result}")
+        results.append(f"Básico(3d): {renewal_result}")
+        logger.info(f"CRON Básico 3 días: {renewal_result}")
         
         combined_result = " | ".join(results)
-        
-        # Solo loguear INFO si hay recordatorios enviados
-        if 'enviados' in combined_result.lower():
-            logger.info(f"Recordatorios ejecutados: {combined_result}")
-        else:
-            logger.debug(f"Cron ejecutado: {combined_result}")
+        logger.info(f"CRON: Finalizado - {combined_result}")
         
         return HttpResponse(f'OK - {combined_result}', status=200)
         
     except Exception as e:
-        logger.error(f"Error ejecutando recordatorios via cron: {e}", exc_info=True)
+        logger.error(f"CRON Error: {e}", exc_info=True)
         return HttpResponse(f'Error: {str(e)}', status=500)
