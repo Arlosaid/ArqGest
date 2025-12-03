@@ -14,15 +14,9 @@ logger = logging.getLogger('plans.notifications')
 
 
 class Command(BaseCommand):
-    help = 'Envía recordatorio a organizaciones cuyo trial vence en X días (por defecto 1 día)'
+    help = 'Envía recordatorio a organizaciones cuyo trial vence en exactamente 2 días'
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            '--days',
-            type=int,
-            default=1,
-            help='Días antes de expiración para enviar recordatorio (default: 1)',
-        )
         parser.add_argument(
             '--force',
             action='store_true',
@@ -151,7 +145,7 @@ class Command(BaseCommand):
                         logger.info(f"Email trial enviado: {user_email} - {org.name}")
                         sent_count += 1
                         # Marcar en cache para evitar duplicados
-                        # cache.set(org_cache_key, True, timeout=604800)  # 7 días - temporalmente desactivado
+                        cache.set(org_cache_key, True, timeout=604800)  # 7 días
                     else:
                         logger.error(f"Error enviando: {user_email}")
                         failed_count += 1
