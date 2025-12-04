@@ -648,6 +648,11 @@ class ProjectPayment(models.Model):
         blank=True,
         help_text=_("Archivo del comprobante del pago (opcional)")
     )
+    receipt_size_bytes = models.BigIntegerField(
+        _("Tamaño del Comprobante (bytes)"),
+        default=0,
+        help_text=_("Tamaño del archivo en bytes para cálculo de almacenamiento")
+    )
     receipt = models.ForeignKey(
         'files.ProjectFile',
         on_delete=models.SET_NULL,
@@ -692,6 +697,15 @@ class ProjectPayment(models.Model):
     
     def save(self, *args, **kwargs):
         """Override save para logging y invalidación de caché."""
+        # Actualizar tamaño del archivo si existe
+        if self.receipt_file:
+            try:
+                self.receipt_size_bytes = self.receipt_file.size
+            except Exception:
+                pass
+        else:
+            self.receipt_size_bytes = 0
+            
         is_new = self.pk is None
         
         super().save(*args, **kwargs)
@@ -706,6 +720,10 @@ class ProjectPayment(models.Model):
         cache.delete(f"project_total_paid:{self.project.id}")
         cache.delete(f"project_finance_stats:{self.project.id}")
         safe_delete_pattern(f"org_finance_stats:{self.project.organization.id}")
+        
+        # Invalidar caché de almacenamiento
+        from apps.orgs.storage_service import StorageService
+        StorageService.invalidate_cache(self.project.organization.id)
     
     def delete(self, *args, **kwargs):
         """Override delete para logging e invalidación de caché."""
@@ -720,6 +738,10 @@ class ProjectPayment(models.Model):
         cache.delete(f"project_total_paid:{project_id}")
         cache.delete(f"project_finance_stats:{project_id}")
         safe_delete_pattern(f"org_finance_stats:{org_id}")
+        
+        # Invalidar caché de almacenamiento
+        from apps.orgs.storage_service import StorageService
+        StorageService.invalidate_cache(org_id)
         
         super().delete(*args, **kwargs)
         

@@ -38,11 +38,21 @@ class StorageService:
         # Calcular desde la base de datos
         try:
             # Calcular la suma total de bytes de todos los archivos de la organización
-            total_bytes = ProjectFile.objects.filter(
+            files_bytes = ProjectFile.objects.filter(
                 phase__project__organization=organization
             ).aggregate(
                 total=Sum('size_bytes')
             )['total'] or 0
+            
+            # Sumar también los comprobantes de pago
+            from apps.projects.models import ProjectPayment
+            payments_bytes = ProjectPayment.objects.filter(
+                project__organization=organization
+            ).aggregate(
+                total=Sum('receipt_size_bytes')
+            )['total'] or 0
+            
+            total_bytes = files_bytes + payments_bytes
             
             # Convertir a GB (con 2 decimales)
             total_gb = round(total_bytes / (1024 ** 3), 2)
@@ -53,7 +63,7 @@ class StorageService:
             # Calcular porcentaje de uso
             usage_percentage = min(100, round((total_gb / plan_limit_gb) * 100, 1)) if plan_limit_gb > 0 else 100
             
-            # Contar archivos
+            # Contar archivos (solo archivos de proyecto, no comprobantes de pago)
             file_count = ProjectFile.objects.filter(
                 phase__project__organization=organization
             ).count()

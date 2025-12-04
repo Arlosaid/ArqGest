@@ -541,11 +541,27 @@ class ForcePasswordChangeView(View):
         form = ForcePasswordChangeForm(user=request.user, data=request.POST)
         if form.is_valid():
             try:
+                from django.utils import timezone
+                
                 user = request.user
                 user.set_password(form.cleaned_data['new_password1'])
                 user.password_change_required = False
+                
+                # Guardar aceptación de términos legales con timestamp
+                user.terms_accepted = True
+                user.terms_accepted_at = timezone.now()
+                user.privacy_accepted = True
+                user.privacy_accepted_at = timezone.now()
+                
                 # 🐛 FIX: Explicit update_fields para asegurar persistencia del flag
-                user.save(update_fields=['password', 'password_change_required'])
+                user.save(update_fields=[
+                    'password', 
+                    'password_change_required',
+                    'terms_accepted',
+                    'terms_accepted_at',
+                    'privacy_accepted',
+                    'privacy_accepted_at'
+                ])
                 
                 update_session_auth_hash(request, user)
                 

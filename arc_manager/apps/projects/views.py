@@ -2364,11 +2364,17 @@ class ProjectFinanceDetailView(LoginRequiredMixin, OrganizationAdminMixin, Detai
         # Obtener estadísticas financieras desde caché
         finance_stats = get_project_finance_stats(project.id)
         
-        # Pagos recientes (últimos 10) - optimizado con select_related
-        recent_payments = project.payments.select_related('created_by').all()[:10]
+        # Paginación de pagos
+        from django.core.paginator import Paginator
+        payments_list = project.payments.select_related('created_by').all()
+        paginator = Paginator(payments_list, 10)  # 10 pagos por página
+        
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
         
         context.update({
-            'recent_payments': recent_payments,
+            'recent_payments': page_obj,
+            'page_obj': page_obj,
             'payments_count': project.payments.count(),
             'finance_stats': finance_stats,
         })
