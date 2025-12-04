@@ -105,12 +105,21 @@ class OrganizationAdmin(ImportExportModelAdmin):
     # Template personalizado con instrucciones
     change_form_template = 'admin/orgs/organization/change_form.html'
     
-    list_display = ['name', 'get_active_status', 'get_founder_badge', 'user_count', 'get_storage_info', 'get_subscription_status', 'get_subscription_link', 'created_at']
+    list_display = ['name', 'get_active_status', 'get_founder_badge', 'user_count', 'get_storage_info', 'get_subscription_status', 'get_subscription_link', 'get_add_user_link', 'created_at']
     list_filter = ['is_active', 'is_founder_member', 'created_at']
     search_fields = ['name', 'description']
     readonly_fields = ['created_at', 'updated_at', 'user_count', 'get_subscription_status', 'get_subscription_link', 'get_users_display']
     
     actions = ['activate_organizations', 'deactivate_organizations', 'mark_as_founder', 'unmark_as_founder', 'reduce_extra_storage', 'add_extra_storage']
+
+    def get_add_user_link(self, obj):
+        """Enlace para agregar un usuario a esta organización."""
+        url = reverse('admin:accounts_user_add') + f'?organization={obj.id}'
+        return format_html(
+            '<a href="{}" class="button" style="background-color: #28a745; color: white; padding: 3px 10px; border-radius: 3px; font-weight: bold; font-size: 11px;">+ Usuario</a>',
+            url
+        )
+    get_add_user_link.short_description = 'Usuarios'
     
     def save_model(self, request, obj, form, change):
         """

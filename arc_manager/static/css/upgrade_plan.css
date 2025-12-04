@@ -376,6 +376,7 @@
     font-weight: 700;
     color: var(--arc-text-primary);
     margin: 0 0 var(--arc-spacing-md) 0;
+    text-align: center;
 }
 
 .plan-price {
@@ -401,10 +402,12 @@
     color: var(--arc-text-secondary);
     margin: 0;
     line-height: 1.5;
+    text-align: center;
 }
 
 .plan-features {
     padding: 0 var(--arc-spacing-lg) var(--arc-spacing-lg);
+    text-align: left;
 }
 
 .plan-features h4 {
@@ -412,6 +415,7 @@
     font-weight: 600;
     color: var(--arc-text-primary);
     margin: 0 0 var(--arc-spacing-md) 0;
+    text-align: left;
 }
 
 .features-list {
@@ -426,6 +430,7 @@
     gap: var(--arc-spacing-sm);
     font-size: 0.875rem;
     color: var(--arc-text-secondary);
+    text-align: left;
 }
 
 .feature-item i {
@@ -433,6 +438,11 @@
     font-size: 1rem;
     width: 16px;
     text-align: center;
+    flex-shrink: 0;
+}
+
+.feature-item span {
+    text-align: left;
 }
 
 .plan-action {

@@ -10,6 +10,7 @@
     --text-main: #1e293b; /* Slate 800 */
     --text-secondary: #64748b; /* Slate 500 */
     --border-color: #e2e8f0; /* Slate 200 */
+    --hover-color: #f1f5f9; /* Slate 100 */
     
     /* Sidebar Dark Theme Variables */
     --sidebar-bg: #1e293b; /* Slate 800 */
@@ -312,57 +313,35 @@ a:hover {
 
 /* View site link en header */
 .view-site-link {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: var(--primary-color);
+    background: linear-gradient(135deg, #4285f4, #3367d6); /* Color primario de la app */
     color: white !important;
     border-radius: var(--radius-md);
     text-decoration: none;
     font-size: 0.875rem;
-    font-weight: 500;
-    transition: background-color 0.2s ease;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border: none;
+    box-shadow: 0 2px 4px rgba(66, 133, 244, 0.3);
 }
 
 .view-site-link:hover {
-    background: var(--primary-hover);
+    background: linear-gradient(135deg, #3367d6, #2451b8); /* Hover más oscuro */
     color: white !important;
+    box-shadow: 0 4px 8px rgba(66, 133, 244, 0.4);
+    transform: translateY(-1px);
 }
 
 .view-site-link i {
     font-size: 0.75rem;
 }
 
-/* Mobile menu toggle - siempre oculto en desktop */
+/* Mobile menu toggle - OCULTO siempre (no funciona bien en este admin) */
 #mobile-menu-toggle {
-    display: none;
-    background: transparent !important;
-    border: none !important;
-    outline: none !important;
-    box-shadow: none !important;
-    color: var(--text-main);
-    font-size: 1.25rem;
-    cursor: pointer;
-    padding: 0.5rem;
-    border-radius: var(--radius-sm);
-    transition: background-color 0.2s;
-    flex-shrink: 0;
-    width: 40px;
-    height: 40px;
-    align-items: center;
-    justify-content: center;
-    margin: 0;
-}
-
-#mobile-menu-toggle:hover {
-    background-color: rgba(0, 0, 0, 0.05) !important;
-}
-
-#mobile-menu-toggle:focus {
-    outline: none !important;
-    box-shadow: none !important;
-    border: none !important;
+    display: none !important;
 }
 
 /* ===== MOBILE ADMIN STYLES ===== */
@@ -374,28 +353,30 @@ a:hover {
         left: 0 !important;
         right: 0 !important;
         height: 56px !important;
-        padding: 0 0.75rem !important;
+        padding: 0 1rem !important;
         z-index: 1000 !important;
         display: flex !important;
         align-items: center !important;
-    }
-    
-    /* Mostrar botón hamburguesa */
-    #mobile-menu-toggle {
-        display: flex !important;
-        order: -1;
-        margin-right: 0.5rem;
+        justify-content: space-between !important;
+        gap: 0.75rem !important;
     }
     
     #header #branding {
-        flex: 1;
-        min-width: 0;
-        overflow: hidden;
+        flex: 0 1 auto;
+        min-width: auto;
+        overflow: visible;
     }
     
     #header #branding h1 {
-        font-size: 0.95rem;
+        font-size: 1.1rem;
         margin: 0;
+        white-space: nowrap;
+    }
+    
+    #header #branding h1 a {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
     
     /* Ocultar "BIENVENIDOS, USER." en mobile */
@@ -419,14 +400,17 @@ a:hover {
     }
     
     /* Ocultar cualquier texto extra en el header excepto elementos necesarios */
-    #header > *:not(#mobile-menu-toggle):not(#branding):not(.admin-nav-global):not(.admin-user-dropdown) {
+    #header > *:not(#branding):not(.admin-nav-global):not(.admin-user-dropdown) {
         display: none !important;
     }
     
     /* Admin nav global ajustes para mobile */
     .admin-nav-global {
         display: flex !important;
+        align-items: center !important;
         gap: 0.5rem !important;
+        flex-shrink: 0 !important;
+        height: 56px !important;
     }
     
     .admin-user-greeting {
@@ -437,34 +421,43 @@ a:hover {
         display: none !important;
     }
     
-    /* User dropdown ajustes para mobile */
+    /* User dropdown ajustes para mobile - DENTRO del navbar */
     .admin-user-dropdown {
         display: flex !important;
+        align-items: center !important;
+        position: relative !important;
+        height: 100% !important;
     }
     
     .admin-user-btn {
-        padding: 0.25rem;
-        border: none;
-        background: transparent;
+        padding: 0 !important;
+        border: none !important;
+        background: transparent !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        height: 100% !important;
     }
     
     .admin-chevron {
-        display: none;
+        display: none !important;
     }
     
     .admin-user-avatar {
-        width: 36px;
-        height: 36px;
-        font-size: 1rem;
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 0.9rem !important;
+        flex-shrink: 0 !important;
     }
     
     .admin-dropdown-menu {
-        position: fixed;
-        top: 56px;
-        right: 0.5rem;
-        left: auto;
-        width: calc(100vw - 1rem);
-        max-width: 280px;
+        position: fixed !important;
+        top: 56px !important;
+        right: 0.5rem !important;
+        left: auto !important;
+        width: calc(100vw - 1rem) !important;
+        max-width: 280px !important;
+        z-index: 1100 !important;
     }
     
     /* Mostrar Ver Sitio en el dropdown en mobile */
@@ -481,6 +474,7 @@ a:hover {
     width: 100%;
     max-width: 100%;
     padding: 0;
+    padding-top: var(--header-height);
     position: relative;
 }
 
@@ -711,6 +705,71 @@ div.breadcrumbs a:hover {
     color: var(--primary-color);
 }
 
+/* Object Tools (Add, History, View on site buttons) */
+.object-tools {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    float: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-left: 0;
+    list-style: none;
+}
+
+.object-tools li {
+    float: none;
+    margin: 0;
+    padding: 0;
+    height: auto;
+    list-style: none;
+}
+
+.object-tools a {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-main);
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    text-decoration: none;
+    height: auto;
+    line-height: 1.5;
+}
+
+.object-tools a:hover {
+    background: var(--hover-color, #f1f5f9); /* Fallback if var not defined */
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.object-tools a.addlink {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.object-tools a.addlink:hover {
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
+}
+
+/* Fix for mobile */
+@media (max-width: 768px) {
+    .object-tools {
+        margin-top: 0.5rem;
+    }
+    
+    .object-tools a {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.8rem;
+    }
+}
+
 /* Dashboard Cards (Index) */
 .dashboard-container {
     display: grid;
@@ -868,34 +927,222 @@ div.breadcrumbs a:hover {
 
 /* Forms */
 .form-row {
-    padding: 1.5rem;
+    padding: 1rem;
     border-bottom: 1px solid var(--border-color);
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.35rem;
     overflow: visible; /* Fix for some Django widgets */
+}
+
+/* ===== CRITICAL: Override Django's 2-column layout ===== */
+/* Django admin uses float layout - we need to override completely */
+#content-main .aligned .form-row,
+.module .aligned .form-row,
+.aligned .form-row,
+form .form-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+}
+
+/* Force ALL labels to be block and on top */
+#content-main .aligned label,
+#content-main .form-row > label,
+.module .aligned label,
+.aligned .form-row > label,
+.aligned label,
+form .form-row label:first-child {
+    float: none !important;
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    padding: 0 0 0.35rem 0 !important;
+    margin: 0 !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    color: var(--text-main) !important;
+    text-align: left !important;
+    clear: both !important;
+}
+
+/* Force inputs/selects to be full width below label */
+#content-main .aligned .form-row input:not([type="checkbox"]):not([type="radio"]),
+#content-main .aligned .form-row select,
+#content-main .aligned .form-row textarea,
+.module .aligned .form-row input:not([type="checkbox"]):not([type="radio"]),
+.module .aligned .form-row select,
+.module .aligned .form-row textarea,
+.aligned .form-row input:not([type="checkbox"]):not([type="radio"]),
+.aligned .form-row select,
+.aligned .form-row textarea {
+    float: none !important;
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 600px !important;
+    display: block !important;
+}
+
+/* Related widget wrapper (select with action buttons) */
+.form-row .related-widget-wrapper {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+    max-width: 700px !important;
+}
+
+.form-row .related-widget-wrapper select {
+    flex: 1 !important;
+    min-width: 200px !important;
+    max-width: 600px !important;
+}
+
+.form-row .related-widget-wrapper .related-widget-wrapper-link {
+    flex-shrink: 0 !important;
+}
+
+/* Fix for highlighted fields (Plan Actual, etc.) */
+.form-row.field-plan,
+.form-row.field-organization,
+.form-row.field-email,
+.form-row.field-name {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+}
+
+.form-row.field-plan > label,
+.form-row.field-organization > label,
+.form-row.field-email > label,
+.form-row.field-name > label {
+    text-align: left !important;
+    margin-bottom: 0.35rem !important;
 }
 
 /* Override Django's default float layout for forms */
 .aligned label {
-    float: none;
-    width: auto;
-    display: block;
-    padding: 0;
+    float: none !important;
+    width: auto !important;
+    display: block !important;
+    padding: 0 !important;
+    text-align: left !important;
 }
 
 .aligned .form-row input, 
 .aligned .form-row select, 
 .aligned .form-row textarea {
-    margin-left: 0;
+    margin-left: 0 !important;
     width: 100%;
     max-width: 600px;
 }
 
+/* Ensure select fields are properly aligned */
+.form-row select,
+.form-row .related-widget-wrapper {
+    display: block;
+    width: 100%;
+    max-width: 600px;
+}
+
+.form-row .related-widget-wrapper select {
+    width: calc(100% - 90px); /* Space for action buttons */
+}
+
 .form-row label {
-    font-weight: 500;
+    font-weight: 600;
     color: var(--text-main);
     margin-bottom: 0.25rem;
+    display: block !important;
+    float: none !important;
+    text-align: left !important;
+}
+
+/* ===== CHECKBOX FIELDS IN ADMIN ===== */
+/* Fix checkbox alignment - checkbox on left, label on right */
+.form-row.field-is_active,
+.form-row.field-is_staff,
+.form-row.field-is_superuser,
+.form-row.field-is_org_admin,
+.form-row.field-is_founder_member,
+.checkbox-row {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    padding: 1rem !important;
+}
+
+/* The inner div that contains checkbox + label */
+.form-row.field-is_active > div,
+.form-row.field-is_staff > div,
+.form-row.field-is_superuser > div,
+.form-row.field-is_org_admin > div,
+.form-row.field-is_founder_member > div,
+.form-row > div:has(input[type="checkbox"]) {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    flex-wrap: wrap;
+}
+
+/* Checkbox styling */
+.form-row.field-is_active input[type="checkbox"],
+.form-row.field-is_staff input[type="checkbox"],
+.form-row.field-is_superuser input[type="checkbox"],
+.form-row.field-is_org_admin input[type="checkbox"],
+.form-row.field-is_founder_member input[type="checkbox"],
+.form-row input[type="checkbox"] {
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    min-height: 22px !important;
+    margin: 0 !important;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+    flex-shrink: 0 !important;
+}
+
+/* Label next to checkbox */
+.form-row.field-is_active label,
+.form-row.field-is_staff label,
+.form-row.field-is_superuser label,
+.form-row.field-is_org_admin label,
+.form-row.field-is_founder_member label {
+    display: inline-block !important;
+    float: none !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+/* Help text for checkbox fields - goes below */
+.form-row.field-is_active .help,
+.form-row.field-is_staff .help,
+.form-row.field-is_superuser .help,
+.form-row.field-is_org_admin .help,
+.form-row.field-is_founder_member .help,
+.form-row .help {
+    width: 100% !important;
+    flex-basis: 100% !important;
+    margin-top: 0.35rem !important;
+    font-size: 0.8rem !important;
+    color: var(--text-secondary) !important;
+    display: block !important;
+}
+
+/* Generic checkbox styling in admin */
+.aligned .form-row input[type="checkbox"] + label,
+.form-row input[type="checkbox"] + label {
+    display: inline-block !important;
+    float: none !important;
+    margin-left: 0.5rem !important;
+    margin-bottom: 0 !important;
 }
 
 input[type="text"],
@@ -914,6 +1161,11 @@ select {
     color: var(--text-main);
     background-color: var(--surface-color);
     transition: border-color 0.2s, box-shadow 0.2s;
+    height: auto !important;
+    min-height: 42px !important;
+    line-height: 1.5 !important;
+    box-sizing: border-box !important;
+    vertical-align: middle !important;
 }
 
 input:focus,
@@ -2100,4 +2352,182 @@ input[type="submit"]:hover, .submit-row input:hover {
 
 .back-to-admin i {
     font-size: 0.8rem;
+}
+
+/* ============================================ */
+/* FINAL OVERRIDE - FORM ROW VERTICAL LAYOUT   */
+/* These rules MUST be at the end for max priority */
+/* ============================================ */
+body #content-main form.main fieldset.module .aligned .form-row,
+body #content-main fieldset.module .aligned .form-row,
+body #content-main .module .aligned .form-row,
+body #content-main .aligned .form-row,
+body .aligned .form-row,
+body form .form-row,
+body .form-row,
+#changelist-form .form-row,
+#content form .form-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.35rem !important;
+    padding: 0.75rem !important;
+}
+
+body #content-main form .form-row > label,
+body #content-main .aligned .form-row > label,
+body #content-main .form-row > label,
+body .aligned .form-row > label,
+body .aligned label,
+body .form-row > label,
+#content-main .aligned label,
+#content form .form-row > label:first-child,
+fieldset.module .aligned label {
+    float: none !important;
+    position: static !important;
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    text-align: left !important;
+    padding: 0 0 0.35rem 0 !important;
+    margin: 0 !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    clear: both !important;
+    color: #1e293b !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+body #content-main form .form-row select,
+body #content-main .aligned .form-row select,
+body .aligned .form-row select,
+body .form-row select,
+#content form .form-row select {
+    float: none !important;
+    position: static !important;
+    display: block !important;
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 600px !important;
+}
+
+body #content-main form .form-row .related-widget-wrapper,
+body .aligned .form-row .related-widget-wrapper,
+body .form-row .related-widget-wrapper {
+    float: none !important;
+    position: static !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+    max-width: 700px !important;
+    margin-left: 0 !important;
+}
+
+/* ===== FIX FOR DJANGO ADMIN FLEX-CONTAINER ===== */
+/* Django uses display:flex with row direction - force column for vertical layout */
+.form-row .flex-container,
+.field-plan .flex-container,
+.field-organization .flex-container,
+fieldset.module .form-row .flex-container,
+.aligned .form-row .flex-container,
+.aligned .form-row > div > .flex-container,
+body .form-row .flex-container,
+body .aligned .form-row .flex-container {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+}
+
+/* Ensure label inside flex-container is visible */
+.form-row .flex-container > label,
+.field-plan .flex-container > label,
+.field-organization .flex-container > label,
+body .form-row .flex-container > label,
+body .aligned .form-row .flex-container > label {
+    display: block !important;
+    color: #1e293b !important;
+    font-size: 0.9rem !important;
+    font-weight: 600 !important;
+    margin-bottom: 0.25rem !important;
+    order: -1 !important;
+    width: auto !important;
+}
+
+/* Related widget wrapper and inputs inside flex-container */
+.form-row .flex-container .related-widget-wrapper,
+.form-row .flex-container select,
+.form-row .flex-container input:not([type="checkbox"]),
+body .form-row .flex-container .related-widget-wrapper,
+body .form-row .flex-container select {
+    width: 100% !important;
+    max-width: 600px !important;
+}
+
+/* Fix for readonly fields inside flex-container */
+.form-row .flex-container .readonly,
+body .form-row .flex-container .readonly {
+    width: 100% !important;
+    padding: 0.5rem 0 !important;
+}
+
+/* ============================================ */
+/* GENERIC FIX FOR DJANGO ADMIN FORM ROWS      */
+/* Handles cases where structure is div > label + div */
+/* ============================================ */
+
+/* Target the direct div child of form-row if it exists */
+.form-row > div {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+}
+
+/* Ensure label is always on top and full width/auto */
+.form-row label,
+.form-row > div > label {
+    display: block !important;
+    float: none !important;
+    width: 100% !important;
+    text-align: left !important;
+    margin-bottom: 0.5rem !important;
+    padding: 0 !important;
+}
+
+/* Ensure the widget wrapper takes full width */
+.related-widget-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Ensure select/input inside wrapper takes available space */
+.related-widget-wrapper select,
+.related-widget-wrapper input {
+    flex: 1 !important;
+    width: auto !important; /* Let flex handle width */
+    max-width: none !important;
+}
+
+/* Style the icons next to the input */
+.related-widget-wrapper-link {
+    margin-left: 0.5rem !important;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.related-widget-wrapper-link:hover {
+    opacity: 1;
+}
+
+/* Specific fix for the organization field if it has special structure */
+.field-organization,
+.field-plan {
+    padding: 1rem !important;
 }

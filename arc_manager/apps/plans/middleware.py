@@ -306,9 +306,9 @@ class SubscriptionInfoMiddleware(MiddlewareMixin):
                 is_trial = subscription.plan.is_trial
                 days_remaining = subscription.days_remaining
                 if is_trial:
-                    expires_soon = days_remaining <= 2 and days_remaining > 0
+                    expires_soon = days_remaining <= 2 and days_remaining >= 0
                 else:
-                    expires_soon = days_remaining <= 1 and days_remaining > 0
+                    expires_soon = days_remaining <= 1 and days_remaining >= 0
                 
                 # Agregar información útil al request
                 request.subscription_info = {

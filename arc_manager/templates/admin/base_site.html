@@ -10,65 +10,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Mobile Menu Toggle
-        const toggleBtn = document.createElement('button');
-        toggleBtn.id = 'mobile-menu-toggle';
-        toggleBtn.innerHTML = '<i class="fas fa-bars"></i>';
-        toggleBtn.setAttribute('aria-label', 'Toggle Menu');
-        
-        const header = document.getElementById('header');
-        if (header) {
-            header.insertBefore(toggleBtn, header.firstChild);
-        }
-        
-        const sidebar = document.getElementById('nav-sidebar');
-        const content = document.getElementById('content');
-        
-        // Create overlay element
-        const overlay = document.createElement('div');
-        overlay.id = 'sidebar-overlay';
-        overlay.style.cssText = 'display:none; position:fixed; top:56px; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1040;';
-        document.body.appendChild(overlay);
-        
-        if (toggleBtn && sidebar) {
-            toggleBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                const isOpen = sidebar.classList.toggle('open');
-                overlay.style.display = isOpen ? 'block' : 'none';
-                document.body.classList.toggle('sidebar-open', isOpen);
-            });
-            
-            // Close sidebar when clicking overlay
-            overlay.addEventListener('click', function() {
-                sidebar.classList.remove('open');
-                overlay.style.display = 'none';
-                document.body.classList.remove('sidebar-open');
-            });
-            
-            // Close sidebar when clicking outside on mobile
-            document.addEventListener('click', function(e) {
-                if (window.innerWidth <= 991.98 && 
-                    sidebar.classList.contains('open') && 
-                    !sidebar.contains(e.target) && 
-                    e.target !== toggleBtn &&
-                    !toggleBtn.contains(e.target)) {
-                    sidebar.classList.remove('open');
-                    overlay.style.display = 'none';
-                    document.body.classList.remove('sidebar-open');
-                }
-            });
-            
-            // Handle resize
-            window.addEventListener('resize', function() {
-                if (window.innerWidth > 991.98) {
-                    sidebar.classList.remove('open');
-                    overlay.style.display = 'none';
-                    document.body.classList.remove('sidebar-open');
-                }
-            });
-        }
-        
         // Add data-label to table cells for mobile responsive view
         const tables = document.querySelectorAll('#changelist table');
         tables.forEach(table => {

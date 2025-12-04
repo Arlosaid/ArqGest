@@ -77,9 +77,17 @@
                             <span class="subscription-banner-title warning">
                                 <i class="fas fa-exclamation-circle"></i>
                                 {% if info.is_trial %}
-                                    Tu prueba gratuita vence en {{ info.days_remaining }} día{{ info.days_remaining|pluralize:"s" }}
+                                    {% if info.days_remaining == 0 %}
+                                        Tu prueba gratuita vence hoy
+                                    {% else %}
+                                        Tu prueba gratuita vence en {{ info.days_remaining }} día{{ info.days_remaining|pluralize:"s" }}
+                                    {% endif %}
                                 {% else %}
-                                    Tu suscripción vence en {{ info.days_remaining }} día{{ info.days_remaining|pluralize:"s" }}
+                                    {% if info.days_remaining == 0 %}
+                                        Tu suscripción vence hoy
+                                    {% else %}
+                                        Tu suscripción vence en {{ info.days_remaining }} día{{ info.days_remaining|pluralize:"s" }}
+                                    {% endif %}
                                 {% endif %}
                             </span>
                             <span class="subscription-banner-subtitle">
