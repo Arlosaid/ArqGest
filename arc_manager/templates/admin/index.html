@@ -60,13 +60,13 @@
             {% endif %}
             
             {% if dashboard_stats.notifications.expiring_soon > 0 %}
-            <a href="{% url 'admin:plans_subscription_changelist' %}" class="notification-card warning">
+            <a href="{% url 'admin:plans_subscription_changelist' %}?expiring_soon=5" class="notification-card warning">
                 <div class="notification-card-icon">
                     <i class="fas fa-hourglass-half"></i>
                     <span class="notification-count">{{ dashboard_stats.notifications.expiring_soon }}</span>
                 </div>
                 <div class="notification-card-content">
-                    <h3>Por Expirar (7 días)</h3>
+                    <h3>Por Expirar (5 días)</h3>
                     <p>Suscripciones que vencen pronto</p>
                     <span class="notification-action">Ver detalles <i class="fas fa-chevron-right"></i></span>
                 </div>

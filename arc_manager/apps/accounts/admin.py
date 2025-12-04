@@ -51,7 +51,7 @@ class UserCreationForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ('email', 'first_name', 'last_name', 'organization')
+        fields = ('email', 'first_name', 'last_name', 'organization', 'is_org_admin')
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -147,6 +147,25 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
     
     search_fields = ['email', 'first_name', 'last_name', 'organization__name']
     ordering = ('-date_joined',)
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        
+        # Solo para nuevos usuarios (add view)
+        if not obj:
+            # Pre-fill organization from GET parameter
+            if request.method == 'GET' and 'organization' in request.GET:
+                try:
+                    org_id = request.GET.get('organization')
+                    form.base_fields['organization'].initial = org_id
+                except Exception:
+                    pass
+            
+            # Set is_org_admin to True by default
+            if 'is_org_admin' in form.base_fields:
+                form.base_fields['is_org_admin'].initial = True
+                
+        return form
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)

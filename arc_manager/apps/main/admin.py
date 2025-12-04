@@ -129,10 +129,10 @@ class AdminDashboard:
             # Solicitudes de renovación pendientes
             pending_renewals = RenewalRequest.objects.filter(status='pending').count()
             
-            # Suscripciones que expiran en los próximos 7 días
-            week_from_now = timezone.now() + timedelta(days=7)
+            # Suscripciones que expiran en los próximos 5 días
+            five_days_from_now = timezone.now() + timedelta(days=5)
             expiring_soon = Subscription.objects.filter(
-                end_date__lte=week_from_now,
+                end_date__lte=five_days_from_now,
                 subscription_status__in=['trial_active', 'basic_active']
             ).count()
             
@@ -200,6 +200,10 @@ admin.site.index_title = "Panel de Control - Gestión Integral de Proyectos Arqu
 # Función para agregar el dashboard al template admin/index.html
 def add_dashboard_to_admin_index():
     """Agregar información del dashboard al contexto del admin."""
+    # Evitar aplicar el parche múltiples veces
+    if getattr(admin.site.index, 'is_enhanced_dashboard', False):
+        return
+
     original_index_view = admin.site.index
     
     def enhanced_index_view(request, extra_context=None):
@@ -214,6 +218,7 @@ def add_dashboard_to_admin_index():
         
         return original_index_view(request, extra_context)
     
+    enhanced_index_view.is_enhanced_dashboard = True
     admin.site.index = enhanced_index_view
 
 
@@ -240,7 +245,9 @@ class SystemSettingsAdmin(admin.ModelAdmin):
     """
     Admin para las configuraciones globales del sistema.
     Solo permite editar (no crear ni eliminar) la instancia única.
-    TODOS los cambios se aplican automáticamente al guardar.
+    
+    NOTA: Para modificar límites de usuarios y almacenamiento por plan,
+    edita directamente cada Plan desde el admin de Planes.
     """
     
     def has_add_permission(self, request):
@@ -257,42 +264,26 @@ class SystemSettingsAdmin(admin.ModelAdmin):
         return self.change_view(request, str(settings.pk), '', extra_context)
     
     fieldsets = (
-        ('👥 Límites de Usuarios', {
+        ('🔧 Modo Mantenimiento', {
             'fields': (
-                'max_users_trial',
-                'max_users_basic',
+                'maintenance_mode',
+                'maintenance_message',
             ),
-            'description': 'Configure los límites de usuarios para cada tipo de plan.'
+            'description': 'Active el modo mantenimiento cuando necesite realizar actualizaciones. Solo staff y superusuarios podrán acceder.'
         }),
-        ('💾 Límites de Almacenamiento', {
+        ('📧 Información de Contacto', {
             'fields': (
-                'storage_trial_gb',
-                'storage_basic_gb',
+                'company_name',
+                'support_email',
             ),
-            'description': 'Configure los límites de almacenamiento en gigabytes para cada plan.'
+            'description': 'Configure información de contacto y soporte.'
         }),
-        ('Límites de Archivos', {
+        ('🔔 Notificaciones y Alertas', {
             'fields': (
-                # max_file_size_mb y upload_max_file_size_mobile_mb están hardcodeados en el código
-                # Si necesitas cambiarlos, edita los archivos JS directamente
+                'enable_email_notifications',
+                'low_storage_warning_percentage',
             ),
-            'description': 'Los límites de archivo están hardcodeados en 1500MB en el código JavaScript. '
-                          'Para cambiarlos, edita: large-file-upload.js, mobile_upload_optimizer.js y _files_tab.html',
-            'classes': ('collapse',)
-        }),
-        ('⚡ Configuración de Caché', {
-            'fields': (
-                'cache_timeout_seconds',
-                'storage_cache_timeout',
-            ),
-            'description': 'Configure los tiempos de caché del sistema.',
-            'classes': ('collapse',)
-        }),
-        ('🔒 Sesiones y Seguridad', {
-            'fields': (
-                'session_timeout_minutes',
-            ),
-            'description': 'Configure parámetros de sesión.',
+            'description': 'Configure alertas y notificaciones del sistema.',
             'classes': ('collapse',)
         }),
         ('🚦 Rate Limiting - Control de Carga', {
@@ -304,35 +295,19 @@ class SystemSettingsAdmin(admin.ModelAdmin):
             'description': 'Configure límites de velocidad para evitar sobrecarga del servidor.',
             'classes': ('collapse',)
         }),
-        ('💳 Planes y Facturación', {
+        ('⚡ Configuración de Caché', {
             'fields': (
-                'trial_duration_days',
-                'grace_period_days',
+                'cache_timeout_seconds',
+                'storage_cache_timeout',
             ),
-            'description': 'Configure parámetros por defecto de planes y facturación.'
-        }),
-        ('🔔 Notificaciones y Alertas', {
-            'fields': (
-                'enable_email_notifications',
-                'low_storage_warning_percentage',
-            ),
-            'description': 'Configure alertas y notificaciones del sistema.',
+            'description': 'Configure los tiempos de caché del sistema.',
             'classes': ('collapse',)
         }),
-        ('🔧 Modo Mantenimiento', {
+        ('🔒 Sesiones', {
             'fields': (
-                'maintenance_mode',
-                'maintenance_message',
+                'session_timeout_minutes',
             ),
-            'description': 'Active el modo mantenimiento cuando necesite realizar actualizaciones. Solo staff y superusuarios podrán acceder.',
-            'classes': ('collapse',)
-        }),
-        ('📧 Información de Contacto', {
-            'fields': (
-                'company_name',
-                'support_email',
-            ),
-            'description': 'Configure información de contacto y soporte.',
+            'description': 'Configure parámetros de sesión.',
             'classes': ('collapse',)
         }),
         ('Información del Sistema', {
@@ -348,12 +323,6 @@ class SystemSettingsAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         """
         Guardar configuración del sistema con logging estructurado.
-        
-        Estrategia:
-        1. Guardar cambios en DB (los signals sincronizan con Planes automáticamente)
-        2. Limpiar solo los cachés necesarios basándose en qué cambió
-        3. Logging detallado de cambios críticos
-        4. Mostrar mensaje claro de confirmación
         """
         from django.core.cache import cache
         from django.contrib import messages
@@ -382,7 +351,7 @@ class SystemSettingsAdmin(admin.ModelAdmin):
                 except SystemSettings.DoesNotExist:
                     pass
             
-            # Guardar en DB (esto dispara el signal que sincroniza con Planes)
+            # Guardar en DB
             super().save_model(request, obj, form, change)
             
             # Limpiar caché de SystemSettings para reflejar cambios
@@ -390,9 +359,6 @@ class SystemSettingsAdmin(admin.ModelAdmin):
             
             # Identificar si son cambios críticos
             critical_fields_changed = any(field in changed_fields for field in [
-                'max_users_trial', 'max_users_basic', 
-                'storage_trial_gb', 'storage_basic_gb',
-                'trial_duration_days', 'grace_period_days',
                 'maintenance_mode'
             ])
             
@@ -411,23 +377,6 @@ class SystemSettingsAdmin(admin.ModelAdmin):
                         'is_critical': True
                     }
                 )
-                
-                # Limpiar cachés de planes (signals ya actualizaron los planes)
-                cache.delete('plans_cache')
-                cache.delete('active_plans_cache')
-                
-                # Invalidar caché de organizaciones si cambiaron límites de usuarios
-                if any(field in changed_fields for field in ['max_users_trial', 'max_users_basic']):
-                    from apps.orgs.models import Organization
-                    # Invalidar caché de organizaciones (hacerlo async para no bloquear)
-                    invalidated_count = 0
-                    for org in Organization.objects.all()[:100]:  # Limitar a las primeras 100
-                        cache.delete(f"org_user_count:{org.id}")
-                        cache.delete(f"org_active_users:{org.id}")
-                        cache.delete(f"org_inactive_users:{org.id}")
-                        invalidated_count += 1
-                    
-                    logger.info(f"Cachés de {invalidated_count} organizaciones invalidados")
             elif changed_fields:
                 # Log INFO para cambios no críticos
                 log_info(
@@ -439,21 +388,18 @@ class SystemSettingsAdmin(admin.ModelAdmin):
                     updated_by=request.user.email if request.user else 'Sistema'
                 )
             
-            # Mensaje de confirmación detallado
+            # Mensaje de confirmación
             if changed_fields:
-                changes_summary = self._format_changes(changed_fields, obj)
-                
                 if critical_fields_changed:
                     messages.warning(
                         request,
-                        f"⚠️ Configuración crítica actualizada. {changes_summary} "
-                        f"Los cambios afectarán el comportamiento del sistema (caché de 1 hora)."
+                        f"⚠️ Configuración crítica actualizada: {', '.join(changed_fields)}. "
+                        f"Los cambios se aplican inmediatamente."
                     )
                 else:
                     messages.success(
                         request,
-                        f"Configuración guardada correctamente. {changes_summary} "
-                        f"Los cambios se reflejarán gradualmente (caché de 1 hora)."
+                        f"✅ Configuración guardada: {len(changed_fields)} campo(s) actualizado(s)."
                     )
             else:
                 messages.success(request, "Configuración guardada sin cambios.")
@@ -474,20 +420,3 @@ class SystemSettingsAdmin(admin.ModelAdmin):
             )
             
             raise
-    
-    def _format_changes(self, changed_fields, obj):
-        """Formatea un resumen legible de los cambios realizados"""
-        summaries = []
-        
-        # Agrupar cambios por categoría (límites de archivo removidos ya que están hardcodeados)
-        
-        if any(f in changed_fields for f in ['max_users_trial', 'max_users_basic']):
-            summaries.append(f"Usuarios (T:{obj.max_users_trial}, B:{obj.max_users_basic})")
-        
-        if any(f in changed_fields for f in ['storage_trial_gb', 'storage_basic_gb']):
-            summaries.append(f"Storage (T:{obj.storage_trial_gb}GB, B:{obj.storage_basic_gb}GB)")
-        
-        if any(f in changed_fields for f in ['trial_duration_days', 'grace_period_days']):
-            summaries.append(f"Días (Trial:{obj.trial_duration_days}, Gracia:{obj.grace_period_days})")
-        
-        return "Cambios: " + " | ".join(summaries) if summaries else f"{len(changed_fields)} campo(s) actualizado(s)"

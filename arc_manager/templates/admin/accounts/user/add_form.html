@@ -7,49 +7,49 @@
     .help-panel {
         background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
         border: 1px solid #bae6fd;
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1rem;
     }
     
     .help-panel-header {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
-        margin-bottom: 1rem;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
     }
     
     .help-panel-header i {
-        font-size: 1.5rem;
+        font-size: 1.25rem;
         color: #0284c7;
     }
     
     .help-panel-header h3 {
         margin: 0;
-        font-size: 1.1rem;
+        font-size: 1rem;
         font-weight: 700;
         color: #0c4a6e;
     }
     
     .help-steps {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
     }
     
     .help-step {
         background: white;
-        border-radius: 8px;
-        padding: 1rem;
+        border-radius: 6px;
+        padding: 0.75rem;
         display: flex;
         align-items: flex-start;
-        gap: 0.75rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        gap: 0.5rem;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.08);
     }
     
     .step-number {
-        width: 28px;
-        height: 28px;
+        width: 24px;
+        height: 24px;
         background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
         color: white;
         border-radius: 50%;
@@ -57,38 +57,38 @@
         align-items: center;
         justify-content: center;
         font-weight: 700;
-        font-size: 0.875rem;
+        font-size: 0.75rem;
         flex-shrink: 0;
     }
     
     .step-content h4 {
-        margin: 0 0 0.25rem 0;
-        font-size: 0.9rem;
+        margin: 0 0 0.15rem 0;
+        font-size: 0.8rem;
         font-weight: 600;
         color: #1e293b;
     }
     
     .step-content p {
         margin: 0;
-        font-size: 0.8rem;
+        font-size: 0.7rem;
         color: #64748b;
-        line-height: 1.4;
+        line-height: 1.3;
     }
     
     .info-box {
         background: #fef3c7;
         border: 1px solid #fcd34d;
-        border-radius: 8px;
-        padding: 1rem;
-        margin-top: 1rem;
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin-top: 0.75rem;
         display: flex;
         align-items: flex-start;
-        gap: 0.75rem;
+        gap: 0.5rem;
     }
     
     .info-box i {
         color: #d97706;
-        font-size: 1.25rem;
+        font-size: 1rem;
         flex-shrink: 0;
     }
     
@@ -99,91 +99,190 @@
     .info-box-content strong {
         display: block;
         color: #92400e;
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.15rem;
+        font-size: 0.8rem;
     }
     
     .info-box-content p {
         margin: 0;
-        font-size: 0.85rem;
+        font-size: 0.75rem;
         color: #a16207;
     }
     
     /* Mejorar los fieldsets */
     fieldset.module {
         background: white;
-        border-radius: 12px;
+        border-radius: 10px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         border: 1px solid #e2e8f0;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem;
     }
     
     fieldset.module h2 {
         background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        padding: 1rem 1.25rem;
+        padding: 0.75rem 1rem;
         margin: 0;
-        border-radius: 12px 12px 0 0;
-        font-size: 1rem;
+        border-radius: 10px 10px 0 0;
+        font-size: 0.9rem;
         font-weight: 600;
         color: #1e293b;
         border-bottom: 1px solid #e2e8f0;
+    }
+    
+    /* ===== OVERRIDE DJANGO 2-COLUMN LAYOUT ===== */
+    .aligned .form-row {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    
+    .aligned .form-row > label {
+        float: none !important;
+        display: block !important;
+        width: auto !important;
+        max-width: none !important;
+        padding: 0 0 0.5rem 0 !important;
+        margin: 0 !important;
+        text-align: left !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+        color: #1e293b !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    .aligned .form-row select,
+    .aligned .form-row input:not([type="checkbox"]),
+    .aligned .form-row textarea {
+        float: none !important;
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    .aligned .form-row .related-widget-wrapper {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 0.5rem !important;
+        width: 100% !important;
+    }
+    
+    .aligned .form-row .related-widget-wrapper select {
+        flex: 1 !important;
+        min-width: 200px !important;
     }
     
     /* Campo destacado */
     .form-row.field-email,
     .form-row.field-organization {
         background: #f0fdf4;
-        border-left: 4px solid #22c55e;
+        border-left: 3px solid #22c55e;
         margin: 0;
-        padding: 1.25rem !important;
+        padding: 0.75rem !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    
+    .form-row.field-email > label,
+    .form-row.field-organization > label {
+        float: none !important;
+        display: block !important;
+        text-align: left !important;
+        width: auto !important;
+        max-width: none !important;
+        padding: 0 0 0.5rem 0 !important;
+        margin: 0 !important;
+        font-weight: 600;
+        font-size: 0.9rem;
     }
     
     .form-row.field-email label::after,
     .form-row.field-organization label::after {
         content: ' (requerido)';
         color: #dc2626;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         font-weight: normal;
+    }
+    
+    /* Responsive para móvil */
+    @media (max-width: 768px) {
+        .help-panel {
+            padding: 0.75rem;
+        }
+        
+        .help-steps {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+        
+        .help-step {
+            padding: 0.5rem;
+        }
+        
+        .step-number {
+            width: 20px;
+            height: 20px;
+            font-size: 0.65rem;
+        }
+        
+        .step-content h4 {
+            font-size: 0.75rem;
+        }
+        
+        .step-content p {
+            font-size: 0.65rem;
+        }
+        
+        fieldset.module h2 {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.85rem;
+        }
+        
+        .form-row {
+            padding: 0.5rem !important;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content_title %}
-<h1><i class="fas fa-user-plus" style="color: #4f46e5; margin-right: 10px;"></i> Crear Nuevo Usuario</h1>
+<h1 style="font-size: 1.25rem;"><i class="fas fa-user-plus" style="color: #4f46e5; margin-right: 8px;"></i> Crear Nuevo Usuario</h1>
 {% endblock %}
 
 {% block content %}
-<a href="{% url 'admin:index' %}" class="back-to-admin">
-    <i class="fas fa-arrow-left"></i> Volver al Panel Principal
+<a href="{% url 'admin:index' %}" class="back-to-admin" style="font-size: 0.85rem; margin-bottom: 0.75rem;">
+    <i class="fas fa-arrow-left"></i> Volver al Panel
 </a>
 
 <div class="help-panel">
     <div class="help-panel-header">
         <i class="fas fa-info-circle"></i>
-        <h3>¿Cómo crear un usuario?</h3>
+        <h3>Pasos para crear usuario</h3>
     </div>
     
     <div class="help-steps">
         <div class="help-step">
             <span class="step-number">1</span>
             <div class="step-content">
-                <h4>Email del usuario</h4>
-                <p>Ingresa el correo electrónico. Será su nombre de usuario para iniciar sesión.</p>
+                <h4>Email</h4>
+                <p>Será su usuario de inicio de sesión</p>
             </div>
         </div>
         
         <div class="help-step">
             <span class="step-number">2</span>
             <div class="step-content">
-                <h4>Nombre y apellido</h4>
-                <p>Completa los datos personales para identificar al usuario.</p>
+                <h4>Datos personales</h4>
+                <p>Nombre y apellido del usuario</p>
             </div>
         </div>
         
         <div class="help-step">
             <span class="step-number">3</span>
             <div class="step-content">
-                <h4>Asignar organización</h4>
-                <p>Selecciona la empresa a la que pertenece el usuario.</p>
+                <h4>Organización</h4>
+                <p>Empresa a la que pertenece</p>
             </div>
         </div>
         
@@ -191,7 +290,7 @@
             <span class="step-number">4</span>
             <div class="step-content">
                 <h4>Guardar</h4>
-                <p>Al guardar, se envían las credenciales automáticamente por email.</p>
+                <p>Se envían credenciales por email</p>
             </div>
         </div>
     </div>
@@ -199,8 +298,8 @@
     <div class="info-box">
         <i class="fas fa-lightbulb"></i>
         <div class="info-box-content">
-            <strong>💡 Importante</strong>
-            <p>La contraseña se genera automáticamente y se envía al email del usuario. El usuario deberá cambiarla en su primer inicio de sesión.</p>
+            <strong>💡 Nota</strong>
+            <p>La contraseña se genera y envía automáticamente por email.</p>
         </div>
     </div>
 </div>

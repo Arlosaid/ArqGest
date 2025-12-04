@@ -7,40 +7,40 @@
     .help-panel {
         background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
         border: 1px solid #93c5fd;
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1rem;
     }
     
     .help-panel-header {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
-        margin-bottom: 1rem;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
     }
     
     .help-panel-header i {
-        font-size: 1.5rem;
+        font-size: 1.25rem;
         color: #2563eb;
     }
     
     .help-panel-header h3 {
         margin: 0;
-        font-size: 1.1rem;
+        font-size: 1rem;
         font-weight: 700;
         color: #1e3a8a;
     }
     
     .action-guide {
         background: white;
-        border-radius: 8px;
-        padding: 1.25rem;
-        margin-top: 1rem;
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin-top: 0.75rem;
     }
     
     .action-guide h4 {
-        margin: 0 0 1rem 0;
-        font-size: 1rem;
+        margin: 0 0 0.5rem 0;
+        font-size: 0.85rem;
         font-weight: 600;
         color: #1e293b;
         display: flex;
@@ -56,52 +56,52 @@
         list-style: none;
         padding: 0;
         margin: 0;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
     }
     
     .security-tips li {
         display: flex;
         align-items: flex-start;
-        gap: 0.75rem;
-        padding: 0.75rem;
+        gap: 0.5rem;
+        padding: 0.5rem;
         background: #f8fafc;
-        border-radius: 8px;
-        margin-bottom: 0.5rem;
-    }
-    
-    .security-tips li:last-child {
-        margin-bottom: 0;
+        border-radius: 6px;
     }
     
     .security-tips li i {
         color: #2563eb;
         flex-shrink: 0;
-        margin-top: 2px;
+        font-size: 0.85rem;
+        margin-top: 1px;
     }
     
     .security-tips li strong {
         color: #1e293b;
+        font-size: 0.8rem;
     }
     
     .security-tips li p {
-        margin: 0.25rem 0 0 0;
-        font-size: 0.85rem;
+        margin: 0.1rem 0 0 0;
+        font-size: 0.7rem;
         color: #64748b;
     }
     
     .warning-box {
         background: #fef3c7;
         border: 1px solid #fcd34d;
-        border-radius: 8px;
-        padding: 1rem;
-        margin-top: 1rem;
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin-top: 0.75rem;
         display: flex;
         align-items: flex-start;
-        gap: 0.75rem;
+        gap: 0.5rem;
     }
     
     .warning-box i {
         color: #d97706;
-        font-size: 1.25rem;
+        font-size: 1rem;
         flex-shrink: 0;
     }
     
@@ -112,29 +112,30 @@
     .warning-box-content strong {
         display: block;
         color: #92400e;
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.15rem;
+        font-size: 0.8rem;
     }
     
     .warning-box-content p {
         margin: 0;
-        font-size: 0.85rem;
+        font-size: 0.75rem;
         color: #78350f;
     }
     
     .info-box {
         background: #f3e8ff;
         border: 1px solid #d8b4fe;
-        border-radius: 8px;
-        padding: 1rem;
-        margin-top: 1rem;
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin-top: 0.75rem;
         display: flex;
         align-items: flex-start;
-        gap: 0.75rem;
+        gap: 0.5rem;
     }
     
     .info-box i {
         color: #9333ea;
-        font-size: 1.25rem;
+        font-size: 1rem;
         flex-shrink: 0;
     }
     
@@ -145,29 +146,30 @@
     .info-box-content strong {
         display: block;
         color: #6b21a8;
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.15rem;
+        font-size: 0.8rem;
     }
     
     .info-box-content p {
         margin: 0;
-        font-size: 0.85rem;
+        font-size: 0.75rem;
         color: #581c87;
     }
     
     .role-badges {
         display: flex;
-        gap: 0.75rem;
+        gap: 0.5rem;
         flex-wrap: wrap;
-        margin-top: 0.5rem;
+        margin-top: 0.35rem;
     }
     
     .role-badge {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        font-size: 0.85rem;
+        gap: 0.35rem;
+        padding: 0.35rem 0.65rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
         font-weight: 600;
     }
     
@@ -192,85 +194,156 @@
     /* Mejorar los fieldsets */
     fieldset.module {
         background: white;
-        border-radius: 12px;
+        border-radius: 10px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         border: 1px solid #e2e8f0;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem;
     }
     
     fieldset.module h2 {
         background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        padding: 1rem 1.25rem;
+        padding: 0.75rem 1rem;
         margin: 0;
-        border-radius: 12px 12px 0 0;
-        font-size: 1rem;
+        border-radius: 10px 10px 0 0;
+        font-size: 0.9rem;
         font-weight: 600;
         color: #1e293b;
         border-bottom: 1px solid #e2e8f0;
+    }
+    
+    /* ===== OVERRIDE DJANGO 2-COLUMN LAYOUT ===== */
+    .aligned .form-row {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    
+    .aligned .form-row > label {
+        float: none !important;
+        display: block !important;
+        width: auto !important;
+        max-width: none !important;
+        padding: 0 0 0.5rem 0 !important;
+        margin: 0 !important;
+        text-align: left !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+        color: #1e293b !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    .aligned .form-row select,
+    .aligned .form-row input:not([type="checkbox"]),
+    .aligned .form-row textarea {
+        float: none !important;
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    .aligned .form-row .related-widget-wrapper {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 0.5rem !important;
+        width: 100% !important;
+    }
+    
+    .aligned .form-row .related-widget-wrapper select {
+        flex: 1 !important;
+        min-width: 200px !important;
+    }
+    
+    /* Responsive para móvil */
+    @media (max-width: 768px) {
+        .help-panel {
+            padding: 0.75rem;
+        }
+        
+        .security-tips {
+            grid-template-columns: 1fr;
+        }
+        
+        .role-badges {
+            flex-direction: column;
+        }
+        
+        .role-badge {
+            justify-content: center;
+        }
+        
+        fieldset.module h2 {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.85rem;
+        }
+        
+        .form-row {
+            padding: 0.5rem !important;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content_title %}
-<h1><i class="fas fa-user-edit" style="color: #2563eb; margin-right: 10px;"></i> Editar Usuario</h1>
+<h1 style="font-size: 1.25rem;"><i class="fas fa-user-edit" style="color: #2563eb; margin-right: 8px;"></i> Editar Usuario</h1>
 {% endblock %}
 
 {% block content %}
-<a href="{% url 'admin:index' %}" class="back-to-admin">
-    <i class="fas fa-arrow-left"></i> Volver al Panel Principal
+<a href="{% url 'admin:index' %}" class="back-to-admin" style="font-size: 0.85rem; margin-bottom: 0.75rem;">
+    <i class="fas fa-arrow-left"></i> Volver al Panel
 </a>
 
 <div class="help-panel">
     <div class="help-panel-header">
         <i class="fas fa-user-cog"></i>
-        <h3>Editando información del usuario</h3>
+        <h3>Gestión de usuario</h3>
     </div>
     
-    <div style="margin-bottom: 1rem;">
-        <strong style="color: #374151;">Tipos de usuario:</strong>
+    <div style="margin-bottom: 0.75rem;">
+        <strong style="color: #374151; font-size: 0.8rem;">Tipos de usuario:</strong>
         <div class="role-badges">
             <span class="role-badge admin">
-                <i class="fas fa-crown"></i> Superusuario - Acceso total
+                <i class="fas fa-crown"></i> Superusuario
             </span>
             <span class="role-badge staff">
-                <i class="fas fa-user-tie"></i> Staff - Acceso al admin
+                <i class="fas fa-user-tie"></i> Staff
             </span>
             <span class="role-badge user">
-                <i class="fas fa-user"></i> Normal - Solo frontend
+                <i class="fas fa-user"></i> Normal
             </span>
         </div>
     </div>
     
     <div class="action-guide">
-        <h4><i class="fas fa-shield-alt"></i> Permisos y seguridad</h4>
+        <h4><i class="fas fa-shield-alt"></i> Permisos</h4>
         
         <ul class="security-tips">
             <li>
                 <i class="fas fa-toggle-on"></i>
                 <div>
                     <strong>Activo</strong>
-                    <p>Desactiva para bloquear el acceso sin eliminar el usuario.</p>
+                    <p>Bloquea acceso sin eliminar</p>
                 </div>
             </li>
             <li>
                 <i class="fas fa-user-shield"></i>
                 <div>
-                    <strong>Es staff</strong>
-                    <p>Permite acceso al panel de administración.</p>
+                    <strong>Staff</strong>
+                    <p>Acceso al panel admin</p>
                 </div>
             </li>
             <li>
                 <i class="fas fa-crown"></i>
                 <div>
-                    <strong>Es superusuario</strong>
-                    <p>Otorga TODOS los permisos. ¡Usar con precaución!</p>
+                    <strong>Superusuario</strong>
+                    <p>Todos los permisos</p>
                 </div>
             </li>
             <li>
                 <i class="fas fa-building"></i>
                 <div>
                     <strong>Organización</strong>
-                    <p>Asocia el usuario a una organización para que pueda usar el sistema.</p>
+                    <p>Empresa del usuario</p>
                 </div>
             </li>
         </ul>
@@ -279,16 +352,8 @@
     <div class="warning-box">
         <i class="fas fa-exclamation-triangle"></i>
         <div class="warning-box-content">
-            <strong>⚠️ Cambio de contraseña</strong>
-            <p>Para cambiar la contraseña, usa el enlace especial en el formulario. No puedes ver la contraseña actual por seguridad.</p>
-        </div>
-    </div>
-    
-    <div class="info-box">
-        <i class="fas fa-history"></i>
-        <div class="info-box-content">
-            <strong>📊 Historial del usuario</strong>
-            <p>Puedes ver cuándo fue creado, su último acceso y su historial de cambios al final de esta página.</p>
+            <strong>⚠️ Contraseña</strong>
+            <p>Usa el enlace especial en el formulario para cambiarla.</p>
         </div>
     </div>
 </div>

@@ -170,6 +170,34 @@ class PaymentInline(admin.TabularInline):
     def has_add_permission(self, request, obj=None):
         return False
 
+
+class ExpiringSoonFilter(admin.SimpleListFilter):
+    """Filtro personalizado para suscripciones que expiran en los próximos días."""
+    title = 'Próximas a expirar'
+    parameter_name = 'expiring_soon'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('5', 'Expira en 5 días'),
+            ('7', 'Expira en 7 días'),
+            ('14', 'Expira en 14 días'),
+            ('30', 'Expira en 30 días'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value():
+            days = int(self.value())
+            now = timezone.now()
+            future_date = now + timedelta(days=days)
+            # Solo suscripciones activas que expiran dentro del período
+            return queryset.filter(
+                end_date__gte=now,
+                end_date__lte=future_date,
+                subscription_status__in=['trial_active', 'basic_active']
+            )
+        return queryset
+
+
 @admin.register(Subscription)
 class SubscriptionAdmin(ImportExportModelAdmin):
     resource_class = SubscriptionResource
@@ -177,8 +205,8 @@ class SubscriptionAdmin(ImportExportModelAdmin):
     # Template personalizado con instrucciones
     change_form_template = 'admin/plans/subscription/change_form.html'
     
-    list_display = ('organization', 'get_founder_indicator', 'plan', 'subscription_status', 'end_date_formatted', 'days_remaining_display', 'is_active')
-    list_filter = ('subscription_status', 'plan__name', 'organization__is_founder_member')
+    list_display = ('organization', 'get_founder_indicator', 'plan', 'subscription_status', 'end_date_formatted', 'days_remaining_display', 'get_add_user_link', 'is_active')
+    list_filter = ('subscription_status', 'plan__name', 'organization__is_founder_member', ExpiringSoonFilter)
     search_fields = ('organization__name', 'plan__display_name')
     list_select_related = ('organization', 'plan')
     autocomplete_fields = ['organization']
@@ -187,6 +215,17 @@ class SubscriptionAdmin(ImportExportModelAdmin):
     
     inlines = [PaymentInline]
     actions = ['process_selected_payments', 'extend_subscription_action', 'change_plan_action']
+
+    def get_add_user_link(self, obj):
+        """Enlace para agregar un usuario a la organización de esta suscripción."""
+        if obj.organization:
+            url = reverse('admin:accounts_user_add') + f'?organization={obj.organization.id}'
+            return format_html(
+                '<a href="{}" class="button" style="background-color: #28a745; color: white; padding: 3px 10px; border-radius: 3px; font-weight: bold; font-size: 11px;">+ Usuario</a>',
+                url
+            )
+        return '-'
+    get_add_user_link.short_description = 'Usuarios'
     
     def get_form(self, request, obj=None, **kwargs):
         """Personalizar el formulario para establecer valores por defecto"""
@@ -195,11 +234,12 @@ class SubscriptionAdmin(ImportExportModelAdmin):
         # Si es una nueva suscripción, establecer default de 30 días
         if obj is None:
             now = timezone.localtime(timezone.now())
-            default_end_date = now + timedelta(days=30)
+            # Establecer fecha a 30 días y al final del día (23:59:59)
+            default_end_date = (now + timedelta(days=30)).replace(hour=23, minute=59, second=59, microsecond=999999)
             form.base_fields['end_date'].initial = default_end_date
             form.base_fields['end_date'].help_text = (
                 "Fecha y hora de vencimiento de la suscripción. "
-                f"Se ha establecido por defecto a 30 días desde ahora ({default_end_date.strftime('%d/%m/%Y %H:%M')} México)."
+                f"Se ha establecido por defecto a 30 días desde ahora al final del día ({default_end_date.strftime('%d/%m/%Y %H:%M')} México)."
             )
         
         return form

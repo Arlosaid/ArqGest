@@ -233,35 +233,9 @@ class SystemSettings(models.Model):
     Configuraciones globales del sistema que pueden ser modificadas desde el admin.
     Solo puede existir una instancia de este modelo (patrón Singleton).
     
-    IMPORTANTE: Los cambios se sincronizan automáticamente con los Planes via signals.
-    El caché se limpia automáticamente al guardar para reflejar los cambios.
+    NOTA: Para modificar límites de usuarios y almacenamiento por plan,
+    edita directamente cada Plan desde el admin de Planes.
     """
-    
-    # === LÍMITES DE USUARIOS ===
-    max_users_trial = models.PositiveIntegerField(
-        "Máximo de usuarios (Trial)",
-        default=1,
-        help_text="Límite de usuarios para planes de prueba gratuita"
-    )
-    
-    max_users_basic = models.PositiveIntegerField(
-        "Máximo de usuarios (Plan Básico)",
-        default=5,
-        help_text="Límite de usuarios para el plan básico"
-    )
-    
-    # === LÍMITES DE ALMACENAMIENTO ===
-    storage_trial_gb = models.PositiveIntegerField(
-        "Almacenamiento Trial (GB)",
-        default=10,
-        help_text="Límite de almacenamiento para planes de prueba gratuita"
-    )
-    
-    storage_basic_gb = models.PositiveIntegerField(
-        "Almacenamiento Plan Básico (GB)",
-        default=75,
-        help_text="Límite de almacenamiento para el plan básico"
-    )
     
     # === LÍMITES DE ARCHIVOS ===
     max_file_size_mb = models.PositiveIntegerField(
@@ -367,19 +341,6 @@ class SystemSettings(models.Model):
         help_text="Tamaño máximo acumulado de uploads por hora (en MB)"
     )
     
-    # === PLANES Y SUSCRIPCIONES ===
-    trial_duration_days = models.PositiveIntegerField(
-        "Duración del trial (días)",
-        default=30,
-        help_text="Duración en días del período de prueba gratuita"
-    )
-    
-    grace_period_days = models.PositiveIntegerField(
-        "Período de gracia (días)",
-        default=7,
-        help_text="Días de gracia después de que expire una suscripción"
-    )
-    
     # === MODO MANTENIMIENTO ===
     maintenance_mode = models.BooleanField(
         "Modo mantenimiento",
@@ -436,16 +397,12 @@ class SystemSettings(models.Model):
         """
         Guardar configuración del sistema.
         Limpia caché para asegurar que los cambios se reflejen.
-        Los signals sincronizan automáticamente con los Planes.
         """
         self.pk = 1  # Asegurar singleton
         super().save(*args, **kwargs)
         
         # Limpiar caché de SystemSettings
         cache.delete('system_settings')
-        
-        # NOTA: No es necesario limpiar otros cachés aquí.
-        # Los signals y el admin se encargan de eso si es necesario.
     
     def delete(self, *args, **kwargs):
         """Prevenir eliminación de la configuración"""

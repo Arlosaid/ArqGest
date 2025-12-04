@@ -547,8 +547,8 @@
                 <i class="fas fa-tasks"></i>
             </div>
             <div class="pending-banner-text">
-                <h3>{{ total_pending }} solicitud{{ total_pending|pluralize:"es" }} requiere{{ total_pending|pluralize:"n" }} tu atención</h3>
-                <p>Revisa y procesa las solicitudes pendientes de tus clientes</p>
+                <h3>{{ total_pending }} asunto{{ total_pending|pluralize:"s" }} requiere{{ total_pending|pluralize:"n" }} tu atención</h3>
+                <p>Revisa solicitudes pendientes y suscripciones por vencer</p>
             </div>
         </div>
         <div class="pending-banner-actions">
@@ -760,8 +760,8 @@
                 <div class="alert-icon"><i class="fas fa-clock"></i></div>
                 <div class="alert-content">
                     <div class="alert-title">{{ dashboard_stats.notifications.expiring_soon }} Suscripciones</div>
-                    <div class="alert-description">Expiran en los próximos 7 días</div>
-                    <a href="{% url 'admin:plans_subscription_changelist' %}" class="alert-action">Revisar</a>
+                    <div class="alert-description">Expiran en los próximos 5 días</div>
+                    <a href="{% url 'admin:plans_subscription_changelist' %}?expiring_soon=5" class="alert-action">Revisar</a>
                 </div>
             </div>
             {% endif %}
