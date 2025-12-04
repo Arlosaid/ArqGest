@@ -252,9 +252,11 @@ class RenewSubscriptionView(LoginRequiredMixin, OrgAdminRequiredMixin, TemplateV
         context['renewal_amount'] = subscription.plan.price
         context['renewal_days'] = subscription.plan.billing_cycle_days
         
-        # Calcular nueva fecha de vencimiento (la renovación comienza cuando termine la vigencia actual)
+        # Calcular nueva fecha de vencimiento
+        # Si el plan aún está vigente, se suma a la fecha de vencimiento
+        # Si ya venció, se cuenta desde hoy
         now = timezone.now()
-        base_date = max(now, subscription.end_date or now)
+        base_date = subscription.end_date if subscription.end_date and subscription.end_date > now else now
         context['new_end_date'] = base_date + timedelta(days=subscription.plan.billing_cycle_days)
         
         # Información de contacto para pago manual

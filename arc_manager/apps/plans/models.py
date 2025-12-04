@@ -653,11 +653,13 @@ class RenewalRequest(models.Model):
                 self.processed_at = timezone.now()
                 self.save(update_fields=['status', 'approved_by', 'processed_at', 'updated_at'])
 
-                # Extender exactamente renewal_days y crear el Payment correspondiente
+                # Extender exactamente renewal_days
+                # Si el plan aún está vigente, se suma a la fecha de vencimiento
+                # Si ya venció, se cuenta desde la fecha de aprobación
                 subscription = self.subscription
                 now = timezone.now()
                 old_end_date = subscription.end_date
-                base_date = max(now, subscription.end_date or now)
+                base_date = old_end_date if old_end_date and old_end_date > now else now
                 subscription.end_date = base_date + timedelta(days=self.renewal_days)
                 subscription.subscription_status = f'{subscription.plan.name}_active'
                 subscription.grace_end_date = None
