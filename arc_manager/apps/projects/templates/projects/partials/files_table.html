@@ -44,6 +44,11 @@
                             <i class="fas fa-file text-secondary"></i>
                         {% endif %}
                         <span class="fw-semibold text-truncate" style="max-width:420px;">{{ file.filename }}</span>
+                        {% if file.task %}
+                        <span class="badge bg-info bg-opacity-10 text-info border border-info ms-1" style="font-size: 0.7rem;" title="{% trans 'Vinculado a tarea' %}">
+                            <i class="fas fa-tasks me-1"></i>{{ file.task.title|truncatechars:20 }}
+                        </span>
+                        {% endif %}
                     </a>
                 </td>
                 <td class="text-center text-muted">{{ file.extension }}</td>

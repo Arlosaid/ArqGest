@@ -14,6 +14,14 @@
         }
     }
 
+    /* Asegurar que el modal de confirmación se muestre sobre el modal de detalle */
+    .confirmation-modal {
+        z-index: 1060 !important;
+    }
+    .confirmation-modal + .modal-backdrop {
+        z-index: 1055 !important;
+    }
+
     .task-simple-container {
         background-color: #fff;
         border-radius: 0.5rem;
@@ -98,6 +106,54 @@
         justify-content: flex-end;
         gap: 0.5rem;
     }
+
+    /* Estilos para archivos de tarea */
+    .task-files-section {
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .task-file-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.5rem 0.75rem;
+        background-color: #f8f9fa;
+        border-radius: 0.375rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .task-file-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .task-file-icon {
+        color: #6c757d;
+        font-size: 1rem;
+    }
+
+    .task-file-name {
+        font-size: 0.875rem;
+        color: #495057;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .task-file-actions {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .task-file-actions .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
 </style>
 
 <div class="task-simple-container">
@@ -119,13 +175,51 @@
             <div class="col-lg-8 border-end pe-lg-4">
                 <div class="mb-2">
                     <div class="meta-label mb-2">{% trans "Descripción" %}</div>
-                    <div class="description-box" style="min-height: 200px;">
+                    <div class="description-box" style="min-height: 150px;">
                         {% if task.description %}
                             {{ task.description|linebreaks }}
                         {% else %}
                             <span class="text-muted fst-italic">{% trans "Sin descripción detallada." %}</span>
                         {% endif %}
                     </div>
+                </div>
+
+                <!-- Archivos de la tarea -->
+                <div class="task-files-section">
+                    <div class="meta-label mb-2">
+                        <i class="fas fa-paperclip me-1"></i>{% trans "Archivos" %} 
+                        <span class="text-muted">({{ task.files.count }}/3)</span>
+                    </div>
+                    {% if task.files.exists %}
+                        {% for file in task.files.all %}
+                        <div class="task-file-item">
+                            <div class="task-file-info">
+                                <i class="fas fa-file task-file-icon"></i>
+                                <span class="task-file-name" title="{{ file.filename }}">{{ file.filename }}</span>
+                            </div>
+                            <div class="task-file-actions">
+                                <a href="{{ file.file.url }}" 
+                                   class="btn btn-outline-secondary btn-sm" 
+                                   target="_blank"
+                                   title="{% trans 'Descargar' %}">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                                {% if user.is_org_admin %}
+                                <button type="button" 
+                                        class="btn btn-outline-danger btn-sm"
+                                        title="{% trans 'Eliminar' %}"
+                                        onclick="deleteTaskFile({{ file.id }}, '{{ file.filename|escapejs }}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-muted fst-italic small">
+                            {% trans "Sin archivos adjuntos." %}
+                        </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -196,3 +290,48 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+function deleteTaskFile(fileId, fileName) {
+    // Usar el sistema de modales de confirmación
+    const confirmModal = new ConfirmationModal({
+        type: 'danger',
+        title: '{% trans "Confirmar eliminación" %}',
+        icon: 'fa-exclamation-triangle',
+        message: '{% trans "¿Estás seguro de que deseas eliminar este archivo?" %}',
+        itemName: fileName,
+        itemIcon: 'fa-file',
+        confirmText: '{% trans "Eliminar archivo" %}',
+        confirmIcon: 'fa-trash-alt',
+        modalClass: 'file-delete-modal',
+        onConfirm: () => {
+            fetch(`/files/${fileId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                                  document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Recargar el modal para mostrar la lista actualizada
+                    openTaskModal('detail', {{ task.pk }});
+                    if (window.notifications) {
+                        window.notifications.success('{% trans "Archivo eliminado" %}');
+                    }
+                } else {
+                    throw new Error('Error al eliminar');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                if (window.notifications) {
+                    window.notifications.error('{% trans "Error al eliminar el archivo" %}');
+                }
+            });
+        }
+    });
+    confirmModal.show();
+}
+</script>

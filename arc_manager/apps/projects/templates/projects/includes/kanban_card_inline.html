@@ -24,7 +24,7 @@
         <!-- Meta: Assignee & Date -->
         <div class="d-flex align-items-center justify-content-between mt-1 pt-1 border-top border-light">
             <!-- Assignee with Name -->
-            <div class="d-flex align-items-center" style="max-width: 60%;">
+            <div class="d-flex align-items-center" style="max-width: 50%;">
                 {% if task.assigned_to %}
                     <div class="avatar-xs rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold shadow-sm me-2 flex-shrink-0" style="width: 24px; height: 24px; font-size: 10px;" title="{{ task.assigned_to.get_full_name|default:task.assigned_to.email }}">
                         {{ task.assigned_to.first_name|first|default:task.assigned_to.email|first|upper }}
@@ -40,13 +40,23 @@
                 {% endif %}
             </div>
             
-            <!-- Due Date -->
-            {% if task.due_date %}
-            <div class="d-flex align-items-center {% if task.is_overdue %}text-danger fw-bold bg-danger-subtle px-2 py-1 rounded{% elif task.is_due_soon %}text-warning-emphasis fw-bold bg-warning-subtle px-2 py-1 rounded{% else %}text-muted{% endif %}" style="font-size: 0.7rem;" title="{% if task.is_overdue %}{% trans 'Vencida' %}{% elif task.is_due_soon %}{% trans 'Vence pronto' %}{% else %}{% trans 'Vence el' %}{% endif %} {{ task.due_date|date:'d M Y' }}">
-                <i class="far fa-calendar-alt me-1"></i>
-                <span>{{ task.due_date|date:"d M" }}</span>
+            <div class="d-flex align-items-center gap-2">
+                <!-- Files Count -->
+                {% if task.files_count > 0 %}
+                <div class="d-flex align-items-center px-2 py-1 rounded bg-secondary-subtle text-secondary-emphasis me-2" style="font-size: 0.7rem;" title="{{ task.files_count }} {% trans 'archivos adjuntos' %}">
+                    <i class="fas fa-paperclip me-1"></i>
+                    <span class="fw-bold">{{ task.files_count }}</span>
+                </div>
+                {% endif %}
+
+                <!-- Due Date -->
+                {% if task.due_date %}
+                <div class="d-flex align-items-center {% if task.is_overdue %}text-danger fw-bold bg-danger-subtle px-2 py-1 rounded{% elif task.is_due_soon %}text-warning-emphasis fw-bold bg-warning-subtle px-2 py-1 rounded{% else %}text-muted{% endif %}" style="font-size: 0.7rem;" title="{% if task.is_overdue %}{% trans 'Vencida' %}{% elif task.is_due_soon %}{% trans 'Vence pronto' %}{% else %}{% trans 'Vence el' %}{% endif %} {{ task.due_date|date:'d M Y' }}">
+                    <i class="far fa-calendar-alt me-1"></i>
+                    <span>{{ task.due_date|date:"d M" }}</span>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
         </div>
 
         <!-- Actions (View, Edit, Delete) - Visible on all devices -->

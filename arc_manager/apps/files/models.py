@@ -2,7 +2,7 @@
 from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
-from apps.projects.models import Phase
+from apps.projects.models import Phase, Task
 import os
 import re
 import logging
@@ -136,6 +136,15 @@ class ProjectFile(models.Model):
         related_name='files',
         verbose_name=_("Phase")
     )
+    # FK opcional a Task para trazabilidad (máx 3 archivos por tarea)
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name='files',
+        null=True,
+        blank=True,
+        verbose_name=_("Task")
+    )
     # max_length=255 para permitir rutas largas:
     # organizations/{org_id}/projects/{proj_id}/phases/{phase_id}/{filename}
     # Ejemplo: organizations/1234567890/projects/1234567890/phases/1234567890/archivo.pdf
@@ -175,6 +184,8 @@ class ProjectFile(models.Model):
             models.Index(fields=['phase', 'ext_upper']),
             # OPTIMIZACIÓN: Índice para búsquedas por usuario
             models.Index(fields=['uploaded_by', 'uploaded_at']),
+            # OPTIMIZACIÓN: Índice para archivos por tarea
+            models.Index(fields=['task', 'uploaded_at']),
         ]
 
     def __str__(self):

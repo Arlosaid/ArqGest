@@ -42,39 +42,6 @@ window.openTaskModal = function(type, taskId) {
     
     if (!modalContent || !modalTitle) return;
     
-    // Limpiar completamente cualquier estado previo del modal
-    cleanupModalBackdrops();
-    
-    // Destruir instancia existente si hay alguna
-    let existingModal = bootstrap.Modal.getInstance(modalElement);
-    if (existingModal) {
-        try {
-            existingModal.dispose();
-        } catch(e) {
-            // Ignorar errores
-        }
-    }
-    
-    // Crear una nueva instancia limpia
-    const modal = new bootstrap.Modal(modalElement, {
-        backdrop: true,
-        keyboard: true,
-        focus: true
-    });
-    
-    // Actualizar título según el tipo
-    if (type === 'detail') {
-        modalTitle.textContent = 'Detalles de la Tarea';
-    } else if (type === 'edit') {
-        modalTitle.textContent = 'Editar Tarea';
-    }
-    
-    // Limpiar contenido previo y mostrar loading
-    modalContent.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><p class="mt-2 text-muted">Cargando...</p></div>';
-    
-    // Mostrar el modal
-    modal.show();
-    
     // Construir URL según el tipo
     let url = '';
     try {
@@ -88,21 +55,79 @@ window.openTaskModal = function(type, taskId) {
     }
     
     if (!url) {
-        modalContent.innerHTML = '<div class="text-center p-4 text-danger"><i class="fas fa-exclamation-triangle fa-2x mb-3"></i><h5>Error</h5><p class="text-muted">No se pudo determinar la URL.</p></div>';
+        console.error('No se pudo determinar la URL para el modal de tarea');
         return;
     }
     
-    // Cargar contenido
+    // Cargar contenido PRIMERO (antes de mostrar el modal)
     fetch(url)
         .then(response => {
             if (!response.ok) throw new Error('Network response was not ok');
             return response.text();
         })
         .then(html => {
+            // Limpiar completamente cualquier estado previo del modal
+            cleanupModalBackdrops();
+            
+            // Destruir instancia existente si hay alguna
+            let existingModal = bootstrap.Modal.getInstance(modalElement);
+            if (existingModal) {
+                try {
+                    existingModal.dispose();
+                } catch(e) {
+                    // Ignorar errores
+                }
+            }
+            
+            // Actualizar título según el tipo
+            if (type === 'detail') {
+                modalTitle.textContent = 'Detalles de la Tarea';
+            } else if (type === 'edit') {
+                modalTitle.textContent = 'Editar Tarea';
+            }
+            
+            // Insertar contenido
             modalContent.innerHTML = html;
+            
+            // Crear una nueva instancia limpia
+            const modal = new bootstrap.Modal(modalElement, {
+                backdrop: true,
+                keyboard: true,
+                focus: true
+            });
+            
+            // Mostrar el modal (ya con contenido cargado)
+            modal.show();
+            
+            // Ejecutar scripts que vienen en el HTML
+            const scripts = modalContent.querySelectorAll('script');
+            scripts.forEach(script => {
+                const newScript = document.createElement('script');
+                Array.from(script.attributes).forEach(attr => {
+                    newScript.setAttribute(attr.name, attr.value);
+                });
+                newScript.appendChild(document.createTextNode(script.innerHTML));
+                script.parentNode.replaceChild(newScript, script);
+            });
         })
         .catch(error => {
+            console.error('Error cargando modal de tarea:', error);
+            // En caso de error, mostrar modal con mensaje de error
+            cleanupModalBackdrops();
+            
+            let existingModal = bootstrap.Modal.getInstance(modalElement);
+            if (existingModal) {
+                try { existingModal.dispose(); } catch(e) {}
+            }
+            
             modalContent.innerHTML = '<div class="text-center p-4 text-danger"><i class="fas fa-exclamation-triangle fa-2x mb-3"></i><h5>Error al cargar</h5><p class="text-muted">No se pudo cargar el contenido. Inténtalo de nuevo.</p></div>';
+            
+            const modal = new bootstrap.Modal(modalElement, {
+                backdrop: true,
+                keyboard: true,
+                focus: true
+            });
+            modal.show();
         });
 };
 

@@ -365,7 +365,7 @@
                         </div>
                         <div class="col-md-6">
                             <label for="phase" class="form-label">{% trans "Fase" %} *</label>
-                            <select class="form-select" id="phase" name="phase">
+                            <select class="form-select" id="phase" name="phase" required>
                                 <option value="">{% trans "Seleccionar fase" %}</option>
                                 {% for phase in phases %}
                                     <option value="{{ phase.id }}">{{ phase.name }}</option>

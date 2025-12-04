@@ -30,20 +30,31 @@ class ConfirmationModal {
         this.modalElement = null;
         this.modalInstance = null;
         this.isProcessing = false;
+        this.hasParentModal = false;
     }
 
     /**
      * Crear y mostrar el modal
      */
     show() {
-        // Limpiar modal anterior si existe
-        this.cleanup();
+        // Detectar si ya hay un modal abierto (modal anidado) ANTES de limpiar
+        this.hasParentModal = document.querySelector('.modal.show') !== null;
+        
+        // Limpiar modal anterior si existe (con el hasParentModal ya definido)
+        this.cleanupPreviousInstance();
         
         // Crear el modal
         this.create();
         
+        // Configurar opciones del modal según si es anidado o no
+        const modalOptions = {
+            keyboard: true,
+            // Si hay un modal padre, no crear backdrop adicional
+            backdrop: this.hasParentModal ? false : 'static'
+        };
+        
         // Mostrar el modal
-        this.modalInstance = new bootstrap.Modal(this.modalElement);
+        this.modalInstance = new bootstrap.Modal(this.modalElement, modalOptions);
         this.modalInstance.show();
         
         // Configurar event listeners
@@ -51,18 +62,39 @@ class ConfirmationModal {
         
         return this;
     }
+    
+    /**
+     * Limpiar instancia previa del mismo modal (si existe)
+     */
+    cleanupPreviousInstance() {
+        const existingModal = document.getElementById(this.config.id);
+        if (existingModal) {
+            const instance = bootstrap.Modal.getInstance(existingModal);
+            if (instance) {
+                try {
+                    instance.dispose();
+                } catch(e) {
+                    // Ignorar errores
+                }
+            }
+            existingModal.remove();
+        }
+    }
 
     /**
      * Crear el HTML del modal
      */
     create() {
+        // Determinar atributos de backdrop según si es modal anidado
+        const backdropAttr = this.hasParentModal ? 'data-bs-backdrop="false"' : 'data-bs-backdrop="static"';
+        
         const modalHtml = `
         <div class="modal fade confirmation-modal ${this.config.modalClass}" 
              id="${this.config.id}" 
              tabindex="-1" 
              aria-labelledby="${this.config.id}Label" 
              aria-hidden="true"
-             data-bs-backdrop="static"
+             ${backdropAttr}
              data-bs-keyboard="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
@@ -227,23 +259,33 @@ class ConfirmationModal {
         // Guardar referencia al elemento que tenía el foco antes del modal
         this.previouslyFocusedElement = document.activeElement;
         
+        // Flag para evitar múltiples cleanups
+        let cleanupDone = false;
+        
         // Manejar cierre del modal (tanto por cancelar como por ESC)
         this.modalElement.addEventListener('hide.bs.modal', () => {
             // Devolver foco al elemento anterior para evitar warning de aria-hidden
             if (this.previouslyFocusedElement && this.previouslyFocusedElement !== document.body) {
                 // Usar setTimeout para asegurar que el modal se cierre primero
                 setTimeout(() => {
-                    this.previouslyFocusedElement.focus();
+                    try {
+                        if (this.previouslyFocusedElement && document.contains(this.previouslyFocusedElement)) {
+                            this.previouslyFocusedElement.focus();
+                        }
+                    } catch(e) {
+                        // Ignorar errores de focus
+                    }
                 }, 100);
             }
         });
         
-        // Limpiar al cerrar completamente
+        // Limpiar al cerrar completamente - solo una vez
         this.modalElement.addEventListener('hidden.bs.modal', () => {
-            if (!this.isProcessing) {
+            if (!cleanupDone) {
+                cleanupDone = true;
                 this.cleanup();
             }
-        });
+        }, { once: true });
     }
 
     /**
@@ -306,26 +348,45 @@ class ConfirmationModal {
      * Limpiar modal del DOM
      */
     cleanup() {
-        const existingModal = document.getElementById(this.config.id);
+        const modalId = this.config.id;
+        const existingModal = document.getElementById(modalId);
+        
         if (existingModal) {
             // Eliminar instancia de Bootstrap si existe
             const instance = bootstrap.Modal.getInstance(existingModal);
             if (instance) {
-                instance.dispose();
+                try {
+                    instance.dispose();
+                } catch(e) {
+                    // Ignorar errores de dispose
+                }
             }
             existingModal.remove();
         }
         
-        // Limpiar backdrops huérfanos
-        document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
-        
-        // Restaurar estado del body solo si no hay otros modales abiertos
+        // Verificar si hay otros modales abiertos (excluyendo el que acabamos de cerrar)
         const openModals = document.querySelectorAll('.modal.show');
-        if (openModals.length === 0) {
+        
+        // Si había un modal padre y sigue abierto, restaurar su estado
+        if (this.hasParentModal && openModals.length > 0) {
+            // Asegurar que el body mantenga la clase modal-open para el modal padre
+            document.body.classList.add('modal-open');
+            // No tocar los backdrops - el modal padre tiene el suyo
+        } else if (openModals.length === 0) {
+            // Solo limpiar completamente si no hay otros modales abiertos
+            // Limpiar todos los backdrops huérfanos
+            document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+                backdrop.remove();
+            });
             document.body.classList.remove('modal-open');
             document.body.style.overflow = '';
             document.body.style.paddingRight = '';
         }
+        
+        // Resetear estado
+        this.modalElement = null;
+        this.modalInstance = null;
+        this.isProcessing = false;
     }
 }
 

@@ -10,7 +10,7 @@ from django.template.loader import render_to_string
 from django.contrib import messages
 from django.views.decorators.http import require_POST, require_http_methods
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import Q, Count
 import logging
 import time
 from datetime import datetime
@@ -800,7 +800,8 @@ def project_kanban(request, pk):
             When(priority='LOW', then=Value(1)),
             default=Value(0),
             output_field=IntegerField(),
-        )
+        ),
+        files_count=Count('files')
     ).order_by('-priority_val', 'due_date', '-created_at')
 
     # --- FILTROS KANBAN ---
@@ -1201,18 +1202,16 @@ def task_create(request, project_pk):
             except ValueError:
                 due_date = None
         
-        # Fallback de fase: si no viene 'phase', usar la primera fase del proyecto;
-        # si no existen fases, crear una por defecto "Backlog".
+        # Validar que se haya seleccionado una fase
         if not phase_id:
-            first_phase = project.phases.order_by('order').first()
-            if not first_phase:
-                # Crear fase por defecto
-                first_phase = Phase.objects.create(
-                    project=project,
-                    name='Backlog',
-                    order=1
-                )
-            phase_id = str(first_phase.pk)
+            error_msg = _('Debes seleccionar una fase para la tarea.')
+            messages.error(request, error_msg)
+            accepts_json = 'application/json' in request.headers.get('Accept', '')
+            is_htmx = request.headers.get('HX-Request')
+            is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+            if accepts_json or is_htmx or is_ajax:
+                return JsonResponse({'success': False, 'error': 'phase_required'}, status=400)
+            return redirect('projects:project-kanban', pk=project_pk)
 
         if title and phase_id:
             try:
@@ -1341,7 +1340,7 @@ class TaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
             phase__project__organization=self.request.user.organization
         ).exclude(
             phase__project__status='ARCHIVED'
-        ).select_related('phase__project', 'assigned_to').order_by('due_date', 'priority')
+        ).select_related('phase__project', 'assigned_to').annotate(files_count=Count('files')).order_by('due_date', 'priority')
         
         # SEGURIDAD: Usuarios no-admin solo ven sus tareas asignadas
         if not self.request.user.is_org_admin:
@@ -1403,7 +1402,7 @@ class MyTaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
             assigned_to=self.request.user
         ).exclude(
             phase__project__status='ARCHIVED'
-        ).select_related('phase__project', 'assigned_to').order_by('due_date', 'priority')
+        ).select_related('phase__project', 'assigned_to').annotate(files_count=Count('files')).order_by('due_date', 'priority')
         
         # Aplicar filtros si están presentes
         status_filter = self.request.GET.get('status')
@@ -1802,7 +1801,7 @@ def project_tasks_paginated(request, project_pk):
     phase_filter = request.GET.get('phase', '')
 
     # Queryset base
-    tasks_qs = Task.objects.filter(phase__project=project).select_related('phase', 'assigned_to')
+    tasks_qs = Task.objects.filter(phase__project=project).select_related('phase', 'assigned_to').annotate(files_count=Count('files'))
     
     # SEGURIDAD: Usuarios no-admin solo ven sus tareas asignadas
     if not request.user.is_org_admin:
