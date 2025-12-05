@@ -109,7 +109,7 @@ class TestPlanAdminListDisplay:
         """Verificar que list_display tiene los campos correctos"""
         expected_fields = [
             'display_name', 'name', 'price', 'max_users', 'max_storage_gb',
-            'trial_days', 'billing_cycle_days', 'grace_period_days', 'is_active'
+            'trial_days', 'billing_cycle_days', 'is_active'
         ]
         
         assert list(plan_admin_instance.list_display) == expected_fields
@@ -203,15 +203,16 @@ class TestSubscriptionAdminListDisplay:
         """Verificar que list_display tiene los campos correctos"""
         expected_fields = [
             'organization', 'get_founder_indicator', 'plan', 'subscription_status',
-            'end_date_formatted', 'days_remaining_display', 'is_active'
+            'end_date_formatted', 'days_remaining_display', 'get_add_user_link', 'is_active'
         ]
         
         assert list(subscription_admin_instance.list_display) == expected_fields
     
     def test_list_filter_configured(self, subscription_admin_instance):
         """Verificar que list_filter está configurado"""
+        from apps.plans.admin import ExpiringSoonFilter
         expected_filters = [
-            'subscription_status', 'plan__name', 'organization__is_founder_member'
+            'subscription_status', 'plan__name', 'organization__is_founder_member', ExpiringSoonFilter
         ]
         
         assert set(subscription_admin_instance.list_filter) == set(expected_filters)
@@ -363,8 +364,8 @@ class TestPaymentAdmin:
     def test_list_display_fields_configured(self, payment_admin_instance):
         """Verificar que list_display tiene los campos correctos"""
         expected_fields = [
-            'subscription', 'amount', 'payment_method', 'payment_type',
-            'status', 'processed_by', 'created_at'
+            'get_organization_name', 'get_amount_formatted', 'payment_type', 'payment_method',
+            'status', 'processed_by', 'created_at', 'description'
         ]
         
         assert payment_admin_instance.list_display == expected_fields

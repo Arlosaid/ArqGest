@@ -394,6 +394,8 @@ class TestForcePasswordChangeErrors:
             'old_password': 'OldPass123!',
             'new_password1': 'NewSecurePass456!',
             'new_password2': 'NewSecurePass456!',
+            'terms_accepted': True,
+            'privacy_accepted': True,
         })
         
         # ASSERT 1: Cambio exitoso

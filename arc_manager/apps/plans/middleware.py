@@ -303,9 +303,15 @@ class SubscriptionInfoMiddleware(MiddlewareMixin):
                 # Calcular expires_soon según tipo de plan:
                 # - Trial (gratuito): banner aparece 2 días antes (days_remaining <= 2)
                 # - Plan Básico: banner aparece el último día (days_remaining <= 1)
+                # IMPORTANTE: expires_soon debe ser False si ya está expirada (is_expired)
+                # para que se muestre el banner rojo de expirada en lugar del amarillo
                 is_trial = subscription.plan.is_trial
+                is_expired = subscription.is_expired
                 days_remaining = subscription.days_remaining
-                if is_trial:
+                if is_expired:
+                    # Si ya expiró, no debe mostrar "vence pronto" sino "expirada"
+                    expires_soon = False
+                elif is_trial:
                     expires_soon = days_remaining <= 2 and days_remaining >= 0
                 else:
                     expires_soon = days_remaining <= 1 and days_remaining >= 0
@@ -315,14 +321,14 @@ class SubscriptionInfoMiddleware(MiddlewareMixin):
                     'status': subscription.subscription_status,
                     'display_status': subscription.get_subscription_status_display(),
                     'is_active': subscription.is_active,
-                    'is_expired': subscription.is_expired,
+                    'is_expired': is_expired,
                     'is_in_grace': subscription.is_in_grace_period,
                     'is_trial': is_trial,
                     'days_remaining': days_remaining,
                     'plan_name': subscription.plan.display_name,
                     'end_date': subscription.end_date,
                     'expires_soon': expires_soon,
-                    'needs_attention': subscription.is_expired or subscription.is_in_grace_period,
+                    'needs_attention': is_expired or subscription.is_in_grace_period,
                     'has_pending_renewal': has_pending_renewal,
                     'has_pending_upgrade': has_pending_upgrade,
                     'new_subscription_start': new_subscription_start,

@@ -29,6 +29,7 @@ from tests.factories import (
     ProjectFactory,
     PhaseFactory,
     PlanFactory,
+    OrgAdminFactory,
 )
 
 
@@ -57,7 +58,7 @@ class TestFileUploadSuccess:
             end_date=timezone.now() + timedelta(days=30)
         )
         
-        user = UserFactory(organization=org)
+        user = OrgAdminFactory(organization=org)
         project = ProjectFactory(organization=org)
         phase = PhaseFactory(project=project)
         
@@ -114,7 +115,7 @@ class TestFileUploadSuccess:
             end_date=timezone.now() + timedelta(days=30)
         )
         
-        user = UserFactory(organization=org)
+        user = OrgAdminFactory(organization=org)
         project = ProjectFactory(organization=org)
         phase = PhaseFactory(project=project)
         
@@ -163,7 +164,7 @@ class TestFileUploadStorageLimits:
             end_date=timezone.now() + timedelta(days=30)
         )
         
-        user = UserFactory(organization=org)
+        user = OrgAdminFactory(organization=org)
         project = ProjectFactory(organization=org)
         phase = PhaseFactory(project=project)
         
@@ -216,7 +217,7 @@ class TestFileUploadStorageLimits:
             end_date=timezone.now() + timedelta(days=30)
         )
         
-        user = UserFactory(organization=org)
+        user = OrgAdminFactory(organization=org)
         project = ProjectFactory(organization=org)
         phase = PhaseFactory(project=project)
         
@@ -280,7 +281,7 @@ class TestFileUploadValidations:
             end_date=timezone.now() + timedelta(days=30)
         )
         
-        user = UserFactory(organization=org)
+        user = OrgAdminFactory(organization=org)
         project = ProjectFactory(organization=org)
         phase = PhaseFactory(project=project)
         
@@ -329,7 +330,7 @@ class TestFileUploadValidations:
             end_date=timezone.now() + timedelta(days=30)
         )
         
-        user = UserFactory(organization=org)
+        user = OrgAdminFactory(organization=org)
         project = ProjectFactory(organization=org)
         phase = PhaseFactory(project=project)
         
@@ -375,7 +376,7 @@ class TestFileUploadValidations:
             end_date=timezone.now() + timedelta(days=30)
         )
         
-        user = UserFactory(organization=org)
+        user = OrgAdminFactory(organization=org)
         project = ProjectFactory(organization=org)
         phase = PhaseFactory(project=project)
         
@@ -418,7 +419,7 @@ class TestFileUploadValidations:
             end_date=timezone.now() + timedelta(days=30)
         )
         
-        user = UserFactory(organization=org)
+        user = OrgAdminFactory(organization=org)
         project = ProjectFactory(organization=org)
         phase = PhaseFactory(project=project)
         
@@ -510,7 +511,7 @@ class TestFileUploadLogging:
             end_date=timezone.now() + timedelta(days=30)
         )
         
-        user = UserFactory(organization=org)
+        user = OrgAdminFactory(organization=org)
         project = ProjectFactory(organization=org)
         phase = PhaseFactory(project=project)
         
@@ -556,7 +557,7 @@ class TestFileUploadLogging:
             end_date=timezone.now() + timedelta(days=30)
         )
         
-        user = UserFactory(organization=org)
+        user = OrgAdminFactory(organization=org)
         project = ProjectFactory(organization=org)
         phase = PhaseFactory(project=project)
         
@@ -611,7 +612,7 @@ class TestFileDeleteViews:
             end_date=timezone.now() + timedelta(days=30)
         )
         
-        user = UserFactory(organization=org)
+        user = OrgAdminFactory(organization=org)
         project = ProjectFactory(organization=org)
         phase = PhaseFactory(project=project)
         

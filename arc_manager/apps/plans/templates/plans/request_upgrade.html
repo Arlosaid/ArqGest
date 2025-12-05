@@ -325,6 +325,380 @@
             max-width: 300px;
             justify-content: center;
         }
+        
+        .pending-hero-content {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .pending-hero h1 {
+            font-size: 1.6rem;
+        }
+        
+        .pending-status-badge {
+            justify-content: center;
+        }
+    }
+    
+    /* ===== PENDING REQUEST - PREMIUM DESIGN ===== */
+    .pending-hero {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        border-radius: 20px;
+        padding: 40px;
+        margin-bottom: 30px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
+    }
+    
+    .pending-hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    
+    .pending-hero-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 40px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .pending-hero-info {
+        flex: 1;
+    }
+    
+    .pending-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(16, 185, 129, 0.2);
+        color: #6ee7b7;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 20px;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    
+    .pending-hero h1 {
+        font-size: 2rem;
+        font-weight: 800;
+        background: linear-gradient(90deg, #ffffff, #cbd5e1);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0 0 12px 0;
+        letter-spacing: -0.5px;
+    }
+    
+    .pending-hero-subtitle {
+        color: #94a3b8;
+        font-size: 1.05rem;
+        line-height: 1.6;
+        margin: 0;
+        max-width: 500px;
+    }
+    
+    .pending-status-visual {
+        text-align: center;
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        padding: 25px 35px;
+        border-radius: 16px;
+        min-width: 180px;
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .pending-status-visual .status-icon-large {
+        font-size: 3rem;
+        color: white;
+        margin-bottom: 10px;
+        display: block;
+        animation: pulse-glow 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse-glow {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.8; transform: scale(1.05); }
+    }
+    
+    .pending-status-visual .status-text {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: rgba(255,255,255,0.9);
+        font-weight: 600;
+        display: block;
+    }
+    
+    /* Pending Content Grid */
+    .pending-content-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 30px;
+        align-items: start;
+    }
+    
+    /* Pending Details Card */
+    .pending-details-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .pending-details-header {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        padding: 20px 25px;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .pending-details-icon {
+        width: 42px;
+        height: 42px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.1rem;
+        box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);
+    }
+    
+    .pending-details-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+    
+    .pending-details-body {
+        padding: 25px;
+    }
+    
+    .pending-detail-items {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .pending-detail-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 0;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .pending-detail-item:last-child {
+        border-bottom: none;
+    }
+    
+    .pending-detail-item .item-label {
+        color: #64748b;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .pending-detail-item .item-label i {
+        color: #94a3b8;
+        width: 16px;
+        text-align: center;
+    }
+    
+    .pending-detail-item .item-value {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 0.95rem;
+    }
+    
+    .pending-detail-item .item-value.highlight {
+        color: #059669;
+        font-weight: 700;
+    }
+    
+    /* Pending Status Badge */
+    .pending-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .pending-status-badge.processing {
+        background: rgba(245, 158, 11, 0.15);
+        color: #d97706;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    
+    /* Next Steps Card */
+    .pending-next-steps {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        padding: 25px;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .pending-next-steps h4 {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0 0 20px 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .pending-next-steps h4 i {
+        color: #f97316;
+    }
+    
+    .pending-steps-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .pending-step-item {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+    }
+    
+    .pending-step-num {
+        width: 28px;
+        height: 28px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.8rem;
+        flex-shrink: 0;
+    }
+    
+    .pending-step-num.completed {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+    
+    .pending-step-num.current {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        animation: pulse-glow 2s ease-in-out infinite;
+    }
+    
+    .pending-step-num.upcoming {
+        background: #e2e8f0;
+        color: #94a3b8;
+    }
+    
+    .pending-step-content {
+        flex: 1;
+    }
+    
+    .pending-step-content strong {
+        display: block;
+        color: #1e293b;
+        font-size: 0.9rem;
+        margin-bottom: 2px;
+    }
+    
+    .pending-step-content span {
+        font-size: 0.85rem;
+        color: #64748b;
+        line-height: 1.4;
+    }
+    
+    /* Pending Info Box */
+    .pending-info-box {
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        border: 1px solid #a7f3d0;
+        border-radius: 12px;
+        padding: 16px 18px;
+        margin-top: 20px;
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+    }
+    
+    .pending-info-box i {
+        color: #059669;
+        font-size: 1.1rem;
+        margin-top: 2px;
+    }
+    
+    .pending-info-box p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: #065f46;
+        line-height: 1.5;
+    }
+    
+    /* Actions Section */
+    .pending-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 30px;
+        flex-wrap: wrap;
+    }
+    
+    .pending-action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 24px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    
+    .pending-action-btn.primary {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    
+    .pending-action-btn.primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+    }
+    
+    .pending-action-btn.secondary {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .pending-action-btn.secondary:hover {
+        background: #e2e8f0;
+    }
+    
+    @media (max-width: 968px) {
+        .pending-content-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 {% endblock %}
@@ -355,20 +729,126 @@
     </div>
 
     {% if has_pending_request %}
-        <div class="main-content-grid" style="max-width: 960px; margin: 0 auto;">
-            <div class="left-content">
-                <div class="request-status-card pending">
-                    <div class="status-icon"><i class="fas fa-clock"></i></div>
-                    <div class="status-content">
-                        <h3>Tu solicitud de actualización está en proceso</h3>
-                        <p>Hemos recibido tu solicitud y te contactaremos muy pronto.</p>
+        <!-- Hero Section - Pending Request -->
+        <div class="pending-hero">
+            <div class="pending-hero-content">
+                <div class="pending-hero-info">
+                    <div class="pending-badge">
+                        <i class="fas fa-check-circle"></i>
+                        Solicitud Recibida
+                    </div>
+                    <h1>Tu solicitud de upgrade está en proceso</h1>
+                    <p class="pending-hero-subtitle">
+                        Hemos recibido tu solicitud para mejorar al plan 
+                        <strong>{{ pending_upgrade_request.requested_plan.display_name }}</strong>. 
+                        Estamos verificando tu información.
+                    </p>
+                </div>
+                <div class="pending-status-visual">
+                    <i class="fas fa-hourglass-half status-icon-large"></i>
+                    <span class="status-text">En Revisión</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="pending-content-grid">
+            <!-- Left: Request Details -->
+            <div class="pending-details-card">
+                <div class="pending-details-header">
+                    <div class="pending-details-icon">
+                        <i class="fas fa-file-invoice"></i>
+                    </div>
+                    <h3>Detalles de tu Solicitud</h3>
+                </div>
+                <div class="pending-details-body">
+                    <div class="pending-detail-items">
+                        <div class="pending-detail-item">
+                            <span class="item-label"><i class="fas fa-box"></i> Plan Actual</span>
+                            <span class="item-value">{{ subscription.plan.display_name }}</span>
+                        </div>
+                        <div class="pending-detail-item">
+                            <span class="item-label"><i class="fas fa-rocket"></i> Plan Solicitado</span>
+                            <span class="item-value highlight">{{ pending_upgrade_request.requested_plan.display_name }}</span>
+                        </div>
+                        <div class="pending-detail-item">
+                            <span class="item-label"><i class="fas fa-dollar-sign"></i> Monto</span>
+                            <span class="item-value">${{ pending_upgrade_request.amount }}</span>
+                        </div>
+                        <div class="pending-detail-item">
+                            <span class="item-label"><i class="fas fa-calendar-alt"></i> Fecha de Solicitud</span>
+                            <span class="item-value">{{ pending_upgrade_request.created_at|date:"d/m/Y H:i" }}</span>
+                        </div>
+                        <div class="pending-detail-item">
+                            <span class="item-label"><i class="fas fa-info-circle"></i> Estado</span>
+                            <span class="pending-status-badge processing">
+                                <i class="fas fa-clock"></i> En Proceso
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="pending-info-box">
+                        <i class="fas fa-lightbulb"></i>
+                        <p>
+                            <strong>¿Qué sigue?</strong> Una vez que verifiquemos tu pago, 
+                            tu plan se actualizará automáticamente y recibirás una confirmación por email.
+                        </p>
                     </div>
                 </div>
-                <a href="{% url 'plans:subscription_dashboard' %}" class="quick-action-btn secondary" style="display:inline-flex;">
-                    <i class="fas fa-arrow-left"></i>
-                    <span>Volver al Dashboard</span>
-                </a>
             </div>
+            
+            <!-- Right: Next Steps -->
+            <div class="pending-next-steps">
+                <h4>
+                    <i class="fas fa-tasks"></i>
+                    Próximos Pasos
+                </h4>
+                <div class="pending-steps-list">
+                    <div class="pending-step-item">
+                        <div class="pending-step-num completed">
+                            <i class="fas fa-check" style="font-size: 0.7rem;"></i>
+                        </div>
+                        <div class="pending-step-content">
+                            <strong>Solicitud Enviada</strong>
+                            <span>Tu solicitud fue recibida correctamente</span>
+                        </div>
+                    </div>
+                    <div class="pending-step-item">
+                        <div class="pending-step-num current">2</div>
+                        <div class="pending-step-content">
+                            <strong>Verificación en Proceso</strong>
+                            <span>Estamos validando tu información de pago</span>
+                        </div>
+                    </div>
+                    <div class="pending-step-item">
+                        <div class="pending-step-num upcoming">3</div>
+                        <div class="pending-step-content">
+                            <strong>Activación</strong>
+                            <span>Tu nuevo plan se activará automáticamente</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Support Info -->
+                <div class="upgrade-support" style="margin-top: 25px;">
+                    <p>¿Tienes dudas sobre tu solicitud?</p>
+                    <div class="support-links-compact">
+                        <span><i class="fas fa-envelope"></i> {{ support_email }}</span>
+                        <span><i class="fas fa-phone"></i> {{ support_phone }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="pending-actions">
+            <a href="{% url 'plans:subscription_dashboard' %}" class="pending-action-btn primary">
+                <i class="fas fa-chart-line"></i>
+                Ver Dashboard de Suscripción
+            </a>
+            <a href="{% url 'main:dashboard' %}" class="pending-action-btn secondary">
+                <i class="fas fa-arrow-left"></i>
+                Volver al Inicio
+            </a>
         </div>
     {% else %}
         
