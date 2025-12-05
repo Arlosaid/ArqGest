@@ -1,0 +1,47 @@
+name: SonarCloud Scan
+
+on:
+  push:
+    branches:
+      - main
+      - fix-dashboard-panel-django
+  pull_request:
+
+jobs:
+  sonarcloud:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # Necesario para análisis correcto
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-django
+
+      - name: Run tests with coverage
+        run: |
+          cd arc_manager
+          pytest --cov=. --cov-report=xml:../coverage.xml -v || true
+        env:
+          SECRET_KEY: "test-secret-key-for-ci-sonarcloud-12345"
+          DEBUG: "True"
+          TESTING: "True"
+          ALLOWED_HOSTS: "localhost,127.0.0.1,*"
+          ENABLE_STORAGES: "false"
+          DJANGO_SETTINGS_MODULE: "core.settings"
+
+      - name: Run SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
