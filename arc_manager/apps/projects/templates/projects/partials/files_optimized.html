@@ -5,7 +5,7 @@
 <div class="files-grid" id="files-grid-{{ phase.id }}">
     {% for file in files %}
     {% with icon_data=file.extension|file_icon %}
-    <div class="file-item" id="file-{{ file.id }}">
+    <div class="file-item" id="file-{{ file.id }}" {% if file.task_id %}data-task-id="{{ file.task_id }}"{% endif %}>
         <div class="file-card">
             <a href="{{ file.file_url }}" target="_blank" class="text-decoration-none" title="{% trans 'Ver archivo' %}">
                 <div class="file-icon {{ icon_data.class }}">
@@ -38,6 +38,7 @@
                 <button class="file-action-btn delete file-delete-btn"
                         data-delete-url="{% url 'files:delete_file' file.id %}"
                         data-file-id="{{ file.id }}"
+                        {% if file.task_id %}data-task-id="{{ file.task_id }}"{% endif %}
                         type="button"
                         title="{% trans 'Eliminar' %}">
                     <i class="fas fa-trash-alt"></i>

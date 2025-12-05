@@ -376,7 +376,10 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         # Centro de tareas: métricas y listas rápidas (optimizado con agregaciones)
         # UX: Todos los usuarios ven todas las tareas del proyecto para contexto completo
         from django.db.models import Count, Q
-        tasks_qs = Task.objects.filter(phase__project=project).select_related('phase', 'assigned_to')
+        tasks_qs = Task.objects.filter(phase__project=project).select_related('phase', 'assigned_to').annotate(
+            files_count=Count('files', distinct=True),
+            notes_count=Count('notes', distinct=True)
+        )
         
         agg = tasks_qs.aggregate(
             total=Count('id'),
