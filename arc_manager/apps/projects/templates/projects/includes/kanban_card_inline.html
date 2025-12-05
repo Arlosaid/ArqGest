@@ -26,13 +26,13 @@
         <!-- Meta: Assignee & Date -->
         <div class="d-flex align-items-center justify-content-between mt-1 pt-1 border-top border-light">
             <!-- Assignee with Name -->
-            <div class="d-flex align-items-center" style="max-width: 50%;">
+            <div class="d-flex align-items-center" style="max-width: 55%;">
                 {% if task.assigned_to %}
-                    <div class="avatar-xs rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold shadow-sm me-2 flex-shrink-0" style="width: 24px; height: 24px; font-size: 10px;" title="{{ task.assigned_to.get_full_name|default:task.assigned_to.email }}">
-                        {{ task.assigned_to.first_name|first|default:task.assigned_to.email|first|upper }}
+                    <div class="assignee-avatar avatar-color-{{ task.assigned_to.id|add:0|stringformat:'d'|slice:'-1:' }} me-2 flex-shrink-0" style="width: 24px; height: 24px; font-size: 10px;" title="{{ task.assigned_to.get_full_name|default:task.assigned_to.email }}">
+                        {{ task.assigned_to.first_name|first|default:task.assigned_to.email|first|upper }}{{ task.assigned_to.last_name|first|default:"" }}
                     </div>
-                    <span class="text-truncate text-muted" style="font-size: 0.75rem;">
-                        {{ task.assigned_to.first_name|default:task.assigned_to.email|truncatechars:15 }}
+                    <span class="text-truncate text-muted" style="font-size: 0.75rem;" title="{{ task.assigned_to.get_full_name }}">
+                        {{ task.assigned_to.first_name }} {{ task.assigned_to.last_name|truncatechars:10 }}
                     </span>
                 {% else %}
                     <div class="avatar-xs rounded-circle bg-light d-flex align-items-center justify-content-center text-muted border me-2 flex-shrink-0" style="width: 24px; height: 24px; font-size: 10px;" title="{% trans 'Sin asignar' %}">

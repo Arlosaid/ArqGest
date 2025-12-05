@@ -383,8 +383,8 @@ function confirmAndDelete(userId) {
                         <tr data-user-id="{{ user_item.pk }}">
                             <td>
                                 <div class="d-flex align-items-center gap-3">
-                                    <div class="avatar-initials shadow-sm">
-                                        {{ user_item.get_full_name|first|upper }}
+                                    <div class="avatar-initials avatar-color-{{ user_item.pk|add:0|stringformat:'d'|slice:'-1:' }} shadow-sm">
+                                        {{ user_item.first_name|slice:":1"|upper }}{{ user_item.last_name|slice:":1"|upper }}
                                     </div>
                                     <div>
                                         <div class="fw-semibold text-dark user-name">{{ user_item.get_full_name|default:user_item.email }}</div>
@@ -470,8 +470,8 @@ function confirmAndDelete(userId) {
                     <div class="project-card-header">
                         <div class="d-flex align-items-center gap-3">
                             <div class="project-image">
-                                <div class="image-placeholder">
-                                    <span class="fw-bold">{{ user_item.get_full_name|first|upper }}</span>
+                                <div class="avatar-initials avatar-color-{{ user_item.pk|add:0|stringformat:'d'|slice:'-1:' }}" style="width: 48px; height: 48px; font-size: 1.1rem;">
+                                    {{ user_item.first_name|slice:":1"|upper }}{{ user_item.last_name|slice:":1"|upper }}
                                 </div>
                             </div>
                             <div>

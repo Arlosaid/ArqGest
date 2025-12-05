@@ -375,25 +375,48 @@ class FileDeleteManager {
 
         const phaseId = phaseIdMatch[1];
         
-        // Buscar el badge del contador
+        // Buscar el badge del contador de fase
         const counterBadge = document.getElementById(`file-count-${phaseId}`);
-        if (!counterBadge) {
+        if (counterBadge) {
+            // Extraer el número actual y decrementarlo
+            const counterText = counterBadge.textContent.trim();
+            const currentCount = parseInt(counterText.match(/\d+/)[0]);
+            
+            if (!isNaN(currentCount) && currentCount > 0) {
+                const newCount = currentCount - 1;
+                // Actualizar el texto manteniendo la traducción "documentos"
+                const documentosText = counterText.includes('documento') ? counterText.match(/\d+\s+(.+)/)[1] : 'documentos';
+                counterBadge.textContent = `${newCount} ${documentosText}`;
+            }
+        }
+        
+        // Actualizar contador de tarea si el archivo pertenece a una tarea
+        const taskId = fileElement.dataset.taskId || this.currentFileData?.button?.dataset?.taskId;
+        if (taskId) {
+            this.updateTaskFileCounter(taskId);
+        }
+    }
+    
+    updateTaskFileCounter(taskId) {
+        // Buscar la tarjeta de tarea en el Centro de Tareas
+        const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
+        if (!taskCard) {
             return;
         }
-
-        // Extraer el número actual y decrementarlo
-        const counterText = counterBadge.textContent.trim();
-        const currentCount = parseInt(counterText.match(/\d+/)[0]);
         
-        if (isNaN(currentCount) || currentCount <= 0) {
-            return;
+        // Buscar el badge de archivos dentro de la tarjeta
+        const filesBadge = taskCard.querySelector('.task-compact-meta [title*="archivos"]');
+        if (filesBadge) {
+            const currentCount = parseInt(filesBadge.querySelector('.fw-bold')?.textContent || '0');
+            if (currentCount > 1) {
+                // Decrementar el contador
+                filesBadge.querySelector('.fw-bold').textContent = currentCount - 1;
+                filesBadge.setAttribute('title', `${currentCount - 1} archivos adjuntos`);
+            } else {
+                // Si es 1, remover el badge completo
+                filesBadge.remove();
+            }
         }
-
-        const newCount = currentCount - 1;
-        
-        // Actualizar el texto manteniendo la traducción "documentos"
-        const documentosText = counterText.includes('documento') ? counterText.match(/\d+\s+(.+)/)[1] : 'documentos';
-        counterBadge.textContent = `${newCount} ${documentosText}`;
     }
 
     triggerFileListUpdate() {

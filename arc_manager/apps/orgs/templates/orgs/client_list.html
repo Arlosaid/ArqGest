@@ -181,8 +181,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         <tr data-client-id="{{ client.pk }}">
                             <td>
                                 <div class="d-flex align-items-center gap-3">
-                                    <div class="avatar-initials shadow-sm">
-                                        {{ client.name|first|upper }}
+                                    <div class="avatar-initials avatar-color-{{ client.pk|add:0|stringformat:'d'|slice:'-1:' }} shadow-sm">
+                                        {{ client.name|make_list|first|upper }}{{ client.name|make_list|slice:"1:2"|first|upper|default:'' }}
                                     </div>
                                     <div>
                                         <div class="fw-semibold text-dark client-name">{{ client.name }}</div>
@@ -268,8 +268,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="project-card-header">
                         <div class="d-flex align-items-center gap-3">
                             <div class="project-image">
-                                <div class="image-placeholder">
-                                    <span class="fw-bold">{{ client.name|first|upper }}</span>
+                                <div class="avatar-initials avatar-color-{{ client.pk|add:0|stringformat:'d'|slice:'-1:' }}" style="width: 48px; height: 48px; font-size: 1.1rem;">
+                                    {{ client.name|make_list|first|upper }}{{ client.name|make_list|slice:"1:2"|first|upper|default:'' }}
                                 </div>
                             </div>
                             <div>

@@ -1237,7 +1237,20 @@
     align-items: center;
     justify-content: center;
     border: 1px solid var(--task-primary);
+    flex-shrink: 0;
 }
+
+/* Colores únicos para avatares basados en el último dígito del ID del usuario */
+.assignee-avatar.avatar-color-0 { background: #dbeafe; color: #1d4ed8; border-color: #3b82f6; }
+.assignee-avatar.avatar-color-1 { background: #dcfce7; color: #15803d; border-color: #22c55e; }
+.assignee-avatar.avatar-color-2 { background: #fef3c7; color: #b45309; border-color: #f59e0b; }
+.assignee-avatar.avatar-color-3 { background: #fce7f3; color: #be185d; border-color: #ec4899; }
+.assignee-avatar.avatar-color-4 { background: #e0e7ff; color: #4338ca; border-color: #6366f1; }
+.assignee-avatar.avatar-color-5 { background: #ccfbf1; color: #0f766e; border-color: #14b8a6; }
+.assignee-avatar.avatar-color-6 { background: #fee2e2; color: #b91c1c; border-color: #ef4444; }
+.assignee-avatar.avatar-color-7 { background: #f3e8ff; color: #7c3aed; border-color: #a855f7; }
+.assignee-avatar.avatar-color-8 { background: #ffedd5; color: #c2410c; border-color: #f97316; }
+.assignee-avatar.avatar-color-9 { background: #cffafe; color: #0e7490; border-color: #06b6d4; }
 
 .assignee-name {
     font-size: 0.75rem;

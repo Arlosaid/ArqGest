@@ -86,7 +86,7 @@
                 <button class="nav-link" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks" type="button" role="tab" aria-controls="tasks" aria-selected="false">
                     <i class="fas fa-clipboard-list"></i> {% trans "Centro de Tareas" %}
                     {% if tasks_total > 0 %}
-                        <span class="badge bg-secondary ms-1 rounded-pill" style="font-size: 0.7em;">{{ tasks_total }}</span>
+                        <span id="tasks-tab-counter" class="badge bg-secondary ms-1 rounded-pill" style="font-size: 0.7em;">{{ tasks_total }}</span>
                     {% endif %}
                 </button>
             </li>
