@@ -71,15 +71,15 @@
 
         <!-- Actions (View, Edit, Delete) - Visible on all devices -->
         <!-- Permisos: Admin puede editar/eliminar, usuarios normales solo ver -->
-        <div class="d-flex justify-content-center align-items-center gap-4 mt-2 pt-2 border-top border-light w-100">
-            <button type="button" class="btn btn-link p-0 text-secondary border-0" onclick="event.stopPropagation(); window.openTaskModal('detail', '{{ task.id }}')" style="font-size: 1.1rem;" title="{% trans 'Ver detalles' %}">
+        <div class="task-compact-actions d-flex justify-content-center align-items-center gap-3 mt-2 pt-2 border-top border-light w-100">
+            <button type="button" class="btn-icon-action view" onclick="event.stopPropagation(); window.openTaskModal('detail', '{{ task.id }}')" title="{% trans 'Ver detalles' %}">
                 <i class="fas fa-eye"></i>
             </button>
             {% if user.is_org_admin %}
-            <button type="button" class="btn btn-link p-0 text-primary border-0" onclick="event.stopPropagation(); window.openTaskModal('edit', '{{ task.id }}')" style="font-size: 1.1rem;" title="{% trans 'Editar' %}">
-                <i class="fas fa-pencil-alt"></i>
+            <button type="button" class="btn-icon-action edit" onclick="event.stopPropagation(); window.openTaskModal('edit', '{{ task.id }}')" title="{% trans 'Editar' %}">
+                <i class="fas fa-pen"></i>
             </button>
-            <button type="button" class="btn btn-link p-0 text-danger border-0" onclick="event.stopPropagation(); window.kanbanManager.deleteTask('{{ task.id }}')" style="font-size: 1.1rem;" title="{% trans 'Eliminar' %}">
+            <button type="button" class="btn-icon-action delete" onclick="event.stopPropagation(); window.kanbanManager.deleteTask('{{ task.id }}')" title="{% trans 'Eliminar' %}">
                 <i class="fas fa-trash-alt"></i>
             </button>
             {% endif %}
