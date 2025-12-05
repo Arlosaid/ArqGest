@@ -214,12 +214,14 @@
                                    title="{% trans 'Descargar' %}">
                                     <i class="fas fa-download"></i>
                                 </a>
+                                {% if user.is_org_admin or file.uploaded_by == user %}
                                 <button type="button" 
                                         class="btn btn-outline-danger btn-sm"
                                         title="{% trans 'Eliminar' %}"
                                         onclick="deleteTaskFileEdit({{ file.id }}, '{{ file.filename|escapejs }}')">
                                     <i class="fas fa-trash"></i>
                                 </button>
+                                {% endif %}
                             </div>
                         </div>
                         {% empty %}

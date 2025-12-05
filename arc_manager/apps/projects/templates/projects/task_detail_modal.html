@@ -192,7 +192,7 @@
                     </div>
                     {% if task.files.exists %}
                         {% for file in task.files.all %}
-                        <div class="task-file-item">
+                        <div class="task-file-item" id="detail-task-file-{{ file.id }}">
                             <div class="task-file-info">
                                 <i class="fas fa-file task-file-icon"></i>
                                 <span class="task-file-name" title="{{ file.filename }}">{{ file.filename }}</span>
@@ -204,7 +204,7 @@
                                    title="{% trans 'Descargar' %}">
                                     <i class="fas fa-download"></i>
                                 </a>
-                                {% if user.is_org_admin %}
+                                {% if user.is_org_admin or file.uploaded_by == user %}
                                 <button type="button" 
                                         class="btn btn-outline-danger btn-sm"
                                         title="{% trans 'Eliminar' %}"
@@ -216,9 +216,45 @@
                         </div>
                         {% endfor %}
                     {% else %}
-                        <div class="text-muted fst-italic small">
+                        <div class="text-muted fst-italic small" id="detail-no-files-msg">
                             {% trans "Sin archivos adjuntos." %}
                         </div>
+                    {% endif %}
+                    
+                    <!-- Zona de upload para admin o usuario asignado -->
+                    {% if user.is_org_admin or task.assigned_to == user %}
+                        {% if task.files.count < 3 %}
+                        <div class="mt-3">
+                            <input type="file" id="detail-task-file-input" style="display: none;" 
+                                   accept=".pdf,.jpg,.jpeg,.png,.gif,.tiff,.dwg,.dxf,.rvt,.skp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt,.md">
+                            <div class="task-upload-zone-detail" 
+                                 id="detail-task-upload-zone"
+                                 data-task-id="{{ task.pk }}"
+                                 data-phase-id="{{ task.phase.pk }}"
+                                 data-project-id="{{ task.phase.project.pk }}"
+                                 data-current-files="{{ task.files.count }}"
+                                 style="border: 2px dashed #dee2e6; border-radius: 0.5rem; padding: 1rem; text-align: center; cursor: pointer; transition: all 0.2s ease;">
+                                <div style="color: #6c757d;">
+                                    <i class="fas fa-cloud-upload-alt mb-2" style="font-size: 1.5rem;"></i>
+                                    <div style="font-size: 0.85rem;">{% trans "Arrastra o haz clic para subir" %}</div>
+                                    <div style="font-size: 0.75rem; color: #adb5bd;">PDF, DWG, JPG, PNG ({% trans "Máx" %} 1.5GB)</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="detail-task-upload-progress" style="display: none;" class="mt-2">
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
+                            </div>
+                            <small class="text-muted">{% trans "Subiendo..." %}</small>
+                        </div>
+                        {% else %}
+                        <div class="mt-3 text-center p-2" style="background: #fff3cd; border-radius: 0.375rem;">
+                            <small class="text-warning-emphasis">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                {% trans "Límite de archivos alcanzado (3/3)" %}
+                            </small>
+                        </div>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>
@@ -233,7 +269,7 @@
                             {{ task.get_status_display }}
                         </span>
                         <span class="badge rounded-pill border text-dark bg-light w-100 py-2">
-                            <i class="fas fa-flag me-1 {% if task.priority == 'HIGH' %}text-danger{% elif task.priority == 'MEDIUM' %}text-warning{% else %}text-muted{% endif %}"></i>
+                            <i class="fas fa-flag me-1 {% if task.priority == 'HIGH' %}text-danger{% elif task.priority == 'MEDIUM' %}text-warning{% else %}text-primary{% endif %}"></i>
                             {{ task.get_priority_display }}
                         </span>
                     </div>
@@ -334,4 +370,122 @@ function deleteTaskFile(fileId, fileName) {
     });
     confirmModal.show();
 }
+
+// ===== UPLOAD DE ARCHIVOS DESDE MODAL DE DETALLE =====
+(function() {
+    const uploadZone = document.getElementById('detail-task-upload-zone');
+    const fileInput = document.getElementById('detail-task-file-input');
+    const progressContainer = document.getElementById('detail-task-upload-progress');
+    
+    if (!uploadZone || !fileInput) return;
+    
+    const taskId = uploadZone.dataset.taskId;
+    const phaseId = uploadZone.dataset.phaseId;
+    const projectId = uploadZone.dataset.projectId;
+    
+    // Click en zona de upload
+    uploadZone.addEventListener('click', () => fileInput.click());
+    
+    // Drag & Drop
+    uploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadZone.style.borderColor = '#3b82f6';
+        uploadZone.style.backgroundColor = '#f0f7ff';
+    });
+    
+    uploadZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        uploadZone.style.borderColor = '#dee2e6';
+        uploadZone.style.backgroundColor = 'transparent';
+    });
+    
+    uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadZone.style.borderColor = '#dee2e6';
+        uploadZone.style.backgroundColor = 'transparent';
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            uploadFile(files[0]);
+        }
+    });
+    
+    // Selección de archivo
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+            uploadFile(fileInput.files[0]);
+        }
+    });
+    
+    function uploadFile(file) {
+        // Validar tamaño (1.5GB máximo)
+        const maxSize = 1.5 * 1024 * 1024 * 1024;
+        if (file.size > maxSize) {
+            if (window.notifications) {
+                window.notifications.error('{% trans "El archivo excede el tamaño máximo de 1.5GB" %}');
+            }
+            return;
+        }
+        
+        // Mostrar progreso
+        if (progressContainer) {
+            progressContainer.style.display = 'block';
+        }
+        uploadZone.style.display = 'none';
+        
+        const formData = new FormData();
+        formData.append('files', file);  // 'files' es el nombre que espera la vista
+        
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable && progressContainer) {
+                const percent = Math.round((e.loaded / e.total) * 100);
+                const progressBar = progressContainer.querySelector('.progress-bar');
+                if (progressBar) {
+                    progressBar.style.width = percent + '%';
+                }
+            }
+        });
+        
+        xhr.addEventListener('load', () => {
+            if (xhr.status === 200 || xhr.status === 201) {
+                // Recargar el modal para mostrar el nuevo archivo
+                openTaskModal('detail', {{ task.pk }});
+                if (window.notifications) {
+                    window.notifications.success('{% trans "Archivo subido correctamente" %}');
+                }
+            } else {
+                if (progressContainer) progressContainer.style.display = 'none';
+                uploadZone.style.display = 'block';
+                
+                let errorMsg = '{% trans "Error al subir el archivo" %}';
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.error) errorMsg = response.error;
+                } catch(e) {}
+                
+                if (window.notifications) {
+                    window.notifications.error(errorMsg);
+                }
+            }
+        });
+        
+        xhr.addEventListener('error', () => {
+            if (progressContainer) progressContainer.style.display = 'none';
+            uploadZone.style.display = 'block';
+            if (window.notifications) {
+                window.notifications.error('{% trans "Error de conexión" %}');
+            }
+        });
+        
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                          document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+        
+        xhr.open('POST', `/projects/${projectId}/phases/${phaseId}/tasks/${taskId}/files/upload/`);
+        xhr.setRequestHeader('X-CSRFToken', csrfToken);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.send(formData);
+    }
+})();
 </script>

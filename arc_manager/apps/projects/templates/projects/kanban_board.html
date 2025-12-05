@@ -211,9 +211,16 @@
                 </div>
             </div>
             <div class="d-flex gap-2 align-items-center flex-wrap justify-content-end">
+                {% if user.is_org_admin %}
                 <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#addTaskModal" style="border-radius: 8px; padding: 0.6rem 1.2rem; font-weight: 600;">
                     <i class="fas fa-plus me-2"></i>{% trans "Nueva Tarea" %}
                 </button>
+                {% else %}
+                <button class="btn btn-secondary shadow-sm" disabled style="border-radius: 8px; padding: 0.6rem 1.2rem; font-weight: 600; cursor: not-allowed;" 
+                        title="{% trans 'Solo los administradores pueden crear tareas' %}" data-bs-toggle="tooltip">
+                    <i class="fas fa-plus me-2"></i>{% trans "Nueva Tarea" %}
+                </button>
+                {% endif %}
             </div>
         </div>
     </div>

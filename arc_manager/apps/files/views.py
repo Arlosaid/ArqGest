@@ -283,6 +283,22 @@ def upload_file(request, project_id, phase_id):
                     # Validar que la tarea pertenece a la misma fase
                     task = Task.objects.get(pk=task_id, phase=phase)
                     
+                    # SEGURIDAD: Usuarios no-admin solo pueden subir archivos a tareas asignadas a ellos
+                    if not request.user.is_org_admin and task.assigned_to != request.user:
+                        error_msg = _("Solo puedes subir archivos a tareas asignadas a ti.")
+                        log_warning(
+                            event="file_upload_task_not_assigned",
+                            message="Usuario intentó subir archivo a tarea no asignada",
+                            task_id=task_id,
+                            task_assigned_to=task.assigned_to_id,
+                            user_id=request.user.id,
+                            user_email=request.user.email
+                        )
+                        if request.headers.get('HX-Request') == 'true':
+                            return JsonResponse({"error": str(error_msg), "success": False}, status=403)
+                        messages.error(request, error_msg)
+                        return HttpResponse(status=403)
+                    
                     # Validar límite de 3 archivos por tarea
                     current_task_files = ProjectFile.objects.filter(task=task).count()
                     if current_task_files >= 3:

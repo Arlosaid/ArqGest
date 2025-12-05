@@ -81,9 +81,16 @@
                     <input type="text" class="search-input" id="searchInput" placeholder="{% trans 'Buscar tareas...' %}">
                 </div>
                 
+                {% if user.is_org_admin %}
                 <button type="button" class="task-action-btn primary" data-bs-toggle="modal" data-bs-target="#createTaskModal">
                     <i class="fas fa-plus"></i> {% trans "Nueva Tarea" %}
                 </button>
+                {% else %}
+                <button type="button" class="task-action-btn" disabled style="cursor: not-allowed; opacity: 0.6;" 
+                        title="{% trans 'Solo los administradores pueden crear tareas' %}">
+                    <i class="fas fa-plus"></i> {% trans "Nueva Tarea" %}
+                </button>
+                {% endif %}
             </div>
             
             <div class="filters-actions">

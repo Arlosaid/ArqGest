@@ -256,9 +256,16 @@
                           </div>
 
                           <div class="ms-auto">
+                            {% if user.is_org_admin %}
                             <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addTaskModal">
                               <i class="fas fa-plus"></i> {% trans "Nueva Tarea" %}
                             </button>
+                            {% else %}
+                            <button class="btn btn-secondary btn-sm" disabled style="cursor: not-allowed;" 
+                                    title="{% trans 'Solo los administradores pueden crear tareas' %}" data-bs-toggle="tooltip">
+                              <i class="fas fa-plus"></i> {% trans "Nueva Tarea" %}
+                            </button>
+                            {% endif %}
                           </div>
                         </div>
 

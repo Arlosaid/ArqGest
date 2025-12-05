@@ -119,6 +119,7 @@ class RequestUpgradeView(LoginRequiredMixin, OrgAdminRequiredMixin, TemplateView
         subscription = get_object_or_404(Subscription, organization=organization)
 
         context['subscription'] = subscription
+        context['organization'] = organization
         context['has_pending_request'] = UpgradeRequest.objects.filter(
             organization=organization,
             status='pending'
@@ -165,21 +166,31 @@ class RequestUpgradeView(LoginRequiredMixin, OrgAdminRequiredMixin, TemplateView
 
         # 4. Crear la solicitud
         try:
+            # Calcular el precio real (con descuento de fundador si aplica)
+            if organization.is_founder_member:
+                upgrade_amount = organization.get_founder_price(requested_plan.price)
+            else:
+                upgrade_amount = requested_plan.price
+            
             with transaction.atomic():
                 UpgradeRequest.objects.create(
                     organization=organization,
                     current_plan=subscription.plan,
                     requested_plan=requested_plan,
-                    amount=requested_plan.price
+                    amount=upgrade_amount
                 )
                 
             # Información de contacto para el mensaje
             support_phone = getattr(settings, 'SUPPORT_PHONE', '55 1234 5678')
             support_email = getattr(settings, 'SUPPORT_EMAIL', 'soporte@tuempresa.com')
             
+            # Mostrar mensaje con precio de fundador si aplica
+            price_msg = f"${upgrade_amount} MXN"
+            founder_msg = " (Precio especial fundador)" if organization.is_founder_member else ""
+            
             messages.success(
                 request, 
-                f"✅ Solicitud enviada: Actualización a {requested_plan.display_name} - ${requested_plan.price} MXN. "
+                f"✅ Solicitud enviada: Actualización a {requested_plan.display_name} - {price_msg}{founder_msg}. "
                 f"Realiza el pago y contacta al equipo en {support_phone} o {support_email} con tu comprobante. "
                 f"Tu plan se activará automáticamente una vez que el administrador verifique y apruebe el pago."
             )
@@ -249,7 +260,15 @@ class RenewSubscriptionView(LoginRequiredMixin, OrgAdminRequiredMixin, TemplateV
         # Información básica
         context['subscription'] = subscription
         context['organization'] = organization
-        context['renewal_amount'] = subscription.plan.price
+        
+        # Calcular el precio real (con descuento de fundador si aplica)
+        if organization.is_founder_member:
+            context['renewal_amount'] = organization.get_founder_price(subscription.plan.price)
+            context['is_founder_price'] = True
+        else:
+            context['renewal_amount'] = subscription.plan.price
+            context['is_founder_price'] = False
+        
         context['renewal_days'] = subscription.plan.billing_cycle_days
         
         # Calcular nueva fecha de vencimiento (la renovación comienza cuando termine la vigencia actual)
@@ -286,12 +305,18 @@ class RenewSubscriptionView(LoginRequiredMixin, OrgAdminRequiredMixin, TemplateV
         # Obtener motivo opcional
         reason = request.POST.get('reason', '').strip()
         
+        # Calcular el precio real (con descuento de fundador si aplica)
+        if organization.is_founder_member:
+            renewal_amount = organization.get_founder_price(subscription.plan.price)
+        else:
+            renewal_amount = subscription.plan.price
+        
         try:
             with transaction.atomic():
                 RenewalRequest.objects.create(
                     organization=organization,
                     subscription=subscription,
-                    renewal_amount=subscription.plan.price,
+                    renewal_amount=renewal_amount,
                     renewal_days=subscription.plan.billing_cycle_days,
                     reason=reason
                 )
@@ -300,9 +325,13 @@ class RenewSubscriptionView(LoginRequiredMixin, OrgAdminRequiredMixin, TemplateV
             support_phone = getattr(settings, 'SUPPORT_PHONE', '55 1234 5678')
             support_email = getattr(settings, 'SUPPORT_EMAIL', 'soporte@tuempresa.com')
             
+            # Mostrar mensaje con precio de fundador si aplica
+            price_msg = f"${renewal_amount} MXN"
+            founder_msg = " (Precio especial fundador)" if organization.is_founder_member else ""
+            
             messages.success(
                 request,
-                f'✅ Solicitud enviada: {subscription.plan.display_name} - ${subscription.plan.price} MXN. '
+                f'✅ Solicitud enviada: {subscription.plan.display_name} - {price_msg}{founder_msg}. '
                 f'Realiza el pago y contacta al equipo en {support_phone} o {support_email} con tu comprobante. '
                 f'Tu suscripción se renovará automáticamente una vez que el administrador verifique y apruebe el pago.'
             )

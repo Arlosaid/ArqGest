@@ -30,7 +30,17 @@ document.addEventListener('DOMContentLoaded', function() {
         // Para fases nuevas (sin data-is-existing), simplemente eliminar del DOM
         const isExisting = wrapper.dataset.isExisting === 'true';
         
+        // Check active phases count before deleting
+        const activePhases = Array.from(formsetContainer.querySelectorAll('.phase-item')).filter(item => {
+            const delInput = item.querySelector('input[type="checkbox"][name$="-DELETE"]');
+            return !delInput || !delInput.checked;
+        });
+
         if (!isExisting) {
+            if (activePhases.length <= 1) {
+                alert('Debe haber al menos una fase en la plantilla.');
+                return;
+            }
             // Fase nueva: eliminar completamente del DOM
             wrapper.remove();
             formNum--;
@@ -45,6 +55,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if (deleteInput) {
                 // Toggle estado
                 const isDeleting = !deleteInput.checked;
+                
+                if (isDeleting && activePhases.length <= 1) {
+                    alert('Debe haber al menos una fase en la plantilla.');
+                    return;
+                }
+
                 deleteInput.checked = isDeleting;
                 
                 if (isDeleting) {
@@ -141,8 +157,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     updateOrder();
 
-    formEl.addEventListener('submit', function() {
+    formEl.addEventListener('submit', function(e) {
         const forms = formsetContainer.querySelectorAll('.phase-item:not([style*="display: none"])');
+        let activeCount = 0;
+
         forms.forEach((form) => {
             const nameInput = form.querySelector('input[name$="-name"]');
             const deleteInput = form.querySelector('input[type="checkbox"][name$="-DELETE"]');
@@ -159,8 +177,16 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (nameInput && !nameInput.value.trim() && !isExisting) {
                 // Fases nuevas sin nombre: eliminar del DOM
                 form.remove();
+            } else {
+                activeCount++;
             }
         });
+
+        if (activeCount === 0) {
+            e.preventDefault();
+            alert('Debe haber al menos una fase en la plantilla.');
+            return;
+        }
         // No llamamos updateOrder aquí para no reordenar justo antes de enviar si no es necesario
     });
 });

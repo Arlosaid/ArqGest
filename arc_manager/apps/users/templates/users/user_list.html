@@ -290,11 +290,18 @@ function confirmAndDelete(userId) {
             <strong>Límite de usuarios alcanzado</strong>
             <p style="margin: 0.5rem 0 0 0;">
                 Has alcanzado el límite de <strong>{{ max_users }} usuario{{ max_users|pluralize }}</strong> de tu plan. 
-                Para agregar más usuarios, 
-                {% if inactive_users > 0 %}
-                    elimina un usuario existente o 
+                {% if is_trial %}
+                    Para agregar más usuarios, 
+                    {% if inactive_users > 0 %}
+                        elimina un usuario existente o 
+                    {% endif %}
+                    <a href="{% url 'plans:request_upgrade' %}" class="alert-link"><strong>actualiza al Plan Básico</strong></a>.
+                {% else %}
+                    Has alcanzado el límite máximo de tu plan actual.
+                    {% if inactive_users > 0 %}
+                        Puedes eliminar un usuario existente para liberar espacio.
+                    {% endif %}
                 {% endif %}
-                <a href="{% url 'plans:request_upgrade' %}" class="alert-link"><strong>actualiza tu plan</strong></a>.
             </p>
         </div>
     </div>

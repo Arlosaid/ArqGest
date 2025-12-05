@@ -72,6 +72,13 @@ class UserListView(LoginRequiredMixin, PageSizeMixin, ListView):
         remaining_slots = max(0, max_users - total_users) if max_users > 0 else 0
         at_limit = total_users >= max_users if max_users > 0 else False
         
+        # Verificar si el plan es trial
+        is_trial = False
+        if user.organization:
+            subscription = user.organization.get_subscription()
+            if subscription and subscription.plan:
+                is_trial = subscription.plan.is_trial
+        
         context['total_users'] = total_users
         context['active_users'] = active_users
         context['inactive_users'] = inactive_users
@@ -79,6 +86,7 @@ class UserListView(LoginRequiredMixin, PageSizeMixin, ListView):
         context['max_users'] = max_users
         context['remaining_slots'] = remaining_slots
         context['at_user_limit'] = at_limit  # Nuevo: indica si está en el límite
+        context['is_trial'] = is_trial  # Indica si el plan es trial
         
         # Pasar búsqueda al contexto
         context['search'] = self.request.GET.get('search', '')

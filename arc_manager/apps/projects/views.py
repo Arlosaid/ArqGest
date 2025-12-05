@@ -334,14 +334,10 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         context['can_view_finance'] = is_admin  # Solo admins ven finanzas
         
         # Obtener fases del proyecto con sus archivos y tareas (optimizado)
-        # SEGURIDAD: Filtrar tareas según permisos del usuario
+        # UX: Todos los usuarios ven todas las tareas del proyecto para contexto completo
+        # Solo admins pueden crear/editar/eliminar tareas
         from django.db.models import Prefetch, Min, Max
-        if is_admin:
-            # Admins ven todas las tareas
-            tasks_prefetch = Prefetch('tasks', queryset=Task.objects.select_related('assigned_to'))
-        else:
-            # Usuarios normales solo ven sus tareas asignadas
-            tasks_prefetch = Prefetch('tasks', queryset=Task.objects.filter(assigned_to=self.request.user).select_related('assigned_to'))
+        tasks_prefetch = Prefetch('tasks', queryset=Task.objects.select_related('assigned_to'))
         
         phases = project.phases.prefetch_related(
             'files__uploaded_by',
@@ -378,12 +374,9 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         context['files_phases_page_obj'] = None  # Ya no necesitamos paginación
 
         # Centro de tareas: métricas y listas rápidas (optimizado con agregaciones)
+        # UX: Todos los usuarios ven todas las tareas del proyecto para contexto completo
         from django.db.models import Count, Q
         tasks_qs = Task.objects.filter(phase__project=project).select_related('phase', 'assigned_to')
-        
-        # SEGURIDAD: Usuarios no-admin solo ven sus tareas asignadas
-        if not is_admin:
-            tasks_qs = tasks_qs.filter(assigned_to=self.request.user)
         
         agg = tasks_qs.aggregate(
             total=Count('id'),
@@ -1801,11 +1794,9 @@ def project_tasks_paginated(request, project_pk):
     phase_filter = request.GET.get('phase', '')
 
     # Queryset base
+    # UX: Todos los usuarios ven todas las tareas del proyecto para contexto completo
+    # Solo admins pueden crear/editar/eliminar tareas (controlado en permisos y UI)
     tasks_qs = Task.objects.filter(phase__project=project).select_related('phase', 'assigned_to').annotate(files_count=Count('files'))
-    
-    # SEGURIDAD: Usuarios no-admin solo ven sus tareas asignadas
-    if not request.user.is_org_admin:
-        tasks_qs = tasks_qs.filter(assigned_to=request.user)
     
     # Aplicar filtro de fase
     if phase_filter:
