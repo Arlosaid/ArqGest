@@ -582,6 +582,8 @@ class TestPasswordStrengthValidation:
                 'old_password': 'OldPass123!',
                 'new_password1': strong_password,
                 'new_password2': strong_password,
+                'terms_accepted': True,
+                'privacy_accepted': True,
             }
         )
         

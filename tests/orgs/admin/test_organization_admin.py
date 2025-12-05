@@ -82,7 +82,7 @@ class TestOrganizationAdminListDisplay:
         expected_fields = [
             'name', 'get_active_status', 'get_founder_badge', 
             'user_count', 'get_storage_info', 'get_subscription_status', 
-            'get_subscription_link', 'created_at'
+            'get_subscription_link', 'get_add_user_link', 'created_at'
         ]
         
         assert org_admin_instance.list_display == expected_fields

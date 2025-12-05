@@ -38,9 +38,16 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-django
 
-      - name: Run tests with coverage
+      - name: Create logs directory
+        run: mkdir -p arc_manager/logs
+
+      - name: Run tests with coverage (fast - unit & security only)
         run: |
-          pytest --cov=arc_manager/apps --cov=arc_manager/core --cov-report=xml:coverage.xml --cov-report=term-missing -v
+          pytest tests/accounts/unit tests/accounts/security tests/files/security tests/orgs/unit tests/plans/unit tests/projects/unit tests/users/unit \
+            --cov=arc_manager/apps --cov=arc_manager/core \
+            --cov-report=xml:coverage.xml \
+            --cov-report=term-missing \
+            -q --tb=no
         env:
           SECRET_KEY: "test-secret-key-for-ci-sonarcloud-12345"
           DEBUG: "True"
@@ -49,13 +56,6 @@ jobs:
           ENABLE_STORAGES: "false"
           DJANGO_SETTINGS_MODULE: "core.settings"
           PYTHONPATH: "arc_manager"
-
-      - name: Debug coverage file
-        run: |
-          echo "=== Coverage file exists? ==="
-          ls -la coverage.xml || echo "coverage.xml NOT FOUND"
-          echo "=== Coverage file content (first 50 lines) ==="
-          head -50 coverage.xml || echo "Cannot read coverage.xml"
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2

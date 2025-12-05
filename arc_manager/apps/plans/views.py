@@ -120,10 +120,15 @@ class RequestUpgradeView(LoginRequiredMixin, OrgAdminRequiredMixin, TemplateView
 
         context['subscription'] = subscription
         context['organization'] = organization
-        context['has_pending_request'] = UpgradeRequest.objects.filter(
+        
+        # Obtener solicitud de upgrade pendiente con detalles
+        pending_upgrade = UpgradeRequest.objects.filter(
             organization=organization,
             status='pending'
-        ).exists()
+        ).select_related('requested_plan').first()
+        
+        context['has_pending_request'] = pending_upgrade is not None
+        context['pending_upgrade_request'] = pending_upgrade
         
         # Agregar información de solicitud de renovación pendiente
         context['pending_renewal_request'] = RenewalRequest.objects.filter(
