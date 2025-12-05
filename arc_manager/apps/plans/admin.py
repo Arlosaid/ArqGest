@@ -729,7 +729,7 @@ class RenewalRequestAdmin(ImportExportModelAdmin):
     
     list_display = [
         'organization', 'get_founder_indicator', 'subscription', 'renewal_amount_display', 'renewal_days', 
-        'status', 'created_at', 'processed_at', 'approved_by'
+        'status_display', 'created_at', 'processed_at', 'approved_by', 'actions_column'
     ]
     list_filter = ['status', 'created_at', 'processed_at']
     search_fields = ['organization__name', 'subscription__plan__display_name', 'reason']
@@ -756,6 +756,70 @@ class RenewalRequestAdmin(ImportExportModelAdmin):
                 formatted_amount
             )
         return formatted_amount
+
+    def status_display(self, obj):
+        status_map = {
+            'pending': ('orange', 'Pendiente'),
+            'approved': ('green', 'Aprobado'),
+            'rejected': ('red', 'Rechazado'),
+        }
+        color, text = status_map.get(obj.status, ('black', obj.get_status_display()))
+        return format_html('<b style="color: {};">{}</b>', color, text)
+    status_display.short_description = 'Estado'
+
+    # --- Botones por fila en la lista ---
+    @admin.display(description='Acciones')
+    def actions_column(self, obj):
+        if obj.status != 'pending':
+            return format_html('<span style="color: #888;">—</span>')
+        approve_url = reverse('admin:plans_renewalrequest_approve', args=[obj.pk])
+        reject_url = reverse('admin:plans_renewalrequest_reject', args=[obj.pk])
+        return format_html(
+            '<a class="button" href="{}" style="margin-right:6px;">Aprobar</a>'
+            '<a class="button" href="{}" style="background:#cc0000;border-color:#cc0000;">Rechazar</a>',
+            approve_url,
+            reject_url
+        )
+
+    # --- URLs personalizadas para acciones rápidas ---
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('<int:pk>/approve/', self.admin_site.admin_view(self.approve_view), name='plans_renewalrequest_approve'),
+            path('<int:pk>/reject/', self.admin_site.admin_view(self.reject_view), name='plans_renewalrequest_reject'),
+        ]
+        return custom_urls + urls
+
+    def approve_view(self, request, pk):
+        obj = self.get_object(request, pk)
+        if not obj:
+            self.message_user(request, 'Solicitud no encontrada.', messages.ERROR)
+            return redirect('..')
+        if obj.status != 'pending':
+            self.message_user(request, 'La solicitud no está pendiente.', messages.WARNING)
+            return redirect('..')
+        result = obj.approve(request.user)
+        if result.get('success'):
+            self.message_user(request, 'Renovación aprobada y suscripción extendida.', messages.SUCCESS)
+        else:
+            self.message_user(request, f"No se pudo aprobar la renovación: {result.get('error')}", messages.ERROR)
+        return redirect('..')
+
+    def reject_view(self, request, pk):
+        obj = self.get_object(request, pk)
+        if not obj:
+            self.message_user(request, 'Solicitud no encontrada.', messages.ERROR)
+            return redirect('..')
+        if obj.status != 'pending':
+            self.message_user(request, 'La solicitud no está pendiente.', messages.WARNING)
+            return redirect('..')
+        result = obj.reject(request.user, "Rechazado desde admin")
+        if result.get('success'):
+            self.message_user(request, 'Renovación rechazada.', messages.SUCCESS)
+        else:
+            self.message_user(request, f"No se pudo rechazar la renovación: {result.get('error')}", messages.ERROR)
+        return redirect('..')
+
     fieldsets = (
         ('Información de la Solicitud', {
             'fields': ('organization', 'subscription', 'status')
