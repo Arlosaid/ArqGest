@@ -40,7 +40,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest --cov=arc_manager --cov-report=xml:coverage.xml -v || true
+          pytest --cov=arc_manager/apps --cov=arc_manager/core --cov-report=xml:coverage.xml --cov-report=term-missing -v
         env:
           SECRET_KEY: "test-secret-key-for-ci-sonarcloud-12345"
           DEBUG: "True"
@@ -48,6 +48,14 @@ jobs:
           ALLOWED_HOSTS: "localhost,127.0.0.1,*"
           ENABLE_STORAGES: "false"
           DJANGO_SETTINGS_MODULE: "core.settings"
+          PYTHONPATH: "arc_manager"
+
+      - name: Debug coverage file
+        run: |
+          echo "=== Coverage file exists? ==="
+          ls -la coverage.xml || echo "coverage.xml NOT FOUND"
+          echo "=== Coverage file content (first 50 lines) ==="
+          head -50 coverage.xml || echo "Cannot read coverage.xml"
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
