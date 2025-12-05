@@ -125,6 +125,12 @@ class RequestUpgradeView(LoginRequiredMixin, OrgAdminRequiredMixin, TemplateView
             status='pending'
         ).exists()
         
+        # Agregar información de solicitud de renovación pendiente
+        context['pending_renewal_request'] = RenewalRequest.objects.filter(
+            organization=organization,
+            status='pending'
+        ).first()
+        
         if not context['has_pending_request']:
             context['available_plans'] = Plan.objects.filter(
                 is_active=True,
