@@ -65,10 +65,10 @@ class TestPaymentCreation:
         assert payment.days_added == 30
     
     def test_payment_str_representation(self):
-        """__str__ debe retornar organización, monto y estado"""
+        """__str__ debe retornar ID del pago y monto"""
         payment = PaymentFactory()
         
-        expected_str = f"{payment.subscription.organization.name} - ${payment.amount} ({payment.get_status_display()})"
+        expected_str = f"Pago #{payment.pk} - ${payment.amount}"
         assert str(payment) == expected_str
     
     def test_payment_created_at_auto_set(self):
