@@ -2131,6 +2131,9 @@ def task_detail(request, pk):
     # Verificar si el usuario puede agregar notas (admin o asignado)
     can_add_notes = request.user.is_org_admin or task.assigned_to == request.user
     
+    # Verificar si el usuario puede subir archivos (admin o usuario asignado)
+    can_upload_files = request.user.is_org_admin or task.assigned_to == request.user
+    
     context = {
         'task': task,
         'project': task.phase.project,
@@ -2141,6 +2144,7 @@ def task_detail(request, pk):
         'files': files,
         'files_count': files_count,
         'can_add_notes': can_add_notes,
+        'can_upload_files': can_upload_files,
     }
     
     return render(request, 'projects/task_detail_modal.html', context)
