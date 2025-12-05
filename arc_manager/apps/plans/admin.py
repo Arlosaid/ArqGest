@@ -163,9 +163,13 @@ class PlanAdmin(ImportExportModelAdmin):
 class PaymentInline(admin.TabularInline):
     model = Payment
     extra = 0
-    readonly_fields = ('payment_method', 'amount', 'status', 'created_at', 'description', 'days_added', 'old_end_date', 'new_end_date')
+    fields = ('payment_type', 'amount', 'status', 'created_at', 'processed_by', 'description')
+    readonly_fields = ('payment_type', 'amount', 'status', 'created_at', 'processed_by', 'description')
     can_delete = False
     ordering = ('-created_at',)
+    verbose_name = "Pago"
+    verbose_name_plural = "Historial de Pagos"
+    show_change_link = False
 
     def has_add_permission(self, request, obj=None):
         return False
@@ -684,8 +688,8 @@ class PaymentAdmin(ImportExportModelAdmin):
     
     # No se define resource_class para que sea de solo lectura
     list_display = [
-        'subscription', 'amount', 'payment_method', 'payment_type', 'status', 
-        'processed_by', 'created_at'
+        'get_organization_name', 'get_amount_formatted', 'payment_type', 'payment_method',
+        'status', 'processed_by', 'created_at', 'description'
     ]
     list_filter = ['status', 'payment_method', 'payment_type', 'created_at']
     search_fields = ['subscription__organization__name', 'processed_by']
@@ -695,6 +699,19 @@ class PaymentAdmin(ImportExportModelAdmin):
         'new_end_date', 'created_at'
     ]
     ordering = ['-created_at']
+    list_per_page = 25
+
+    @admin.display(description="Organización", ordering='subscription__organization__name')
+    def get_organization_name(self, obj):
+        """Muestra el nombre de la organización de forma compacta."""
+        if obj.subscription and obj.subscription.organization:
+            return obj.subscription.organization.name
+        return '-'
+
+    @admin.display(description="Monto", ordering='amount')
+    def get_amount_formatted(self, obj):
+        """Muestra el monto formateado con símbolo de moneda."""
+        return format_html('<strong style="color: #16a34a;">${:,.2f}</strong>', obj.amount)
 
     def has_add_permission(self, request):
         return False
