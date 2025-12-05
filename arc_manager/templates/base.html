@@ -125,6 +125,7 @@
     <script src="{% static 'js/project-delete.js' %}?v={{ STATIC_VERSION }}"></script>
     
     <script src="{% static 'js/base.js' %}?v={{ STATIC_VERSION }}"></script>
+    <script src="{% static 'js/task_modal.js' %}?v={{ STATIC_VERSION }}"></script>
     <script src="{% static 'js/navbar.js' %}?v={{ STATIC_VERSION }}"></script>
     <script src="{% static 'js/sidebar.js' %}?v={{ STATIC_VERSION }}"></script>
     <script src="{% static 'js/notifications.js' %}?v={{ STATIC_VERSION }}"></script>
@@ -152,7 +153,7 @@
     </div>
 
     <div class="modal fade" id="taskUniversalModal" tabindex="-1" aria-labelledby="taskUniversalModalLabel" aria-hidden="true" data-bs-backdrop="true" data-bs-keyboard="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="taskUniversalModalLabel">Tarea</h5>

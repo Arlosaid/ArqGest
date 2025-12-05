@@ -577,6 +577,40 @@ class Task(models.Model):
         from datetime import date, timedelta
         return self.due_date <= date.today() + timedelta(days=3)
 
+
+class TaskNote(models.Model):
+    """Representa una nota/comentario en una tarea."""
+    
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name='notes',
+        verbose_name=_("Tarea")
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='task_notes',
+        verbose_name=_("Autor")
+    )
+    content = models.TextField(
+        _("Contenido"),
+        help_text=_("Escribe tu nota o comentario")
+    )
+    created_at = models.DateTimeField(_("Fecha de Creación"), auto_now_add=True)
+    
+    class Meta:
+        verbose_name = _("Nota de Tarea")
+        verbose_name_plural = _("Notas de Tareas")
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['task', '-created_at'], name='tasknote_task_created_idx'),
+        ]
+    
+    def __str__(self):
+        return f"Nota de {self.author.get_full_name() or self.author.email} en {self.task.title}"
+
+
 class PhaseTemplate(models.Model):
     name = models.CharField(
         _("Nombre"), 

@@ -13,14 +13,6 @@
         }
     }
 
-    /* Asegurar que el modal de confirmación se muestre sobre el modal de edición */
-    .confirmation-modal {
-        z-index: 1060 !important;
-    }
-    .confirmation-modal + .modal-backdrop {
-        z-index: 1055 !important;
-    }
-
     .form-label-modern {
         font-size: 0.875rem;
         font-weight: 600;
@@ -47,7 +39,6 @@
         padding: 1.25rem 1.5rem;
         border-bottom: 1px solid #e5e7eb;
         background-color: #f9fafb;
-        /* El borde redondeado lo maneja el modal-content */
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -88,6 +79,13 @@
         background-color: #f8f9fa;
         border-radius: 0.375rem;
         margin-bottom: 0.5rem;
+        transition: all 0.2s ease;
+    }
+
+    .task-file-item.marked-for-deletion {
+        opacity: 0.5;
+        text-decoration: line-through;
+        background-color: #fee2e2;
     }
 
     .task-file-info {
@@ -129,12 +127,6 @@
         cursor: pointer;
         transition: all 0.2s ease;
         background-color: #fafafa;
-        position: relative;
-        z-index: 1;
-    }
-
-    .task-upload-zone * {
-        pointer-events: none;
     }
 
     .task-upload-zone:hover {
@@ -196,11 +188,11 @@
                 <div class="task-files-section">
                     <label class="form-label-modern">
                         <i class="fas fa-paperclip me-1"></i>{% trans "Archivos" %} 
-                        <span class="text-muted fw-normal" id="task-files-count">({{ task.files.count }}/3)</span>
+                        <span class="text-muted fw-normal" data-files-count>({{ task.files.count }}/3)</span>
                     </label>
                     
                     <!-- Lista de archivos existentes -->
-                    <div id="task-files-list">
+                    <div data-files-list>
                         {% for file in task.files.all %}
                         <div class="task-file-item" id="task-file-{{ file.id }}">
                             <div class="task-file-info">
@@ -217,15 +209,16 @@
                                 {% if user.is_org_admin or file.uploaded_by == user %}
                                 <button type="button" 
                                         class="btn btn-outline-danger btn-sm"
-                                        title="{% trans 'Eliminar' %}"
-                                        onclick="deleteTaskFileEdit({{ file.id }}, '{{ file.filename|escapejs }}')">
+                                        data-action="delete-file"
+                                        data-file-id="{{ file.id }}"
+                                        title="{% trans 'Marcar para eliminar' %}">
                                     <i class="fas fa-trash"></i>
                                 </button>
                                 {% endif %}
                             </div>
                         </div>
                         {% empty %}
-                        <div class="text-muted fst-italic small mb-2" id="no-files-msg">
+                        <div class="text-muted fst-italic small mb-2" data-files-empty>
                             {% trans "Sin archivos adjuntos." %}
                         </div>
                         {% endfor %}
@@ -234,10 +227,10 @@
                     <!-- Zona de upload (solo si hay espacio) -->
                     {% if task.files.count < 3 %}
                     <div class="mt-2">
-                        <input type="file" id="task-file-input" style="display: none;" 
+                        <input type="file" data-upload-input style="display: none;" 
                                accept=".pdf,.jpg,.jpeg,.png,.gif,.tiff,.dwg,.dxf,.rvt,.skp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt,.md">
                         <div class="task-upload-zone" 
-                             id="task-upload-zone"
+                             data-action="upload-zone"
                              data-task-id="{{ task.pk }}"
                              data-phase-id="{{ task.phase.pk }}"
                              data-project-id="{{ task.phase.project.pk }}"
@@ -249,7 +242,7 @@
                             <div class="task-upload-hint">PDF, DWG, RVT, JPG, PNG, DOC, XLS ({% trans "Máx" %} 1.5GB)</div>
                         </div>
                     </div>
-                    <div id="task-upload-progress" style="display: none;" class="mt-2">
+                    <div data-upload-progress style="display: none;" class="mt-2">
                         <div class="progress" style="height: 6px;">
                             <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
                         </div>
@@ -316,219 +309,3 @@
         <button type="submit" class="btn btn-primary px-4">{% trans "Guardar" %}</button>
     </div>
 </form>
-
-<script>
-document.getElementById('editTaskForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const submitBtn = this.querySelector('button[type="submit"]');
-    const originalText = submitBtn.textContent;
-    
-    // Mostrar loading
-    submitBtn.disabled = true;
-    submitBtn.textContent = '{% trans "Guardando..." %}';
-    
-    fetch(this.action, {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => {
-        if (response.ok) {
-            // Cerrar modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('taskUniversalModal'));
-            if (modal) modal.hide();
-            
-            // Recargar la página para mostrar los cambios
-            window.location.reload();
-        } else {
-            throw new Error('Error al guardar');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error al guardar la tarea. Inténtalo de nuevo.');
-    })
-    .finally(() => {
-        submitBtn.disabled = false;
-        submitBtn.textContent = originalText;
-    });
-});
-
-// Eliminar archivo desde modal de edición
-function deleteTaskFileEdit(fileId, fileName) {
-    // Usar el sistema de modales de confirmación
-    // El modal de confirmación se mostrará sobre el modal de edición
-    const confirmModal = new ConfirmationModal({
-        type: 'danger',
-        title: '{% trans "Confirmar eliminación" %}',
-        icon: 'fa-exclamation-triangle',
-        message: '{% trans "¿Estás seguro de que deseas eliminar este archivo?" %}',
-        itemName: fileName,
-        itemIcon: 'fa-file',
-        confirmText: '{% trans "Eliminar archivo" %}',
-        confirmIcon: 'fa-trash-alt',
-        modalClass: 'file-delete-modal',
-        onConfirm: () => {
-            // Realizar la eliminación
-            fetch(`/files/${fileId}/delete/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
-                                  document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => {
-                if (response.ok) {
-                    // Remover el elemento del DOM
-                    const fileItem = document.getElementById(`task-file-${fileId}`);
-                    if (fileItem) fileItem.remove();
-                    
-                    // Actualizar contador
-                    const countEl = document.getElementById('task-files-count');
-                    const uploadZone = document.getElementById('task-upload-zone');
-                    if (countEl && uploadZone) {
-                        let currentFiles = parseInt(uploadZone.dataset.currentFiles) || 0;
-                        currentFiles = Math.max(0, currentFiles - 1);
-                        uploadZone.dataset.currentFiles = currentFiles;
-                        countEl.textContent = `(${currentFiles}/3)`;
-                        
-                        // Mostrar zona de upload si estaba oculta
-                        if (uploadZone.classList.contains('disabled')) {
-                            uploadZone.classList.remove('disabled');
-                            uploadZone.querySelector('.task-upload-icon i').className = 'fas fa-cloud-upload-alt';
-                            uploadZone.querySelector('.task-upload-text').textContent = '{% trans "Arrastra o haz clic para subir" %}';
-                        }
-                    }
-                    
-                    // Mostrar mensaje si no quedan archivos
-                    const filesList = document.getElementById('task-files-list');
-                    if (filesList && filesList.querySelectorAll('.task-file-item').length === 0) {
-                        filesList.innerHTML = '<div class="text-muted fst-italic small mb-2" id="no-files-msg">{% trans "Sin archivos adjuntos." %}</div>';
-                    }
-                    
-                    if (window.notifications) {
-                        window.notifications.success('{% trans "Archivo eliminado" %}');
-                    }
-                } else {
-                    throw new Error('Error al eliminar');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                if (window.notifications) {
-                    window.notifications.error('{% trans "Error al eliminar el archivo" %}');
-                }
-            });
-        }
-    });
-    confirmModal.show();
-}
-
-// Configurar zona de upload
-(function() {
-    const uploadZone = document.getElementById('task-upload-zone');
-    const fileInput = document.getElementById('task-file-input');
-    const progressContainer = document.getElementById('task-upload-progress');
-    
-    if (!uploadZone || !fileInput) {
-        console.log('Task upload zone not found (limit reached or elements not present)');
-        return;
-    }
-    
-    console.log('Task upload zone initialized', { uploadZone, fileInput });
-    
-    // Click para abrir selector
-    uploadZone.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log('Upload zone clicked');
-        fileInput.click();
-    });
-    
-    // Drag & drop
-    uploadZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadZone.classList.add('dragover');
-    });
-    
-    uploadZone.addEventListener('dragleave', () => {
-        uploadZone.classList.remove('dragover');
-    });
-    
-    uploadZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadZone.classList.remove('dragover');
-        if (e.dataTransfer.files.length > 0) {
-            handleFileUpload(e.dataTransfer.files[0]);
-        }
-    });
-    
-    // Selección de archivo
-    fileInput.addEventListener('change', function() {
-        console.log('File input changed', fileInput.files);
-        if (fileInput.files.length > 0) {
-            handleFileUpload(fileInput.files[0]);
-        }
-    });
-    
-    function handleFileUpload(file) {
-        console.log('Uploading file:', file.name, file.size);
-        const taskId = uploadZone.dataset.taskId;
-        const phaseId = uploadZone.dataset.phaseId;
-        const projectId = uploadZone.dataset.projectId;
-        let currentFiles = parseInt(uploadZone.dataset.currentFiles) || 0;
-        
-        if (currentFiles >= 3) {
-            alert('{% trans "Límite de 3 archivos por tarea alcanzado." %}');
-            return;
-        }
-        
-        // Mostrar progreso
-        uploadZone.parentElement.style.display = 'none';
-        if (progressContainer) progressContainer.style.display = 'block';
-        
-        const formData = new FormData();
-        formData.append('files', file);
-        formData.append('csrfmiddlewaretoken', 
-            document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
-            document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '');
-        
-        fetch(`/projects/${projectId}/phases/${phaseId}/tasks/${taskId}/files/upload/`, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => {
-            if (response.ok) {
-                // Recargar modal para mostrar archivo nuevo
-                if (typeof openTaskModal === 'function') {
-                    openTaskModal('edit', taskId);
-                } else {
-                    window.location.reload();
-                }
-                if (window.notifications) {
-                    window.notifications.success('Archivo subido correctamente');
-                }
-            } else {
-                return response.json().then(data => {
-                    throw new Error(data.error || 'Error al subir archivo');
-                });
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert(error.message || 'Error al subir el archivo. Inténtalo de nuevo.');
-            // Restaurar zona de upload
-            uploadZone.parentElement.style.display = 'block';
-            if (progressContainer) progressContainer.style.display = 'none';
-        });
-    }
-})();
-</script>

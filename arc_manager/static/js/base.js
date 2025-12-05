@@ -22,14 +22,17 @@ class BaseAnimation {
 
 // Función helper para limpiar backdrops y estados del modal
 function cleanupModalBackdrops() {
-    // Eliminar todos los backdrops
+    // Eliminar todos los backdrops huérfanos (sin modal asociado visible)
     const backdrops = document.querySelectorAll('.modal-backdrop');
-    backdrops.forEach(backdrop => backdrop.remove());
+    const openModals = document.querySelectorAll('.modal.show');
     
-    // Limpiar clases del body
-    document.body.classList.remove('modal-open');
-    document.body.style.overflow = '';
-    document.body.style.paddingRight = '';
+    // Solo limpiar si no hay modales abiertos
+    if (openModals.length === 0) {
+        backdrops.forEach(backdrop => backdrop.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+    }
 }
 
 // Función global para abrir modal de tareas
@@ -42,92 +45,67 @@ window.openTaskModal = function(type, taskId) {
     
     if (!modalContent || !modalTitle) return;
     
+    // Verificar si el modal ya está abierto (recarga de contenido)
+    let existingModal = bootstrap.Modal.getInstance(modalElement);
+    const modalWasOpen = modalElement.classList.contains('show');
+    
+    // Si no estaba abierto, limpiar y preparar
+    if (!modalWasOpen) {
+        cleanupModalBackdrops();
+        if (existingModal) {
+            try { existingModal.dispose(); } catch(e) {}
+        }
+    }
+    
+    // Actualizar título según el tipo
+    modalTitle.textContent = type === 'detail' ? 'Detalles de la Tarea' : 'Editar Tarea';
+    
+    // Mostrar loading inmediatamente
+    modalContent.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div></div>';
+    
+    // Si el modal NO está abierto, crear y mostrar uno nuevo
+    if (!modalWasOpen) {
+        const modal = new bootstrap.Modal(modalElement, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+        });
+        modal.show();
+    }
+    
     // Construir URL según el tipo
     let url = '';
-    try {
-        if (type === 'detail') {
-            url = (document.body.dataset.taskDetailUrlTemplate || '').replace('0', taskId);
-        } else if (type === 'edit') {
-            url = `/projects/tasks/${taskId}/edit/`;
-        }
-    } catch (error) {
-        // Ignorar errores
+    if (type === 'detail') {
+        url = (document.body.dataset.taskDetailUrlTemplate || '').replace('0', taskId);
+    } else if (type === 'edit') {
+        url = `/projects/tasks/${taskId}/edit/`;
     }
     
     if (!url) {
-        console.error('No se pudo determinar la URL para el modal de tarea');
+        modalContent.innerHTML = '<div class="text-center p-4 text-danger"><i class="fas fa-exclamation-triangle fa-2x mb-3"></i><p>Error: URL no disponible</p></div>';
         return;
     }
     
-    // Cargar contenido PRIMERO (antes de mostrar el modal)
+    // Cargar contenido
     fetch(url)
         .then(response => {
             if (!response.ok) throw new Error('Network response was not ok');
             return response.text();
         })
         .then(html => {
-            // Limpiar completamente cualquier estado previo del modal
-            cleanupModalBackdrops();
-            
-            // Destruir instancia existente si hay alguna
-            let existingModal = bootstrap.Modal.getInstance(modalElement);
-            if (existingModal) {
-                try {
-                    existingModal.dispose();
-                } catch(e) {
-                    // Ignorar errores
-                }
-            }
-            
-            // Actualizar título según el tipo
-            if (type === 'detail') {
-                modalTitle.textContent = 'Detalles de la Tarea';
-            } else if (type === 'edit') {
-                modalTitle.textContent = 'Editar Tarea';
-            }
-            
             // Insertar contenido
             modalContent.innerHTML = html;
             
-            // Crear una nueva instancia limpia
-            const modal = new bootstrap.Modal(modalElement, {
-                backdrop: true,
-                keyboard: true,
-                focus: true
+            // Disparar evento para que TaskModalManager maneje la inicialización
+            // Esto reemplaza la ejecución de scripts inline que causaba problemas de scope
+            const event = new CustomEvent('taskModalLoaded', {
+                detail: { type: type, taskId: taskId, container: modalContent }
             });
-            
-            // Mostrar el modal (ya con contenido cargado)
-            modal.show();
-            
-            // Ejecutar scripts que vienen en el HTML
-            const scripts = modalContent.querySelectorAll('script');
-            scripts.forEach(script => {
-                const newScript = document.createElement('script');
-                Array.from(script.attributes).forEach(attr => {
-                    newScript.setAttribute(attr.name, attr.value);
-                });
-                newScript.appendChild(document.createTextNode(script.innerHTML));
-                script.parentNode.replaceChild(newScript, script);
-            });
+            document.dispatchEvent(event);
         })
         .catch(error => {
             console.error('Error cargando modal de tarea:', error);
-            // En caso de error, mostrar modal con mensaje de error
-            cleanupModalBackdrops();
-            
-            let existingModal = bootstrap.Modal.getInstance(modalElement);
-            if (existingModal) {
-                try { existingModal.dispose(); } catch(e) {}
-            }
-            
             modalContent.innerHTML = '<div class="text-center p-4 text-danger"><i class="fas fa-exclamation-triangle fa-2x mb-3"></i><h5>Error al cargar</h5><p class="text-muted">No se pudo cargar el contenido. Inténtalo de nuevo.</p></div>';
-            
-            const modal = new bootstrap.Modal(modalElement, {
-                backdrop: true,
-                keyboard: true,
-                focus: true
-            });
-            modal.show();
         });
 };
 
@@ -152,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const taskModal = document.getElementById('taskUniversalModal');
     if (taskModal) {
         taskModal.addEventListener('hidden.bs.modal', function(e) {
-            // Forzar limpieza completa
+            // Limpiar backdrops huérfanos
             cleanupModalBackdrops();
             
             // Destruir la instancia del modal para empezar limpio la próxima vez

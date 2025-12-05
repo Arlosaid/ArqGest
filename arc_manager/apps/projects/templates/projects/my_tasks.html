@@ -147,9 +147,15 @@
                             <span>{{ task.phase.name|truncatechars:20 }}</span>
                         </div>
                         {% if task.files_count > 0 %}
-                        <div class="task-compact-phase px-2 py-1 rounded bg-secondary-subtle text-secondary-emphasis" title="{{ task.files_count }} {% trans 'archivos adjuntos' %}">
+                        <div class="task-compact-phase px-2 py-1 rounded" style="background-color: rgba(139, 92, 246, 0.15); color: #7c3aed;" title="{{ task.files_count }} {% trans 'archivos adjuntos' %}">
                             <i class="fas fa-paperclip"></i>
                             <span class="fw-bold">{{ task.files_count }}</span>
+                        </div>
+                        {% endif %}
+                        {% if task.notes_count > 0 %}
+                        <div class="task-compact-phase px-2 py-1 rounded bg-info-subtle text-info-emphasis" title="{{ task.notes_count }} {% trans 'notas' %}">
+                            <i class="fas fa-comment"></i>
+                            <span class="fw-bold">{{ task.notes_count }}</span>
                         </div>
                         {% endif %}
                         {% if task.due_date %}

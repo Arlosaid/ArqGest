@@ -43,9 +43,17 @@
             </div>
             
             <div class="d-flex align-items-center gap-2">
+                <!-- Notes Count -->
+                {% if task.notes_count > 0 %}
+                <div class="d-flex align-items-center px-2 py-1 rounded bg-info-subtle text-info-emphasis" style="font-size: 0.7rem;" title="{{ task.notes_count }} {% trans 'notas' %}">
+                    <i class="fas fa-comment me-1"></i>
+                    <span class="fw-bold">{{ task.notes_count }}</span>
+                </div>
+                {% endif %}
+                
                 <!-- Files Count -->
                 {% if task.files_count > 0 %}
-                <div class="d-flex align-items-center px-2 py-1 rounded bg-secondary-subtle text-secondary-emphasis me-2" style="font-size: 0.7rem;" title="{{ task.files_count }} {% trans 'archivos adjuntos' %}">
+                <div class="d-flex align-items-center px-2 py-1 rounded" style="font-size: 0.7rem; background-color: rgba(139, 92, 246, 0.15); color: #7c3aed;" title="{{ task.files_count }} {% trans 'archivos adjuntos' %}">
                     <i class="fas fa-paperclip me-1"></i>
                     <span class="fw-bold">{{ task.files_count }}</span>
                 </div>

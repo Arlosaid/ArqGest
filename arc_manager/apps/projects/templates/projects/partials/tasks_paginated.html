@@ -22,9 +22,16 @@
             </div>
             
             {% if task.files_count > 0 %}
-            <div class="task-compact-phase px-2 py-1 rounded bg-secondary-subtle text-secondary-emphasis" title="{{ task.files_count }} {% trans 'archivos adjuntos' %}">
+            <div class="task-compact-phase px-2 py-1 rounded" style="background-color: rgba(139, 92, 246, 0.15); color: #7c3aed;" title="{{ task.files_count }} {% trans 'archivos adjuntos' %}">
                 <i class="fas fa-paperclip small"></i>
                 <span class="fw-bold">{{ task.files_count }}</span>
+            </div>
+            {% endif %}
+            
+            {% if task.notes_count > 0 %}
+            <div class="task-compact-phase px-2 py-1 rounded bg-info-subtle text-info-emphasis" title="{{ task.notes_count }} {% trans 'notas' %}">
+                <i class="fas fa-comment small"></i>
+                <span class="fw-bold">{{ task.notes_count }}</span>
             </div>
             {% endif %}
 
@@ -54,13 +61,13 @@
 
             <div class="task-compact-actions">
                 <button type="button" class="btn-icon-action view" 
-                        onclick="openTaskModal('detail', {{ task.pk }})"
+                        onclick="event.stopPropagation(); openTaskModal('detail', {{ task.pk }})"
                         title="Ver detalles">
                     <i class="fas fa-eye"></i>
                 </button>
                 {% if user.is_org_admin %}
                 <button type="button" class="btn-icon-action edit" 
-                        onclick="openTaskModal('edit', {{ task.pk }})"
+                        onclick="event.stopPropagation(); openTaskModal('edit', {{ task.pk }})"
                         title="Editar">
                     <i class="fas fa-pen"></i>
                 </button>

@@ -29,6 +29,8 @@ from .views import (
     project_tasks_paginated,
     ProjectPhasesEditView,
     ProjectToggleStatusView,
+    task_note_create,
+    task_note_delete,
     # Finance module views
     FinanceDashboardView,
     ProjectFinanceDetailView,
@@ -65,6 +67,8 @@ urlpatterns = [
     path('tasks/<int:pk>/delete/', task_delete, name='task-delete'),
     path('tasks/<int:task_pk>/update_status/', update_task_status, name='update-task-status'),
     path('tasks/<int:task_pk>/move/', move_task, name='task-move'),
+    path('tasks/<int:task_pk>/notes/create/', task_note_create, name='task-note-create'),
+    path('tasks/notes/<int:note_pk>/delete/', task_note_delete, name='task-note-delete'),
     
     # Gestión de fases
     path('<int:project_pk>/phases/<int:pk>/', PhaseDetailView.as_view(), name='phase-detail'),

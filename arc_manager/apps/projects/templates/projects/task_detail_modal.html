@@ -1,161 +1,6 @@
 {% load i18n %}
 {% load static %}
 
-<style>
-    /* Ajustes específicos para este modal */
-    #taskUniversalModal .modal-header {
-        display: none !important; /* Ocultamos el header del contenedor padre */
-    }
-
-    /* Hacemos el modal más ancho en pantallas grandes */
-    @media (min-width: 992px) {
-        #taskUniversalModal .modal-dialog {
-            max-width: 900px !important;
-        }
-    }
-
-    /* Asegurar que el modal de confirmación se muestre sobre el modal de detalle */
-    .confirmation-modal {
-        z-index: 1060 !important;
-    }
-    .confirmation-modal + .modal-backdrop {
-        z-index: 1055 !important;
-    }
-
-    .task-simple-container {
-        background-color: #fff;
-        border-radius: 0.5rem;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-    }
-
-    .task-simple-header {
-        padding: 1.5rem 1.5rem 0.5rem 1.5rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-    }
-
-    .task-breadcrumbs {
-        font-size: 0.8rem;
-        color: #6c757d;
-        margin-bottom: 0.5rem;
-        font-weight: 500;
-    }
-
-    .task-title-simple {
-        font-size: 1.35rem;
-        font-weight: 700;
-        color: #212529;
-        margin: 0;
-        line-height: 1.2;
-    }
-
-    .task-simple-body {
-        padding: 1rem 1.5rem 1.5rem 1.5rem;
-        overflow-y: auto;
-    }
-
-    .meta-label {
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: #adb5bd;
-        font-weight: 700;
-        margin-bottom: 0.25rem;
-    }
-
-    .meta-value {
-        font-size: 0.95rem;
-        color: #495057;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .user-avatar-sm {
-        width: 24px;
-        height: 24px;
-        background-color: #e9ecef;
-        color: #495057;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.7rem;
-        font-weight: 600;
-    }
-
-    .description-box {
-        background-color: #f8f9fa;
-        border-radius: 0.5rem;
-        padding: 1rem;
-        color: #495057;
-        font-size: 0.95rem;
-        line-height: 1.6;
-        max-height: 300px; /* Altura máxima para la descripción */
-        overflow-y: auto;  /* Scroll vertical si excede la altura */
-    }
-
-    .task-simple-footer {
-        padding: 1rem 1.5rem;
-        border-top: 1px solid #f1f3f5;
-        display: flex;
-        justify-content: flex-end;
-        gap: 0.5rem;
-    }
-
-    /* Estilos para archivos de tarea */
-    .task-files-section {
-        margin-top: 1.5rem;
-        padding-top: 1rem;
-        border-top: 1px solid #e9ecef;
-    }
-
-    .task-file-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0.5rem 0.75rem;
-        background-color: #f8f9fa;
-        border-radius: 0.375rem;
-        margin-bottom: 0.5rem;
-    }
-
-    .task-file-info {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        flex: 1;
-        min-width: 0;
-    }
-
-    .task-file-icon {
-        color: #6c757d;
-        font-size: 1rem;
-    }
-
-    .task-file-name {
-        font-size: 0.875rem;
-        color: #495057;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .task-file-actions {
-        display: flex;
-        gap: 0.25rem;
-    }
-
-    .task-file-actions .btn {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
-    }
-</style>
-
 <div class="task-simple-container">
     <!-- Header Simple -->
     <div class="task-simple-header">
@@ -188,10 +33,10 @@
                 <div class="task-files-section">
                     <div class="meta-label mb-2">
                         <i class="fas fa-paperclip me-1"></i>{% trans "Archivos" %} 
-                        <span class="text-muted">({{ task.files.count }}/3)</span>
+                        <span class="text-muted">({{ files_count }}/3)</span>
                     </div>
-                    {% if task.files.exists %}
-                        {% for file in task.files.all %}
+                    {% if files %}
+                        {% for file in files %}
                         <div class="task-file-item" id="detail-task-file-{{ file.id }}">
                             <div class="task-file-info">
                                 <i class="fas fa-file task-file-icon"></i>
@@ -204,57 +49,13 @@
                                    title="{% trans 'Descargar' %}">
                                     <i class="fas fa-download"></i>
                                 </a>
-                                {% if user.is_org_admin or file.uploaded_by == user %}
-                                <button type="button" 
-                                        class="btn btn-outline-danger btn-sm"
-                                        title="{% trans 'Eliminar' %}"
-                                        onclick="deleteTaskFile({{ file.id }}, '{{ file.filename|escapejs }}')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                                {% endif %}
                             </div>
                         </div>
                         {% endfor %}
                     {% else %}
-                        <div class="text-muted fst-italic small" id="detail-no-files-msg">
+                        <div class="text-muted fst-italic small" data-files-empty>
                             {% trans "Sin archivos adjuntos." %}
                         </div>
-                    {% endif %}
-                    
-                    <!-- Zona de upload para admin o usuario asignado -->
-                    {% if user.is_org_admin or task.assigned_to == user %}
-                        {% if task.files.count < 3 %}
-                        <div class="mt-3">
-                            <input type="file" id="detail-task-file-input" style="display: none;" 
-                                   accept=".pdf,.jpg,.jpeg,.png,.gif,.tiff,.dwg,.dxf,.rvt,.skp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt,.md">
-                            <div class="task-upload-zone-detail" 
-                                 id="detail-task-upload-zone"
-                                 data-task-id="{{ task.pk }}"
-                                 data-phase-id="{{ task.phase.pk }}"
-                                 data-project-id="{{ task.phase.project.pk }}"
-                                 data-current-files="{{ task.files.count }}"
-                                 style="border: 2px dashed #dee2e6; border-radius: 0.5rem; padding: 1rem; text-align: center; cursor: pointer; transition: all 0.2s ease;">
-                                <div style="color: #6c757d;">
-                                    <i class="fas fa-cloud-upload-alt mb-2" style="font-size: 1.5rem;"></i>
-                                    <div style="font-size: 0.85rem;">{% trans "Arrastra o haz clic para subir" %}</div>
-                                    <div style="font-size: 0.75rem; color: #adb5bd;">PDF, DWG, JPG, PNG ({% trans "Máx" %} 1.5GB)</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="detail-task-upload-progress" style="display: none;" class="mt-2">
-                            <div class="progress" style="height: 6px;">
-                                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
-                            </div>
-                            <small class="text-muted">{% trans "Subiendo..." %}</small>
-                        </div>
-                        {% else %}
-                        <div class="mt-3 text-center p-2" style="background: #fff3cd; border-radius: 0.375rem;">
-                            <small class="text-warning-emphasis">
-                                <i class="fas fa-exclamation-triangle me-1"></i>
-                                {% trans "Límite de archivos alcanzado (3/3)" %}
-                            </small>
-                        </div>
-                        {% endif %}
                     {% endif %}
                 </div>
             </div>
@@ -315,177 +116,84 @@
         </div>
     </div>
 
+    <!-- Sección de Notas -->
+    <div class="task-notes-section px-4 pb-3">
+        <div class="notes-header d-flex align-items-center justify-content-between mb-3">
+            <h6 class="mb-0">
+                <i class="fas fa-sticky-note me-2 text-warning"></i>{% trans "Notas" %}
+                <span class="badge bg-secondary ms-1" data-notes-count>{{ notes_count }}</span>
+            </h6>
+        </div>
+        
+        <!-- Lista de notas - sin scroll propio, el modal lo maneja -->
+        <div class="notes-list" data-notes-list>
+            {% for note in notes %}
+            <div class="note-item mb-2 p-2 bg-light rounded" id="note-{{ note.id }}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="note-avatar" style="width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600;">
+                            {{ note.author.first_name|first|default:note.author.email|first|upper }}{{ note.author.last_name|first|default:"" }}
+                        </div>
+                        <div>
+                            <span class="fw-semibold small">{{ note.author.get_full_name|default:note.author.email }}</span>
+                            <span class="text-muted small ms-2">{{ note.created_at|date:"d/m/Y H:i" }}</span>
+                        </div>
+                    </div>
+                    {% if user.is_org_admin or note.author == user %}
+                    <button type="button" class="btn btn-link btn-sm text-danger p-0" 
+                            data-action="delete-note"
+                            data-note-id="{{ note.id }}"
+                            title="{% trans 'Marcar para eliminar' %}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="note-content mt-2 small" style="white-space: pre-wrap; word-break: break-word;">{{ note.content }}</div>
+            </div>
+            {% empty %}
+            <div class="text-muted text-center small py-3" data-notes-empty>
+                <i class="fas fa-comment-slash mb-2" style="font-size: 1.5rem; opacity: 0.5;"></i>
+                <p class="mb-0">{% trans "No hay notas en esta tarea" %}</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Formulario para agregar nota -->
+        {% if can_add_notes %}
+        <div class="add-note-form mt-3 pt-3 border-top">
+            {% csrf_token %}
+            <div class="mb-2">
+                <textarea class="form-control form-control-sm" 
+                          data-note-input
+                          data-char-counter="noteCounter"
+                          placeholder="{% trans 'Escribe una nota...' %}" 
+                          maxlength="2000" 
+                          style="resize: vertical; min-height: 60px; max-height: 150px;"></textarea>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted"><span data-counter-display="noteCounter">0</span>/2000</small>
+                <button type="button" class="btn btn-primary btn-sm" data-action="add-note" onclick="addTaskNote()">
+                    <i class="fas fa-paper-plane me-1"></i>{% trans "Enviar" %}
+                </button>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-muted small text-center mt-2 pt-2 border-top">
+            <i class="fas fa-lock me-1"></i>{% trans "Solo el usuario asignado o administradores pueden agregar notas" %}
+        </div>
+        {% endif %}
+    </div>
+
     <div class="task-simple-footer">
         <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">
             {% trans "Cerrar" %}
         </button>
         {% if user.is_org_admin %}
-        <button type="button" class="btn btn-primary btn-sm" onclick="openTaskModal('edit', {{ task.pk }})">
+        <button type="button" class="btn btn-primary btn-sm" 
+                data-action="edit-task"
+                data-task-id="{{ task.pk }}">
             <i class="fas fa-pencil-alt me-1"></i> {% trans "Editar" %}
         </button>
         {% endif %}
     </div>
 </div>
-
-<script>
-function deleteTaskFile(fileId, fileName) {
-    // Usar el sistema de modales de confirmación
-    const confirmModal = new ConfirmationModal({
-        type: 'danger',
-        title: '{% trans "Confirmar eliminación" %}',
-        icon: 'fa-exclamation-triangle',
-        message: '{% trans "¿Estás seguro de que deseas eliminar este archivo?" %}',
-        itemName: fileName,
-        itemIcon: 'fa-file',
-        confirmText: '{% trans "Eliminar archivo" %}',
-        confirmIcon: 'fa-trash-alt',
-        modalClass: 'file-delete-modal',
-        onConfirm: () => {
-            fetch(`/files/${fileId}/delete/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
-                                  document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => {
-                if (response.ok) {
-                    // Recargar el modal para mostrar la lista actualizada
-                    openTaskModal('detail', {{ task.pk }});
-                    if (window.notifications) {
-                        window.notifications.success('{% trans "Archivo eliminado" %}');
-                    }
-                } else {
-                    throw new Error('Error al eliminar');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                if (window.notifications) {
-                    window.notifications.error('{% trans "Error al eliminar el archivo" %}');
-                }
-            });
-        }
-    });
-    confirmModal.show();
-}
-
-// ===== UPLOAD DE ARCHIVOS DESDE MODAL DE DETALLE =====
-(function() {
-    const uploadZone = document.getElementById('detail-task-upload-zone');
-    const fileInput = document.getElementById('detail-task-file-input');
-    const progressContainer = document.getElementById('detail-task-upload-progress');
-    
-    if (!uploadZone || !fileInput) return;
-    
-    const taskId = uploadZone.dataset.taskId;
-    const phaseId = uploadZone.dataset.phaseId;
-    const projectId = uploadZone.dataset.projectId;
-    
-    // Click en zona de upload
-    uploadZone.addEventListener('click', () => fileInput.click());
-    
-    // Drag & Drop
-    uploadZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadZone.style.borderColor = '#3b82f6';
-        uploadZone.style.backgroundColor = '#f0f7ff';
-    });
-    
-    uploadZone.addEventListener('dragleave', (e) => {
-        e.preventDefault();
-        uploadZone.style.borderColor = '#dee2e6';
-        uploadZone.style.backgroundColor = 'transparent';
-    });
-    
-    uploadZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadZone.style.borderColor = '#dee2e6';
-        uploadZone.style.backgroundColor = 'transparent';
-        
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            uploadFile(files[0]);
-        }
-    });
-    
-    // Selección de archivo
-    fileInput.addEventListener('change', () => {
-        if (fileInput.files.length > 0) {
-            uploadFile(fileInput.files[0]);
-        }
-    });
-    
-    function uploadFile(file) {
-        // Validar tamaño (1.5GB máximo)
-        const maxSize = 1.5 * 1024 * 1024 * 1024;
-        if (file.size > maxSize) {
-            if (window.notifications) {
-                window.notifications.error('{% trans "El archivo excede el tamaño máximo de 1.5GB" %}');
-            }
-            return;
-        }
-        
-        // Mostrar progreso
-        if (progressContainer) {
-            progressContainer.style.display = 'block';
-        }
-        uploadZone.style.display = 'none';
-        
-        const formData = new FormData();
-        formData.append('files', file);  // 'files' es el nombre que espera la vista
-        
-        const xhr = new XMLHttpRequest();
-        
-        xhr.upload.addEventListener('progress', (e) => {
-            if (e.lengthComputable && progressContainer) {
-                const percent = Math.round((e.loaded / e.total) * 100);
-                const progressBar = progressContainer.querySelector('.progress-bar');
-                if (progressBar) {
-                    progressBar.style.width = percent + '%';
-                }
-            }
-        });
-        
-        xhr.addEventListener('load', () => {
-            if (xhr.status === 200 || xhr.status === 201) {
-                // Recargar el modal para mostrar el nuevo archivo
-                openTaskModal('detail', {{ task.pk }});
-                if (window.notifications) {
-                    window.notifications.success('{% trans "Archivo subido correctamente" %}');
-                }
-            } else {
-                if (progressContainer) progressContainer.style.display = 'none';
-                uploadZone.style.display = 'block';
-                
-                let errorMsg = '{% trans "Error al subir el archivo" %}';
-                try {
-                    const response = JSON.parse(xhr.responseText);
-                    if (response.error) errorMsg = response.error;
-                } catch(e) {}
-                
-                if (window.notifications) {
-                    window.notifications.error(errorMsg);
-                }
-            }
-        });
-        
-        xhr.addEventListener('error', () => {
-            if (progressContainer) progressContainer.style.display = 'none';
-            uploadZone.style.display = 'block';
-            if (window.notifications) {
-                window.notifications.error('{% trans "Error de conexión" %}');
-            }
-        });
-        
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
-                          document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
-        
-        xhr.open('POST', `/projects/${projectId}/phases/${phaseId}/tasks/${taskId}/files/upload/`);
-        xhr.setRequestHeader('X-CSRFToken', csrfToken);
-        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-        xhr.send(formData);
-    }
-})();
-</script>
