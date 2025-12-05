@@ -8,10 +8,109 @@ from .models import Organization, Client
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 from django.db import models
+from django.utils import timezone
+from datetime import timedelta
 import logging
 from core.structured_logging import log_error, log_info
 
 logger = logging.getLogger('apps.orgs')
+
+
+# --- Filtros personalizados para Organization ---
+
+class SubscriptionStatusFilter(admin.SimpleListFilter):
+    """Filtro para organizaciones por estado de suscripción."""
+    title = 'Estado de Suscripción'
+    parameter_name = 'subscription_status'
+    
+    def lookups(self, request, model_admin):
+        return [
+            ('trial_active', '🟢 Trial Activo'),
+            ('trial_expired', '🔴 Trial Expirado'),
+            ('basic_active', '🟢 Plan Básico Activo'),
+            ('basic_grace', '🟡 Plan Básico en Gracia'),
+            ('basic_expired', '🔴 Plan Básico Expirado'),
+            ('no_subscription', '⚠️ Sin Suscripción'),
+        ]
+    
+    def queryset(self, request, queryset):
+        if self.value() == 'no_subscription':
+            return queryset.filter(subscription__isnull=True)
+        elif self.value():
+            return queryset.filter(subscription__subscription_status=self.value())
+        return queryset
+
+
+class ExpiringSoonFilter(admin.SimpleListFilter):
+    """Filtro para organizaciones con suscripciones próximas a vencer."""
+    title = 'Próximas a Vencer'
+    parameter_name = 'expiring_soon'
+    
+    def lookups(self, request, model_admin):
+        return [
+            ('3', '⚠️ En 3 días o menos'),
+            ('7', '⚠️ En 7 días o menos'),
+            ('14', '📅 En 14 días o menos'),
+            ('30', '📅 En 30 días o menos'),
+        ]
+    
+    def queryset(self, request, queryset):
+        if self.value():
+            days = int(self.value())
+            now = timezone.now()
+            future_date = now + timedelta(days=days)
+            # Solo activas y que expiren dentro del rango
+            return queryset.filter(
+                subscription__end_date__lte=future_date,
+                subscription__end_date__gte=now,
+                subscription__subscription_status__endswith='_active'
+            )
+        return queryset
+
+
+class ExpiredAgoFilter(admin.SimpleListFilter):
+    """Filtro para organizaciones expiradas hace X días - útil para limpieza."""
+    title = '🗑️ Expiradas (para limpieza)'
+    parameter_name = 'expired_ago'
+    
+    def lookups(self, request, model_admin):
+        return [
+            ('any', '🔴 Todas las expiradas'),
+            ('30', '⚠️ Hace más de 30 días'),
+            ('60', '⚠️ Hace más de 60 días'),
+            ('90', '🗑️ Hace más de 90 días (recomendado eliminar)'),
+        ]
+    
+    def queryset(self, request, queryset):
+        if self.value() == 'any':
+            # Todas las expiradas
+            return queryset.filter(subscription__subscription_status__endswith='_expired')
+        elif self.value():
+            days = int(self.value())
+            cutoff_date = timezone.now() - timedelta(days=days)
+            # Expiradas y cuya fecha de fin ya pasó hace X días
+            return queryset.filter(
+                subscription__subscription_status__endswith='_expired',
+                subscription__end_date__lt=cutoff_date
+            )
+        return queryset
+
+
+class PlanTypeFilter(admin.SimpleListFilter):
+    """Filtro para organizaciones por tipo de plan."""
+    title = 'Tipo de Plan'
+    parameter_name = 'plan_type'
+    
+    def lookups(self, request, model_admin):
+        return [
+            ('trial', '🆓 Trial'),
+            ('basic', '💼 Plan Básico'),
+        ]
+    
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(subscription__plan__name=self.value())
+        return queryset
 
 # --- Recursos para Import/Export ---
 
@@ -111,15 +210,90 @@ class OrganizationAdmin(ImportExportModelAdmin):
     resource_class = OrganizationResource
     form = OrganizationAdminForm
     
-    # Template personalizado con instrucciones
+    # Templates personalizados
     change_form_template = 'admin/orgs/organization/change_form.html'
+    change_list_template = 'admin/orgs/organization/change_list.html'
     
-    list_display = ['name', 'get_active_status', 'get_founder_badge', 'user_count', 'get_storage_info', 'get_subscription_status', 'get_subscription_link', 'get_add_user_link', 'created_at']
-    list_filter = ['is_active', 'is_founder_member', 'created_at']
+    list_display = [
+        'name', 'get_active_status', 'get_founder_badge', 'user_count', 
+        'get_storage_info', 'get_subscription_status', 'get_expiration_info',
+        'get_days_remaining_badge', 'get_subscription_link', 'get_add_user_link', 'created_at'
+    ]
+    list_filter = [
+        'is_active', 
+        SubscriptionStatusFilter,  # Nuevo: filtro por estado de suscripción
+        ExpiringSoonFilter,        # Nuevo: filtro próximas a vencer
+        ExpiredAgoFilter,          # Nuevo: filtro expiradas para limpieza
+        PlanTypeFilter,            # Nuevo: filtro por tipo de plan
+        'is_founder_member', 
+        'created_at'
+    ]
     search_fields = ['name', 'description']
     readonly_fields = ['created_at', 'updated_at', 'user_count', 'get_subscription_status', 'get_subscription_link', 'get_users_display']
     
     actions = ['activate_organizations', 'deactivate_organizations', 'mark_as_founder', 'unmark_as_founder', 'reduce_extra_storage', 'add_extra_storage']
+    
+    def changelist_view(self, request, extra_context=None):
+        """Agrega estadísticas al contexto del listado de organizaciones."""
+        extra_context = extra_context or {}
+        
+        # Calcular estadísticas para el dashboard
+        now = timezone.now()
+        seven_days = now + timedelta(days=7)
+        three_days = now + timedelta(days=3)
+        ninety_days_ago = now - timedelta(days=90)
+        
+        try:
+            from apps.plans.models import Subscription
+            
+            # Organizaciones con plan básico activo
+            active_count = Organization.objects.filter(
+                subscription__subscription_status='basic_active'
+            ).count()
+            
+            # Organizaciones en trial activo
+            trial_count = Organization.objects.filter(
+                subscription__subscription_status='trial_active'
+            ).count()
+            
+            # Próximas a vencer (7 días)
+            expiring_soon_count = Organization.objects.filter(
+                subscription__end_date__lte=seven_days,
+                subscription__end_date__gte=now,
+                subscription__subscription_status__endswith='_active'
+            ).count()
+            
+            # Urgentes: vencen en 3 días
+            expiring_3_days = Organization.objects.filter(
+                subscription__end_date__lte=three_days,
+                subscription__end_date__gte=now,
+                subscription__subscription_status__endswith='_active'
+            ).count()
+            
+            # Expiradas totales
+            expired_count = Organization.objects.filter(
+                subscription__subscription_status__endswith='_expired'
+            ).count()
+            
+            # Para eliminar (expiradas hace más de 90 días)
+            to_delete_count = Organization.objects.filter(
+                subscription__subscription_status__endswith='_expired',
+                subscription__end_date__lt=ninety_days_ago
+            ).count()
+            
+            extra_context['org_stats'] = {
+                'active_count': active_count,
+                'trial_count': trial_count,
+                'expiring_soon_count': expiring_soon_count,
+                'expiring_3_days': expiring_3_days,
+                'expired_count': expired_count,
+                'to_delete_count': to_delete_count,
+            }
+        except Exception as e:
+            logger.error(f"Error calculando estadísticas de organizaciones: {e}")
+            extra_context['org_stats'] = None
+        
+        return super().changelist_view(request, extra_context=extra_context)
 
     def get_add_user_link(self, obj):
         """Enlace para agregar un usuario a esta organización."""
@@ -483,13 +657,18 @@ class OrganizationAdmin(ImportExportModelAdmin):
             # Verificar que la relación subscription existe antes de hacer prefetch
             from apps.plans.models import Subscription
             if hasattr(Organization, 'subscription'):
-                queryset = queryset.prefetch_related('subscription__plan')
+                queryset = queryset.select_related('subscription', 'subscription__plan')
         except Exception as e:
             # Si hay problemas con el prefetch, usar solo el queryset base
             print(f"Warning: No se pudo hacer prefetch de subscription: {e}")
             pass
         queryset = queryset.annotate(user_count_admin=models.Count('users'))
         return queryset
+    
+    class Media:
+        css = {
+            'all': ('css/admin_orgs_custom.css',)
+        }
 
     def get_active_status(self, obj):
         """Muestra el estado de la organización con colores."""
@@ -584,6 +763,113 @@ class OrganizationAdmin(ImportExportModelAdmin):
         create_subscription_url = reverse('admin:plans_subscription_add') + f'?organization={obj.id}'
         return format_html('<a href="{}" class="button" style="color: white; background-color: #417690;">Gestionar suscripción</a>', create_subscription_url)
     get_subscription_link.short_description = 'Gestión'
+    
+    def get_expiration_info(self, obj):
+        """Muestra la fecha de expiración de la suscripción con formato visual."""
+        try:
+            if hasattr(obj, 'subscription') and obj.subscription:
+                subscription = obj.subscription
+                end_date = subscription.end_date
+                
+                if not end_date:
+                    return format_html('<span style="color: #7F8C8D;">Sin fecha</span>')
+                
+                # Formatear fecha
+                date_str = end_date.strftime('%d/%m/%Y')
+                
+                # Determinar color según estado
+                now = timezone.now()
+                days_diff = (end_date - now).days
+                
+                if subscription.subscription_status.endswith('_expired'):
+                    # Ya expiró - mostrar hace cuántos días
+                    days_ago = abs(days_diff)
+                    if days_ago > 90:
+                        color = '#8E44AD'  # Púrpura - muy antigua
+                        badge = f'<span style="background: #8E44AD; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 5px;">🗑️ {days_ago}d atrás</span>'
+                    elif days_ago > 30:
+                        color = '#E74C3C'  # Rojo
+                        badge = f'<span style="background: #E74C3C; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 5px;">⚠️ {days_ago}d atrás</span>'
+                    else:
+                        color = '#F39C12'  # Naranja
+                        badge = f'<span style="background: #F39C12; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 5px;">{days_ago}d atrás</span>'
+                    return format_html(f'<span style="color: {color};">{date_str}</span>{badge}')
+                elif days_diff <= 7:
+                    color = '#E74C3C'  # Rojo - urgente
+                elif days_diff <= 14:
+                    color = '#F39C12'  # Naranja - pronto
+                else:
+                    color = '#27AE60'  # Verde - ok
+                
+                return format_html(f'<span style="color: {color}; font-weight: bold;">{date_str}</span>')
+        except Exception as e:
+            logger.debug(f"Error en get_expiration_info para org {obj.id}: {e}")
+        return format_html('<span style="color: #C0392B;">-</span>')
+    get_expiration_info.short_description = 'Vence'
+    get_expiration_info.admin_order_field = 'subscription__end_date'
+    
+    def get_days_remaining_badge(self, obj):
+        """Muestra los días restantes con badge visual de urgencia."""
+        try:
+            if hasattr(obj, 'subscription') and obj.subscription:
+                subscription = obj.subscription
+                
+                # Si está expirada
+                if subscription.subscription_status.endswith('_expired'):
+                    now = timezone.now()
+                    if subscription.end_date:
+                        days_ago = (now - subscription.end_date).days
+                        if days_ago > 90:
+                            return format_html(
+                                '<span style="background: #8E44AD; color: white; padding: 4px 8px; '
+                                'border-radius: 4px; font-weight: bold; font-size: 11px;" '
+                                'title="Recomendado eliminar - expiró hace más de 90 días">'
+                                '🗑️ ELIMINAR</span>'
+                            )
+                        elif days_ago > 30:
+                            return format_html(
+                                '<span style="background: #E74C3C; color: white; padding: 4px 8px; '
+                                'border-radius: 4px; font-weight: bold; font-size: 11px;">'
+                                f'❌ -{days_ago}d</span>'
+                            )
+                    return format_html(
+                        '<span style="background: #E74C3C; color: white; padding: 4px 8px; '
+                        'border-radius: 4px; font-weight: bold; font-size: 11px;">EXPIRADO</span>'
+                    )
+                
+                # Si está activa, mostrar días restantes
+                days = subscription.days_remaining
+                
+                if days <= 3:
+                    return format_html(
+                        '<span style="background: #E74C3C; color: white; padding: 4px 8px; '
+                        'border-radius: 4px; font-weight: bold; font-size: 11px; animation: blink 1s infinite;" '
+                        'title="¡URGENTE! Vence en {} días">🚨 {}d</span>',
+                        days, days
+                    )
+                elif days <= 7:
+                    return format_html(
+                        '<span style="background: #E67E22; color: white; padding: 4px 8px; '
+                        'border-radius: 4px; font-weight: bold; font-size: 11px;" '
+                        'title="Vence pronto">⚠️ {}d</span>',
+                        days
+                    )
+                elif days <= 14:
+                    return format_html(
+                        '<span style="background: #F39C12; color: white; padding: 4px 8px; '
+                        'border-radius: 4px; font-weight: bold; font-size: 11px;">📅 {}d</span>',
+                        days
+                    )
+                else:
+                    return format_html(
+                        '<span style="background: #27AE60; color: white; padding: 4px 8px; '
+                        'border-radius: 4px; font-size: 11px;">✓ {}d</span>',
+                        days
+                    )
+        except Exception as e:
+            logger.debug(f"Error en get_days_remaining_badge para org {obj.id}: {e}")
+        return format_html('<span style="color: #7F8C8D;">-</span>')
+    get_days_remaining_badge.short_description = 'Días'
     
     def get_storage_info(self, obj):
         """Muestra información del almacenamiento de la organización."""
