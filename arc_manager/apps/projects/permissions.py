@@ -178,6 +178,73 @@ def task_status_change_permission_required(view_func):
         
         return view_func(request, *args, **kwargs)
     
+    
+    return wrapper
+
+
+def project_not_archived_required(view_func):
+    """
+    Decorador que bloquea modificaciones en proyectos archivados.
+    
+    Este decorador debe usarse en vistas que modifican tareas, archivos o notas.
+    Busca el proyecto a través de:
+    - task_pk o pk en kwargs (para vistas de tareas)
+    - project_id en kwargs (para vistas de proyecto directo)
+    
+    Retorna error 403 si el proyecto está archivado.
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        from .models import Project
+        
+        project = None
+        
+        # Intentar obtener proyecto desde tarea
+        task_id = kwargs.get('task_pk') or kwargs.get('pk')
+        if task_id:
+            try:
+                task = Task.objects.select_related('phase__project').get(pk=task_id)
+                project = task.phase.project
+            except Task.DoesNotExist:
+                pass
+        
+        # Intentar obtener proyecto directo si no se encontró desde tarea
+        if not project:
+            project_id = kwargs.get('project_id')
+            if project_id:
+                try:
+                    project = Project.objects.get(pk=project_id)
+                except Project.DoesNotExist:
+                    pass
+        
+        # Verificar si el proyecto está archivado
+        if project and project.status == Project.Status.ARCHIVED:
+            logger.warning(
+                f"Usuario {request.user.email} intentó modificar proyecto archivado: {project.id} ({project.name})"
+            )
+            
+            error_msg = _('Este proyecto está archivado y no permite modificaciones')
+            
+            # Verificar si es request AJAX
+            is_ajax = (
+                request.headers.get('X-Requested-With') == 'XMLHttpRequest' or
+                'application/json' in request.headers.get('Accept', '') or
+                'application/json' in request.headers.get('Content-Type', '')
+            )
+            
+            if is_ajax:
+                return JsonResponse({
+                    'success': False,
+                    'error': str(error_msg),
+                    'error_code': 'PROJECT_ARCHIVED_READ_ONLY'
+                }, status=403)
+            
+            from django.contrib import messages
+            messages.error(request, error_msg)
+            return redirect('projects:project-detail', pk=project.id)
+        
+        return view_func(request, *args, **kwargs)
+    
     return wrapper
 
 
@@ -225,3 +292,4 @@ def task_move_permission_required(view_func):
         return view_func(request, *args, **kwargs)
     
     return wrapper
+

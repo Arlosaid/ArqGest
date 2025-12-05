@@ -193,6 +193,14 @@
 
 {% block content %}
 <div class="page-container">
+    {% if is_project_archived %}
+    <div class="alert alert-secondary mb-4 d-flex align-items-center" role="alert">
+        <i class="fas fa-archive me-3 text-secondary" style="font-size: 1.3rem;"></i>
+        <div>
+            <strong>{% trans "Proyecto Archivado" %}</strong> - {% trans "Este tablero es de solo lectura. No se pueden crear, editar o mover tareas." %}
+        </div>
+    </div>
+    {% endif %}
     <!-- Header Section -->
     <div class="header-section mb-4">
         <div class="header-content">
@@ -211,9 +219,14 @@
                 </div>
             </div>
             <div class="d-flex gap-2 align-items-center flex-wrap justify-content-end">
-                {% if user.is_org_admin %}
+                {% if user.is_org_admin and not is_project_archived %}
                 <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#addTaskModal" style="border-radius: 8px; padding: 0.6rem 1.2rem; font-weight: 600;">
                     <i class="fas fa-plus me-2"></i>{% trans "Nueva Tarea" %}
+                </button>
+                {% elif is_project_archived %}
+                <button class="btn btn-secondary shadow-sm" disabled style="border-radius: 8px; padding: 0.6rem 1.2rem; font-weight: 600; cursor: not-allowed;" 
+                        title="{% trans 'Proyecto archivado - solo lectura' %}" data-bs-toggle="tooltip">
+                    <i class="fas fa-lock me-2"></i>{% trans "Nueva Tarea" %}
                 </button>
                 {% else %}
                 <button class="btn btn-secondary shadow-sm" disabled style="border-radius: 8px; padding: 0.6rem 1.2rem; font-weight: 600; cursor: not-allowed;" 
@@ -432,6 +445,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         document.body.dataset.isOrgAdmin = "{{ is_org_admin|yesno:'true,false' }}";
         document.body.dataset.currentUserId = "{{ request.user.id }}";
+        document.body.dataset.isProjectArchived = "{{ is_project_archived|yesno:'true,false' }}";
     });
 </script>
 <script src="{% static 'js/kanban.js' %}?v={{ STATIC_VERSION }}&t={% now 'U' %}"></script>

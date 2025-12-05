@@ -210,7 +210,17 @@
                             </td>
                             <td class="text-end">
                                 <div class="d-flex justify-content-end align-items-center gap-2">
-                                    {% if project.budget_configured %}
+                                    {% if project.status == 'ARCHIVED' %}
+                                        <span class="badge bg-secondary me-2" title="Proyecto archivado - solo lectura">
+                                            <i class="fas fa-archive"></i>
+                                        </span>
+                                        <a href="{% url 'projects:finance-project-detail' project.pk %}" 
+                                           class="action-btn view" 
+                                           title="Ver detalles"
+                                           style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; text-decoration: none; transition: all 0.2s ease; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    {% elif project.budget_configured %}
                                         <a href="{% url 'projects:payment-create' project.pk %}" 
                                            class="btn btn-primary btn-sm d-flex align-items-center gap-2 shadow-sm"
                                            title="Agregar pago"

@@ -188,14 +188,29 @@ window.updateTaskStatus = function (taskId, status) {
                 // CRÍTICO: Broadcast el cambio a otras pestañas/ventanas (ej: Kanban)
                 broadcastTaskStatusChange(taskId, status);
             } else {
-                // Solo si falla, mostrar error discreto
+                // Mostrar error específico
                 console.error('Error al actualizar tarea:', data.error);
-                // Podrías revertir la UI aquí si quisieras
+                
+                // Mostrar notificación de error
+                if (data.error_code === 'PROJECT_ARCHIVED_READ_ONLY') {
+                    if (window.notifications) {
+                        window.notifications.warning('Este proyecto está archivado y no permite modificaciones');
+                    } else {
+                        alert('Este proyecto está archivado y no permite modificaciones');
+                    }
+                } else if (window.notifications) {
+                    window.notifications.error(data.error || 'Error al actualizar la tarea');
+                }
+                
+                // Recargar página para revertir UI
+                setTimeout(() => location.reload(), 1500);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            // Podrías revertir la UI aquí si quisieras
+            if (window.notifications) {
+                window.notifications.error('Error de conexión al actualizar la tarea');
+            }
         });
 };
 

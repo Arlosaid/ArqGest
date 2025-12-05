@@ -22,6 +22,7 @@ from .permissions import (
     task_edit_permission_required,
     task_status_change_permission_required,
     task_move_permission_required,
+    project_not_archived_required,
     is_organization_admin,
 )
 from core.error_codes import TaskErrorCodes, ProjectErrorCodes
@@ -333,6 +334,10 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         context['is_limited_view'] = not is_admin
         context['can_view_finance'] = is_admin  # Solo admins ven finanzas
         
+        # Verificar si el proyecto está archivado (modo solo lectura)
+        is_project_archived = project.status == Project.Status.ARCHIVED
+        context['is_project_archived'] = is_project_archived
+        
         # Obtener fases del proyecto con sus archivos y tareas (optimizado)
         # UX: Todos los usuarios ven todas las tareas del proyecto para contexto completo
         # Solo admins pueden crear/editar/eliminar tareas
@@ -558,6 +563,14 @@ class ProjectUpdateView(LoginRequiredMixin, OrganizationAdminMixin, UpdateView):
     form_class = ProjectForm
     template_name = 'projects/project_form.html'
     
+    def dispatch(self, request, *args, **kwargs):
+        # Verificar si el proyecto está archivado antes de permitir edición
+        project = self.get_object()
+        if project.status == 'ARCHIVED':
+            messages.error(request, _('No se puede editar un proyecto archivado.'))
+            return redirect('projects:project-detail', pk=project.pk)
+        return super().dispatch(request, *args, **kwargs)
+    
     def get_success_url(self):
         return reverse_lazy('projects:project-detail', kwargs={'pk': self.object.pk})
 
@@ -697,6 +710,7 @@ class PhaseDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         phase = self.get_object()
         context['project'] = phase.project
+        context['is_project_archived'] = phase.project.status == 'ARCHIVED'
         
         # Add today for template comparisons
         from datetime import date
@@ -894,6 +908,7 @@ def project_kanban(request, pk):
         'project_progress': project_progress,
         'today': timezone.now().date(),
         'is_org_admin': is_organization_admin(request.user),
+        'is_project_archived': project.status == 'ARCHIVED',
         # Pasar filtros al contexto
         'current_filters': {
             'search': search_query,
@@ -913,6 +928,12 @@ class ProjectPhasesEditView(LoginRequiredMixin, OrganizationAdminMixin, View):
 
     def get(self, request, pk):
         project = get_object_or_404(Project, pk=pk, organization=request.user.organization)
+        
+        # Bloquear si el proyecto está archivado
+        if project.status == 'ARCHIVED':
+            messages.warning(request, _('No se puede editar fases de un proyecto archivado.'))
+            return redirect('projects:project-detail', pk=project.pk)
+        
         phases = list(project.phases.order_by('order').values('id', 'name', 'order'))
         # Plantillas disponibles (de la organización o globales)
         try:
@@ -937,6 +958,14 @@ class ProjectPhasesEditView(LoginRequiredMixin, OrganizationAdminMixin, View):
 
     def post(self, request, pk):
         project = get_object_or_404(Project, pk=pk, organization=request.user.organization)
+        
+        # Bloquear si el proyecto está archivado
+        if project.status == 'ARCHIVED':
+            return JsonResponse({
+                'success': False, 
+                'error': 'project_archived',
+                'message': _('No se pueden modificar fases de un proyecto archivado.')
+            }, status=403)
 
         try:
             payload = json.loads(request.body or '{}')
@@ -1158,6 +1187,11 @@ def phase_create(request, project_pk):
     """Vista para crear una nueva fase."""
     project = get_object_or_404(Project, pk=project_pk, organization=request.user.organization)
     
+    # Bloquear si el proyecto está archivado
+    if project.status == 'ARCHIVED':
+        messages.error(request, _('No se pueden crear fases en un proyecto archivado.'))
+        return redirect_to_project_tab(project_pk, 'phases')
+    
     if request.method == 'POST':
         name = request.POST.get('name')
         notes = request.POST.get('notes', '')
@@ -1183,6 +1217,21 @@ def phase_create(request, project_pk):
 def task_create(request, project_pk):
     """Crear una nueva tarea."""
     project = get_object_or_404(Project, pk=project_pk, organization=request.user.organization)
+    
+    # Bloquear si el proyecto está archivado
+    if project.status == 'ARCHIVED':
+        accepts_json = 'application/json' in request.headers.get('Accept', '')
+        is_htmx = request.headers.get('HX-Request')
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        error_msg = _('No se pueden crear tareas en un proyecto archivado.')
+        if accepts_json or is_htmx or is_ajax:
+            return JsonResponse({
+                'success': False, 
+                'error': 'project_archived',
+                'message': str(error_msg)
+            }, status=403)
+        messages.error(request, error_msg)
+        return redirect('projects:project-detail', pk=project.pk)
     
     if request.method == 'POST':
         title = request.POST.get('title')
@@ -1493,6 +1542,7 @@ class MyTaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
 
 @login_required
 @require_POST
+@project_not_archived_required
 @task_status_change_permission_required
 def update_task_status(request, task_pk):
     """Actualizar el estado de una tarea."""
@@ -1558,6 +1608,7 @@ def update_task_status(request, task_pk):
 
 @login_required
 @require_POST
+@project_not_archived_required
 @task_move_permission_required
 def move_task(request, task_pk):
     """Mover una tarea a otra fase."""
@@ -1614,6 +1665,7 @@ def move_task(request, task_pk):
         return JsonResponse({'success': False, 'error': 'Error inesperado', 'error_code': TaskErrorCodes.TASK_UPDATE_UNEXPECTED_ERROR})
 
 @login_required
+@project_not_archived_required
 @task_edit_permission_required
 def task_edit(request, pk):
     """Editar una tarea."""
@@ -1746,6 +1798,7 @@ def get_project_color(project_id):
 
 @login_required
 @require_POST
+@project_not_archived_required
 def task_delete(request, pk):
     """Eliminar una tarea (JSON) - Solo admin de organización."""
     try:
@@ -1868,7 +1921,8 @@ def phase_files_paginated(request, project_id, phase_id):
                 'current_filters': {'type': file_type_filter, 'date': date_filter},
                 'next_offset': offset + limit if has_more else None,
                 'load_more': load_more,
-                'from_cache': True
+                'from_cache': True,
+                'is_project_archived': phase.project.status == Project.Status.ARCHIVED,
             }
         else:
             # Query optimizada - SIN count() para evitar query lenta
@@ -1926,7 +1980,8 @@ def phase_files_paginated(request, project_id, phase_id):
                 'current_filters': {'type': file_type_filter, 'date': date_filter},
                 'next_offset': offset + limit if has_more else None,
                 'load_more': load_more,
-                'from_cache': False
+                'from_cache': False,
+                'is_project_archived': phase.project.status == Project.Status.ARCHIVED,
             }
     
         # Template optimizado basado en el tipo de request
@@ -2128,11 +2183,14 @@ def task_detail(request, pk):
     files = list(task.files.all())
     files_count = len(files)
     
-    # Verificar si el usuario puede agregar notas (admin o asignado)
-    can_add_notes = request.user.is_org_admin or task.assigned_to == request.user
+    # Verificar si el proyecto está archivado (modo solo lectura)
+    is_project_archived = task.phase.project.status == Project.Status.ARCHIVED
     
-    # Verificar si el usuario puede subir archivos (admin o usuario asignado)
-    can_upload_files = request.user.is_org_admin or task.assigned_to == request.user
+    # Verificar si el usuario puede agregar notas (admin o asignado) y proyecto no archivado
+    can_add_notes = (request.user.is_org_admin or task.assigned_to == request.user) and not is_project_archived
+    
+    # Verificar si el usuario puede subir archivos (admin o usuario asignado) y proyecto no archivado
+    can_upload_files = (request.user.is_org_admin or task.assigned_to == request.user) and not is_project_archived
     
     context = {
         'task': task,
@@ -2145,6 +2203,7 @@ def task_detail(request, pk):
         'files_count': files_count,
         'can_add_notes': can_add_notes,
         'can_upload_files': can_upload_files,
+        'is_project_archived': is_project_archived,
     }
     
     return render(request, 'projects/task_detail_modal.html', context)
@@ -2152,6 +2211,7 @@ def task_detail(request, pk):
 
 @login_required
 @require_POST
+@project_not_archived_required
 def task_note_create(request, task_pk):
     """Crear una nota en una tarea - Admins y usuario asignado pueden agregar notas."""
     from .models import TaskNote
@@ -2215,6 +2275,15 @@ def task_note_delete(request, note_pk):
     from .models import TaskNote
     
     note = get_object_or_404(TaskNote, pk=note_pk, task__phase__project__organization=request.user.organization)
+    
+    # Verificar si el proyecto está archivado
+    project = note.task.phase.project
+    if project.status == Project.Status.ARCHIVED:
+        return JsonResponse({
+            'success': False,
+            'error': 'Este proyecto está archivado y no permite modificaciones',
+            'error_code': 'PROJECT_ARCHIVED_READ_ONLY'
+        }, status=403)
     
     # Verificar permisos: admin o autor de la nota
     is_admin = request.user.is_org_admin
@@ -2493,6 +2562,7 @@ class ProjectFinanceDetailView(LoginRequiredMixin, OrganizationAdminMixin, Detai
             'page_obj': page_obj,
             'payments_count': project.payments.count(),
             'finance_stats': finance_stats,
+            'is_project_archived': project.status == 'ARCHIVED',
         })
         
         return context
@@ -2504,6 +2574,14 @@ class ProjectBudgetConfigView(LoginRequiredMixin, OrganizationAdminMixin, Update
     form_class = BudgetConfigForm
     template_name = 'projects/finance/budget_config.html'
     context_object_name = 'project'
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Verificar si el proyecto está archivado antes de permitir edición
+        project = self.get_object()
+        if project.status == 'ARCHIVED':
+            messages.error(request, _('No se puede modificar el presupuesto de un proyecto archivado.'))
+            return redirect('projects:finance-project-detail', pk=project.pk)
+        return super().dispatch(request, *args, **kwargs)
     
     def get_object(self):
         """Verificar acceso al proyecto."""
@@ -2570,6 +2648,11 @@ class PaymentCreateView(LoginRequiredMixin, OrganizationAdminMixin, CreateView):
             pk=self.project_id, 
             organization=request.user.organization
         )
+        
+        # Bloquear si el proyecto está archivado
+        if self.project.status == 'ARCHIVED':
+            messages.error(request, _('No se pueden agregar pagos a un proyecto archivado.'))
+            return redirect('projects:finance-project-detail', pk=self.project.pk)
         
         return super().dispatch(request, *args, **kwargs)
     
@@ -2679,6 +2762,11 @@ class PaymentUpdateView(LoginRequiredMixin, OrganizationAdminMixin, UpdateView):
         # Validar organización
         if self.project.organization_id != request.user.organization_id:
             raise Http404("Proyecto no encontrado o sin acceso")
+        
+        # Bloquear si el proyecto está archivado
+        if self.project.status == 'ARCHIVED':
+            messages.error(request, _('No se pueden editar pagos de un proyecto archivado.'))
+            return redirect('projects:finance-project-detail', pk=self.project.pk)
         
         return super().dispatch(request, *args, **kwargs)
     
@@ -2814,6 +2902,12 @@ class PaymentDeleteView(LoginRequiredMixin, OrganizationAdminMixin, DeleteView):
         self.project = self.payment.project
         if self.project.organization_id != request.user.organization_id:
             raise Http404("Pago no encontrado o sin acceso")
+        
+        # Bloquear si el proyecto está archivado
+        if self.project.status == 'ARCHIVED':
+            messages.error(request, _('No se pueden eliminar pagos de un proyecto archivado.'))
+            return redirect('projects:finance-project-detail', pk=self.project.pk)
+        
         return super().dispatch(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):

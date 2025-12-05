@@ -8,11 +8,23 @@
             <div class="task-breadcrumbs">
                 <i class="fas fa-layer-group me-1 text-muted"></i>
                 {{ task.phase.project.name }} <span class="mx-1">/</span> {{ task.phase.name }}
+                {% if is_project_archived %}
+                <span class="badge bg-secondary ms-2" style="font-size: 0.65rem; vertical-align: middle;">
+                    <i class="fas fa-archive me-1"></i>{% trans "Archivado" %}
+                </span>
+                {% endif %}
             </div>
             <h4 class="task-title-simple">{{ task.title }}</h4>
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
+
+    {% if is_project_archived %}
+    <div class="alert alert-secondary mb-0 py-2 px-3 rounded-0" style="font-size: 0.8rem; border-left: 3px solid #6c757d;">
+        <i class="fas fa-lock me-1"></i>
+        {% trans "Este proyecto está archivado. Solo lectura - no se permiten modificaciones." %}
+    </div>
+    {% endif %}
 
     <div class="task-simple-body">
         <div class="row">
@@ -184,12 +196,14 @@
                         </div>
                     </div>
                     {% if user.is_org_admin or note.author == user %}
+                    {% if not is_project_archived %}
                     <button type="button" class="btn btn-link btn-sm text-danger p-0" 
                             data-action="delete-note"
                             data-note-id="{{ note.id }}"
                             title="{% trans 'Marcar para eliminar' %}">
                         <i class="fas fa-times"></i>
                     </button>
+                    {% endif %}
                     {% endif %}
                 </div>
                 <div class="note-content mt-2 small" style="white-space: pre-wrap; word-break: break-word;">{{ note.content }}</div>
@@ -223,7 +237,11 @@
         </div>
         {% else %}
         <div class="text-muted small text-center mt-2 pt-2 border-top">
+            {% if is_project_archived %}
+            <i class="fas fa-archive me-1"></i>{% trans "Proyecto archivado - no se pueden agregar notas" %}
+            {% else %}
             <i class="fas fa-lock me-1"></i>{% trans "Solo el usuario asignado o administradores pueden agregar notas" %}
+            {% endif %}
         </div>
         {% endif %}
     </div>
@@ -232,7 +250,7 @@
         <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">
             {% trans "Cerrar" %}
         </button>
-        {% if user.is_org_admin %}
+        {% if user.is_org_admin and not is_project_archived %}
         <button type="button" class="btn btn-primary btn-sm" 
                 data-action="edit-task"
                 data-task-id="{{ task.pk }}">

@@ -12,7 +12,13 @@
     <div class="files-tab-header">
         <h6><i class="fas fa-folder-open"></i>{% trans "Documentos del Proyecto" %}</h6>
         
-        {% if STORAGE_INFO %}
+        {% if is_project_archived %}
+        <span class="badge bg-secondary" style="font-size: 0.75rem;">
+            <i class="fas fa-archive me-1"></i>{% trans "Archivado" %}
+        </span>
+        {% endif %}
+        
+        {% if STORAGE_INFO and not is_project_archived %}
         <!-- Indicador de espacio de almacenamiento -->
         <div class="storage-indicator" title="Espacio de almacenamiento">
             <div class="storage-info-text">
@@ -26,6 +32,14 @@
         </div>
         {% endif %}
     </div>
+    
+    {% if is_project_archived %}
+    <div class="alert alert-secondary mb-3 py-2 px-3" style="font-size: 0.85rem; border-left: 3px solid #6c757d;">
+        <i class="fas fa-lock me-1"></i>
+        {% trans "Este proyecto está archivado. Los archivos son de solo lectura - no se permiten subir ni eliminar archivos." %}
+    </div>
+    {% endif %}
+    
     <div class="files-tab-body">
         {% if phases %}
         <div class="accordion files-accordion" id="filesAccordion">
@@ -46,6 +60,7 @@
                 </h2>
                 <div id="collapse-{{ phase.id }}" class="accordion-collapse collapse{% if open_phase|default:'' == phase.id|stringformat:'s' %} show{% endif %}" aria-labelledby="heading-{{ phase.id }}" data-bs-parent="#filesAccordion">
                     <div class="accordion-body">
+                        {% if not is_project_archived %}
                         <form class="mb-4 file-upload-form" 
                               data-upload-type="large-file"
                               data-project-id="{{ project.pk }}"
@@ -84,6 +99,7 @@
                         </form>
 
                         <div id="upload-response-{{ phase.id }}" style="display: none;"></div>
+                        {% endif %}
 
                         <div id="files-list-{{ phase.id }}">
                             {% include 'projects/partials/files_list_content.html' %}
@@ -103,5 +119,7 @@
     </div>
 </div>
 
+{% if not is_project_archived %}
 <script src="{% static 'js/files_validation.js' %}"></script>
+{% endif %}
 

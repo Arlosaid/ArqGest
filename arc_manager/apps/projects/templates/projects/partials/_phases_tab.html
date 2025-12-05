@@ -6,10 +6,20 @@
     <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between border-bottom">
         <h5 class="m-0 font-weight-bold text-dark">
             <i class="fas fa-layer-group text-primary me-2"></i>{% trans "Fases del Proyecto" %}
+            {% if is_project_archived %}
+            <span class="badge bg-secondary ms-2" style="font-size: 0.7rem;">
+                <i class="fas fa-archive me-1"></i>{% trans "Archivado" %}
+            </span>
+            {% endif %}
         </h5>
-        {% if user.is_org_admin %}
+        {% if user.is_org_admin and not is_project_archived %}
         <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createPhaseModal">
             <i class="fas fa-plus"></i> {% trans "Nueva Fase" %}
+        </button>
+        {% elif is_project_archived %}
+        <button type="button" class="btn btn-secondary btn-sm" disabled style="cursor: not-allowed;" 
+                title="{% trans 'Proyecto archivado - no se pueden crear fases' %}">
+            <i class="fas fa-lock me-1"></i> {% trans "Nueva Fase" %}
         </button>
         {% endif %}
     </div>
