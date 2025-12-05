@@ -772,12 +772,16 @@ class UserAdmin(ImportExportModelAdmin, BaseUserAdmin):
         
         # Mostrar contraseñas en pantalla
         if passwords_generated:
-            # Crear mensaje HTML con las contraseñas
+            # Crear mensaje HTML con las contraseñas (sanitizando datos de usuario)
+            from django.utils.html import escape
             password_list = []
             for item in passwords_generated:
+                # Escapar datos de usuario para prevenir XSS
+                safe_name = escape(item['name'])
+                safe_email = escape(item['email'])
                 password_list.append(
-                    f"<strong>{item['name']}</strong> ({item['email']})<br>"
-                    f"Email: {item['email']}<br>"
+                    f"<strong>{safe_name}</strong> ({safe_email})<br>"
+                    f"Email: {safe_email}<br>"
                     f"Contraseña: <code style='background:#f0f0f0;padding:2px 4px;'>{item['password']}</code><br><br>"
                 )
             

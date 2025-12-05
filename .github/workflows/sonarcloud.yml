@@ -28,8 +28,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          cd arc_manager
-          pytest --cov=. --cov-report=xml:../coverage.xml -v || true
+          pytest --cov=arc_manager --cov-report=xml:coverage.xml -v || true
         env:
           SECRET_KEY: "test-secret-key-for-ci-sonarcloud-12345"
           DEBUG: "True"

@@ -410,11 +410,20 @@ class SubscriptionInfoAPIView(LoginRequiredMixin, View):
 
 
 # Vista para cron externo (Opción 2: cron-job.org)
+# NOSONAR: csrf_exempt es necesario para endpoints de cron externos
+# La autenticación se realiza mediante token secreto (X-Cron-Secret header)
 @csrf_exempt
 @require_POST
 def cron_renewal_reminders(request):
     """
     Endpoint para ejecutar recordatorios de renovación via cron externo.
+    
+    SEGURIDAD: Este endpoint usa @csrf_exempt intencionalmente porque:
+    1. Es llamado por servicios externos (cron-job.org) que no pueden enviar CSRF tokens
+    2. La autenticación se realiza mediante un token secreto en el header X-Cron-Secret
+    3. El token se valida contra CRON_SECRET_KEY configurado en variables de entorno
+    4. Solo acepta método POST
+    5. Registra intentos no autorizados con IP
     
     Ejecuta AMBOS comandos:
     - send_trial_reminder --days=3: Para trials que vencen en 3 días
