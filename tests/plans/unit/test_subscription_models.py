@@ -216,19 +216,37 @@ class TestSubscriptionCalculateStatus:
     
     def test_calculate_status_at_exact_expiration_moment(self):
         """
-        EDGE CASE: En el momento exacto de expiración (end_date == now),
-        ¿debe estar activo o expirado? Este test define el comportamiento esperado.
+        EDGE CASE: En el día de expiración, la suscripción debe estar activa
+        todo el día sin importar la hora.
         """
         plan = BasicPlanFactory(name='basic')
         subscription = SubscriptionFactory(plan=plan)
-        # Establecer end_date muy cerca al now pero en el futuro para evitar race conditions
-        subscription.end_date = timezone.now() + timedelta(milliseconds=100)
+        # end_date es hoy pero con hora en el pasado - debe seguir activa todo el día
+        now = timezone.now()
+        subscription.end_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
         subscription.save()
         
         status = subscription.calculate_current_status()
         
-        # Según el código: now <= end_date → activo
-        # Por lo tanto, si end_date está en el futuro (aunque sea milisegundos), debe ser activo
+        # La suscripción debe estar activa todo el día de expiración (hasta 23:59:59)
+        assert status == 'basic_active'
+    
+    def test_calculate_status_active_all_day_on_expiration_date(self):
+        """
+        CRÍTICO: Aunque la hora de end_date ya pasó, si es el mismo día
+        la suscripción debe seguir activa.
+        Ejemplo: end_date=5dic 10:00, now=5dic 17:00 → activa
+        """
+        plan = BasicPlanFactory(name='basic')
+        subscription = SubscriptionFactory(plan=plan)
+        # Simular que end_date fue hace unas horas pero es el mismo día
+        now = timezone.now()
+        subscription.end_date = now - timedelta(hours=5)  # 5 horas antes pero mismo día
+        subscription.save()
+        
+        status = subscription.calculate_current_status()
+        
+        # Debe seguir activa porque es el mismo día
         assert status == 'basic_active'
     
     def test_calculate_status_trial_active(self):
