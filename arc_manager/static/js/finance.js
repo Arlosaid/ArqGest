@@ -305,7 +305,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (file) {
                 const maxSize = 5 * 1024 * 1024; // 5MB
                 if (file.size > maxSize) {
-                    alert('El archivo es demasiado grande. Máximo 5MB.');
+                    if (window.notifications) {
+                        window.notifications.error('El archivo es demasiado grande. Máximo 5MB.');
+                    } else {
+                        alert('El archivo es demasiado grande. Máximo 5MB.');
+                    }
                     this.value = '';
                     return;
                 }
@@ -316,7 +320,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
                 
                 if (!hasValidExtension) {
-                    alert('Tipo de archivo no permitido. Usa imagen, PDF o Word.');
+                    if (window.notifications) {
+                        window.notifications.error('Tipo de archivo no permitido. Se permiten: PDF, Imágenes (JPG, PNG) y documentos Word (DOC, DOCX).');
+                    } else {
+                        alert('Tipo de archivo no permitido. Se permiten: PDF, Imágenes (JPG, PNG) y documentos Word (DOC, DOCX).');
+                    }
                     this.value = '';
                     return;
                 }

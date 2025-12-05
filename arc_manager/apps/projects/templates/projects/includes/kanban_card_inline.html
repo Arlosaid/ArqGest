@@ -1,10 +1,12 @@
 {% load i18n %}
-<div class="card mb-2 kanban-card task-card border-0 shadow-sm" draggable="true" data-task-id="{{ task.id }}" data-assigned-to-id="{{ task.assigned_to.id|default:'0' }}" id="task-{{ task.id }}" style="border-radius: 6px; transition: all 0.2s ease; border-left: 3px solid {% if task.priority == 'HIGH' %}#ef4444{% elif task.priority == 'MEDIUM' %}#f59e0b{% else %}#3b82f6{% endif %} !important; user-select: none; cursor: grab;">
+<div class="card mb-2 kanban-card task-card border-0 shadow-sm" draggable="{% if user.is_org_admin or task.assigned_to == user %}true{% else %}false{% endif %}" data-task-id="{{ task.id }}" data-assigned-to-id="{{ task.assigned_to.id|default:'0' }}" id="task-{{ task.id }}" style="border-radius: 6px; transition: all 0.2s ease; border-left: 3px solid {% if task.priority == 'HIGH' %}#ef4444{% elif task.priority == 'MEDIUM' %}#f59e0b{% else %}#3b82f6{% endif %} !important; user-select: none; {% if user.is_org_admin or task.assigned_to == user %}cursor: grab;{% else %}cursor: default;{% endif %}">
     <div class="card-body p-2">
-        <!-- Drag Handle -->
+        <!-- Drag Handle - Solo visible si puede arrastrar -->
+        {% if user.is_org_admin or task.assigned_to == user %}
         <div class="position-absolute top-0 start-50 translate-middle-x opacity-25" style="cursor: grab; margin-top: 2px;">
             <i class="fas fa-grip-lines-vertical fa-xs"></i>
         </div>
+        {% endif %}
 
         <!-- Header: Phase & Priority -->
         <div class="d-flex justify-content-between align-items-center mb-1">
@@ -24,7 +26,7 @@
         <!-- Meta: Assignee & Date -->
         <div class="d-flex align-items-center justify-content-between mt-1 pt-1 border-top border-light">
             <!-- Assignee with Name -->
-            <div class="d-flex align-items-center" style="max-width: 60%;">
+            <div class="d-flex align-items-center" style="max-width: 50%;">
                 {% if task.assigned_to %}
                     <div class="avatar-xs rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold shadow-sm me-2 flex-shrink-0" style="width: 24px; height: 24px; font-size: 10px;" title="{{ task.assigned_to.get_full_name|default:task.assigned_to.email }}">
                         {{ task.assigned_to.first_name|first|default:task.assigned_to.email|first|upper }}
@@ -40,29 +42,52 @@
                 {% endif %}
             </div>
             
-            <!-- Due Date -->
-            {% if task.due_date %}
-            <div class="d-flex align-items-center {% if task.is_overdue %}text-danger fw-bold bg-danger-subtle px-2 py-1 rounded{% elif task.is_due_soon %}text-warning-emphasis fw-bold bg-warning-subtle px-2 py-1 rounded{% else %}text-muted{% endif %}" style="font-size: 0.7rem;" title="{% if task.is_overdue %}{% trans 'Vencida' %}{% elif task.is_due_soon %}{% trans 'Vence pronto' %}{% else %}{% trans 'Vence el' %}{% endif %} {{ task.due_date|date:'d M Y' }}">
-                <i class="far fa-calendar-alt me-1"></i>
-                <span>{{ task.due_date|date:"d M" }}</span>
+            <div class="d-flex align-items-center gap-2">
+                <!-- Notes Count -->
+                {% if task.notes_count > 0 %}
+                <div class="d-flex align-items-center px-2 py-1 rounded bg-info-subtle text-info-emphasis" style="font-size: 0.7rem;" title="{{ task.notes_count }} {% trans 'notas' %}">
+                    <i class="fas fa-comment me-1"></i>
+                    <span class="fw-bold">{{ task.notes_count }}</span>
+                </div>
+                {% endif %}
+                
+                <!-- Files Count -->
+                {% if task.files_count > 0 %}
+                <div class="d-flex align-items-center px-2 py-1 rounded" style="font-size: 0.7rem; background-color: rgba(139, 92, 246, 0.15); color: #7c3aed;" title="{{ task.files_count }} {% trans 'archivos adjuntos' %}">
+                    <i class="fas fa-paperclip me-1"></i>
+                    <span class="fw-bold">{{ task.files_count }}</span>
+                </div>
+                {% endif %}
+
+                <!-- Due Date -->
+                {% if task.due_date %}
+                <div class="d-flex align-items-center {% if task.is_overdue %}text-danger fw-bold bg-danger-subtle px-2 py-1 rounded{% elif task.is_due_soon %}text-warning-emphasis fw-bold bg-warning-subtle px-2 py-1 rounded{% else %}text-muted{% endif %}" style="font-size: 0.7rem;" title="{% if task.is_overdue %}{% trans 'Vencida' %}{% elif task.is_due_soon %}{% trans 'Vence pronto' %}{% else %}{% trans 'Vence el' %}{% endif %} {{ task.due_date|date:'d M Y' }}">
+                    <i class="far fa-calendar-alt me-1"></i>
+                    <span>{{ task.due_date|date:"d M" }}</span>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
         </div>
 
         <!-- Actions (View, Edit, Delete) - Visible on all devices -->
+        <!-- Permisos: Admin puede editar/eliminar, usuarios normales solo ver -->
         <div class="d-flex justify-content-center align-items-center gap-4 mt-2 pt-2 border-top border-light w-100">
             <button type="button" class="btn btn-link p-0 text-secondary border-0" onclick="event.stopPropagation(); window.openTaskModal('detail', '{{ task.id }}')" style="font-size: 1.1rem;" title="{% trans 'Ver detalles' %}">
                 <i class="fas fa-eye"></i>
             </button>
+            {% if user.is_org_admin %}
             <button type="button" class="btn btn-link p-0 text-primary border-0" onclick="event.stopPropagation(); window.openTaskModal('edit', '{{ task.id }}')" style="font-size: 1.1rem;" title="{% trans 'Editar' %}">
                 <i class="fas fa-pencil-alt"></i>
             </button>
             <button type="button" class="btn btn-link p-0 text-danger border-0" onclick="event.stopPropagation(); window.kanbanManager.deleteTask('{{ task.id }}')" style="font-size: 1.1rem;" title="{% trans 'Eliminar' %}">
                 <i class="fas fa-trash-alt"></i>
             </button>
+            {% endif %}
         </div>
 
         <!-- Mobile Actions (Status Change - Compact) -->
+        <!-- Solo admins o usuario asignado pueden cambiar el estado -->
+        {% if user.is_org_admin or task.assigned_to == user %}
         <div class="mobile-actions d-flex d-md-none justify-content-between gap-1 mt-1 pt-1 border-top border-light">
             <button type="button" class="btn btn-sm btn-outline-dark flex-fill p-1 btn-status-todo {% if task.status|stringformat:'s' == 'TODO' %}d-none{% endif %}" style="font-size: 0.7rem;" onclick="event.stopPropagation(); updateTaskStatus('{{ task.id }}', 'TODO')" title="{% trans 'Por Hacer' %}">
                 <i class="fas fa-undo"></i>
@@ -80,5 +105,6 @@
                 <i class="fas fa-check"></i>
             </button>
         </div>
+        {% endif %}
     </div>
 </div>

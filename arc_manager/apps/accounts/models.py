@@ -134,6 +134,31 @@ class User(AbstractUser):
         default=False,
         help_text="Si está marcado, el usuario deberá cambiar su contraseña en el próximo login."
     )
+    
+    # Campos de aceptación de términos legales
+    terms_accepted = models.BooleanField(
+        "Términos y condiciones aceptados",
+        default=False,
+        help_text="Indica si el usuario ha aceptado los términos y condiciones."
+    )
+    terms_accepted_at = models.DateTimeField(
+        "Fecha de aceptación de términos",
+        null=True,
+        blank=True,
+        help_text="Fecha y hora en que se aceptaron los términos."
+    )
+    privacy_accepted = models.BooleanField(
+        "Política de privacidad aceptada",
+        default=False,
+        help_text="Indica si el usuario ha aceptado la política de privacidad."
+    )
+    privacy_accepted_at = models.DateTimeField(
+        "Fecha de aceptación de privacidad",
+        null=True,
+        blank=True,
+        help_text="Fecha y hora en que se aceptó la política de privacidad."
+    )
+    
     organization = models.ForeignKey(
         'orgs.Organization', 
         on_delete=models.CASCADE, 

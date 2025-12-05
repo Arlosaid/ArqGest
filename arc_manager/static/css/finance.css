@@ -884,29 +884,121 @@ aun/* ========================================
     align-items: center;
     justify-content: center;
     font-size: 1rem;
+    flex-shrink: 0;
 }
 
 .payment-details {
-    flex: 1;
+    flex: 0 0 auto;
+    min-width: 120px;
 }
 
 .payment-amount {
     font-size: 1.1rem;
     font-weight: 700;
     color: var(--arc-text-primary);
-    margin-bottom: 0.25rem;
 }
 
 .payment-date {
-    font-size: 0.875rem;
+    font-size: 0.8rem;
     color: var(--arc-text-secondary);
-    margin-bottom: 0.25rem;
+}
+
+.payment-description-col {
+    flex: 1;
+    font-size: 0.875rem;
+    color: var(--arc-text-primary);
+    padding: 0 1rem;
+    border-left: 1px solid var(--arc-border-color);
 }
 
 .payment-description {
+    font-size: 0.875rem;
+    color: var(--arc-text-primary);
+    font-weight: 500;
+    margin-top: 0.125rem;
+}
+
+.payment-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+
+/* Contenedor de botones de comprobante */
+.receipt-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Botones base de comprobante */
+.btn-receipt {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
     font-size: 0.8rem;
-    color: var(--arc-text-secondary);
-    font-style: italic;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: none;
+    white-space: nowrap;
+}
+
+.btn-receipt i {
+    font-size: 0.9rem;
+}
+
+/* Botón VER COMPROBANTE - Azul llamativo */
+.btn-receipt-view {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+}
+
+.btn-receipt-view:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #ffffff;
+    text-decoration: none;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+/* Botón DESCARGAR COMPROBANTE - Verde llamativo */
+.btn-receipt-download {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(22, 163, 74, 0.3);
+}
+
+.btn-receipt-download:hover {
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+    color: #ffffff;
+    text-decoration: none;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.4);
+}
+
+/* Sin comprobante */
+.no-receipt {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: #f1f5f9;
+    color: #64748b;
+    border: 2px dashed #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.no-receipt i {
+    font-size: 0.9rem;
+    color: #94a3b8;
 }
 
 .payment-percentage {

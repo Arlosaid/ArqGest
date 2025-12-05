@@ -62,7 +62,8 @@ def task_edit_permission_required(view_func):
     """
     Decorador que requiere que el usuario sea admin de la organización para editar tareas.
     
-    Solo los admins pueden editar tareas.
+    Solo los admins pueden editar la información de las tareas (título, descripción, etc.).
+    Los usuarios normales pueden subir archivos a sus tareas desde el modal de detalle.
     """
     @wraps(view_func)
     def wrapper(request, pk, *args, **kwargs):
@@ -78,27 +79,24 @@ def task_edit_permission_required(view_func):
             )
             raise
         
-        # Solo permitir POST a admins
-        if request.method == 'POST':
-            is_admin = is_organization_admin(request.user)
-            
-            if not is_admin:
-                logger.warning(
-                    f"Usuario {request.user.email} intentó editar tarea {pk} sin permisos (no es admin)"
-                )
-                if 'application/json' in request.headers.get('Accept', ''):
-                    return JsonResponse({
-                        'success': False,
-                        'error': 'No tienes permisos para editar esta tarea',
-                        'error_code': 'TASK_EDIT_PERMISSION_DENIED'
-                    }, status=403)
-                
-                from django.contrib import messages
-                messages.error(request, _('No tienes permisos para editar esta tarea'))
-                # Redirigir al proyecto
-                return redirect('projects:project-detail', pk=task.phase.project_id)
+        # Solo admins pueden editar tareas
+        is_admin = is_organization_admin(request.user)
         
-        # Permitir vista (GET)
+        if not is_admin:
+            logger.warning(
+                f"Usuario {request.user.email} intentó editar tarea {pk} sin permisos (no es admin)"
+            )
+            if 'application/json' in request.headers.get('Accept', ''):
+                return JsonResponse({
+                    'success': False,
+                    'error': 'No tienes permisos para editar esta tarea',
+                    'error_code': 'TASK_EDIT_PERMISSION_DENIED'
+                }, status=403)
+            
+            from django.contrib import messages
+            messages.error(request, _('No tienes permisos para editar esta tarea'))
+            return redirect('projects:project-detail', pk=task.phase.project_id)
+        
         return view_func(request, pk, *args, **kwargs)
     
     return wrapper

@@ -421,7 +421,13 @@
                                     <div class="plan-badge recommended">Recomendado</div>
                                     <h3 class="plan-name">{{ target_plan.display_name }}</h3>
                                     <div class="plan-price">
-                                        <span class="price-amount">{{ target_plan.price|format_currency }}</span>
+                                        <span class="price-amount">
+                                            {% if organization.is_founder_member %}
+                                                $199.00
+                                            {% else %}
+                                                {{ target_plan.price|format_currency }}
+                                            {% endif %}
+                                        </span>
                                         <span class="price-period">/mes</span>
                                     </div>
                                     <p class="plan-description">Actualiza para desbloquear más capacidades.</p>
@@ -581,7 +587,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 color: '#f97316',
                 details: [
                     { label: 'Plan solicitado', value: '{{ available_plans.0.display_name|default:"Plan Básico" }}' },
-                    { label: 'Precio', value: '${{ available_plans.0.price|default:"299" }} MXN/mes' }
+                    { label: 'Precio', value: '{% if organization.is_founder_member %}$199.00{% else %}${{ available_plans.0.price|default:"299" }}{% endif %} MXN/mes' }
                 ],
                 note: 'Después de confirmar, realiza el pago y envía tu comprobante para activar tu plan.',
                 confirmText: 'Enviar solicitud'

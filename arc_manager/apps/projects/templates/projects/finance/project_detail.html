@@ -210,11 +210,49 @@
                         <div class="payment-details">
                             <div class="payment-amount">${{ payment.amount|unlocalize|floatformat:2 }}</div>
                             <div class="payment-date">{{ payment.date }}</div>
-                            {% if payment.description %}
-                                <div class="payment-description">{{ payment.description|truncatechars:50 }}</div>
-                            {% endif %}
+                        </div>
+                        <div class="payment-description-col">
+                            {{ payment.description|default:"Pago registrado"|truncatechars:100 }}
                         </div>
                         <div class="payment-actions">
+                            <!-- Botones de Comprobante -->
+                            {% if payment.receipt_file %}
+                                <div class="receipt-buttons">
+                                    <a href="{{ payment.receipt_file.url }}" 
+                                       target="_blank" 
+                                       class="btn-receipt btn-receipt-view">
+                                        <i class="fas fa-eye"></i>
+                                        Ver Comprobante
+                                    </a>
+                                    <a href="{{ payment.receipt_file.url }}" 
+                                       download
+                                       class="btn-receipt btn-receipt-download">
+                                        <i class="fas fa-download"></i>
+                                        Descargar Comprobante
+                                    </a>
+                                </div>
+                            {% elif payment.receipt %}
+                                <div class="receipt-buttons">
+                                    <a href="{{ payment.receipt.file.url }}" 
+                                       target="_blank" 
+                                       class="btn-receipt btn-receipt-view">
+                                        <i class="fas fa-eye"></i>
+                                        Ver Comprobante
+                                    </a>
+                                    <a href="{{ payment.receipt.file.url }}" 
+                                       download
+                                       class="btn-receipt btn-receipt-download">
+                                        <i class="fas fa-download"></i>
+                                        Descargar Comprobante
+                                    </a>
+                                </div>
+                            {% else %}
+                                <span class="no-receipt">
+                                    <i class="fas fa-file-circle-xmark"></i>
+                                    Sin comprobante
+                                </span>
+                            {% endif %}
+                            
                             <div class="payment-percentage-badge" title="Porcentaje del presupuesto total">
                                 <i class="fas fa-chart-pie me-1"></i> {{ payment.percentage_of_total }}%
                             </div>
@@ -239,44 +277,52 @@
                                 <form id="del-form-{{ payment.pk }}" method="post" action="{% url 'projects:payment-delete' payment.pk %}" style="display:none;">
                                     {% csrf_token %}
                                 </form>
-                                {% if payment.receipt_file %}
-                                    <a href="{{ payment.receipt_file.url }}" target="_blank" 
-                                       class="btn-table-action" 
-                                       title="Ver documento"
-                                       style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; text-decoration: none;">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{{ payment.receipt_file.url }}" 
-                                       class="btn-table-action" 
-                                       title="Descargar documento" 
-                                       download
-                                       style="background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe; text-decoration: none;">
-                                        <i class="fas fa-download"></i>
-                                    </a>
-                                {% elif payment.receipt %}
-                                    <a href="{{ payment.receipt.file.url }}" target="_blank" 
-                                       class="btn-table-action" 
-                                       title="Ver documento"
-                                       style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; text-decoration: none;">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{{ payment.receipt.file.url }}" 
-                                       class="btn-table-action" 
-                                       title="Descargar documento" 
-                                       download
-                                       style="background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe; text-decoration: none;">
-                                        <i class="fas fa-download"></i>
-                                    </a>
-                                {% endif %}
                             </div>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
 
-                {% if payments_count > recent_payments|length %}
-                    <div class="payments-footer">
-                        <span>Mostrando {{ recent_payments|length }} de {{ payments_count }} pagos</span>
+                {% if page_obj.has_other_pages %}
+                    <div class="payments-footer d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                        <span class="text-muted small">
+                            Mostrando {{ page_obj.start_index }}-{{ page_obj.end_index }} de {{ page_obj.paginator.count }} pagos
+                        </span>
+                        <nav aria-label="Navegación de pagos">
+                            <ul class="pagination pagination-sm mb-0">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Anterior">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">&laquo;</span>
+                                    </li>
+                                {% endif %}
+
+                                {% for i in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == i %}
+                                        <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                                    {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
+                                        <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Siguiente">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">&raquo;</span>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
                     </div>
                 {% endif %}
             </div>

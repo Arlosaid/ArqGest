@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // NOTA: La eliminación de tareas ahora es manejada por task-delete.js (sistema unificado)
   // No necesitamos un listener duplicado aquí que cause dobles modales
 
-  // Configurar paginación de tareas responsive
+  // Configurar paginación de tareas responsive usando delegación de eventos
   function setupTasksPagination() {
     const tasksContainer = document.getElementById('tasksContainer');
     if (!tasksContainer) return;
@@ -145,8 +145,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Detectar si es móvil usando media query
     const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
     
-    // Función para cargar página
-    async function loadTasksPage(page = 1, phaseFilter = '') {
+    // Función para cargar página (global para reutilizar)
+    window.loadTasksPage = async function(page = 1, phaseFilter = '') {
       const perPage = isMobile() ? 6 : 12;
       const params = new URLSearchParams({
         page: page,
@@ -166,36 +166,20 @@ document.addEventListener('DOMContentLoaded', function () {
           container.innerHTML = html;
         }
         
-        // Re-configurar event listeners después de cargar contenido
-        setupPaginationEvents();
-        
       } catch (error) {
         console.error('Error cargando tareas:', error);
         if (window.notifications) {
           window.notifications.error('Error cargando las tareas');
         }
       }
-    }
-
-    // Configurar event listeners de paginación
-    function setupPaginationEvents() {
-      // Enlaces de paginación
-      tasksContainer.querySelectorAll('.pagination .page-link[data-page]').forEach(link => {
-        link.addEventListener('click', (e) => {
-          e.preventDefault();
-          const page = link.getAttribute('data-page');
-          const phaseFilter = document.getElementById('phaseFilter')?.value || '';
-          loadTasksPage(page, phaseFilter);
-        });
-      });
-    }
+    };
 
     // Configurar filtro de fase con paginación
     const phaseFilter = document.getElementById('phaseFilter');
     if (phaseFilter) {
       phaseFilter.addEventListener('change', () => {
         const selected = phaseFilter.value;
-        loadTasksPage(1, selected); // Siempre volver a página 1 al filtrar
+        window.loadTasksPage(1, selected); // Siempre volver a página 1 al filtrar
       });
     }
 
@@ -204,16 +188,27 @@ document.addEventListener('DOMContentLoaded', function () {
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => {
-        const currentPage = document.querySelector('.pagination .page-item.active .page-link');
+        const currentPage = document.querySelector('.arc-pagination-current');
         const page = currentPage ? currentPage.textContent.trim() : '1';
         const phaseFilterValue = document.getElementById('phaseFilter')?.value || '';
-        loadTasksPage(page, phaseFilterValue);
+        window.loadTasksPage(page, phaseFilterValue);
       }, 300);
     });
-
-    // Configurar eventos iniciales
-    setupPaginationEvents();
   }
+
+  // Delegación de eventos para paginación de tareas (se ejecuta una sola vez)
+  document.addEventListener('click', function(e) {
+    const paginationLink = e.target.closest('#tasksContainer .arc-pagination [data-page]');
+    if (paginationLink) {
+      e.preventDefault();
+      e.stopPropagation();
+      const page = paginationLink.getAttribute('data-page');
+      const phaseFilter = document.getElementById('phaseFilter')?.value || '';
+      if (window.loadTasksPage) {
+        window.loadTasksPage(page, phaseFilter);
+      }
+    }
+  });
 
   // Ejecutar configuración de paginación
   setupTasksPagination();
@@ -224,32 +219,9 @@ document.addEventListener('DOMContentLoaded', function () {
   // Función para recargar tareas (reutilizable)
   function reloadTasks() {
     const tasksContainer = document.getElementById('tasksContainer');
-    if (tasksContainer) {
+    if (tasksContainer && window.loadTasksPage) {
       const phaseFilter = document.getElementById('phaseFilter')?.value || '';
-      const projectId = tasksContainer.getAttribute('data-project-id');
-      const paginatedUrl = tasksContainer.getAttribute('data-paginated-url');
-      if (projectId && paginatedUrl) {
-        // Recargar primera página
-        const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
-        const perPage = isMobile() ? 6 : 12;
-        const params = new URLSearchParams({
-          page: 1,
-          per_page: perPage,
-          phase: phaseFilter
-        });
-        
-        fetch(`${paginatedUrl}?${params}`)
-          .then(response => response.text())
-          .then(html => {
-            // Verificar que tasksContainer existe antes de actualizar
-            const container = document.getElementById('tasksContainer');
-            if (container) {
-              container.innerHTML = html;
-              setupTasksPagination();
-            }
-          })
-          .catch(error => console.error('Error recargando tareas:', error));
-      }
+      window.loadTasksPage(1, phaseFilter);
     }
   }
 
@@ -280,44 +252,12 @@ async function updateTaskStatus(taskId, newStatus) {
       const tasksContainer = document.getElementById('tasksContainer');
       if (tasksContainer) {
         const phaseFilter = document.getElementById('phaseFilter')?.value || '';
-        const projectId = tasksContainer.getAttribute('data-project-id');
-        const paginatedUrl = tasksContainer.getAttribute('data-paginated-url');
+        const currentPage = document.querySelector('.arc-pagination-current');
+        const page = currentPage ? currentPage.textContent.trim() : '1';
         
-        if (projectId && paginatedUrl) {
-          const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
-          const perPage = isMobile() ? 6 : 12;
-          const currentPage = document.querySelector('.pagination .page-item.active .page-link');
-          const page = currentPage ? currentPage.textContent.trim() : '1';
-          
-          const params = new URLSearchParams({
-            page: page,
-            per_page: perPage,
-            phase: phaseFilter
-          });
-          
-          const reloadResponse = await fetch(`${paginatedUrl}?${params}`);
-          if (reloadResponse.ok) {
-            const html = await reloadResponse.text();
-            
-            // Verificar que tasksContainer existe antes de actualizar
-            const container = document.getElementById('tasksContainer');
-            if (container) {
-              container.innerHTML = html;
-            }
-            
-            // Re-configurar event listeners después de cargar contenido
-            const setupPaginationEvents = () => {
-              tasksContainer.querySelectorAll('.pagination .page-link[data-page]').forEach(link => {
-                link.addEventListener('click', (e) => {
-                  e.preventDefault();
-                  const page = link.getAttribute('data-page');
-                  const phaseFilter = document.getElementById('phaseFilter')?.value || '';
-                  loadTasksPage(page, phaseFilter);
-                });
-              });
-            };
-            setupPaginationEvents();
-          }
+        // Usar la función global de paginación
+        if (window.loadTasksPage) {
+          window.loadTasksPage(page, phaseFilter);
         }
       }
       

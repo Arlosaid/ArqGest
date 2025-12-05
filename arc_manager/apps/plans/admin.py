@@ -58,7 +58,7 @@ class ChangePlanForm(forms.Form):
 @admin.register(Plan)
 class PlanAdmin(ImportExportModelAdmin):
     resource_class = PlanResource
-    list_display = ('display_name', 'name', 'price', 'max_users', 'max_storage_gb', 'trial_days', 'billing_cycle_days', 'grace_period_days', 'is_active')
+    list_display = ('display_name', 'name', 'price', 'max_users', 'max_storage_gb', 'trial_days', 'billing_cycle_days', 'is_active')
     list_filter = ('is_active', 'name')
     search_fields = ('name', 'display_name')
     ordering = ('price',)
@@ -67,7 +67,7 @@ class PlanAdmin(ImportExportModelAdmin):
             'fields': ('name', 'display_name', 'description')
         }),
         ('Configuración del Plan', {
-            'fields': ('price', 'max_users', 'max_storage_gb', 'trial_days', 'billing_cycle_days', 'grace_period_days')
+            'fields': ('price', 'max_users', 'max_storage_gb', 'trial_days', 'billing_cycle_days')
         }),
         ('Estado', {
             'fields': ('is_active',)
@@ -211,7 +211,7 @@ class SubscriptionAdmin(ImportExportModelAdmin):
     list_select_related = ('organization', 'plan')
     autocomplete_fields = ['organization']
     
-    readonly_fields = ('start_date', 'grace_end_date', 'created_at', 'updated_at', 'days_remaining_display')
+    readonly_fields = ('start_date', 'created_at', 'updated_at', 'days_remaining_display')
     
     inlines = [PaymentInline]
     actions = ['process_selected_payments', 'extend_subscription_action', 'change_plan_action']
@@ -252,7 +252,7 @@ class SubscriptionAdmin(ImportExportModelAdmin):
                     'fields': ('organization', 'plan', 'subscription_status')
                 }),
                 ("Fechas Clave", {
-                    'fields': ('start_date', 'end_date', 'grace_end_date', 'days_remaining_display'),
+                    'fields': ('start_date', 'end_date', 'days_remaining_display'),
                     'description': 'Todas las fechas se muestran en zona horaria de México (UTC-6)'
                 }),
                 ("Timestamps", {
@@ -272,7 +272,7 @@ class SubscriptionAdmin(ImportExportModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         if obj:
-            return ('organization', 'subscription_status', 'start_date', 'grace_end_date', 'created_at', 'updated_at', 'days_remaining_display')
+            return ('organization', 'subscription_status', 'start_date', 'created_at', 'updated_at', 'days_remaining_display')
         return self.readonly_fields
     
     def add_view(self, request, form_url='', extra_context=None):
@@ -524,8 +524,8 @@ class UpgradeRequestAdmin(admin.ModelAdmin):
     change_form_template = 'admin/plans/upgraderequest/change_form.html'
     
     list_display = [
-        'organization', 'current_plan', 'requested_plan', 
-        'amount', 'status_display', 'created_at', 'approved_by', 'actions_column'
+        'organization', 'get_founder_indicator', 'current_plan', 'requested_plan', 
+        'amount_display', 'status_display', 'created_at', 'approved_by', 'actions_column'
     ]
     list_filter = ['status', 'created_at']
     search_fields = ['organization__name']
@@ -536,6 +536,24 @@ class UpgradeRequestAdmin(admin.ModelAdmin):
     ]
     ordering = ['-created_at']
     actions = ['approve_selected_requests', 'reject_selected_requests']
+
+    @admin.display(description="Fundador", ordering='organization__is_founder_member')
+    def get_founder_indicator(self, obj):
+        if obj.organization.is_founder_member:
+            return format_html('<span style="color: #F39C12; font-weight: bold;">🏆 FUNDADOR</span>')
+        return '-'
+
+    @admin.display(description="Monto del upgrade")
+    def amount_display(self, obj):
+        """Muestra el monto con indicador de precio fundador si aplica."""
+        formatted_amount = f"${obj.amount:,.2f}"
+        if obj.organization.is_founder_member:
+            return format_html(
+                '<span style="color: #F39C12; font-weight: bold;">{}</span> '
+                '<small style="color: #888;">(Precio fundador)</small>',
+                formatted_amount
+            )
+        return formatted_amount
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related(
@@ -693,7 +711,7 @@ class RenewalRequestAdmin(ImportExportModelAdmin):
     change_form_template = 'admin/plans/renewalrequest/change_form.html'
     
     list_display = [
-        'organization', 'subscription', 'renewal_amount', 'renewal_days', 
+        'organization', 'get_founder_indicator', 'subscription', 'renewal_amount_display', 'renewal_days', 
         'status', 'created_at', 'processed_at', 'approved_by'
     ]
     list_filter = ['status', 'created_at', 'processed_at']
@@ -703,6 +721,24 @@ class RenewalRequestAdmin(ImportExportModelAdmin):
         'organization', 'subscription', 'renewal_amount', 'renewal_days', 
         'created_at', 'updated_at', 'processed_at', 'approved_by'
     ]
+
+    @admin.display(description="Fundador", ordering='organization__is_founder_member')
+    def get_founder_indicator(self, obj):
+        if obj.organization.is_founder_member:
+            return format_html('<span style="color: #F39C12; font-weight: bold;">🏆 FUNDADOR</span>')
+        return '-'
+
+    @admin.display(description="Monto de renovación")
+    def renewal_amount_display(self, obj):
+        """Muestra el monto con indicador de precio fundador si aplica."""
+        formatted_amount = f"${obj.renewal_amount:,.2f}"
+        if obj.organization.is_founder_member:
+            return format_html(
+                '<span style="color: #F39C12; font-weight: bold;">{}</span> '
+                '<small style="color: #888;">(Precio fundador)</small>',
+                formatted_amount
+            )
+        return formatted_amount
     fieldsets = (
         ('Información de la Solicitud', {
             'fields': ('organization', 'subscription', 'status')

@@ -8,7 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from .models import ProjectFile, project_file_path
-from apps.projects.models import Phase
+from apps.projects.models import Phase, Task
 from core.error_codes import FileErrorCodes
 from core.structured_logging import log_error, log_warning, log_info, log_business_event, log_slow_operation
 import os
@@ -274,9 +274,59 @@ def upload_file(request, project_id, phase_id):
                     logger_name='apps.files'
                 )
             
+            # Obtener task_id opcional del request
+            task_id = request.POST.get('task_id')
+            task = None
+            
+            if task_id:
+                try:
+                    # Validar que la tarea pertenece a la misma fase
+                    task = Task.objects.get(pk=task_id, phase=phase)
+                    
+                    # SEGURIDAD: Usuarios no-admin solo pueden subir archivos a tareas asignadas a ellos
+                    if not request.user.is_org_admin and task.assigned_to != request.user:
+                        error_msg = _("Solo puedes subir archivos a tareas asignadas a ti.")
+                        log_warning(
+                            event="file_upload_task_not_assigned",
+                            message="Usuario intentó subir archivo a tarea no asignada",
+                            task_id=task_id,
+                            task_assigned_to=task.assigned_to_id,
+                            user_id=request.user.id,
+                            user_email=request.user.email
+                        )
+                        if request.headers.get('HX-Request') == 'true':
+                            return JsonResponse({"error": str(error_msg), "success": False}, status=403)
+                        messages.error(request, error_msg)
+                        return HttpResponse(status=403)
+                    
+                    # Validar límite de 3 archivos por tarea
+                    current_task_files = ProjectFile.objects.filter(task=task).count()
+                    if current_task_files >= 3:
+                        error_msg = _("La tarea ya tiene el máximo de 3 archivos permitidos.")
+                        log_warning(
+                            event="file_upload_task_limit_exceeded",
+                            message="Límite de archivos por tarea excedido",
+                            task_id=task_id,
+                            current_files=current_task_files,
+                            max_files=3
+                        )
+                        if request.headers.get('HX-Request') == 'true':
+                            return JsonResponse({"error": str(error_msg), "success": False}, status=400)
+                        messages.error(request, error_msg)
+                        return HttpResponse(status=400)
+                except Task.DoesNotExist:
+                    log_warning(
+                        event="file_upload_task_not_found",
+                        message="Tarea no encontrada o no pertenece a la fase",
+                        task_id=task_id,
+                        phase_id=phase_id
+                    )
+                    task = None  # Continuar sin asociar a tarea
+            
             # Crear el registro en DB
             instance = ProjectFile.objects.create(
                 phase=phase,
+                task=task,
                 file=uploaded_file,
                 uploaded_by=request.user
             )
@@ -455,6 +505,22 @@ def upload_file(request, project_id, phase_id):
     # En formularios normales, redirigir al detalle del proyecto (pestaña Archivos)
     project_url = reverse('projects:project-detail', kwargs={'pk': phase.project_id})
     return redirect(f"{project_url}?tab=files#files")
+
+
+@login_required
+@require_POST
+def upload_task_file(request, project_id, phase_id, task_id):
+    """
+    Vista wrapper para subir archivos asociados a una tarea.
+    Reutiliza upload_file pasando task_id en el POST.
+    """
+    # Copiar POST mutable para añadir task_id
+    post_data = request.POST.copy()
+    post_data['task_id'] = str(task_id)
+    request.POST = post_data
+    
+    return upload_file(request, project_id, phase_id)
+
 
 @login_required
 @require_POST

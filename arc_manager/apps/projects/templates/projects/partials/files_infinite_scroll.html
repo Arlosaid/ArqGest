@@ -16,6 +16,13 @@
             <h6 class="file-name" title="{{ file.filename }}">
                 {{ file.filename|truncatechars:50 }}
             </h6>
+            {% if file.task %}
+            <div class="mb-1">
+                <span class="badge bg-info bg-opacity-10 text-info border border-info" style="font-size: 0.65rem;" title="{% trans 'Vinculado a tarea' %}">
+                    <i class="fas fa-tasks me-1"></i>{{ file.task.title|truncatechars:15 }}
+                </span>
+            </div>
+            {% endif %}
             <div class="file-meta">
                 <span class="file-meta-item">
                     <i class="fas fa-tag"></i>{{ file.extension }}

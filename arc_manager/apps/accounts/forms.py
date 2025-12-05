@@ -127,6 +127,28 @@ class ForcePasswordChangeForm(forms.Form):
             'placeholder': 'Confirma tu nueva contraseña'
         })
     )
+    
+    # Checkboxes de aceptación legal
+    terms_accepted = forms.BooleanField(
+        label="Acepto los Términos y Condiciones",
+        required=True,
+        error_messages={
+            'required': 'Debes aceptar los Términos y Condiciones para continuar.'
+        },
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input'
+        })
+    )
+    privacy_accepted = forms.BooleanField(
+        label="Acepto el Aviso de Privacidad",
+        required=True,
+        error_messages={
+            'required': 'Debes aceptar el Aviso de Privacidad para continuar.'
+        },
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input'
+        })
+    )
 
     def __init__(self, user, *args, **kwargs):
         self.user = user

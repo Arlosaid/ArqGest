@@ -51,12 +51,17 @@ class BasePhaseFormSet(forms.BaseFormSet):
             return
         
         names = []
+        active_phases_count = 0
         for form in self.forms:
             if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
+                active_phases_count += 1
                 name = form.cleaned_data.get('name')
                 if name in names:
                     raise forms.ValidationError(_("Los nombres de las fases deben ser únicos."))
                 names.append(name)
+        
+        if active_phases_count == 0:
+            raise forms.ValidationError(_("Debe haber al menos una fase en la plantilla."))
 
 # No forzar un formulario vacío por defecto y manejar el orden manualmente con el campo oculto 'order'
 PhaseFormSet = formset_factory(

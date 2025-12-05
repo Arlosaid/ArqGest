@@ -39,7 +39,6 @@
         padding: 1.25rem 1.5rem;
         border-bottom: 1px solid #e5e7eb;
         background-color: #f9fafb;
-        /* El borde redondeado lo maneja el modal-content */
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -64,6 +63,103 @@
         justify-content: flex-end;
         gap: 0.75rem;
     }
+
+    /* Estilos para archivos de tarea */
+    .task-files-section {
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .task-file-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.5rem 0.75rem;
+        background-color: #f8f9fa;
+        border-radius: 0.375rem;
+        margin-bottom: 0.5rem;
+        transition: all 0.2s ease;
+    }
+
+    .task-file-item.marked-for-deletion {
+        opacity: 0.5;
+        text-decoration: line-through;
+        background-color: #fee2e2;
+    }
+
+    .task-file-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .task-file-icon {
+        color: #6c757d;
+        font-size: 1rem;
+    }
+
+    .task-file-name {
+        font-size: 0.875rem;
+        color: #495057;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .task-file-actions {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .task-file-actions .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .task-upload-zone {
+        border: 2px dashed #d1d5db;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background-color: #fafafa;
+    }
+
+    .task-upload-zone:hover {
+        border-color: #3b82f6;
+        background-color: #f0f7ff;
+    }
+
+    .task-upload-zone.dragover {
+        border-color: #3b82f6;
+        background-color: #e0efff;
+    }
+
+    .task-upload-zone.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    .task-upload-icon {
+        font-size: 1.5rem;
+        color: #9ca3af;
+        margin-bottom: 0.5rem;
+    }
+
+    .task-upload-text {
+        font-size: 0.875rem;
+        color: #6b7280;
+    }
+
+    .task-upload-hint {
+        font-size: 0.75rem;
+        color: #9ca3af;
+    }
 </style>
 
 <form method="post" action="{% url 'projects:task-edit' task.pk %}" id="editTaskForm" class="needs-validation" novalidate>
@@ -85,7 +181,81 @@
                 
                 <div class="mb-2">
                     <label for="description" class="form-label-modern">{% trans "Descripción" %}</label>
-                    <textarea class="form-control form-control-modern" id="description" name="description" rows="12" placeholder="Detalles adicionales..." style="min-height: 250px;">{{ task.description }}</textarea>
+                    <textarea class="form-control form-control-modern" id="description" name="description" rows="8" placeholder="Detalles adicionales..." style="min-height: 150px;">{{ task.description }}</textarea>
+                </div>
+
+                <!-- Archivos de la tarea -->
+                <div class="task-files-section">
+                    <label class="form-label-modern">
+                        <i class="fas fa-paperclip me-1"></i>{% trans "Archivos" %} 
+                        <span class="text-muted fw-normal" data-files-count>({{ task.files.count }}/3)</span>
+                    </label>
+                    
+                    <!-- Lista de archivos existentes -->
+                    <div data-files-list>
+                        {% for file in task.files.all %}
+                        <div class="task-file-item" id="task-file-{{ file.id }}">
+                            <div class="task-file-info">
+                                <i class="fas fa-file task-file-icon"></i>
+                                <span class="task-file-name" title="{{ file.filename }}">{{ file.filename }}</span>
+                            </div>
+                            <div class="task-file-actions">
+                                <a href="{{ file.file.url }}" 
+                                   class="btn btn-outline-secondary btn-sm" 
+                                   target="_blank"
+                                   title="{% trans 'Descargar' %}">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                                {% if user.is_org_admin or file.uploaded_by == user %}
+                                <button type="button" 
+                                        class="btn btn-outline-danger btn-sm"
+                                        data-action="delete-file"
+                                        data-file-id="{{ file.id }}"
+                                        title="{% trans 'Marcar para eliminar' %}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-muted fst-italic small mb-2" data-files-empty>
+                            {% trans "Sin archivos adjuntos." %}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Zona de upload (solo si hay espacio) -->
+                    {% if task.files.count < 3 %}
+                    <div class="mt-2">
+                        <input type="file" data-upload-input style="display: none;" 
+                               accept=".pdf,.jpg,.jpeg,.png,.gif,.tiff,.dwg,.dxf,.rvt,.skp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt,.md">
+                        <div class="task-upload-zone" 
+                             data-action="upload-zone"
+                             data-task-id="{{ task.pk }}"
+                             data-phase-id="{{ task.phase.pk }}"
+                             data-project-id="{{ task.phase.project.pk }}"
+                             data-current-files="{{ task.files.count }}">
+                            <div class="task-upload-icon">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                            </div>
+                            <div class="task-upload-text">{% trans "Arrastra o haz clic para subir" %}</div>
+                            <div class="task-upload-hint">PDF, DWG, RVT, JPG, PNG, DOC, XLS ({% trans "Máx" %} 1.5GB)</div>
+                        </div>
+                    </div>
+                    <div data-upload-progress style="display: none;" class="mt-2">
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
+                        </div>
+                        <small class="text-muted">{% trans "Subiendo..." %}</small>
+                    </div>
+                    {% else %}
+                    <div class="task-upload-zone disabled mt-2">
+                        <div class="task-upload-icon">
+                            <i class="fas fa-ban"></i>
+                        </div>
+                        <div class="task-upload-text text-muted">{% trans "Límite de 3 archivos alcanzado" %}</div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -139,45 +309,3 @@
         <button type="submit" class="btn btn-primary px-4">{% trans "Guardar" %}</button>
     </div>
 </form>
-
-<script>
-document.getElementById('editTaskForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const submitBtn = this.querySelector('button[type="submit"]');
-    const originalText = submitBtn.textContent;
-    
-    // Mostrar loading
-    submitBtn.disabled = true;
-    submitBtn.textContent = '{% trans "Guardando..." %}';
-    
-    fetch(this.action, {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => {
-        if (response.ok) {
-            // Cerrar modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('taskUniversalModal'));
-            if (modal) modal.hide();
-            
-            // Recargar la página para mostrar los cambios
-            window.location.reload();
-        } else {
-            throw new Error('Error al guardar');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error al guardar la tarea. Inténtalo de nuevo.');
-    })
-    .finally(() => {
-        submitBtn.disabled = false;
-        submitBtn.textContent = originalText;
-    });
-});
-</script>

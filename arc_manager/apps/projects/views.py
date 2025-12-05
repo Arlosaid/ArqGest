@@ -10,7 +10,7 @@ from django.template.loader import render_to_string
 from django.contrib import messages
 from django.views.decorators.http import require_POST, require_http_methods
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import Q, Count
 import logging
 import time
 from datetime import datetime
@@ -334,14 +334,10 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         context['can_view_finance'] = is_admin  # Solo admins ven finanzas
         
         # Obtener fases del proyecto con sus archivos y tareas (optimizado)
-        # SEGURIDAD: Filtrar tareas según permisos del usuario
+        # UX: Todos los usuarios ven todas las tareas del proyecto para contexto completo
+        # Solo admins pueden crear/editar/eliminar tareas
         from django.db.models import Prefetch, Min, Max
-        if is_admin:
-            # Admins ven todas las tareas
-            tasks_prefetch = Prefetch('tasks', queryset=Task.objects.select_related('assigned_to'))
-        else:
-            # Usuarios normales solo ven sus tareas asignadas
-            tasks_prefetch = Prefetch('tasks', queryset=Task.objects.filter(assigned_to=self.request.user).select_related('assigned_to'))
+        tasks_prefetch = Prefetch('tasks', queryset=Task.objects.select_related('assigned_to'))
         
         phases = project.phases.prefetch_related(
             'files__uploaded_by',
@@ -378,12 +374,9 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
         context['files_phases_page_obj'] = None  # Ya no necesitamos paginación
 
         # Centro de tareas: métricas y listas rápidas (optimizado con agregaciones)
+        # UX: Todos los usuarios ven todas las tareas del proyecto para contexto completo
         from django.db.models import Count, Q
         tasks_qs = Task.objects.filter(phase__project=project).select_related('phase', 'assigned_to')
-        
-        # SEGURIDAD: Usuarios no-admin solo ven sus tareas asignadas
-        if not is_admin:
-            tasks_qs = tasks_qs.filter(assigned_to=self.request.user)
         
         agg = tasks_qs.aggregate(
             total=Count('id'),
@@ -800,7 +793,9 @@ def project_kanban(request, pk):
             When(priority='LOW', then=Value(1)),
             default=Value(0),
             output_field=IntegerField(),
-        )
+        ),
+        files_count=Count('files', distinct=True),
+        notes_count=Count('notes', distinct=True)
     ).order_by('-priority_val', 'due_date', '-created_at')
 
     # --- FILTROS KANBAN ---
@@ -1201,18 +1196,16 @@ def task_create(request, project_pk):
             except ValueError:
                 due_date = None
         
-        # Fallback de fase: si no viene 'phase', usar la primera fase del proyecto;
-        # si no existen fases, crear una por defecto "Backlog".
+        # Validar que se haya seleccionado una fase
         if not phase_id:
-            first_phase = project.phases.order_by('order').first()
-            if not first_phase:
-                # Crear fase por defecto
-                first_phase = Phase.objects.create(
-                    project=project,
-                    name='Backlog',
-                    order=1
-                )
-            phase_id = str(first_phase.pk)
+            error_msg = _('Debes seleccionar una fase para la tarea.')
+            messages.error(request, error_msg)
+            accepts_json = 'application/json' in request.headers.get('Accept', '')
+            is_htmx = request.headers.get('HX-Request')
+            is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+            if accepts_json or is_htmx or is_ajax:
+                return JsonResponse({'success': False, 'error': 'phase_required'}, status=400)
+            return redirect('projects:project-kanban', pk=project_pk)
 
         if title and phase_id:
             try:
@@ -1341,7 +1334,7 @@ class TaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
             phase__project__organization=self.request.user.organization
         ).exclude(
             phase__project__status='ARCHIVED'
-        ).select_related('phase__project', 'assigned_to').order_by('due_date', 'priority')
+        ).select_related('phase__project', 'assigned_to').annotate(files_count=Count('files', distinct=True), notes_count=Count('notes', distinct=True)).order_by('due_date', 'priority')
         
         # SEGURIDAD: Usuarios no-admin solo ven sus tareas asignadas
         if not self.request.user.is_org_admin:
@@ -1403,7 +1396,7 @@ class MyTaskListView(LoginRequiredMixin, ProjectPageSizeMixin, ListView):
             assigned_to=self.request.user
         ).exclude(
             phase__project__status='ARCHIVED'
-        ).select_related('phase__project', 'assigned_to').order_by('due_date', 'priority')
+        ).select_related('phase__project', 'assigned_to').annotate(files_count=Count('files', distinct=True), notes_count=Count('notes', distinct=True)).order_by('due_date', 'priority')
         
         # Aplicar filtros si están presentes
         status_filter = self.request.GET.get('status')
@@ -1802,11 +1795,9 @@ def project_tasks_paginated(request, project_pk):
     phase_filter = request.GET.get('phase', '')
 
     # Queryset base
-    tasks_qs = Task.objects.filter(phase__project=project).select_related('phase', 'assigned_to')
-    
-    # SEGURIDAD: Usuarios no-admin solo ven sus tareas asignadas
-    if not request.user.is_org_admin:
-        tasks_qs = tasks_qs.filter(assigned_to=request.user)
+    # UX: Todos los usuarios ven todas las tareas del proyecto para contexto completo
+    # Solo admins pueden crear/editar/eliminar tareas (controlado en permisos y UI)
+    tasks_qs = Task.objects.filter(phase__project=project).select_related('phase', 'assigned_to').annotate(files_count=Count('files', distinct=True), notes_count=Count('notes', distinct=True))
     
     # Aplicar filtro de fase
     if phase_filter:
@@ -2079,7 +2070,17 @@ class PhaseTemplateDeleteView(LoginRequiredMixin, OrganizationAdminMixin, Delete
 @login_required
 def task_detail(request, pk):
     """Vista para mostrar los detalles de una tarea en formato modal"""
-    task = get_object_or_404(Task, pk=pk, phase__project__organization=request.user.organization)
+    # Optimización: usar select_related y prefetch_related para evitar queries N+1
+    task = get_object_or_404(
+        Task.objects.select_related(
+            'phase__project__organization',
+            'assigned_to'
+        ).prefetch_related(
+            'files__uploaded_by'
+        ),
+        pk=pk, 
+        phase__project__organization=request.user.organization
+    )
     
     # SEGURIDAD: Verificar que el usuario tiene acceso al proyecto de la tarea
     if not request.user.is_org_admin:
@@ -2116,14 +2117,122 @@ def task_detail(request, pk):
     
     project_color = project_colors[task.phase.project.id % len(project_colors)]
     
+    # Obtener notas de la tarea - convertir a lista para evitar queries adicionales
+    notes = list(task.notes.select_related('author').order_by('-created_at'))
+    notes_count = len(notes)
+    
+    # Pre-cargar archivos para evitar queries adicionales
+    files = list(task.files.all())
+    files_count = len(files)
+    
+    # Verificar si el usuario puede agregar notas (admin o asignado)
+    can_add_notes = request.user.is_org_admin or task.assigned_to == request.user
+    
     context = {
         'task': task,
         'project': task.phase.project,
         'project_color': project_color,
         'today': timezone.now().date(),
+        'notes': notes,
+        'notes_count': notes_count,
+        'files': files,
+        'files_count': files_count,
+        'can_add_notes': can_add_notes,
     }
     
     return render(request, 'projects/task_detail_modal.html', context)
+
+
+@login_required
+@require_POST
+def task_note_create(request, task_pk):
+    """Crear una nota en una tarea - Admins y usuario asignado pueden agregar notas."""
+    from .models import TaskNote
+    
+    task = get_object_or_404(Task, pk=task_pk, phase__project__organization=request.user.organization)
+    
+    # Verificar permisos: admin o usuario asignado
+    is_admin = request.user.is_org_admin
+    is_assignee = task.assigned_to == request.user
+    
+    if not (is_admin or is_assignee):
+        return JsonResponse({
+            'success': False, 
+            'error': 'No tienes permisos para agregar notas a esta tarea'
+        }, status=403)
+    
+    content = request.POST.get('content', '').strip()
+    
+    if not content:
+        return JsonResponse({
+            'success': False,
+            'error': 'El contenido de la nota no puede estar vacío'
+        }, status=400)
+    
+    if len(content) > 2000:
+        return JsonResponse({
+            'success': False,
+            'error': 'La nota no puede exceder 2000 caracteres'
+        }, status=400)
+    
+    try:
+        note = TaskNote.objects.create(
+            task=task,
+            author=request.user,
+            content=content
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'note': {
+                'id': note.id,
+                'author_name': note.author.get_full_name() or note.author.email,
+                'author_initials': (note.author.first_name[:1] + note.author.last_name[:1]).upper() if note.author.first_name and note.author.last_name else note.author.email[:2].upper(),
+                'content': note.content,
+                'created_at': note.created_at.strftime('%d/%m/%Y %H:%M'),
+                'can_delete': True  # El autor siempre puede eliminar su nota
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error creando nota de tarea: {e}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'Error al crear la nota'
+        }, status=500)
+
+
+@login_required
+@require_POST
+def task_note_delete(request, note_pk):
+    """Eliminar una nota - Solo el autor o admin pueden eliminar."""
+    from .models import TaskNote
+    
+    note = get_object_or_404(TaskNote, pk=note_pk, task__phase__project__organization=request.user.organization)
+    
+    # Verificar permisos: admin o autor de la nota
+    is_admin = request.user.is_org_admin
+    is_author = note.author == request.user
+    
+    if not (is_admin or is_author):
+        return JsonResponse({
+            'success': False,
+            'error': 'No tienes permisos para eliminar esta nota'
+        }, status=403)
+    
+    try:
+        note_id = note.id
+        note.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'deleted_id': note_id
+        })
+    except Exception as e:
+        logger.error(f"Error eliminando nota de tarea: {e}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'Error al eliminar la nota'
+        }, status=500)
 
 
 # Force reload
@@ -2364,11 +2473,17 @@ class ProjectFinanceDetailView(LoginRequiredMixin, OrganizationAdminMixin, Detai
         # Obtener estadísticas financieras desde caché
         finance_stats = get_project_finance_stats(project.id)
         
-        # Pagos recientes (últimos 10) - optimizado con select_related
-        recent_payments = project.payments.select_related('created_by').all()[:10]
+        # Paginación de pagos
+        from django.core.paginator import Paginator
+        payments_list = project.payments.select_related('created_by').all()
+        paginator = Paginator(payments_list, 10)  # 10 pagos por página
+        
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
         
         context.update({
-            'recent_payments': recent_payments,
+            'recent_payments': page_obj,
+            'page_obj': page_obj,
             'payments_count': project.payments.count(),
             'finance_stats': finance_stats,
         })

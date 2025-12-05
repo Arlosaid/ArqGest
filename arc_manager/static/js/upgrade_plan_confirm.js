@@ -8,6 +8,7 @@
     e.preventDefault();
     const card = document.getElementById('targetPlanCard');
     const name = card ? (card.querySelector('.plan-name')?.textContent || '') : '';
+    const price = card ? (card.querySelector('.price-amount')?.textContent.trim() || '') : '';
     const modalId = 'upgradeConfirmModal';
     let modalEl = document.getElementById(modalId);
     if (!modalEl) {
@@ -36,7 +37,7 @@
       document.body.appendChild(modalEl);
     }
     const textEl = modalEl.querySelector('#upgradeConfirmText');
-    if (textEl) textEl.textContent = `¿Confirmas la suscripción al plan "${name}"?`;
+    if (textEl) textEl.textContent = `¿Confirmas la suscripción al plan "${name}" por ${price}/mes?`;
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     const confirmBtn = modalEl.querySelector('#upgradeConfirmBtn');
     const onConfirm = () => { confirmBtn.removeEventListener('click', onConfirm); confirmed = true; modal.hide(); form.submit(); };

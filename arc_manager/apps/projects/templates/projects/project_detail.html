@@ -256,9 +256,16 @@
                           </div>
 
                           <div class="ms-auto">
+                            {% if user.is_org_admin %}
                             <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addTaskModal">
                               <i class="fas fa-plus"></i> {% trans "Nueva Tarea" %}
                             </button>
+                            {% else %}
+                            <button class="btn btn-secondary btn-sm" disabled style="cursor: not-allowed;" 
+                                    title="{% trans 'Solo los administradores pueden crear tareas' %}" data-bs-toggle="tooltip">
+                              <i class="fas fa-plus"></i> {% trans "Nueva Tarea" %}
+                            </button>
+                            {% endif %}
                           </div>
                         </div>
 
@@ -284,7 +291,7 @@
 <script src="{% static 'js/projects.js' %}?v=1.4"></script>
 <script src="{% static 'js/project_detail.js' %}?v=1.2"></script>
 <script src="{% static 'js/kanban.js' %}?v=1.7"></script>
-<script src="{% static 'js/files_filtering.js' %}?v=1.3"></script>
+<script src="{% static 'js/files_filtering.js' %}?v=1.4"></script>
 
 <script>
 document.body.dataset.taskDetailUrlTemplate = `{% url 'projects:task-detail' 0 %}`;
@@ -431,7 +438,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                         <div class="col-md-6">
                             <label for="phase" class="form-label">{% trans "Fase" %} *</label>
-                            <select class="form-select" id="phase" name="phase">
+                            <select class="form-select" id="phase" name="phase" required>
                                 <option value="">{% trans "Seleccionar fase" %}</option>
                                 {% for phase in phases %}
                                     <option value="{{ phase.id }}">{{ phase.name }}</option>

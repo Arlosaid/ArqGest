@@ -294,10 +294,8 @@
                         <span id="file-name-display" class="file-name-display ms-2">Ningún archivo seleccionado</span>
                         <input type="file" 
                                id="id_receipt" 
-                               name="receipt" 
-                               accept="image/*,.pdf,.doc,.docx"
-                               class="hidden-file-input"
-                               onchange="document.getElementById('file-name-display').textContent = this.files[0] ? this.files[0].name : 'Ningún archivo seleccionado'">
+                               name="receipt"
+                               class="hidden-file-input">
                     </div>
                     <small class="text-muted d-block mt-1">Formatos: PDF, JPG, PNG (Máx. 5MB)</small>
                     {% if form.receipt.errors %}
@@ -325,5 +323,61 @@
 {% block extra_js %}
 <script src="{% static 'js/payment-delete.js' %}"></script>
 <script src="{% static 'js/finance.js' %}"></script>
+<script>
+// Validación de archivo de comprobante
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('id_receipt');
+    const fileNameDisplay = document.getElementById('file-name-display');
+    
+    if (fileInput) {
+        // Extensiones permitidas
+        const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'doc', 'docx'];
+        const maxSizeMB = 5;
+        const maxSizeBytes = maxSizeMB * 1024 * 1024;
+        
+        fileInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const file = this.files[0];
+                const fileName = file.name;
+                const fileSize = file.size;
+                const fileExtension = fileName.split('.').pop().toLowerCase();
+                
+                // Validar extensión
+                if (!allowedExtensions.includes(fileExtension)) {
+                    // Limpiar el input
+                    this.value = '';
+                    fileNameDisplay.textContent = 'Ningún archivo seleccionado';
+                    
+                    // Mostrar error con el sistema de notificaciones
+                    if (window.notifications) {
+                        window.notifications.error(`Tipo de archivo no permitido (.${fileExtension}). Usa: PDF, JPG, PNG, GIF, DOC o DOCX.`);
+                    }
+                    return;
+                }
+                
+                // Validar tamaño
+                if (fileSize > maxSizeBytes) {
+                    // Limpiar el input
+                    this.value = '';
+                    fileNameDisplay.textContent = 'Ningún archivo seleccionado';
+                    
+                    const fileSizeMB = (fileSize / (1024 * 1024)).toFixed(2);
+                    
+                    // Mostrar error con el sistema de notificaciones
+                    if (window.notifications) {
+                        window.notifications.error(`El archivo es muy grande (${fileSizeMB}MB). Máximo permitido: ${maxSizeMB}MB.`);
+                    }
+                    return;
+                }
+                
+                // Archivo válido - mostrar nombre
+                fileNameDisplay.textContent = fileName;
+            } else {
+                fileNameDisplay.textContent = 'Ningún archivo seleccionado';
+            }
+        });
+    }
+});
+</script>
 {% endblock %}
 {% endblock %}

@@ -5,6 +5,15 @@
 
 /* ===== ESTILOS BASE DE MODALES ===== */
 
+/* Z-index para modales anidados (modal de confirmación sobre otro modal) */
+.confirmation-modal {
+    z-index: 1060 !important;
+}
+.confirmation-modal ~ .modal-backdrop,
+.confirmation-modal + .modal-backdrop {
+    z-index: 1055 !important;
+}
+
 /* Modal overlay - centrado perfecto */
 .confirmation-modal .modal-dialog {
     display: flex;

@@ -3,19 +3,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Configurar filtros inmediatamente
     setupFileFilters();
     
-    // IMPORTANTE: Usar delegación de eventos para el botón de limpiar
-    // Esto asegura que funcione incluso si el DOM cambia
-    document.body.addEventListener('click', function(e) {
-        const clearBtn = e.target.closest('[id^="clearFilters-"]');
-        if (clearBtn) {
-            e.preventDefault();
-            e.stopPropagation();
-            const phaseId = clearBtn.id.replace('clearFilters-', '');
-            clearFilters(phaseId);
-            return false;
-        }
-    }, true); // Usar capture phase para mayor prioridad
-    
     // IMPORTANTE: Reconfigurar cuando se carga contenido dinámico (accordions, tabs)
     document.body.addEventListener('htmx:afterSettle', function(event) {
         // Esperar un momento para que el DOM se actualice
@@ -74,9 +61,6 @@ function setupFileFilters() {
         };
         filter.addEventListener('change', filter._filterHandler);
     });
-    
-    // NOTA: El botón de limpiar ahora usa delegación de eventos en el body
-    // por lo que no necesitamos configurarlo aquí
 }
 
 function applyFilters(phaseId) {
@@ -113,6 +97,11 @@ function applyFilters(phaseId) {
     // Actualizar el atributo hx-get del contenedor para futuros reloads
     container.setAttribute('hx-get', url);
     
+    // IMPORTANTE: Remover temporalmente el trigger 'load' para evitar re-disparo
+    // Guardamos el trigger original y lo reemplazamos con solo 'fileUploaded'
+    const originalTrigger = container.getAttribute('hx-trigger');
+    container.setAttribute('hx-trigger', 'fileUploaded from:body');
+    
     // Mostrar indicador de carga
     showFilterLoadingIndicator(container);
     
@@ -137,13 +126,21 @@ function applyFilters(phaseId) {
         
         hideFilterLoadingIndicator(container);
         
-        // Reinicializar event listeners en el nuevo contenido
+        // Reinicializar HTMX en el nuevo contenido (botones de load more, etc.)
         if (window.htmx) {
             htmx.process(container);
         }
+        
+        // El trigger ya fue actualizado antes del fetch, no necesita restaurarse
+        // porque el nuevo contenido ya tiene el trigger correcto
     })
     .catch((error) => {
         hideFilterLoadingIndicator(container);
+        
+        // Restaurar trigger original en caso de error
+        if (originalTrigger) {
+            container.setAttribute('hx-trigger', originalTrigger);
+        }
         
         // Mostrar notificación de error
         if (window.notifications) {
@@ -189,79 +186,5 @@ function hideFilterLoadingIndicator(container) {
     }
 }
 
-function clearFilters(phaseId) {
-    const typeFilter = document.getElementById(`fileTypeFilter-${phaseId}`);
-    const dateFilter = document.getElementById(`fileDateFilter-${phaseId}`);
-    const container = document.getElementById(`files-container-${phaseId}`);
-    
-    // Resetear valores de los filtros
-    if (typeFilter) {
-        typeFilter.value = '';
-        typeFilter.selectedIndex = 0;
-    }
-    if (dateFilter) {
-        dateFilter.value = '';
-        dateFilter.selectedIndex = 0;
-    }
-    
-    // Verificar que el contenedor existe
-    if (!container) {
-        return;
-    }
-    
-    // Obtener la URL base del contenedor
-    const hxGetAttr = container.getAttribute('hx-get');
-    if (!hxGetAttr) {
-        return;
-    }
-    
-    const baseUrl = hxGetAttr.split('?')[0];
-    
-    // Construir URL sin filtros
-    const url = `${baseUrl}?offset=0&limit=18`;
-    
-    // Actualizar el atributo hx-get del contenedor
-    container.setAttribute('hx-get', url);
-    
-    // Mostrar indicador de carga
-    showFilterLoadingIndicator(container);
-    
-    // Usar fetch para recargar los archivos sin filtros
-    fetch(url, {
-        method: 'GET',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'HX-Request': 'true',
-            'HX-Target': `files-container-${phaseId}`
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.text();
-    })
-    .then(html => {
-        // Reemplazar contenido del contenedor
-        container.innerHTML = html;
-        
-        hideFilterLoadingIndicator(container);
-        
-        // Reinicializar event listeners en el nuevo contenido
-        if (window.htmx) {
-            htmx.process(container);
-        }
-    })
-    .catch((error) => {
-        hideFilterLoadingIndicator(container);
-        
-        // Mostrar notificación de error
-        if (window.notifications) {
-            window.notifications.error('Error al limpiar filtros');
-        }
-    });
-}
-
 // Funciones globales para compatibilidad
 window.applyFileFilters = applyFilters;
-window.clearFileFilters = clearFilters;
