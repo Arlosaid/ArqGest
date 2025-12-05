@@ -173,40 +173,35 @@ class CompactExceptionFilter(logging.Filter):
     - Mensaje de excepción
     
     El stack trace completo se debe enviar a Sentry/herramientas de monitoreo externas.
-    
-    Note:
-        Por diseño de logging.Filter de Python, el método filter() debe retornar
-        True para permitir el log o False para bloquearlo. Este filtro siempre
-        retorna True porque su propósito es MODIFICAR el record, no bloquearlo.
     """
+    
+    # Niveles de log que se filtran (no se muestran) en producción
+    FILTERED_LEVELS_IN_PROD = []  # Vacío por ahora, pero permite extensión
     
     def filter(self, record):
         """
-        Reduce stack traces en producción para evitar logs verbosos.
-        
-        Este método modifica record.msg in-place y siempre retorna True
-        porque el propósito es transformar el log, no filtrarlo.
+        Reduce stack traces en producción y filtra ciertos niveles.
         
         Returns:
-            bool: True siempre (permite el log después de modificarlo)
+            bool: True para permitir el log, False para bloquearlo
         """
-        # Aplicar transformación según el entorno
-        should_compact = self._should_compact_stacktrace()
-        if not should_compact:
-            return True  # En DEBUG, no modificar
+        # En producción, filtrar ciertos niveles si están configurados
+        if not self._is_debug_mode():
+            if record.levelno in self.FILTERED_LEVELS_IN_PROD:
+                return False  # Bloquear este log
+            
+            # Compactar excepciones en producción
+            if record.exc_info:
+                self._compact_exception_info(record)
         
-        # Modificar el record si tiene excepción
-        if record.exc_info:
-            self._compact_exception_info(record)
-        
-        return True  # Siempre permitir el log
+        return True  # Permitir el log
     
-    def _should_compact_stacktrace(self):
-        """Determina si se deben compactar los stacktraces (solo en producción)."""
+    def _is_debug_mode(self):
+        """Verifica si estamos en modo DEBUG."""
         try:
-            return not settings.DEBUG
+            return settings.DEBUG
         except Exception:
-            return True  # Asumir producción si no se puede acceder a settings
+            return False  # Asumir producción si no se puede acceder a settings
     
     def _compact_exception_info(self, record):
         """Compacta la información de excepción en el record."""
