@@ -517,21 +517,41 @@
                         ⚠️ Suscripción Vencida
                     </div>
                     <h1 style="color: #1e293b;">Tu plan ha expirado</h1>
+                    {% if pending_renewal_request %}
+                    <p style="color: #64748b;">Tu solicitud de renovación está siendo procesada. Pronto tendrás acceso nuevamente.</p>
+                    {% else %}
                     <p style="color: #64748b;">Renueva ahora para recuperar el acceso completo a todas las funcionalidades.</p>
                     <div style="margin-top: 25px;">
                         <a href="{% url 'plans:renew_subscription' %}" class="cta-button warning">
                             <i class="fas fa-sync-alt"></i> Renovar Suscripción
                         </a>
                     </div>
+                    {% endif %}
                 {% else %}
                     <!-- Plan Activo Normal (Básico) -->
                     <div style="display: inline-block; background: rgba(16, 185, 129, 0.2); color: #6ee7b7; padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; margin-bottom: 15px; border: 1px solid rgba(16, 185, 129, 0.3);">
                         ✅ Plan Activo
                     </div>
                     <h1>{{ subscription.plan.display_name }}</h1>
-                    <p>¡Felicidades! Ya tienes el mejor paquete para potenciar tu productividad.</p>
                     
-                    {% if subscription.days_remaining <= 3 %}
+                    {% if pending_renewal_request %}
+                    <!-- Solicitud de Renovación Pendiente -->
+                    <p>Tu solicitud de renovación está en proceso de revisión.</p>
+                    <div style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.1) 100%); border: 1px solid rgba(59, 130, 246, 0.3); padding: 18px; border-radius: 12px; margin-top: 25px;">
+                        <div style="display: flex; align-items: start; gap: 12px;">
+                            <i class="fas fa-clock" style="color: #3b82f6; font-size: 1.3rem; margin-top: 2px;"></i>
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0 0 6px 0; color: white; font-size: 1rem; font-weight: 700;">
+                                    <i class="fas fa-check-circle" style="color: #10b981; margin-right: 6px;"></i>
+                                    Solicitud de renovación enviada
+                                </h4>
+                                <p style="margin: 0; font-size: 0.9rem; color: #93c5fd; line-height: 1.5;">
+                                    Estamos procesando tu solicitud. Una vez verificado el pago, tu plan se renovará automáticamente por <strong>{{ pending_renewal_request.renewal_days }} días</strong>.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% elif subscription.days_remaining <= 3 %}
                     <!-- Aviso de Renovación Anticipada -->
                     <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(234, 88, 12, 0.1) 100%); border: 1px solid rgba(245, 158, 11, 0.3); padding: 18px; border-radius: 12px; margin-top: 25px;">
                         <div style="display: flex; align-items: start; gap: 12px;">
@@ -568,7 +588,7 @@
                     </div>
                     {% endif %}
                     
-                    {% if available_plans %}
+                    {% if available_plans and not pending_renewal_request %}
                     <div style="margin-top: 25px;">
                         <a href="{% url 'plans:request_upgrade' %}" class="cta-button" style="background: white; color: #059669; border: none;">
                             Ver Planes Superiores
@@ -637,6 +657,67 @@
                 <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #64748b;">
                     <i class="fas fa-hourglass-half" style="color: #3b82f6;"></i>
                     <span>Tu solicitud será revisada y aprobada en un plazo máximo de <strong>24 horas</strong>.</span>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    
+    {% if pending_renewal_request and pending_renewal_request.status == 'pending' %}
+        <div class="upgrade-process-card" style="border-left: 4px solid #10b981;">
+            <div class="process-header">
+                <div class="process-icon" style="background: #ecfdf5; color: #10b981;">
+                    <i class="fas fa-sync-alt"></i>
+                </div>
+                <div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                        <h3 style="margin: 0; color: #1e293b; font-size: 1.25rem;">Renovación de {{ subscription.plan.display_name }}</h3>
+                        <span style="background: #ecfdf5; color: #059669; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; border: 1px solid #86efac; letter-spacing: 0.5px;">PENDIENTE</span>
+                    </div>
+                    <p style="margin: 0; color: #64748b;">Tu solicitud de renovación está siendo procesada.</p>
+                </div>
+            </div>
+            
+            <div class="process-steps">
+                <!-- Step 1: Request (Completed) -->
+                <div class="step-item completed">
+                    <div class="step-circle"><i class="fas fa-check"></i></div>
+                    <div class="step-label">Solicitud Enviada</div>
+                </div>
+                
+                <!-- Step 2: Payment Verification (Active) -->
+                <div class="step-item active">
+                    <div class="step-circle">2</div>
+                    <div class="step-label">Verificando Pago</div>
+                </div>
+                
+                <!-- Step 3: Renewal (Pending) -->
+                <div class="step-item">
+                    <div class="step-circle">3</div>
+                    <div class="step-label">Renovación Activa</div>
+                </div>
+            </div>
+            
+            <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; margin-top: 25px; border-left: 4px solid #10b981;">
+                <p style="margin: 0; font-size: 0.95rem; color: #166534;">
+                    <strong><i class="fas fa-info-circle" style="margin-right: 6px;"></i>Detalles de tu solicitud:</strong>
+                </p>
+                <div style="margin-top: 10px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 0.9rem;">
+                    <div style="color: #334155;">
+                        <span style="color: #64748b;">Monto:</span> <strong>${{ pending_renewal_request.renewal_amount }}</strong>
+                    </div>
+                    <div style="color: #334155;">
+                        <span style="color: #64748b;">Días:</span> <strong>{{ pending_renewal_request.renewal_days }} días</strong>
+                    </div>
+                </div>
+                <div style="margin-top: 12px; display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #64748b;">
+                    <i class="fas fa-clock" style="color: #10b981;"></i>
+                    <span>Solicitado el {{ pending_renewal_request.created_at|date:"d/m/Y" }} a las {{ pending_renewal_request.created_at|time:"H:i" }}</span>
+                </div>
+                <div style="margin-top: 8px; padding-top: 12px; border-top: 1px solid #d1fae5;">
+                    <p style="margin: 0; font-size: 0.85rem; color: #64748b;">
+                        <i class="fas fa-envelope" style="margin-right: 6px; color: #10b981;"></i>
+                        ¿Ya enviaste tu comprobante? Contáctanos: <a href="mailto:{{ support_email }}" style="color: #059669; font-weight: 600;">{{ support_email }}</a>
+                    </p>
                 </div>
             </div>
         </div>

@@ -545,10 +545,36 @@
                                 </div>
                                 <h3>¡Ya tienes el mejor plan disponible!</h3>
                                 <p>Tu plan actual incluye todas las características premium. Si necesitas funcionalidades adicionales, contáctanos.</p>
+                                
+                                {% if pending_renewal_request %}
+                                <!-- Información de Renovación Pendiente -->
+                                <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border: 2px solid #10b981; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: left;">
+                                    <div style="display: flex; align-items: start; gap: 12px;">
+                                        <i class="fas fa-check-circle" style="color: #10b981; font-size: 1.5rem; margin-top: 2px;"></i>
+                                        <div>
+                                            <h4 style="margin: 0 0 8px 0; color: #065f46; font-size: 1.1rem; font-weight: 700;">
+                                                ✅ Solicitud de renovación en proceso
+                                            </h4>
+                                            <p style="margin: 0; font-size: 0.95rem; color: #047857; line-height: 1.5;">
+                                                Ya tienes una solicitud de renovación pendiente por <strong>${{ pending_renewal_request.renewal_amount }}</strong> ({{ pending_renewal_request.renewal_days }} días).
+                                            </p>
+                                            <p style="margin: 8px 0 0 0; font-size: 0.85rem; color: #059669;">
+                                                <i class="fas fa-clock" style="margin-right: 4px;"></i>
+                                                Solicitada el {{ pending_renewal_request.created_at|date:"d/m/Y" }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <a href="{% url 'plans:subscription_dashboard' %}" class="contact-support-btn" style="background: #10b981; border-color: #10b981;">
+                                    <i class="fas fa-arrow-left"></i>
+                                    Ver Estado de mi Solicitud
+                                </a>
+                                {% else %}
                                 <a href="mailto:{{ support_email }}" class="contact-support-btn">
                                     <i class="fas fa-envelope"></i>
                                     Contactar Soporte
                                 </a>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
