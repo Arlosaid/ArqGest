@@ -43,7 +43,11 @@ jobs:
 
       - name: Run tests with coverage (fast - unit & security only)
         run: |
-          pytest tests/accounts/unit tests/accounts/security tests/files/security tests/orgs/unit tests/plans/unit tests/projects/unit tests/users/unit \
+          pytest tests/accounts/unit tests/accounts/security \
+            tests/files/unit tests/files/security \
+            tests/orgs/unit tests/orgs/security \
+            tests/plans/unit \
+            tests/projects/unit \
             --cov=arc_manager/apps --cov=arc_manager/core \
             --cov-report=xml:coverage.xml \
             --cov-report=term-missing \

@@ -319,15 +319,24 @@ class Subscription(models.Model):
         self.subscription_status = f'{plan.name}_active'
 
     def calculate_current_status(self):
-        """Calcula el estado de la suscripción basado en las fechas, sin modificar el estado."""
-        now = timezone.now()
+        """
+        Calcula el estado de la suscripción basado en las fechas, sin modificar el estado.
+        
+        IMPORTANTE: Compara solo fechas (sin hora) para que la suscripción
+        sea válida todo el día de expiración hasta las 23:59:59.
+        Ejemplo: Si end_date es 5 dic 15:00, la suscripción es válida
+        todo el 5 dic, sin importar la hora actual.
+        """
+        today = timezone.now().date()
         plan_prefix = self.plan.name
         
-        # Si la fecha de vencimiento no ha pasado, está activo
-        if self.end_date and now <= self.end_date:
-            return f'{plan_prefix}_active'
+        # Comparar solo fechas: la suscripción es válida todo el día de end_date
+        if self.end_date:
+            end_date = self.end_date.date() if hasattr(self.end_date, 'date') else self.end_date
+            if today <= end_date:
+                return f'{plan_prefix}_active'
         
-        # Sin período de gracia: si pasó la fecha de vencimiento, expira
+        # Sin período de gracia: si pasó el día de vencimiento, expira
         return f'{plan_prefix}_expired'
 
     def update_status(self):
