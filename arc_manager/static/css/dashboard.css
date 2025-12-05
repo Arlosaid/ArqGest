@@ -233,9 +233,8 @@
 /* ===== GRID DE PROYECTOS ===== */
 .dashboard-premium .projects-grid-mini {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 350px));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1rem;
-    justify-content: start;
 }
 
 .dashboard-premium .project-card-mini {
@@ -243,7 +242,6 @@
     border-radius: var(--radius);
     border: 1px solid var(--border-subtle);
     overflow: hidden;
-    max-width: 350px;
 }
 
 .dashboard-premium .project-card-mini:hover {
