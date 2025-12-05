@@ -892,10 +892,17 @@ div.breadcrumbs a:hover {
     margin-bottom: 2rem;
 }
 
+/* Wrapper para scroll horizontal en tablas con muchas columnas */
+#changelist #result_list {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 #changelist table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
+    min-width: 100%;
 }
 
 #changelist thead th {
@@ -903,18 +910,20 @@ div.breadcrumbs a:hover {
     color: var(--text-secondary);
     font-weight: 700;
     text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
-    padding: 1.25rem 1.5rem; /* More padding */
-    border-bottom: 2px solid var(--border-color); /* Stronger separator */
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    padding: 1rem 0.75rem;
+    border-bottom: 2px solid var(--border-color);
     text-align: left;
+    white-space: nowrap;
 }
 
 #changelist tbody td {
-    padding: 1.25rem 1.5rem; /* More padding */
+    padding: 0.875rem 0.75rem;
     border-bottom: 1px solid var(--border-color);
     color: var(--text-main);
-    font-size: 0.95rem;
+    font-size: 0.85rem;
+    vertical-align: middle;
 }
 
 #changelist tbody tr:last-child td {
@@ -923,6 +932,30 @@ div.breadcrumbs a:hover {
 
 #changelist tbody tr:hover {
     background-color: #f8fafc;
+}
+
+/* Mejorar visualización de la primera columna (checkbox) */
+#changelist .action-checkbox {
+    width: 20px;
+    padding: 0.875rem 0.5rem;
+}
+
+/* Columnas con texto largo - truncar */
+#changelist td.field-description,
+#changelist td.field-reason {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Columnas de fecha - formato compacto */
+#changelist td.field-created_at,
+#changelist td.field-updated_at,
+#changelist td.field-old_end_date,
+#changelist td.field-new_end_date {
+    white-space: nowrap;
+    font-size: 0.8rem;
 }
 
 /* Forms */
@@ -2357,16 +2390,17 @@ input[type="submit"]:hover, .submit-row input:hover {
 /* ============================================ */
 /* FINAL OVERRIDE - FORM ROW VERTICAL LAYOUT   */
 /* These rules MUST be at the end for max priority */
+/* NOTA: No aplicar a tabular inlines (.inline-group .tabular) */
 /* ============================================ */
-body #content-main form.main fieldset.module .aligned .form-row,
-body #content-main fieldset.module .aligned .form-row,
-body #content-main .module .aligned .form-row,
-body #content-main .aligned .form-row,
-body .aligned .form-row,
-body form .form-row,
-body .form-row,
+body #content-main form.main fieldset.module .aligned .form-row:not(.inline-group .form-row),
+body #content-main fieldset.module .aligned .form-row:not(.inline-group .form-row),
+body #content-main .module .aligned .form-row:not(.inline-group .form-row),
+body #content-main .aligned .form-row:not(.inline-group .form-row),
+body .aligned .form-row:not(.inline-group .form-row),
+body form .form-row:not(.inline-group .form-row),
+body .form-row:not(.inline-group .form-row),
 #changelist-form .form-row,
-#content form .form-row {
+#content form .form-row:not(.inline-group .form-row) {
     display: flex !important;
     flex-direction: column !important;
     align-items: flex-start !important;
@@ -2374,15 +2408,16 @@ body .form-row,
     padding: 0.75rem !important;
 }
 
-body #content-main form .form-row > label,
-body #content-main .aligned .form-row > label,
-body #content-main .form-row > label,
-body .aligned .form-row > label,
-body .aligned label,
-body .form-row > label,
-#content-main .aligned label,
-#content form .form-row > label:first-child,
-fieldset.module .aligned label {
+/* Excluir tabular inlines de los estilos de label */
+body #content-main form .form-row:not(.inline-group .form-row) > label,
+body #content-main .aligned .form-row:not(.inline-group .form-row) > label,
+body #content-main .form-row:not(.inline-group .form-row) > label,
+body .aligned .form-row:not(.inline-group .form-row) > label,
+body .aligned label:not(.inline-group label),
+body .form-row:not(.inline-group .form-row) > label,
+#content-main .aligned label:not(.inline-group label),
+#content form .form-row:not(.inline-group .form-row) > label:first-child,
+fieldset.module .aligned label:not(.inline-group label) {
     float: none !important;
     position: static !important;
     display: block !important;
@@ -2530,4 +2565,189 @@ body .form-row .flex-container .readonly {
 .field-organization,
 .field-plan {
     padding: 1rem !important;
+}
+
+/* ===================================================================
+   TABULAR INLINES - Mejoras de visualización para pagos y otros
+   =================================================================== */
+
+/* Contenedor del inline */
+.inline-group {
+    margin-top: 2rem;
+}
+
+.inline-group h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-main);
+    padding: 1rem 1.25rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 2px solid var(--border-color);
+    margin: 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+/* Tabla del inline tabular */
+.inline-group .tabular {
+    background: var(--surface-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.inline-group .tabular table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+/* Headers de la tabla */
+.inline-group .tabular thead th {
+    background: #f8fafc;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.875rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+/* Celdas de la tabla */
+.inline-group .tabular tbody td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.875rem;
+    color: var(--text-main);
+    vertical-align: middle;
+}
+
+.inline-group .tabular tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.inline-group .tabular tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+/* Estilo especial para campos readonly */
+.inline-group .tabular td p {
+    margin: 0;
+    padding: 0;
+}
+
+/* Quitar el link de la primera columna que agrupa todo */
+.inline-group .tabular td.original {
+    display: none;
+}
+
+.inline-group .tabular th.original {
+    display: none;
+}
+
+/* ===== FORZAR LAYOUT DE TABLA EN INLINES ===== */
+/* Sobrescribir estilos de form-row dentro de tabular inlines */
+.inline-group .tabular table,
+.inline-group .tabular thead,
+.inline-group .tabular tbody,
+.inline-group .tabular tr,
+.inline-group .tabular th,
+.inline-group .tabular td {
+    display: revert !important;
+}
+
+.inline-group .tabular tr {
+    display: table-row !important;
+}
+
+.inline-group .tabular th,
+.inline-group .tabular td {
+    display: table-cell !important;
+}
+
+.inline-group .tabular thead {
+    display: table-header-group !important;
+}
+
+.inline-group .tabular tbody {
+    display: table-row-group !important;
+}
+
+.inline-group .tabular table {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+}
+
+/* Ajuste de anchos de columnas para pagos */
+.inline-group .tabular td:first-child,
+.inline-group .tabular th:first-child {
+    width: auto;
+    min-width: 100px;
+}
+
+/* Estado badge styling */
+.inline-group .tabular td p {
+    display: inline-block;
+}
+
+/* Responsive para tabular inlines */
+@media (max-width: 992px) {
+    .inline-group .tabular {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .inline-group .tabular table {
+        min-width: 800px;
+    }
+    
+    .inline-group .tabular thead th,
+    .inline-group .tabular tbody td {
+        padding: 0.75rem;
+        font-size: 0.8rem;
+    }
+}
+
+/* Estilo para móvil - mantener tabla con scroll horizontal */
+@media (max-width: 768px) {
+    .inline-group .tabular {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .inline-group .tabular table {
+        display: table !important;
+        min-width: 600px !important;
+    }
+    
+    .inline-group .tabular thead {
+        display: table-header-group !important;
+    }
+    
+    .inline-group .tabular tbody {
+        display: table-row-group !important;
+    }
+    
+    .inline-group .tabular tbody tr {
+        display: table-row !important;
+    }
+    
+    .inline-group .tabular tbody td,
+    .inline-group .tabular thead th {
+        display: table-cell !important;
+        padding: 0.5rem !important;
+        font-size: 0.75rem !important;
+    }
+    
+    .inline-group .tabular td.original {
+        display: none !important;
+    }
+    
+    .inline-group .tabular th.original {
+        display: none !important;
+    }
 }

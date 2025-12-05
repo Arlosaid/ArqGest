@@ -572,7 +572,7 @@ class Payment(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.subscription.organization.name} - ${self.amount} ({self.get_status_display()})"
+        return f"Pago #{self.pk} - ${self.amount}"
     
     def save(self, *args, **kwargs):
         """Override de save para logging estructurado"""

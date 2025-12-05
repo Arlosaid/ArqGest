@@ -326,6 +326,107 @@
     .form-row .flex-container .readonly {
         width: 100% !important;
     }
+    
+    /* ===== ESTILOS PARA INLINE DE PAGOS ===== */
+    .inline-group {
+        margin-top: 2rem;
+    }
+    
+    .inline-group h2 {
+        font-size: 1rem !important;
+        font-weight: 700 !important;
+        color: #1e293b !important;
+        padding: 1rem 1.25rem !important;
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+        border-bottom: 2px solid #86efac !important;
+        margin: 0 !important;
+        border-radius: 10px 10px 0 0 !important;
+    }
+    
+    .inline-group h2::before {
+        content: "💳 ";
+    }
+    
+    .inline-group .tabular {
+        background: white !important;
+        border-radius: 0 0 10px 10px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+        border: 1px solid #e2e8f0 !important;
+        border-top: none !important;
+        overflow-x: auto !important;
+    }
+    
+    /* FORZAR LAYOUT DE TABLA */
+    .inline-group .tabular table {
+        display: table !important;
+        width: 100% !important;
+        border-collapse: collapse !important;
+        min-width: 700px !important;
+    }
+    
+    .inline-group .tabular thead {
+        display: table-header-group !important;
+    }
+    
+    .inline-group .tabular tbody {
+        display: table-row-group !important;
+    }
+    
+    .inline-group .tabular tr {
+        display: table-row !important;
+    }
+    
+    .inline-group .tabular thead th {
+        display: table-cell !important;
+        background: #f8fafc !important;
+        color: #64748b !important;
+        font-weight: 600 !important;
+        font-size: 0.7rem !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+        padding: 0.75rem 0.5rem !important;
+        text-align: left !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        white-space: nowrap !important;
+    }
+    
+    .inline-group .tabular tbody td {
+        display: table-cell !important;
+        padding: 0.75rem 0.5rem !important;
+        border-bottom: 1px solid #f1f5f9 !important;
+        font-size: 0.8rem !important;
+        color: #1e293b !important;
+        vertical-align: middle !important;
+    }
+    
+    .inline-group .tabular tbody tr:last-child td {
+        border-bottom: none !important;
+    }
+    
+    .inline-group .tabular tbody tr:hover {
+        background-color: #f8fafc !important;
+    }
+    
+    /* Ocultar la columna original que agrupa todo */
+    .inline-group .tabular td.original,
+    .inline-group .tabular th.original {
+        display: none !important;
+    }
+    
+    /* Estilo para campos de texto dentro de celdas */
+    .inline-group .tabular td p {
+        margin: 0 !important;
+        padding: 0 !important;
+        display: inline !important;
+    }
+    
+    /* Campo de descripción con mejor formato */
+    .inline-group .tabular td.field-description p {
+        max-width: 150px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 </style>
 {% endblock %}
 
