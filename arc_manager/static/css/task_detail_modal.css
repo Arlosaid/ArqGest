@@ -877,8 +877,109 @@ body #taskUniversalModal .modal-header[style*="background"] {
     font-weight: 600;
 }
 
-/* Upload zone */
-.task-upload-zone-detail {
+/* Upload zone - Estilos para modal de detalle */
+.upload-section-detail {
+    padding-top: 0.75rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.upload-zone-detail {
+    border: 2px dashed #d1d5db;
+    border-radius: 12px;
+    padding: 1.25rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.upload-zone-detail:hover {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.upload-zone-detail.dragover {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border-style: solid;
+}
+
+.upload-zone-icon {
+    font-size: 2rem;
+    color: #3b82f6;
+    margin-bottom: 0.5rem;
+    opacity: 0.8;
+}
+
+.upload-zone-detail:hover .upload-zone-icon {
+    opacity: 1;
+    transform: scale(1.1);
+    transition: all 0.2s ease;
+}
+
+.upload-zone-text {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.25rem;
+}
+
+.upload-zone-hint {
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+.upload-progress-detail {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 0.75rem;
+}
+
+.upload-limit-reached {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.75rem;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    color: #166534;
+}
+
+/* Compact upload zone styles */
+.upload-zone-detail {
+    border: 1.5px dashed #93c5fd !important;
+    border-radius: 8px !important;
+    padding: 0.6rem 0.75rem !important;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease !important;
+    background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%) !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.upload-zone-detail:hover {
+    border-color: #3b82f6 !important;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+}
+
+.upload-zone-detail.dragover {
+    border-color: #2563eb !important;
+    border-style: solid !important;
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+}
+
+/* Legacy support */
+.task-upload-zone-detail,
+.task-upload-zone {
     border: 2px dashed #dee2e6;
     border-radius: 0.5rem;
     padding: 1rem;
@@ -887,7 +988,28 @@ body #taskUniversalModal .modal-header[style*="background"] {
     transition: border-color 0.2s, background-color 0.2s;
 }
 
-.task-upload-zone-detail:hover {
-    border-color: #adb5bd;
-    background-color: #f8f9fa;
+.task-upload-zone-detail:hover,
+.task-upload-zone:hover {
+    border-color: #3b82f6;
+    background-color: #f0f7ff;
+}
+
+.task-upload-zone.dragover {
+    border-color: #3b82f6;
+    background-color: #e0efff;
+}
+
+.task-upload-hint {
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+/* Upload progress animation */
+.upload-progress-detail .progress-bar {
+    animation: progressPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes progressPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.85; }
 }

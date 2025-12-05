@@ -57,6 +57,50 @@
                             {% trans "Sin archivos adjuntos." %}
                         </div>
                     {% endif %}
+                    
+                    <!-- Zona de upload para usuarios (admin y asignados) -->
+                    {% if can_upload_files and files_count < 3 %}
+                    <div class="upload-section-detail mt-2" style="padding-top: 0.5rem; border-top: 1px solid #e9ecef;">
+                        <input type="file" data-upload-input style="display: none;" 
+                               accept=".pdf,.jpg,.jpeg,.png,.gif,.tiff,.dwg,.dxf,.rvt,.skp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt,.md">
+                        <div class="upload-zone-detail" 
+                             data-action="upload-zone"
+                             data-task-id="{{ task.pk }}"
+                             data-phase-id="{{ task.phase.pk }}"
+                             data-project-id="{{ task.phase.project.pk }}"
+                             data-current-files="{{ files_count }}"
+                             style="border: 1.5px dashed #93c5fd; border-radius: 8px; padding: 0.6rem 0.75rem; text-align: center; cursor: pointer; background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                            <i class="fas fa-cloud-upload-alt" style="font-size: 1rem; color: #3b82f6;"></i>
+                            <span style="font-size: 0.8rem; font-weight: 500; color: #1e40af;">{% trans "Subir archivo" %}</span>
+                            <span style="font-size: 0.7rem; color: #9ca3af;">({{ files_count }}/3)</span>
+                        </div>
+                        <div data-upload-progress style="display: none;" class="upload-progress-detail mt-2">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem; background: #f8fafc; border-radius: 8px;">
+                                <div class="upload-file-icon" style="width: 32px; height: 32px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-file" style="color: white; font-size: 0.85rem;"></i>
+                                </div>
+                                <div style="flex: 1; min-width: 0;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                        <span data-upload-filename style="font-size: 0.75rem; font-weight: 500; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">{% trans "Subiendo..." %}</span>
+                                        <span data-upload-percent style="font-size: 0.7rem; font-weight: 600; color: #3b82f6;">0%</span>
+                                    </div>
+                                    <div class="progress" style="height: 4px; border-radius: 2px; background-color: #e5e7eb; overflow: hidden;">
+                                        <div class="progress-bar" style="width: 0%; background: linear-gradient(90deg, #3b82f6, #1d4ed8); transition: width 0.15s ease-out; border-radius: 2px;"></div>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; margin-top: 3px;">
+                                        <span data-upload-speed style="font-size: 0.65rem; color: #9ca3af;"></span>
+                                        <span data-upload-size style="font-size: 0.65rem; color: #9ca3af;"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% elif can_upload_files and files_count >= 3 %}
+                    <div class="upload-limit-reached mt-3" style="display: flex; align-items: center; justify-content: center; padding: 0.75rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; font-size: 0.85rem; color: #166534;">
+                        <i class="fas fa-check-circle text-success me-1"></i>
+                        <span>{% trans "Límite de archivos alcanzado" %} (3/3)</span>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 

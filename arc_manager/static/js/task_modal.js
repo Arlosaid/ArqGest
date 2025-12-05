@@ -505,28 +505,69 @@ class TaskModalManager {
             return;
         }
 
-        // Mostrar progreso
+        // Mostrar progreso con información detallada
         const progressContainer = this.modalContent.querySelector('[data-upload-progress]');
         const progressBar = progressContainer?.querySelector('.progress-bar');
+        const filenameEl = progressContainer?.querySelector('[data-upload-filename]');
+        const percentEl = progressContainer?.querySelector('[data-upload-percent]');
+        const speedEl = progressContainer?.querySelector('[data-upload-speed]');
+        const sizeEl = progressContainer?.querySelector('[data-upload-size]');
         
-        if (uploadZone.parentElement) {
-            uploadZone.parentElement.style.display = 'none';
+        // Ocultar zona de upload y mostrar progreso
+        if (uploadZone) {
+            uploadZone.style.display = 'none';
         }
         if (progressContainer) {
             progressContainer.style.display = 'block';
+            // Actualizar nombre del archivo
+            if (filenameEl) {
+                filenameEl.textContent = file.name.length > 25 ? file.name.substring(0, 22) + '...' : file.name;
+                filenameEl.title = file.name;
+            }
         }
 
         const formData = new FormData();
         formData.append('files', file);
         formData.append('csrfmiddlewaretoken', this.getCSRFToken());
 
+        // Variables para calcular velocidad
+        let lastLoaded = 0;
+        let lastTime = Date.now();
+
         try {
             const xhr = new XMLHttpRequest();
             
             xhr.upload.addEventListener('progress', (e) => {
-                if (e.lengthComputable && progressBar) {
+                if (e.lengthComputable) {
                     const percent = Math.round((e.loaded / e.total) * 100);
-                    progressBar.style.width = `${percent}%`;
+                    
+                    // Actualizar barra de progreso
+                    if (progressBar) {
+                        progressBar.style.width = `${percent}%`;
+                    }
+                    
+                    // Actualizar porcentaje
+                    if (percentEl) {
+                        percentEl.textContent = `${percent}%`;
+                    }
+                    
+                    // Calcular y mostrar velocidad
+                    const now = Date.now();
+                    const timeDiff = (now - lastTime) / 1000; // segundos
+                    if (timeDiff > 0.5) { // Actualizar cada 500ms
+                        const bytesDiff = e.loaded - lastLoaded;
+                        const speed = bytesDiff / timeDiff;
+                        if (speedEl) {
+                            speedEl.textContent = this.formatSpeed(speed);
+                        }
+                        lastLoaded = e.loaded;
+                        lastTime = now;
+                    }
+                    
+                    // Mostrar tamaño subido / total
+                    if (sizeEl) {
+                        sizeEl.textContent = `${this.formatBytes(e.loaded)} / ${this.formatBytes(e.total)}`;
+                    }
                 }
             });
 
@@ -559,8 +600,8 @@ class TaskModalManager {
             }
             
             // Restaurar zona de upload
-            if (uploadZone.parentElement) {
-                uploadZone.parentElement.style.display = '';
+            if (uploadZone) {
+                uploadZone.style.display = '';
             }
             if (progressContainer) {
                 progressContainer.style.display = 'none';
@@ -780,6 +821,28 @@ class TaskModalManager {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    /**
+     * Formatear bytes a unidad legible
+     */
+    formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    /**
+     * Formatear velocidad de upload
+     */
+    formatSpeed(bytesPerSecond) {
+        if (bytesPerSecond === 0) return '0 KB/s';
+        const k = 1024;
+        if (bytesPerSecond < k) return Math.round(bytesPerSecond) + ' B/s';
+        if (bytesPerSecond < k * k) return (bytesPerSecond / k).toFixed(1) + ' KB/s';
+        return (bytesPerSecond / (k * k)).toFixed(1) + ' MB/s';
     }
 }
 
