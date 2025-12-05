@@ -1,0 +1,117 @@
+/* CSS personalizado para el Admin de Organizaciones */
+
+/* Animación de parpadeo para elementos urgentes */
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0.6; }
+}
+
+/* Estilos para badges de días restantes */
+.field-get_days_remaining_badge span {
+    display: inline-block;
+    min-width: 50px;
+    text-align: center;
+}
+
+/* Estilos para la columna de expiración */
+.field-get_expiration_info {
+    white-space: nowrap;
+}
+
+/* Destacar filas de organizaciones expiradas */
+tr.expired-row {
+    background-color: #fdf2f2 !important;
+}
+
+tr.expired-row:hover {
+    background-color: #fce4e4 !important;
+}
+
+/* Destacar filas próximas a vencer */
+tr.expiring-soon-row {
+    background-color: #fffbeb !important;
+}
+
+tr.expiring-soon-row:hover {
+    background-color: #fef3c7 !important;
+}
+
+/* Estilos para el panel lateral de filtros */
+#changelist-filter {
+    background: #f8f9fa;
+}
+
+#changelist-filter h3 {
+    padding: 8px 12px;
+    margin: 0;
+    background: #417690;
+    color: white;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+/* Destacar filtros importantes */
+#changelist-filter li a[href*="expired_ago"] {
+    color: #c0392b;
+}
+
+#changelist-filter li a[href*="expiring_soon"] {
+    color: #e67e22;
+}
+
+/* Mejorar visibilidad de los badges */
+.field-get_subscription_status small {
+    display: block;
+    margin-top: 3px;
+}
+
+/* Tooltip personalizado */
+[title] {
+    cursor: help;
+}
+
+/* Estilos para acciones masivas */
+.action-select option[value="delete_expired_90d"] {
+    color: #c0392b;
+    font-weight: bold;
+}
+
+/* Indicador visual para el total de registros filtrados */
+#changelist-filter .module:first-child::before {
+    content: "";
+    display: block;
+    padding: 10px;
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    margin-bottom: 10px;
+    font-size: 12px;
+}
+
+/* Mejoras responsive */
+@media (max-width: 1200px) {
+    .field-get_storage_info,
+    .field-get_subscription_link {
+        display: none;
+    }
+}
+
+/* Estilos para el indicador de fundador */
+.field-get_founder_badge span {
+    font-size: 10px !important;
+}
+
+/* Mejora del contraste en la lista */
+#result_list tbody tr:nth-child(odd) {
+    background-color: #fafafa;
+}
+
+#result_list tbody tr:hover {
+    background-color: #e8f4f8;
+}
+
+/* Estilos para celdas de acción */
+.field-get_add_user_link a.button,
+.field-get_subscription_link a.button {
+    white-space: nowrap;
+    font-size: 11px !important;
+}

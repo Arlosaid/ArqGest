@@ -1,0 +1,197 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .org-stats-dashboard {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+        transition: transform 0.2s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    
+    .stat-card.urgent {
+        border-left: 4px solid #e74c3c;
+    }
+    
+    .stat-card.warning {
+        border-left: 4px solid #f39c12;
+    }
+    
+    .stat-card.success {
+        border-left: 4px solid #27ae60;
+    }
+    
+    .stat-card.info {
+        border-left: 4px solid #3498db;
+    }
+    
+    .stat-card.danger {
+        border-left: 4px solid #8e44ad;
+        background: #fdf2f8;
+    }
+    
+    .stat-number {
+        font-size: 32px;
+        font-weight: bold;
+        line-height: 1;
+        margin-bottom: 5px;
+    }
+    
+    .stat-number.red { color: #e74c3c; }
+    .stat-number.orange { color: #f39c12; }
+    .stat-number.green { color: #27ae60; }
+    .stat-number.blue { color: #3498db; }
+    .stat-number.purple { color: #8e44ad; }
+    
+    .stat-label {
+        font-size: 12px;
+        color: #7f8c8d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .stat-link {
+        display: block;
+        margin-top: 8px;
+        font-size: 11px;
+        color: #3498db;
+        text-decoration: none;
+    }
+    
+    .stat-link:hover {
+        text-decoration: underline;
+    }
+    
+    .dashboard-title {
+        color: white;
+        text-align: center;
+        margin-bottom: 15px;
+        font-size: 16px;
+        font-weight: normal;
+        letter-spacing: 1px;
+    }
+    
+    .alert-box {
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .alert-box.critical {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        color: white;
+    }
+    
+    .alert-box .alert-icon {
+        font-size: 24px;
+    }
+    
+    .alert-box .alert-content {
+        flex: 1;
+    }
+    
+    .alert-box .alert-title {
+        font-weight: bold;
+        margin-bottom: 3px;
+    }
+    
+    .alert-box .alert-action {
+        background: white;
+        color: #c0392b;
+        padding: 8px 15px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 12px;
+    }
+    
+    .alert-box .alert-action:hover {
+        background: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Dashboard de Estadísticas -->
+{% if org_stats %}
+<div class="org-stats-dashboard">
+    <h3 class="dashboard-title" style="grid-column: 1 / -1;">📊 Panel de Control de Organizaciones</h3>
+    
+    <div class="stat-card success">
+        <div class="stat-number green">{{ org_stats.active_count }}</div>
+        <div class="stat-label">Activas</div>
+        <a href="?subscription_status=basic_active" class="stat-link">Ver plan básico →</a>
+    </div>
+    
+    <div class="stat-card info">
+        <div class="stat-number blue">{{ org_stats.trial_count }}</div>
+        <div class="stat-label">En Trial</div>
+        <a href="?subscription_status=trial_active" class="stat-link">Ver trials →</a>
+    </div>
+    
+    <div class="stat-card warning">
+        <div class="stat-number orange">{{ org_stats.expiring_soon_count }}</div>
+        <div class="stat-label">Vencen en 7 días</div>
+        <a href="?expiring_soon=7" class="stat-link">⚠️ Ver urgentes →</a>
+    </div>
+    
+    <div class="stat-card urgent">
+        <div class="stat-number red">{{ org_stats.expired_count }}</div>
+        <div class="stat-label">Expiradas</div>
+        <a href="?expired_ago=any" class="stat-link">Ver todas →</a>
+    </div>
+    
+    <div class="stat-card danger">
+        <div class="stat-number purple">{{ org_stats.to_delete_count }}</div>
+        <div class="stat-label">Para Eliminar (+90d)</div>
+        <a href="?expired_ago=90" class="stat-link">🗑️ Revisar →</a>
+    </div>
+</div>
+
+{% if org_stats.to_delete_count > 0 %}
+<div class="alert-box critical">
+    <span class="alert-icon">🗑️</span>
+    <div class="alert-content">
+        <div class="alert-title">{{ org_stats.to_delete_count }} organizaciones listas para eliminar</div>
+        <div>Estas organizaciones llevan más de 90 días expiradas y pueden ser eliminadas de forma segura.</div>
+    </div>
+    <a href="?expired_ago=90" class="alert-action">Revisar ahora</a>
+</div>
+{% endif %}
+
+{% if org_stats.expiring_3_days > 0 %}
+<div class="alert-box critical" style="background: linear-gradient(135deg, #e67e22, #d35400);">
+    <span class="alert-icon">🚨</span>
+    <div class="alert-content">
+        <div class="alert-title">¡{{ org_stats.expiring_3_days }} organizaciones vencen en 3 días o menos!</div>
+        <div>Contacta a estos clientes urgentemente para renovar su suscripción.</div>
+    </div>
+    <a href="?expiring_soon=3" class="alert-action" style="color: #d35400;">Ver urgentes</a>
+</div>
+{% endif %}
+{% endif %}
+
+{{ block.super }}
+{% endblock %}
