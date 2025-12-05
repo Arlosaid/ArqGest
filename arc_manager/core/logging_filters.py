@@ -173,49 +173,69 @@ class CompactExceptionFilter(logging.Filter):
     - Mensaje de excepción
     
     El stack trace completo se debe enviar a Sentry/herramientas de monitoreo externas.
+    
+    Note:
+        Por diseño de logging.Filter de Python, el método filter() debe retornar
+        True para permitir el log o False para bloquearlo. Este filtro siempre
+        retorna True porque su propósito es MODIFICAR el record, no bloquearlo.
     """
     
     def filter(self, record):
         """
-        Reduce stack traces en producción para evitar logs verbosos
+        Reduce stack traces en producción para evitar logs verbosos.
+        
+        Este método modifica record.msg in-place y siempre retorna True
+        porque el propósito es transformar el log, no filtrarlo.
+        
+        Returns:
+            bool: True siempre (permite el log después de modificarlo)
         """
-        # Solo aplicar en producción
-        try:
-            if settings.DEBUG:
-                return True
-        except:
-            # Si no se puede acceder a settings, asumir producción
-            pass
+        # Aplicar transformación según el entorno
+        should_compact = self._should_compact_stacktrace()
+        if not should_compact:
+            return True  # En DEBUG, no modificar
         
-        # Si el record tiene información de excepción
+        # Modificar el record si tiene excepción
         if record.exc_info:
-            exc_type, exc_value, exc_tb = record.exc_info
-            
-            if exc_tb:
-                # Extraer primera y última línea del traceback
-                tb_list = traceback.extract_tb(exc_tb)
-                
-                if len(tb_list) > 0:
-                    first_frame = tb_list[0]
-                    last_frame = tb_list[-1]
-                    
-                    # Crear un resumen compacto del traceback
-                    compact_tb = (
-                        f"{exc_type.__name__} at {record.pathname}:{record.lineno}\n"
-                        f"  First: {first_frame.filename}:{first_frame.lineno} in {first_frame.name}\n"
-                        f"  Last:  {last_frame.filename}:{last_frame.lineno} in {last_frame.name}\n"
-                        f"  Message: {exc_value}"
-                    )
-                    
-                    # Reemplazar el mensaje para incluir el resumen compacto
-                    if hasattr(record, 'msg'):
-                        record.msg = f"{record.msg}\n{compact_tb}"
-                    
-                    # Limpiar exc_info para evitar que se loguee el traceback completo
-                    record.exc_info = None
-                    record.exc_text = None
+            self._compact_exception_info(record)
         
-        return True
+        return True  # Siempre permitir el log
+    
+    def _should_compact_stacktrace(self):
+        """Determina si se deben compactar los stacktraces (solo en producción)."""
+        try:
+            return not settings.DEBUG
+        except Exception:
+            return True  # Asumir producción si no se puede acceder a settings
+    
+    def _compact_exception_info(self, record):
+        """Compacta la información de excepción en el record."""
+        exc_type, exc_value, exc_tb = record.exc_info
+        if not exc_tb:
+            return
+        
+        # Extraer primera y última línea del traceback
+        tb_list = traceback.extract_tb(exc_tb)
+        
+        if len(tb_list) > 0:
+            first_frame = tb_list[0]
+            last_frame = tb_list[-1]
+            
+            # Crear un resumen compacto del traceback
+            compact_tb = (
+                f"{exc_type.__name__} at {record.pathname}:{record.lineno}\n"
+                f"  First: {first_frame.filename}:{first_frame.lineno} in {first_frame.name}\n"
+                f"  Last:  {last_frame.filename}:{last_frame.lineno} in {last_frame.name}\n"
+                f"  Message: {exc_value}"
+            )
+            
+            # Reemplazar el mensaje para incluir el resumen compacto
+            if hasattr(record, 'msg'):
+                record.msg = f"{record.msg}\n{compact_tb}"
+            
+            # Limpiar exc_info para evitar que se loguee el traceback completo
+            record.exc_info = None
+            record.exc_text = None
 
 
 class IgnoreStaticFilesFilter(logging.Filter):

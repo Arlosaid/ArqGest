@@ -62,31 +62,40 @@ def cached_progress(project):
 def dashboard_image(project):
     """
     Asigna automáticamente una imagen del dashboard basada en el ID del proyecto.
-    Usa números secuenciales para simplicidad.
+    
+    Args:
+        project: Objeto Project con atributo id
+        
+    Returns:
+        str: URL de imagen diferente según project.id (1-6.jpg) con versionado
     """
+    image_number = _get_image_number_for_project(project)
+    return _build_versioned_image_url(image_number)
+
+
+def _get_image_number_for_project(project):
+    """Calcula el número de imagen basado en el ID del proyecto."""
+    total_images = 6
     try:
-        # Total de imágenes disponibles (1.jpg a 6.jpg)
-        total_images = 6
-        
-        # Usar el ID del proyecto para seleccionar una imagen de forma determinística
         if hasattr(project, 'id') and project.id:
-            image_number = (project.id % total_images) + 1
-            image_url = static(f'images/projects/dashboard/{image_number}.jpg')
-        else:
-            # Fallback si no hay ID
-            image_url = static('images/projects/dashboard/1.jpg')
-        
-        # Agregar versionado para cache-busting en móviles
+            return (project.id % total_images) + 1
+        return 1  # Fallback
+    except Exception:
+        return 1  # Fallback en caso de error
+
+
+def _build_versioned_image_url(image_number):
+    """Construye la URL de imagen con versionado para cache-busting."""
+    try:
+        image_url = static(f'images/projects/dashboard/{image_number}.jpg')
         version = getattr(settings, 'STATIC_VERSION', 'v1')
         return f"{image_url}?v={version}"
-        
     except Exception as e:
         import logging
         logger = logging.getLogger(__name__)
-        logger.error(f"Error getting dashboard image for project {getattr(project, 'id', 'unknown')}: {e}")
-        image_url = static('images/projects/dashboard/1.jpg')
-        version = getattr(settings, 'STATIC_VERSION', 'v1')
-        return f"{image_url}?v={version}"
+        logger.error(f"Error building dashboard image URL: {e}")
+        # Fallback absoluto
+        return '/static/images/projects/dashboard/1.jpg?v=v1'
 
 
 @register.filter(name='versioned_static')

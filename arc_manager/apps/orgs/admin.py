@@ -66,36 +66,45 @@ class OrganizationAdminForm(ModelForm):
         fields = '__all__'
     
     def clean_extra_storage_gb(self):
-        """Validar que el almacenamiento total de la organización no quede negativo"""
+        """
+        Validar que el almacenamiento total de la organización no quede negativo.
+        
+        Returns:
+            int: El valor de extra_storage_gb validado
+            
+        Raises:
+            ValidationError: Si el almacenamiento total sería negativo
+        """
         extra_storage_gb = self.cleaned_data.get('extra_storage_gb', 0)
         
-        # Si es una nueva organización, no hay restricciones
+        # Si es una nueva organización, retornar sin validación adicional
         if not self.instance.pk:
             return extra_storage_gb
         
-        # Obtener el límite del plan base
+        # Obtener límite y validar
+        plan_limit = self._get_plan_storage_limit()
+        self._validate_storage_not_negative(plan_limit, extra_storage_gb)
+        
+        return extra_storage_gb
+    
+    def _get_plan_storage_limit(self):
+        """Obtiene el límite de almacenamiento del plan actual."""
         try:
             current_org = Organization.objects.get(pk=self.instance.pk)
-            plan_limit = 0
             if hasattr(current_org, 'subscription') and current_org.subscription:
-                plan_limit = current_org.subscription.plan.max_storage_gb
-            else:
-                plan_limit = 10  # Fallback
+                return current_org.subscription.plan.max_storage_gb
+            return 10  # Fallback sin suscripción
         except Organization.DoesNotExist:
-            # Si la organización no existe, usar fallback
-            plan_limit = 10
-        
-        # Calcular el nuevo límite total
+            return 10  # Fallback organización no existe
+    
+    def _validate_storage_not_negative(self, plan_limit, extra_storage_gb):
+        """Lanza ValidationError si el almacenamiento total sería negativo."""
         new_total_limit = plan_limit + extra_storage_gb
-        
-        # Validar que el límite total no sea negativo
         if new_total_limit < 0:
             raise ValidationError(
                 f"El almacenamiento total no puede ser negativo. "
                 f"Plan base: {plan_limit} GB + Extra: {extra_storage_gb} GB = {new_total_limit} GB."
             )
-        
-        return extra_storage_gb
 
 @admin.register(Organization)
 class OrganizationAdmin(ImportExportModelAdmin):
