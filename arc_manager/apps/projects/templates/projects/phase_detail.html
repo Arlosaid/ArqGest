@@ -24,6 +24,11 @@
                         <span class="badge rounded-pill {% if phase.status == 'COMPLETED' %}bg-success-subtle text-success{% elif phase.status == 'IN_PROGRESS' %}bg-primary-subtle text-primary{% elif phase.status == 'PAUSED' %}bg-warning-subtle text-warning{% else %}bg-secondary-subtle text-secondary{% endif %} border">
                             {{ phase.get_status_display }}
                         </span>
+                        {% if is_project_archived %}
+                        <span class="badge bg-secondary rounded-pill">
+                            <i class="fas fa-archive me-1"></i>{% trans "Proyecto Archivado" %}
+                        </span>
+                        {% endif %}
                     </div>
                     <p class="text-muted mb-0 mt-1 small">
                         <i class="far fa-calendar-alt me-1"></i>
@@ -56,10 +61,15 @@
                 <a href="{% url 'projects:project-detail' project.pk %}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left"></i> {% trans "Volver" %}
                 </a>
-                {% if user.is_org_admin %}
+                {% if user.is_org_admin and not is_project_archived %}
                 <a href="{% url 'projects:project-phases-edit' project.pk %}" class="btn btn-outline-primary">
                     <i class="fas fa-edit"></i> {% trans "Editar Fase" %}
                 </a>
+                {% elif is_project_archived %}
+                <button type="button" class="btn btn-outline-secondary" disabled style="cursor: not-allowed;"
+                        title="{% trans 'Proyecto archivado - no se pueden editar fases' %}">
+                    <i class="fas fa-lock me-1"></i>{% trans "Editar Fase" %}
+                </button>
                 {% endif %}
             </div>
         </div>

@@ -43,6 +43,25 @@ def upload_file(request, project_id, phase_id):
                           ['android', 'iphone', 'ipad', 'mobile', 'tablet'])
     phase = get_object_or_404(Phase, id=phase_id, project_id=project_id)
     
+    # BLOQUEAR si el proyecto está archivado
+    if phase.project.status == 'ARCHIVED':
+        error_msg = _("Este proyecto está archivado y no permite modificaciones.")
+        log_warning(
+            event="file_upload_project_archived",
+            message="Intento de subir archivo a proyecto archivado",
+            error_code=FileErrorCodes.FILE_UPLOAD_PERMISSION_DENIED,
+            project_id=project_id,
+            phase_id=phase_id,
+            user_email=request.user.email
+        )
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.headers.get('HX-Request') == 'true':
+            return JsonResponse({
+                "error": str(error_msg), 
+                "success": False,
+                "error_code": "PROJECT_ARCHIVED_READ_ONLY"
+            }, status=403)
+        return HttpResponseForbidden(error_msg)
+    
     if request.user.organization != phase.project.organization:
         log_warning(
             event="file_upload_permission_denied",
@@ -531,6 +550,24 @@ def delete_file(request, file_id):
     - Si es una llamada normal/fetch, responde JSON con success.
     """
     project_file = get_object_or_404(ProjectFile, id=file_id)
+    
+    # BLOQUEAR si el proyecto está archivado
+    if project_file.phase.project.status == 'ARCHIVED':
+        error_msg = "Este proyecto está archivado y no permite modificaciones."
+        log_warning(
+            event="file_delete_project_archived",
+            message="Intento de eliminar archivo de proyecto archivado",
+            error_code=FileErrorCodes.FILE_DOWNLOAD_PERMISSION_DENIED,
+            file_id=file_id,
+            project_id=project_file.phase.project.id
+        )
+        if request.headers.get('HX-Request') == 'true' or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                "error": error_msg, 
+                "success": False,
+                "error_code": "PROJECT_ARCHIVED_READ_ONLY"
+            }, status=403)
+        return HttpResponseForbidden(error_msg)
     
     if request.user.organization != project_file.phase.project.organization:
         log_warning(

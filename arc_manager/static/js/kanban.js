@@ -108,6 +108,16 @@ class KanbanManager {
     initializeDragAndDrop() {
         if (!this.columns.length) return;
 
+        // Verificar si el proyecto está archivado - desactivar drag & drop completamente
+        const isProjectArchived = document.body.dataset.isProjectArchived === 'true';
+        if (isProjectArchived) {
+            this.cards.forEach(card => {
+                card.draggable = false;
+                card.style.cursor = 'default';
+            });
+            return;
+        }
+
         // Solo activar drag and drop en desktop (pantallas >= 768px)
         if (window.innerWidth >= 768) {
             this.columns.forEach(column => {
@@ -166,6 +176,14 @@ class KanbanManager {
 
     handleDragStart(e) {
         if (this.isUpdating) {
+            e.preventDefault();
+            return;
+        }
+
+        // Verificar si el proyecto está archivado - bloquear drag & drop
+        const isProjectArchived = document.body.dataset.isProjectArchived === 'true';
+        if (isProjectArchived) {
+            this.showNotification('Proyecto archivado - no se pueden mover tareas', 'warning');
             e.preventDefault();
             return;
         }

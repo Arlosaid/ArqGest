@@ -34,13 +34,19 @@
                 </div>
             </div>
             <div class="d-flex gap-2 align-items-center flex-wrap justify-content-end">
+                {% if is_project_archived %}
+                <span class="badge bg-secondary me-2" style="font-size: 0.8rem; padding: 0.5rem 0.75rem;">
+                    <i class="fas fa-archive me-1"></i>{% trans "Proyecto Archivado" %}
+                </span>
+                {% endif %}
+                
                 <!-- Botón Principal (Kanban) -->
                 <a href="{% url 'projects:project-kanban' project.pk %}" class="btn btn-primary" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: none; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3); white-space: nowrap;">
                     <i class="fas fa-columns"></i> <span class="d-none d-sm-inline">{% trans "Gestionar Tareas" %}</span>
                 </a>
                 
-                {% if user.is_org_admin %}
-                <!-- Botones de Acción estilo blanco -->
+                {% if user.is_org_admin and not is_project_archived %}
+                <!-- Botones de Acción estilo blanco (solo si NO está archivado) -->
                 <a href="{% url 'projects:project-update' project.pk %}" class="btn btn-outline-secondary" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1); white-space: nowrap;">
                     <i class="fas fa-edit"></i> <span class="d-none d-md-inline">{% trans "Editar Proyecto" %}</span>
                 </a>
@@ -256,9 +262,14 @@
                           </div>
 
                           <div class="ms-auto">
-                            {% if user.is_org_admin %}
+                            {% if user.is_org_admin and not is_project_archived %}
                             <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addTaskModal">
                               <i class="fas fa-plus"></i> {% trans "Nueva Tarea" %}
+                            </button>
+                            {% elif is_project_archived %}
+                            <button class="btn btn-secondary btn-sm" disabled style="cursor: not-allowed;" 
+                                    title="{% trans 'Proyecto archivado - no se pueden crear tareas' %}" data-bs-toggle="tooltip">
+                              <i class="fas fa-lock me-1"></i> {% trans "Nueva Tarea" %}
                             </button>
                             {% else %}
                             <button class="btn btn-secondary btn-sm" disabled style="cursor: not-allowed;" 
