@@ -509,15 +509,43 @@ class KanbanManager {
     }
 
     updateCardStatusButtons(card, newStatus) {
-        // Buscar el contenedor de botones de estado en la tarjeta
+        // Buscar el contenedor de botones de estado en la tarjeta (Legacy/Desktop)
         const statusButtonsContainer = card.querySelector('.task-status-buttons');
-        if (!statusButtonsContainer) return;
+        if (statusButtonsContainer) {
+            // Generar los nuevos botones basados en el nuevo estado
+            const newButtons = this.generateStatusButtons(card.dataset.taskId, newStatus);
+            // Reemplazar el contenido HTML
+            statusButtonsContainer.innerHTML = newButtons;
+        }
 
-        // Generar los nuevos botones basados en el nuevo estado
-        const newButtons = this.generateStatusButtons(card.dataset.taskId, newStatus);
+        // Actualizar botones móviles (.mobile-actions)
+        const mobileActions = card.querySelector('.mobile-actions');
+        if (mobileActions) {
+            // Mostrar todos los botones primero
+            const buttons = mobileActions.querySelectorAll('button[class*="btn-status-"]');
+            buttons.forEach(btn => btn.classList.remove('d-none'));
 
-        // Reemplazar el contenido HTML
-        statusButtonsContainer.innerHTML = newButtons;
+            // Ocultar el botón correspondiente al nuevo estado
+            let btnToHide = null;
+            switch (newStatus) {
+                case 'TODO':
+                    btnToHide = mobileActions.querySelector('.btn-status-todo');
+                    break;
+                case 'IN_PROGRESS':
+                    btnToHide = mobileActions.querySelector('.btn-status-in-progress');
+                    break;
+                case 'PAUSED':
+                    btnToHide = mobileActions.querySelector('.btn-status-paused');
+                    break;
+                case 'DONE':
+                    btnToHide = mobileActions.querySelector('.btn-status-done');
+                    break;
+            }
+
+            if (btnToHide) {
+                btnToHide.classList.add('d-none');
+            }
+        }
     }
 
     generateStatusButtons(taskId, status) {
