@@ -468,3 +468,79 @@ class OrganizationDetailView(LoginRequiredMixin, DetailView):
             messages.error(request, "No tienes permisos para ver esta organización.")
             return redirect('main:dashboard')
         return super().dispatch(request, *args, **kwargs)
+
+class ClientDeleteAjaxView(LoginRequiredMixin, View):
+    """Vista AJAX para eliminar clientes"""
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Verificar si es una petición AJAX
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or \
+                  request.content_type == 'application/x-www-form-urlencoded' or \
+                  'fetch' in request.headers.get('Sec-Fetch-Mode', '')
+        
+        try:
+            client_to_delete = get_object_or_404(Client, pk=kwargs['pk'])
+        except:
+            if is_ajax or request.method == 'POST':
+                return JsonResponse({'success': False, 'error': 'Cliente no encontrado'}, status=404)
+            raise
+        
+        current_user = request.user
+        
+        # Solo org_admin puede eliminar clientes de su organización
+        if not (current_user.is_org_admin and current_user.organization and 
+                client_to_delete.organization == current_user.organization):
+            if is_ajax or request.method == 'POST':
+                return JsonResponse({'success': False, 'error': 'No tienes permisos para eliminar este cliente'}, status=403)
+            raise PermissionDenied("No tienes permisos para eliminar este cliente")
+        
+        return super().dispatch(request, *args, **kwargs)
+    
+    def post(self, request, pk):
+        """Procesar la eliminación del cliente"""
+        client_to_delete = get_object_or_404(Client, pk=pk)
+        
+        try:
+            # Verificar que se confirmó la eliminación
+            confirm_delete = request.POST.get('confirm_delete')
+            if confirm_delete != 'yes':
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Confirmación requerida'
+                })
+            
+            client_name = client_to_delete.name
+            
+            # Log importante para auditoría
+            logger.info(f"Cliente eliminado: {client_name} por {request.user.email}")
+            
+            # Eliminar cliente
+            client_to_delete.delete()
+            
+            # Obtener estadísticas actualizadas
+            org = request.user.organization
+            total_clients = Client.objects.filter(organization=org).count()
+            active_clients = Client.objects.filter(organization=org, is_active=True).count()
+            inactive_clients = total_clients - active_clients
+            
+            stats = {
+                'total_clients': total_clients,
+                'active_clients': active_clients,
+                'inactive_clients': inactive_clients,
+            }
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Cliente {client_name} eliminado exitosamente.',
+                'stats': stats
+            })
+            
+        except Exception as e:
+            # Log detallado del error para desarrolladores
+            logger.error(f"Error al eliminar cliente: {str(e)}")
+            
+            # Siempre respuesta amigable, nunca errores técnicos
+            return JsonResponse({
+                'success': False,
+                'error': 'Error al eliminar el cliente. Por favor, contacta con soporte técnico.'
+            }, status=500)

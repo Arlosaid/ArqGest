@@ -71,6 +71,96 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
 });
+
+// Función para actualizar estadísticas y UI después de eliminar
+function updateClientStats(stats) {
+    // Actualizar contadores
+    const totalClientsEl = document.querySelector('.stat-card-modern.total .stat-value');
+    const activeClientsEl = document.querySelector('.stat-card-modern.active-projects .stat-value');
+    const inactiveClientsEl = document.querySelector('.stat-card-modern.archived .stat-value');
+    
+    if (totalClientsEl) totalClientsEl.textContent = stats.total_clients;
+    if (activeClientsEl) activeClientsEl.textContent = stats.active_clients;
+    if (inactiveClientsEl) inactiveClientsEl.textContent = stats.inactive_clients;
+}
+
+// Función mejorada de confirmación y eliminación con modal visual
+function confirmAndDelete(clientId) {
+    const row = document.querySelector(`tr[data-client-id="${clientId}"]`) || document.querySelector(`.mobile-client-card[data-client-id="${clientId}"]`);
+    
+    if (!row) {
+        console.error('No se encontró el elemento del cliente');
+        return;
+    }
+    
+    // Extraer información del cliente
+    const nameEl = row.querySelector('.client-name');
+    const emailEl = row.querySelector('.client-email');
+    
+    const fullName = nameEl ? nameEl.textContent.trim() : 'Cliente';
+    const email = emailEl ? emailEl.textContent.trim() : '';
+    
+    // Crear modal de confirmación usando el sistema unificado
+    const modal = ConfirmationModals.deleteUser({
+        fullName: fullName,
+        username: fullName,
+        email: email,
+        title: 'Eliminar Cliente',
+        message: '¿Estás seguro de que deseas eliminar este cliente? Esta acción no se puede deshacer.'
+    });
+    
+    modal.config.onConfirm = async () => {
+        const formData = new FormData();
+        formData.append('confirm_delete', 'yes');
+        const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+        
+        const response = await fetch(`/orgs/clients/${clientId}/delete-ajax/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrf },
+            body: formData
+        });
+        
+        // Manejar respuestas no-JSON (errores del servidor)
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Error del servidor. Por favor, intenta de nuevo.');
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error || 'Error al eliminar cliente');
+        }
+        
+        // Actualizar estadísticas inmediatamente
+        if (data.stats) {
+            updateClientStats(data.stats);
+        }
+        
+        // Remover elemento de la UI con animación
+        row.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        row.style.opacity = '0';
+        row.style.transform = 'scale(0.95)';
+        
+        setTimeout(() => {
+            row.remove();
+            
+            // Recargar si no quedan clientes
+            const remainingRows = document.querySelectorAll('tbody tr').length;
+            const remainingCards = document.querySelectorAll('.mobile-client-card').length;
+            if (remainingRows === 0 && remainingCards === 0) {
+                window.location.reload();
+            }
+            
+            // Mostrar notificación de éxito
+            if (window.notifications) {
+                window.notifications.success('Cliente eliminado correctamente');
+            }
+        }, 300);
+    };
+    
+    modal.show();
+}
 </script>
 {% endblock %}
 
@@ -231,12 +321,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <i class="fas fa-eye"></i>
                                     </a>
 
-                                    <a href="{% url 'orgs:client_delete' client.pk %}"
-                                       class="action-btn delete"
-                                       title="Eliminar cliente"
-                                       style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: all 0.2s ease; background: #fef2f2; color: #ef4444; border: 1px solid #fecaca;">
+                                    <button type="button" 
+                                            onclick="confirmAndDelete('{{ client.pk }}')"
+                                            class="action-btn delete"
+                                            title="Eliminar cliente"
+                                            style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: all 0.2s ease; background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; cursor: pointer;">
                                         <i class="fas fa-trash-alt"></i>
-                                    </a>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -285,9 +376,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <a href="{% url 'orgs:client_detail' client.pk %}" class="btn btn-light btn-sm border text-secondary d-flex align-items-center justify-content-center" style="width: 26px; height: 26px; padding: 0;" title="Ver">
                                         <i class="fas fa-eye" style="font-size: 0.6rem;"></i>
                                     </a>
-                                    <a href="{% url 'orgs:client_delete' client.pk %}" class="btn btn-light btn-sm border text-danger d-flex align-items-center justify-content-center" style="width: 26px; height: 26px; padding: 0;" title="Eliminar">
+                                    <button type="button" onclick="confirmAndDelete('{{ client.pk }}')" class="btn btn-light btn-sm border text-danger d-flex align-items-center justify-content-center" style="width: 26px; height: 26px; padding: 0;" title="Eliminar">
                                         <i class="fas fa-trash-alt" style="font-size: 0.6rem;"></i>
-                                    </a>
+                                    </button>
                                 </div>
                             </div>
                         </div>
