@@ -40,9 +40,11 @@
                 </span>
                 {% endif %}
                 
-                <!-- Botón Principal (Kanban) -->
-                <a href="{% url 'projects:project-kanban' project.pk %}" class="btn btn-primary" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: none; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3); white-space: nowrap;">
-                    <i class="fas fa-columns"></i> <span class="d-none d-sm-inline">{% trans "Gestionar Tareas" %}</span>
+                <!-- Botón Principal (Kanban) - Más intuitivo -->
+                <a href="{% url 'projects:project-kanban' project.pk %}" class="btn btn-primary d-flex align-items-center gap-2" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: none; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3); white-space: nowrap; padding: 0.5rem 1rem;">
+                    <i class="fas fa-th-large"></i>
+                    <span class="d-none d-sm-inline">{% trans "Tablero Kanban" %}</span>
+                    <span class="d-sm-none"><i class="fas fa-tasks" style="margin-left: 2px;"></i></span>
                 </a>
                 
                 {% if user.is_org_admin and not is_project_archived %}

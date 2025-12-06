@@ -132,7 +132,7 @@ class LargeFileUploader {
                                 <h6 class="mb-1">${file.name}</h6>
                                 <small class="text-muted">
                                     ${sizeInMB} MB • ${extension}
-                                    ${validation.isValid ? '' : ' • ❌ ' + validation.error}
+                                    ${validation.isValid ? '' : ' • ' + validation.error}
                                 </small>
                             </div>
                             ${validation.isValid ? '<i class="fas fa-check-circle text-success"></i>' : '<i class="fas fa-exclamation-triangle text-danger"></i>'}

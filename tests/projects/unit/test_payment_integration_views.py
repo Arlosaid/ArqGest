@@ -63,7 +63,7 @@ class TestPaymentCreateViewValidation:
     
     def test_validate_create_positive_amount_within_budget(self):
         """
-        ✅ Crear pago de $5,000 en proyecto con presupuesto de $10,000 y $0 pagado.
+        Crear pago de $5,000 en proyecto con presupuesto de $10,000 y $0 pagado.
         """
         project = ProjectFactory(total_budget=Decimal('10000.00'))
         cache.delete(f"project_total_paid:{project.id}")
@@ -79,7 +79,7 @@ class TestPaymentCreateViewValidation:
     
     def test_validate_create_zero_amount(self):
         """
-        ❌ Crear pago de $0 debe rechazarse.
+        Crear pago de $0 debe rechazarse.
         """
         project = ProjectFactory(total_budget=Decimal('10000.00'))
         
@@ -93,7 +93,7 @@ class TestPaymentCreateViewValidation:
     
     def test_validate_create_negative_amount(self):
         """
-        ❌ Crear pago negativo debe rechazarse.
+        Crear pago negativo debe rechazarse.
         """
         project = ProjectFactory(total_budget=Decimal('10000.00'))
         
@@ -107,7 +107,7 @@ class TestPaymentCreateViewValidation:
     
     def test_validate_create_exceeding_budget(self):
         """
-        ❌ Crear pago de $12,000 en proyecto con presupuesto de $10,000 y $0 pagado.
+        Crear pago de $12,000 en proyecto con presupuesto de $10,000 y $0 pagado.
         """
         project = ProjectFactory(total_budget=Decimal('10000.00'))
         cache.delete(f"project_total_paid:{project.id}")
@@ -124,7 +124,7 @@ class TestPaymentCreateViewValidation:
     
     def test_validate_create_with_existing_payment(self):
         """
-        ✅ Crear pago de $4,000 en proyecto con presupuesto de $10,000 y $5,000 ya pagado.
+        Crear pago de $4,000 en proyecto con presupuesto de $10,000 y $5,000 ya pagado.
         """
         project = ProjectFactory(total_budget=Decimal('10000.00'))
         ProjectPaymentFactory(project=project, amount=Decimal('5000.00'))

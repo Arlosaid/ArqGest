@@ -12,14 +12,14 @@ function openTaskModalWithPhase(phaseId, phaseName) {
     // Buscar el modal de agregar tarea
     const modal = document.getElementById('addTaskModal');
     if (!modal) {
-        console.error('❌ Modal de tarea no encontrado');
+        console.error('Modal de tarea no encontrado');
         return;
     }
     
     // Buscar el select de fase
     const phaseSelect = modal.querySelector('#phase');
     if (!phaseSelect) {
-        console.error('❌ Select de fase no encontrado');
+        console.error('Select de fase no encontrado');
         return;
     }
     

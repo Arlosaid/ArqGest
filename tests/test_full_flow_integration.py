@@ -106,16 +106,16 @@ class TestFullFlowIntegration:
         
         # Login exitoso usando force_login (más confiable en tests)
         client.force_login(data['admin'])
-        print("✓ Login de admin exitoso")
+        print("Login de admin exitoso")
         
         # Acceso a dashboard (puede ser /main/ o redirigir)
         response = client.get('/main/')
         assert response.status_code in [200, 302]
-        print("✓ Dashboard accesible")
+        print("Dashboard accesible")
         
         # Logout
         client.logout()
-        print("✓ Logout exitoso")
+        print("Logout exitoso")
         
         # Re-login para continuar
         client.force_login(data['admin'])
@@ -136,17 +136,17 @@ class TestFullFlowIntegration:
             total_budget=Decimal('100000'),
             budget_configured=True
         )
-        print(f"✓ Proyecto creado: {project.name} (ID: {project.pk})")
+        print(f"Proyecto creado: {project.name} (ID: {project.pk})")
         
         # Ver lista de proyectos
         response = client.get('/projects/')
         assert response.status_code == 200
-        print("✓ Lista de proyectos accesible")
+        print("Lista de proyectos accesible")
         
         # Ver detalle de proyecto
         response = client.get(f'/projects/{project.pk}/')
         assert response.status_code == 200
-        print("✓ Detalle de proyecto accesible")
+        print("Detalle de proyecto accesible")
         
         # ============================================================
         # 3. FASES DEL PROYECTO
@@ -160,12 +160,12 @@ class TestFullFlowIntegration:
         phase3 = PhaseFactory(project=project, name='Testing', order=3, status='pending')
         
         assert Phase.objects.filter(project=project).count() == 3
-        print(f"✓ 3 fases creadas: {[p.name for p in Phase.objects.filter(project=project)]}")
+        print(f"3 fases creadas: {[p.name for p in Phase.objects.filter(project=project)]}")
         
         # Cambiar estado de fase
         phase1.status = 'in_progress'
         phase1.save()
-        print("✓ Estado de fase actualizado a 'in_progress'")
+        print("Estado de fase actualizado a 'in_progress'")
         
         # ============================================================
         # 4. TAREAS Y KANBAN
@@ -194,22 +194,22 @@ class TestFullFlowIntegration:
         )
         
         assert Task.objects.filter(phase__project=project).count() == 3
-        print(f"✓ 3 tareas creadas")
+        print(f"3 tareas creadas")
         
         # Cambiar estado de tarea (simula movimiento en Kanban)
         task1.status = 'completed'
         task1.save()
-        print("✓ Tarea movida a 'completed' (Kanban)")
+        print("Tarea movida a 'completed' (Kanban)")
         
         # Ver Kanban
         response = client.get(f'/projects/{project.pk}/kanban/')
         assert response.status_code == 200
-        print("✓ Vista Kanban accesible")
+        print("Vista Kanban accesible")
         
         # Mis tareas
         response = client.get('/projects/my-tasks/')
         assert response.status_code == 200
-        print("✓ Vista 'Mis Tareas' accesible")
+        print("Vista 'Mis Tareas' accesible")
         
         # ============================================================
         # 5. PRESUPUESTOS Y FINANZAS
@@ -221,7 +221,7 @@ class TestFullFlowIntegration:
         # Verificar presupuesto configurado
         assert project.total_budget == Decimal('100000')
         assert project.budget_configured == True
-        print(f"✓ Presupuesto configurado: ${project.total_budget}")
+        print(f"Presupuesto configurado: ${project.total_budget}")
         
         # Crear pagos
         payment1 = ProjectPaymentFactory(
@@ -240,17 +240,17 @@ class TestFullFlowIntegration:
         total_paid = ProjectPayment.objects.filter(project=project).aggregate(
             total=models.Sum('amount')
         )['total'] or Decimal('0')
-        print(f"✓ 2 pagos creados, total: ${total_paid}")
+        print(f"2 pagos creados, total: ${total_paid}")
         
         # Ver finanzas del proyecto
         response = client.get(f'/projects/{project.pk}/finance/')
         assert response.status_code == 200
-        print("✓ Vista de finanzas accesible")
+        print("Vista de finanzas accesible")
         
         # Dashboard de finanzas
         response = client.get('/projects/finance/')
         assert response.status_code == 200
-        print("✓ Dashboard de finanzas accesible")
+        print("Dashboard de finanzas accesible")
         
         # ============================================================
         # 6. GESTIÓN DE CLIENTES
@@ -261,7 +261,7 @@ class TestFullFlowIntegration:
         
         # Ya tenemos un cliente del setup
         assert OrgClient.objects.filter(organization=data['org']).count() >= 1
-        print(f"✓ Cliente existente: {data['client'].name}")
+        print(f"Cliente existente: {data['client'].name}")
         
         # Crear otro cliente
         new_client = OrgClient.objects.create(
@@ -270,12 +270,12 @@ class TestFullFlowIntegration:
             email='nuevo@cliente.com',
             is_active=True
         )
-        print(f"✓ Nuevo cliente creado: {new_client.name}")
+        print(f"Nuevo cliente creado: {new_client.name}")
         
         # Ver lista de clientes
         response = client.get('/organizations/clients/')
         assert response.status_code == 200
-        print("✓ Lista de clientes accesible")
+        print("Lista de clientes accesible")
         
         # ============================================================
         # 7. TEMPLATES DE FASES
@@ -294,12 +294,12 @@ class TestFullFlowIntegration:
                 {'name': 'Construcción', 'order': 3},
             ]
         )
-        print(f"✓ Template creado: {template.name} con {len(template.phases)} fases")
+        print(f"Template creado: {template.name} con {len(template.phases)} fases")
         
         # Ver templates
         response = client.get('/projects/templates/')
         assert response.status_code == 200
-        print("✓ Lista de templates accesible")
+        print("Lista de templates accesible")
         
         # ============================================================
         # 8. GESTIÓN DE USUARIOS
@@ -313,11 +313,11 @@ class TestFullFlowIntegration:
         # Ver lista de usuarios
         response = client.get('/users/')
         assert response.status_code == 200
-        print("✓ Lista de usuarios accesible")
+        print("Lista de usuarios accesible")
         
         # Contar usuarios de la org
         org_users = User.objects.filter(organization=data['org']).count()
-        print(f"✓ Usuarios en la organización: {org_users}")
+        print(f"Usuarios en la organización: {org_users}")
         
         # ============================================================
         # 9. PERMISOS DE USUARIO LIMITADO
@@ -329,17 +329,17 @@ class TestFullFlowIntegration:
         # Logout admin y login como usuario limitado
         client.logout()
         client.force_login(data['limited_user'])
-        print("✓ Login como usuario limitado")
+        print("Login como usuario limitado")
         
         # Puede ver sus tareas
         response = client.get('/projects/my-tasks/')
         assert response.status_code == 200
-        print("✓ Usuario limitado puede ver sus tareas")
+        print("Usuario limitado puede ver sus tareas")
         
         # NO puede acceder a gestión de usuarios
         response = client.get('/users/')
         assert response.status_code in [302, 403]  # Redirect o forbidden
-        print("✓ Usuario limitado NO puede gestionar usuarios")
+        print("Usuario limitado NO puede gestionar usuarios")
         
         # Volver a login como admin
         client.logout()
@@ -355,7 +355,7 @@ class TestFullFlowIntegration:
         # Ver plan actual (dashboard de suscripción)
         response = client.get('/plans/dashboard/')
         assert response.status_code == 200
-        print("✓ Dashboard de suscripción accesible")
+        print("Dashboard de suscripción accesible")
         
         # Crear solicitud de upgrade (usando BasicPlan con más capacidad)
         from tests.factories.plans.plan_factories import BasicPlanFactory as ProPlanFactory
@@ -373,7 +373,7 @@ class TestFullFlowIntegration:
             amount=pro_plan.price,
             status='pending'
         )
-        print(f"✓ Solicitud de upgrade creada: {data['plan'].name} → {pro_plan.display_name}")
+        print(f"Solicitud de upgrade creada: {data['plan'].name} → {pro_plan.display_name}")
         
         # Crear solicitud de renovación
         from apps.plans.models import Subscription
@@ -385,7 +385,7 @@ class TestFullFlowIntegration:
             renewal_days=30,
             status='pending'
         )
-        print(f"✓ Solicitud de renovación creada")
+        print(f"Solicitud de renovación creada")
         
         # ============================================================
         # 11. PANEL DE ADMIN (SUPERUSER)
@@ -401,32 +401,32 @@ class TestFullFlowIntegration:
         # Acceso al admin
         response = client.get('/admin/')
         assert response.status_code == 200
-        print("✓ Panel de admin accesible")
+        print("Panel de admin accesible")
         
         # Ver solicitudes pendientes
         pending_upgrades = UpgradeRequest.objects.filter(status='pending').count()
         pending_renewals = RenewalRequest.objects.filter(status='pending').count()
-        print(f"✓ Solicitudes pendientes - Upgrades: {pending_upgrades}, Renovaciones: {pending_renewals}")
+        print(f"Solicitudes pendientes - Upgrades: {pending_upgrades}, Renovaciones: {pending_renewals}")
         
         # Aprobar upgrade
         upgrade_request.status = 'approved'
         upgrade_request.save()
-        print("✓ Solicitud de upgrade aprobada")
+        print("Solicitud de upgrade aprobada")
         
         # Ver organizaciones
         response = client.get('/admin/orgs/organization/')
         assert response.status_code == 200
-        print("✓ Lista de organizaciones en admin accesible")
+        print("Lista de organizaciones en admin accesible")
         
         # Ver usuarios
         response = client.get('/admin/accounts/user/')
         assert response.status_code == 200
-        print("✓ Lista de usuarios en admin accesible")
+        print("Lista de usuarios en admin accesible")
         
         # Ver planes
         response = client.get('/admin/plans/plan/')
         assert response.status_code == 200
-        print("✓ Lista de planes en admin accesible")
+        print("Lista de planes en admin accesible")
         
         # ============================================================
         # 12. RESUMEN FINAL
@@ -443,15 +443,15 @@ class TestFullFlowIntegration:
         total_clients = OrgClient.objects.filter(organization=data['org']).count()
         total_templates = PhaseTemplate.objects.filter(organization=data['org']).count()
         
-        print(f"✓ Proyectos: {total_projects}")
-        print(f"✓ Fases: {total_phases}")
-        print(f"✓ Tareas: {total_tasks}")
-        print(f"✓ Pagos: {total_payments}")
-        print(f"✓ Clientes: {total_clients}")
-        print(f"✓ Templates: {total_templates}")
+        print(f"Proyectos: {total_projects}")
+        print(f"Fases: {total_phases}")
+        print(f"Tareas: {total_tasks}")
+        print(f"Pagos: {total_payments}")
+        print(f"Clientes: {total_clients}")
+        print(f"Templates: {total_templates}")
         
         print("\n" + "="*60)
-        print("✅ TODOS LOS FLUJOS VERIFICADOS EXITOSAMENTE")
+        print("TODOS LOS FLUJOS VERIFICADOS EXITOSAMENTE")
         print("="*60)
 
 

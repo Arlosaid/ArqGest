@@ -15,17 +15,13 @@
 <script>
 // Script único y directo para búsqueda de usuarios
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('👥 INICIALIZANDO BÚSQUEDA DE USUARIOS');
     
     const searchInput = document.querySelector('.table-search-input');
     const searchForm = document.querySelector('.table-search-box');
     
     if (!searchInput || !searchForm) {
-        console.error('❌ No se encontraron elementos de búsqueda de usuarios');
         return;
     }
-    
-    console.log('✅ Elementos de usuarios encontrados, configurando búsqueda...');
     
     let searchTimeout;
     let isSearching = false;
@@ -33,11 +29,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event listener principal para búsqueda
     searchInput.addEventListener('input', function(e) {
         const searchTerm = e.target.value.trim();
-        console.log('📝 Búsqueda de usuarios:', searchTerm);
         
         // Prevenir múltiples búsquedas simultáneas
         if (isSearching) {
-            console.log('⏳ Búsqueda de usuarios en progreso, esperando...');
             return;
         }
         
@@ -48,7 +42,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Configurar nuevo timeout
         searchTimeout = setTimeout(function() {
-            console.log('🚀 Enviando búsqueda de usuarios:', searchTerm);
             isSearching = true;
             
             // Cambiar icono a loading
@@ -61,7 +54,6 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 searchForm.submit();
             } catch (error) {
-                console.error('❌ Error al enviar formulario de usuarios:', error);
                 isSearching = false;
             }
         }, 500);
@@ -70,7 +62,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event listener para tecla Escape
     searchInput.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && this.value) {
-            console.log('🧹 Limpiando búsqueda de usuarios con Escape');
             this.value = '';
             if (searchTimeout) {
                 clearTimeout(searchTimeout);
@@ -78,8 +69,6 @@ document.addEventListener('DOMContentLoaded', function() {
             searchForm.submit();
         }
     });
-    
-    console.log('✅ Búsqueda de usuarios configurada correctamente');
 });
 
 // Función para actualizar estadísticas y UI después de eliminar
@@ -365,15 +354,17 @@ function confirmAndDelete(userId) {
     </div>
 
     {% if users %}
+
+
         <!-- Desktop Table -->
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden d-none d-lg-block mb-4">
             <div class="table-responsive">
                 <table class="table finance-table mb-0 w-100">
                     <thead>
                         <tr>
-                            <th>Nombre</th>
+                            <th>Usuario</th>
                             <th>Email</th>
-                            <th>Tipo</th>
+                            <th>Rol</th>
                             <th>Estado</th>
                             <th class="text-end">Acciones</th>
                         </tr>
@@ -394,33 +385,35 @@ function confirmAndDelete(userId) {
                             <td>
                                 <div class="d-flex align-items-center text-secondary user-email">
                                     <i class="fas fa-envelope me-2 text-muted"></i>
-                                    {{ user_item.email }}
+                                    <a href="mailto:{{ user_item.email }}" class="text-decoration-none text-secondary">
+                                        {{ user_item.email }}
+                                    </a>
                                 </div>
                             </td>
                             <td>
                                 {% if user_item.is_org_admin %}
                                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1">Admin</span>
                                 {% else %}
-                                    <span class="badge bg-light text-secondary border px-3 py-1">Usuario</span>
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-1">Usuario</span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if user.is_org_admin or user.is_superuser %}
                                     {% if user_item != user and not user_item.is_superuser %}
-                                        <div class="status-toggle-container"
-                                             data-toggle-status="user"
-                                             data-entity-id="{{ user_item.pk }}"
-                                             data-entity-name="{{ user_item.get_full_name|default:user_item.email }}"
-                                             data-current-status="{{ user_item.is_active|yesno:'true,false' }}">
-                                            <div class="toggle-switch {% if user_item.is_active %}active{% else %}inactive{% endif %}"></div>
-                                            <span class="toggle-status-text {% if user_item.is_active %}status-active{% else %}status-inactive{% endif %}">
-                                                {% if user_item.is_active %}Activo{% else %}Inactivo{% endif %}
-                                            </span>
-                                        </div>
-                                    {% else %}
-                                        <span class="badge rounded-pill {% if user_item.is_active %}bg-success-subtle text-success border border-success-subtle{% else %}bg-danger-subtle text-danger border border-danger-subtle{% endif %} px-3 py-1">
+                                    <div class="status-toggle-container"
+                                         data-toggle-status="user"
+                                         data-entity-id="{{ user_item.pk }}"
+                                         data-entity-name="{{ user_item.get_full_name|default:user_item.email }}"
+                                         data-current-status="{{ user_item.is_active|yesno:'true,false' }}">
+                                        <div class="toggle-switch {% if user_item.is_active %}active{% else %}inactive{% endif %}"></div>
+                                        <span class="toggle-status-text {% if user_item.is_active %}status-active{% else %}status-inactive{% endif %}">
                                             {% if user_item.is_active %}Activo{% else %}Inactivo{% endif %}
                                         </span>
+                                    </div>
+                                    {% else %}
+                                    <span class="badge rounded-pill {% if user_item.is_active %}bg-success-subtle text-success border border-success-subtle{% else %}bg-danger-subtle text-danger border border-danger-subtle{% endif %} px-3 py-1">
+                                        {% if user_item.is_active %}Activo{% else %}Inactivo{% endif %}
+                                    </span>
                                     {% endif %}
                                 {% else %}
                                     <span class="badge rounded-pill {% if user_item.is_active %}bg-success-subtle text-success border border-success-subtle{% else %}bg-danger-subtle text-danger border border-danger-subtle{% endif %} px-3 py-1">
@@ -445,13 +438,13 @@ function confirmAndDelete(userId) {
                                     </a>
 
                                     {% if user.is_org_admin and user.organization and user_item.organization == user.organization and user_item != user %}
-                                        <button type="button"
-                                                class="action-btn delete"
-                                                onclick="confirmAndDelete({{ user_item.pk }})"
-                                                title="Eliminar usuario"
-                                                style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: all 0.2s ease; background: #fef2f2; color: #ef4444; border: 1px solid #fecaca;">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
+                                    <button type="button"
+                                       class="action-btn delete"
+                                       onclick="confirmAndDelete({{ user_item.pk }})"
+                                       title="Eliminar usuario"
+                                       style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: all 0.2s ease; background: #fef2f2; color: #ef4444; border: 1px solid #fecaca;">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
                                     {% endif %}
                                 </div>
                             </td>
@@ -462,83 +455,59 @@ function confirmAndDelete(userId) {
             </div>
         </div>
 
-        <!-- Mobile Cards -->
+        <!-- User Cards Grid (Mobile Only) -->
         <div class="d-lg-none">
-            <div class="projects-grid">
+            <div class="row g-3">
                 {% for user_item in users %}
-                <div class="project-card h-100 mobile-user-card" data-user-id="{{ user_item.pk }}">
-                    <div class="project-card-header">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="project-image">
-                                <div class="avatar-initials avatar-color-{{ user_item.pk|add:0|stringformat:'d'|slice:'-1:' }}" style="width: 48px; height: 48px; font-size: 1.1rem;">
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="card border-0 shadow-sm mobile-user-card h-100" data-user-id="{{ user_item.pk }}" style="border-radius: 10px; overflow: hidden; padding: 0;">
+                        <div class="card-body p-0">
+                            <!-- Header compacto -->
+                            <div class="d-flex align-items-center p-2" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
+                                <div class="avatar-initials avatar-color-{{ user_item.pk|add:0|stringformat:'d'|slice:'-1:' }} flex-shrink-0 me-2" style="width: 32px; height: 32px; font-size: 0.75rem; border-radius: 50%;">
                                     {{ user_item.first_name|slice:":1"|upper }}{{ user_item.last_name|slice:":1"|upper }}
                                 </div>
-                            </div>
-                            <div>
-                                <h3 class="project-title text-white mb-0 user-name" style="font-size: 1rem;">{{ user_item.get_full_name|default:user_item.email }}</h3>
-                                <small class="text-white-50 user-email">{{ user_item.email }}</small>
-                            </div>
-                        </div>
-                        
-                        {% if user_item.is_org_admin %}
-                            <span class="badge bg-white text-primary rounded-pill px-3 py-1 fw-bold shadow-sm" style="font-size: 0.75rem;">
-                                Admin
-                            </span>
-                        {% else %}
-                            <span class="badge bg-white text-secondary rounded-pill px-3 py-1 fw-bold shadow-sm" style="font-size: 0.75rem;">
-                                Usuario
-                            </span>
-                        {% endif %}
-                    </div>
-
-                    <div class="project-card-body d-flex flex-column">
-                        <div class="row g-2 mb-3">
-                            <div class="col-12">
-                                <div class="p-2 rounded bg-light border d-flex justify-content-between align-items-center">
-                                    <span class="text-muted small text-uppercase">Estado</span>
-                                    {% if user.is_org_admin or user.is_superuser %}
-                                        {% if user_item != user and not user_item.is_superuser %}
-                                            <div class="status-toggle-container"
-                                                 data-toggle-status="user"
-                                                 data-entity-id="{{ user_item.pk }}"
-                                                 data-entity-name="{{ user_item.get_full_name|default:user_item.email }}"
-                                                 data-current-status="{{ user_item.is_active|yesno:'true,false' }}">
-                                                <div class="toggle-switch {% if user_item.is_active %}active{% else %}inactive{% endif %}"></div>
-                                                <span class="toggle-status-text {% if user_item.is_active %}status-active{% else %}status-inactive{% endif %}">
-                                                    {% if user_item.is_active %}Activo{% else %}Inactivo{% endif %}
-                                                </span>
-                                            </div>
+                                <div class="flex-grow-1 overflow-hidden" style="min-width: 0;">
+                                    <div class="d-flex align-items-center gap-1">
+                                        <span class="text-white fw-semibold text-truncate user-name" style="font-size: 0.8rem; line-height: 1.2;">{{ user_item.get_full_name|default:user_item.email|truncatechars:20 }}</span>
+                                        {% if user_item.is_org_admin %}
+                                        <span class="badge bg-white text-primary rounded-pill px-1 flex-shrink-0" style="font-size: 0.5rem; padding-top: 2px; padding-bottom: 2px;">Admin</span>
                                         {% else %}
-                                            <span class="badge rounded-pill {% if user_item.is_active %}bg-success-subtle text-success border border-success-subtle{% else %}bg-danger-subtle text-danger border border-danger-subtle{% endif %} px-3 py-1 status-badge {% if user_item.is_active %}active{% endif %}">
-                                                {% if user_item.is_active %}Activo{% else %}Inactivo{% endif %}
-                                            </span>
+                                        <span class="badge bg-white text-secondary rounded-pill px-1 flex-shrink-0" style="font-size: 0.5rem; padding-top: 2px; padding-bottom: 2px;">Usuario</span>
                                         {% endif %}
+                                    </div>
+                                    <div class="text-white-50 text-truncate user-email" style="font-size: 0.65rem;">{{ user_item.email|truncatechars:28 }}</div>
+                                </div>
+                            </div>
+                            <!-- Acciones -->
+                            <div class="d-flex align-items-center justify-content-between p-2 bg-light">
+                                {% if user.is_org_admin or user.is_superuser %}
+                                    {% if user_item != user and not user_item.is_superuser %}
+                                    <div class="status-toggle-container" data-toggle-status="user" data-entity-id="{{ user_item.pk }}" data-entity-name="{{ user_item.get_full_name|default:user_item.email }}" data-current-status="{{ user_item.is_active|yesno:'true,false' }}" style="transform: scale(0.8); transform-origin: left center;">
+                                        <div class="toggle-switch {% if user_item.is_active %}active{% else %}inactive{% endif %}"></div>
+                                        <span class="toggle-status-text {% if user_item.is_active %}status-active{% else %}status-inactive{% endif %}" style="font-size: 0.65rem;">{% if user_item.is_active %}ACTIVO{% else %}INACTIVO{% endif %}</span>
+                                    </div>
                                     {% else %}
-                                        <span class="badge rounded-pill {% if user_item.is_active %}bg-success-subtle text-success border border-success-subtle{% else %}bg-danger-subtle text-danger border border-danger-subtle{% endif %} px-3 py-1 status-badge {% if user_item.is_active %}active{% endif %}">
-                                            {% if user_item.is_active %}Activo{% else %}Inactivo{% endif %}
-                                        </span>
+                                    <span class="badge rounded-pill {% if user_item.is_active %}bg-success-subtle text-success{% else %}bg-danger-subtle text-danger{% endif %} px-2" style="font-size: 0.6rem;">{% if user_item.is_active %}Activo{% else %}Inactivo{% endif %}</span>
+                                    {% endif %}
+                                {% else %}
+                                <span class="badge rounded-pill {% if user_item.is_active %}bg-success-subtle text-success{% else %}bg-danger-subtle text-danger{% endif %} px-2" style="font-size: 0.6rem;">{% if user_item.is_active %}Activo{% else %}Inactivo{% endif %}</span>
+                                {% endif %}
+                                <div class="d-flex gap-1">
+                                    <a href="{% url 'users:edit' user_item.pk %}" class="btn btn-light btn-sm border text-primary d-flex align-items-center gap-1" style="font-size: 0.65rem; padding: 0.2rem 0.5rem; height: 26px;">
+                                        <i class="fas fa-edit" style="font-size: 0.6rem;"></i> Editar
+                                    </a>
+                                    <a href="{% url 'users:detail' user_item.pk %}" class="btn btn-light btn-sm border text-secondary d-flex align-items-center justify-content-center" style="width: 26px; height: 26px; padding: 0;" title="Ver">
+                                        <i class="fas fa-eye" style="font-size: 0.6rem;"></i>
+                                    </a>
+                                    {% if user.is_org_admin and user.organization and user_item.organization == user.organization and user_item != user %}
+                                    <button type="button" class="btn btn-light btn-sm border text-danger d-flex align-items-center justify-content-center" style="width: 26px; height: 26px; padding: 0;" onclick="confirmAndDelete({{ user_item.pk }})" title="Eliminar">
+                                        <i class="fas fa-trash-alt" style="font-size: 0.6rem;"></i>
+                                    </button>
                                     {% endif %}
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="project-card-footer">
-                        <a href="{% url 'users:edit' user_item.pk %}" class="btn btn-light btn-sm flex-grow-1 d-flex align-items-center justify-content-center gap-2 border text-primary">
-                            <i class="fas fa-edit"></i> Editar
-                        </a>
-                        <a href="{% url 'users:detail' user_item.pk %}" class="btn btn-light btn-sm border text-secondary d-flex align-items-center justify-content-center" style="width: 40px;" title="Ver detalles">
-                            <i class="fas fa-eye"></i>
-                        </a>
-                        {% if user.is_org_admin and user.organization and user_item.organization == user.organization and user_item != user %}
-                            <button type="button" 
-                                    class="btn btn-light btn-sm border text-danger d-flex align-items-center justify-content-center" 
-                                    style="width: 40px;" 
-                                    onclick="confirmAndDelete({{ user_item.pk }})"
-                                    title="Eliminar">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}

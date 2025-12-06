@@ -55,8 +55,6 @@ class TaskModalManager {
         
         // Input events para contador de caracteres
         this.modal.addEventListener('input', (e) => this.handleInput(e));
-
-        console.log('TaskModalManager initialized');
     }
 
     /**
