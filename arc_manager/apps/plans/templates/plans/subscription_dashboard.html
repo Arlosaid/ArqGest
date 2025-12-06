@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static plan_extras %}
+{% load tz %}
 
 {% block title %}Mi Suscripción - ArqGest{% endblock %}
 
@@ -607,7 +608,7 @@
                     <span class="days">{{ subscription.days_remaining }}</span>
                     <span class="label">Días de Vigencia</span>
                     <div class="expiration-date">
-                        Vence: {{ subscription.end_date|date:"d M Y" }}
+                        Vence: {{ subscription.end_date|timezone:"UTC"|date:"d M Y" }}
                     </div>
                 {% endif %}
             </div>

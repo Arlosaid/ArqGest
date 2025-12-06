@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load tz %}
 
 {% block title %}Solicitar Renovación - ArqGest{% endblock %}
 
@@ -648,7 +649,7 @@
                 <span class="days">{{ subscription.days_remaining }}</span>
                 <span class="label">Días restantes</span>
                 <div class="expiry-date">
-                    Vence: {{ subscription.end_date|date:"d M Y" }}
+                    Vence: {{ subscription.end_date|timezone:"UTC"|date:"d M Y" }}
                 </div>
             </div>
         </div>
@@ -761,7 +762,7 @@
                     </div>
                     <div class="summary-item">
                         <span class="item-label"><i class="fas fa-calendar-times"></i> Vence actualmente</span>
-                        <span class="item-value">{{ subscription.end_date|date:"d/m/Y" }}</span>
+                        <span class="item-value">{{ subscription.end_date|timezone:"UTC"|date:"d/m/Y" }}</span>
                     </div>
                     <div class="summary-item">
                         <span class="item-label"><i class="fas fa-clock"></i> Período de renovación</span>

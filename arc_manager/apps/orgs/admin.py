@@ -60,9 +60,9 @@ class ExpiringSoonFilter(admin.SimpleListFilter):
             now = timezone.now()
             future_date = now + timedelta(days=days)
             # Solo activas y que expiren dentro del rango
+            # Eliminamos el filtro gte=now para incluir las que vencen hoy aunque la hora haya pasado
             return queryset.filter(
                 subscription__end_date__lte=future_date,
-                subscription__end_date__gte=now,
                 subscription__subscription_status__endswith='_active'
             )
         return queryset
@@ -259,14 +259,12 @@ class OrganizationAdmin(ImportExportModelAdmin):
             # Próximas a vencer (7 días)
             expiring_soon_count = Organization.objects.filter(
                 subscription__end_date__lte=seven_days,
-                subscription__end_date__gte=now,
                 subscription__subscription_status__endswith='_active'
             ).count()
             
             # Urgentes: vencen en 3 días
             expiring_3_days = Organization.objects.filter(
                 subscription__end_date__lte=three_days,
-                subscription__end_date__gte=now,
                 subscription__subscription_status__endswith='_active'
             ).count()
             
