@@ -157,7 +157,7 @@ class TaskModalManager {
         if (deleteNoteBtn) {
             e.preventDefault();
             e.stopPropagation();
-            this.toggleNoteForDeletion(deleteNoteBtn);
+            this.deleteNote(deleteNoteBtn);
             return;
         }
 
@@ -227,33 +227,73 @@ class TaskModalManager {
     }
 
     /**
-     * Marcar/desmarcar nota para eliminación
+     * Eliminar nota directamente
      */
-    toggleNoteForDeletion(btn) {
+    async deleteNote(btn) {
         const noteId = btn.dataset.noteId;
         const noteItem = btn.closest('.note-item');
         
         if (!noteItem || !noteId) return;
 
-        if (this.pendingDeletions.notes.has(noteId)) {
-            // Desmarcar
-            this.pendingDeletions.notes.delete(noteId);
-            noteItem.classList.remove('marked-for-deletion');
-            noteItem.style.opacity = '';
-            noteItem.style.textDecoration = '';
-            btn.innerHTML = '<i class="fas fa-times"></i>';
-            btn.title = 'Marcar para eliminar';
-        } else {
-            // Marcar
-            this.pendingDeletions.notes.add(noteId);
-            noteItem.classList.add('marked-for-deletion');
-            noteItem.style.opacity = '0.5';
-            noteItem.style.textDecoration = 'line-through';
-            btn.innerHTML = '<i class="fas fa-undo"></i>';
-            btn.title = 'Deshacer eliminación';
+        if (!confirm('¿Estás seguro de que deseas eliminar este comentario?')) {
+            return;
         }
-        
-        this.updateDeleteWarning();
+
+        // Deshabilitar botón para evitar doble click
+        btn.disabled = true;
+        const originalContent = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        try {
+            const response = await fetch(`/projects/tasks/notes/${noteId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': this.getCSRFToken(),
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Eliminar elemento del DOM con animación
+                noteItem.style.transition = 'all 0.3s ease';
+                noteItem.style.opacity = '0';
+                noteItem.style.transform = 'translateX(20px)';
+                
+                setTimeout(() => {
+                    noteItem.remove();
+                    
+                    // Actualizar contador
+                    const counterBadge = this.modalContent.querySelector('[data-notes-count]');
+                    if (counterBadge) {
+                        const currentCount = parseInt(counterBadge.textContent || '0');
+                        counterBadge.textContent = Math.max(0, currentCount - 1);
+                    }
+                    
+                    // Mostrar mensaje si no quedan notas
+                    const notesList = this.modalContent.querySelector('[data-notes-list]');
+                    if (notesList && !notesList.querySelector('.note-item')) {
+                        const emptyState = `
+                            <div class="text-muted text-center small py-3" data-notes-empty>
+                                <i class="fas fa-comment-slash mb-2" style="font-size: 1.5rem; opacity: 0.5;"></i>
+                                <p class="mb-0">No hay notas en esta tarea</p>
+                            </div>
+                        `;
+                        notesList.insertAdjacentHTML('beforeend', emptyState);
+                    }
+                }, 300);
+            } else {
+                alert(data.error || 'Error al eliminar la nota');
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            }
+        } catch (error) {
+            console.error('Error deleting note:', error);
+            alert('Error de conexión al eliminar la nota');
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
+        }
     }
 
     /**
@@ -261,7 +301,7 @@ class TaskModalManager {
      */
     updateDeleteWarning() {
         const warningEl = this.modalContent.querySelector('[data-delete-warning]');
-        const totalPending = this.pendingDeletions.files.size + this.pendingDeletions.notes.size;
+        const totalPending = this.pendingDeletions.files.size; // Solo archivos
         
         if (!warningEl) {
             // Crear elemento de advertencia si no existe
@@ -271,7 +311,7 @@ class TaskModalManager {
                 warning.setAttribute('data-delete-warning', '');
                 warning.className = 'alert alert-warning py-2 px-3 mb-2 small';
                 warning.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i>
-                    <span data-delete-count>${totalPending}</span> elemento(s) marcado(s) para eliminar. 
+                    <span data-delete-count>${totalPending}</span> archivo(s) marcado(s) para eliminar. 
                     Se eliminarán al guardar.`;
                 footer.parentNode.insertBefore(warning, footer);
             }
@@ -302,7 +342,7 @@ class TaskModalManager {
         const originalText = submitBtn ? submitBtn.innerHTML : '';
 
         // Verificar si hay elementos pendientes de eliminar
-        const totalPending = this.pendingDeletions.files.size + this.pendingDeletions.notes.size;
+        const totalPending = this.pendingDeletions.files.size;
         
         if (totalPending > 0) {
             const confirmed = await this.confirmDeletions();
@@ -361,11 +401,9 @@ class TaskModalManager {
      */
     confirmDeletions() {
         const fileCount = this.pendingDeletions.files.size;
-        const noteCount = this.pendingDeletions.notes.size;
         
         let message = 'Se eliminarán permanentemente:\n';
         if (fileCount > 0) message += `• ${fileCount} archivo(s)\n`;
-        if (noteCount > 0) message += `• ${noteCount} nota(s)\n`;
         message += '\n¿Deseas continuar?';
         
         return confirm(message);
@@ -396,7 +434,8 @@ class TaskModalManager {
             }
         }
 
-        // Eliminar notas
+        // Eliminar notas - YA NO SE USA (Eliminación directa)
+        /*
         for (const noteId of this.pendingDeletions.notes) {
             try {
                 const response = await fetch(`/projects/tasks/notes/${noteId}/delete/`, {
@@ -413,6 +452,7 @@ class TaskModalManager {
                 errors.push(`Error eliminando nota ${noteId}`);
             }
         }
+        */
 
         if (errors.length > 0) {
             console.error('Errores durante eliminación:', errors);
@@ -747,7 +787,8 @@ class TaskModalManager {
             }
         });
 
-        // Notas
+        // Notas - YA NO SE USA (Eliminación directa)
+        /*
         this.pendingDeletions.notes.forEach(noteId => {
             const noteItem = this.modalContent.querySelector(`#note-${noteId}`);
             const btn = noteItem?.querySelector('[data-action="delete-note"]');
@@ -758,6 +799,7 @@ class TaskModalManager {
                 btn.innerHTML = '<i class="fas fa-undo"></i>';
             }
         });
+        */
 
         this.updateDeleteWarning();
     }
