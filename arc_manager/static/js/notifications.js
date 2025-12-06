@@ -19,8 +19,8 @@ class NotificationManager {
         this.createContainer();
         this.bindEvents();
         
-        // Ocultar mensajes Django pero no convertirlos automáticamente
-        this.hideDjangoMessages();
+        // Convertir mensajes de Django automáticamente
+        this.convertDjangoMessages();
         
         // Hacer disponible globalmente
         window.notifications = this;

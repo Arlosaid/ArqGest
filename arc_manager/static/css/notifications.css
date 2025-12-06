@@ -320,6 +320,27 @@
         color: #e2e8f0;
     }
     
+    /* Fix specificity issue for dark mode */
+    .notification.success {
+        background: linear-gradient(135deg, #1e293b 0%, rgba(16, 185, 129, 0.2) 100%);
+        border-left-color: var(--notification-success);
+    }
+    
+    .notification.warning {
+        background: linear-gradient(135deg, #1e293b 0%, rgba(245, 158, 11, 0.2) 100%);
+        border-left-color: var(--notification-warning);
+    }
+    
+    .notification.error {
+        background: linear-gradient(135deg, #1e293b 0%, rgba(239, 68, 68, 0.2) 100%);
+        border-left-color: var(--notification-error);
+    }
+    
+    .notification.info {
+        background: linear-gradient(135deg, #1e293b 0%, rgba(6, 182, 212, 0.2) 100%);
+        border-left-color: var(--notification-info);
+    }
+    
     .notification-title {
         color: #f1f5f9;
     }
