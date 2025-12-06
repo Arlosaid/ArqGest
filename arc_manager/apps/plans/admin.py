@@ -194,8 +194,8 @@ class ExpiringSoonFilter(admin.SimpleListFilter):
             now = timezone.now()
             future_date = now + timedelta(days=days)
             # Solo suscripciones activas que expiran dentro del período
+            # Eliminamos end_date__gte=now para incluir las que vencen hoy aunque la hora haya pasado
             return queryset.filter(
-                end_date__gte=now,
                 end_date__lte=future_date,
                 subscription_status__in=['trial_active', 'basic_active']
             )

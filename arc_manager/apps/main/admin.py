@@ -136,9 +136,11 @@ class AdminDashboard:
                 subscription_status__in=['trial_active', 'basic_active']
             ).count()
             
-            # Organizaciones en período de gracia
-            in_grace_period = Subscription.objects.filter(
-                subscription_status='basic_grace'
+            # Suscripciones recientemente expiradas (últimos 7 días)
+            seven_days_ago = timezone.now() - timedelta(days=7)
+            recently_expired = Subscription.objects.filter(
+                subscription_status__in=['trial_expired', 'basic_expired'],
+                end_date__gte=seven_days_ago
             ).count()
             
 
@@ -174,7 +176,7 @@ class AdminDashboard:
                     'pending_upgrades': pending_upgrades,
                     'pending_renewals': pending_renewals,
                     'expiring_soon': expiring_soon,
-                    'in_grace_period': in_grace_period,
+                    'recently_expired': recently_expired,
                 },
             }
         except Exception as e:
@@ -186,7 +188,7 @@ class AdminDashboard:
                 'upgrade_requests': [],
                 'renewal_requests': [],
                 'subscriptions': {'active': 0, 'trial': 0, 'basic': 0, 'grace': 0, 'expired': 0},
-                'notifications': {'pending_upgrades': 0, 'pending_renewals': 0, 'expiring_soon': 0, 'in_grace_period': 0},
+                'notifications': {'pending_upgrades': 0, 'pending_renewals': 0, 'expiring_soon': 0, 'recently_expired': 0},
                 'error': str(e)
             }
 

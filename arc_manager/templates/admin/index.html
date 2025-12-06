@@ -18,7 +18,7 @@
     <!-- CENTRO DE NOTIFICACIONES - SIEMPRE VISIBLE  -->
     <!-- ============================================ -->
     {% with total_pending=dashboard_stats.notifications.pending_upgrades|add:dashboard_stats.notifications.pending_renewals %}
-    {% if total_pending > 0 or dashboard_stats.notifications.expiring_soon > 0 or dashboard_stats.notifications.in_grace_period > 0 %}
+    {% if total_pending > 0 or dashboard_stats.notifications.expiring_soon > 0 or dashboard_stats.notifications.recently_expired > 0 %}
     <div class="notification-center">
         <div class="notification-header">
             <div class="notification-header-left">
@@ -72,17 +72,17 @@
                 </div>
             </a>
             {% endif %}
-            
-            {% if dashboard_stats.notifications.in_grace_period > 0 %}
-            <a href="{% url 'admin:plans_subscription_changelist' %}?subscription_status=basic_grace" class="notification-card danger">
-                <div class="notification-card-icon">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span class="notification-count">{{ dashboard_stats.notifications.in_grace_period }}</span>
+
+            {% if dashboard_stats.notifications.recently_expired > 0 %}
+            <a href="{% url 'admin:plans_subscription_changelist' %}?subscription_status=basic_expired" class="notification-card danger" style="border-left-color: #7f8c8d;">
+                <div class="notification-card-icon" style="background-color: #f0f3f4; color: #7f8c8d;">
+                    <i class="fas fa-times-circle"></i>
+                    <span class="notification-count" style="background-color: #7f8c8d;">{{ dashboard_stats.notifications.recently_expired }}</span>
                 </div>
                 <div class="notification-card-content">
-                    <h3>En Período de Gracia</h3>
-                    <p>Organizaciones con acceso limitado</p>
-                    <span class="notification-action">Contactar cliente <i class="fas fa-chevron-right"></i></span>
+                    <h3>Recientemente Expiradas</h3>
+                    <p>Suscripciones vencidas (7 días)</p>
+                    <span class="notification-action">Ver lista <i class="fas fa-chevron-right"></i></span>
                 </div>
             </a>
             {% endif %}
