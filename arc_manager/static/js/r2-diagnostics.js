@@ -27,7 +27,7 @@ const R2Diagnostics = {
             console.log('Origen permitido:', optionsResponse.headers.get('Access-Control-Allow-Origin'));
             
         } catch (error) {
-            console.error('❌ Preflight falló:', error.message);
+            console.error('Preflight falló:', error.message);
             console.error('💡 Esto indica que CORS no está configurado en R2');
             return false;
         }
@@ -51,12 +51,12 @@ const R2Diagnostics = {
                 console.log('ETag:', uploadResponse.headers.get('ETag'));
                 return true;
             } else {
-                console.error('❌ Upload de prueba falló:', uploadResponse.status, uploadResponse.statusText);
+                console.error('Upload de prueba falló:', uploadResponse.status, uploadResponse.statusText);
                 return false;
             }
             
         } catch (error) {
-            console.error('❌ Upload de prueba falló:', error.message);
+            console.error('Upload de prueba falló:', error.message);
             console.error('💡 Verifica la configuración CORS en R2');
             return false;
         }
@@ -88,7 +88,7 @@ const R2Diagnostics = {
             return data.url;
             
         } catch (error) {
-            console.error('❌ Error obteniendo URL presignada:', error);
+            console.error('Error obteniendo URL presignada:', error);
             return null;
         }
     },
@@ -105,7 +105,7 @@ const R2Diagnostics = {
         const presignedUrl = await this.getTestPresignedUrl(projectId, phaseId);
         
         if (!presignedUrl) {
-            console.error('❌ No se pudo obtener URL presignada');
+            console.error('No se pudo obtener URL presignada');
             console.log('\n💡 SOLUCIÓN:');
             console.log('1. Verifica que ENABLE_STORAGES=true en variables de entorno');
             console.log('2. Verifica credenciales de R2 (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)');
@@ -126,7 +126,7 @@ const R2Diagnostics = {
             console.log('✅ DIAGNÓSTICO EXITOSO');
             console.log('El sistema está configurado correctamente para uploads directos a R2');
         } else {
-            console.log('❌ DIAGNÓSTICO FALLÓ');
+            console.log('DIAGNÓSTICO FALLÓ');
             console.log('\n📖 PASOS PARA SOLUCIONAR:');
             console.log('1. Ve a Cloudflare Dashboard > R2 > Tu Bucket > Settings');
             console.log('2. Configura CORS Policy (ver docs/R2_CORS_CONFIGURATION.md)');

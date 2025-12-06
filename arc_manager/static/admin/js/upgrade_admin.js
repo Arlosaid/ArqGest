@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     message = '🎉 Al guardar se actualizará automáticamente el plan de la organización y se enviará email de confirmación.';
                     confirmMessage = '¿Confirmas que quieres COMPLETAR este upgrade? El plan se activará inmediatamente.';
                 } else if (originalStatus === 'pending' && newStatus === 'rejected') {
-                    message = '❌ Al guardar se enviará un email de rechazo al cliente.';
+                    message = 'Al guardar se enviará un email de rechazo al cliente.';
                     confirmMessage = '¿Confirmas que quieres RECHAZAR esta solicitud?';
                 } else {
                     message = `🔄 Cambiarás el estado a: ${statusTexts[newStatus]}`;

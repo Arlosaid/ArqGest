@@ -33,7 +33,7 @@
     
     // Solo reportar si hay errores críticos
     if (criticalErrors.length > 0) {
-        console.error('❌ Errores críticos del sistema de archivos:', criticalErrors);
+        console.error('Errores críticos del sistema de archivos:', criticalErrors);
     }
     
     // Agregar helper para testing manual (solo si debug está activado)

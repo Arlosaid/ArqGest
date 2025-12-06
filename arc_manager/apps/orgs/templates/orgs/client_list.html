@@ -15,17 +15,13 @@
 <script>
 // Script único y directo para búsqueda de clientes
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('👥 INICIALIZANDO BÚSQUEDA DE CLIENTES');
     
     const searchInput = document.querySelector('.table-search-input');
     const searchForm = document.querySelector('.table-search-box');
     
     if (!searchInput || !searchForm) {
-        console.error('❌ No se encontraron elementos de búsqueda de clientes');
         return;
     }
-    
-    console.log('✅ Elementos de clientes encontrados, configurando búsqueda...');
     
     let searchTimeout;
     let isSearching = false;
@@ -33,11 +29,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event listener principal para búsqueda
     searchInput.addEventListener('input', function(e) {
         const searchTerm = e.target.value.trim();
-        console.log('📝 Búsqueda de clientes:', searchTerm);
         
         // Prevenir múltiples búsquedas simultáneas
         if (isSearching) {
-            console.log('⏳ Búsqueda de clientes en progreso, esperando...');
             return;
         }
         
@@ -48,7 +42,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Configurar nuevo timeout
         searchTimeout = setTimeout(function() {
-            console.log('🚀 Enviando búsqueda de clientes:', searchTerm);
             isSearching = true;
             
             // Cambiar icono a loading
@@ -61,7 +54,6 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 searchForm.submit();
             } catch (error) {
-                console.error('❌ Error al enviar formulario de clientes:', error);
                 isSearching = false;
             }
         }, 500);
@@ -70,7 +62,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event listener para tecla Escape
     searchInput.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && this.value) {
-            console.log('🧹 Limpiando búsqueda de clientes con Escape');
             this.value = '';
             if (searchTimeout) {
                 clearTimeout(searchTimeout);
@@ -79,7 +70,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    console.log('✅ Búsqueda de clientes configurada correctamente');
 });
 </script>
 {% endblock %}
@@ -197,16 +187,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                             {{ client.email }}
                                         </a>
                                     </div>
-                                {% else %}
-                                    <span class="text-muted small">No registrado</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if client.phone_number %}
-                                    <div class="d-flex align-items-center text-secondary">
-                                        <i class="fas fa-phone me-2 text-muted"></i>
-                                        {{ client.phone_number }}
-                                    </div>
+                                    {% if client.phone_number %}
+                                        <div class="d-flex align-items-center text-secondary mt-1" style="font-size:0.85em;">
+                                            <i class="fas fa-phone me-2 text-muted"></i>
+                                            {{ client.phone_number }}
+                                        </div>
+                                    {% endif %}
                                 {% else %}
                                     <span class="text-muted small">No registrado</span>
                                 {% endif %}
@@ -262,70 +248,49 @@ document.addEventListener('DOMContentLoaded', function() {
 
         <!-- Mobile Cards -->
         <div class="d-lg-none">
-            <div class="projects-grid">
+            <div class="row g-2">
                 {% for client in clients %}
-                <div class="project-card h-100 mobile-client-card" data-client-id="{{ client.pk }}">
-                    <div class="project-card-header">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="project-image">
-                                <div class="avatar-initials avatar-color-{{ client.pk|add:0|stringformat:'d'|slice:'-1:' }}" style="width: 48px; height: 48px; font-size: 1.1rem;">
+                <div class="col-12">
+                    <div class="card border shadow-sm mobile-client-card" data-client-id="{{ client.pk }}" style="border-radius: 10px; overflow: hidden;">
+                        <div class="card-body p-0">
+                            <!-- Header compacto -->
+                            <div class="d-flex align-items-center p-2" style="background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);">
+                                <div class="avatar-initials avatar-color-{{ client.pk|add:0|stringformat:'d'|slice:'-1:' }} flex-shrink-0 me-2" style="width: 32px; height: 32px; font-size: 0.75rem; border-radius: 6px;">
                                     {{ client.name|make_list|first|upper }}{{ client.name|make_list|slice:"1:2"|first|upper|default:'' }}
                                 </div>
-                            </div>
-                            <div>
-                                <h3 class="project-title text-white mb-0 client-name" style="font-size: 1rem;">{{ client.name }}</h3>
-                                <small class="text-white-50 client-email">{{ client.email|default:"Sin email" }}</small>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="project-card-body d-flex flex-column">
-                        <div class="row g-2 mb-3">
-                            <div class="col-12">
-                                <div class="p-2 rounded bg-light border d-flex justify-content-between align-items-center">
-                                    <span class="text-muted small text-uppercase">Estado</span>
-                                    {% if user.is_org_admin %}
-                                        <div class="status-toggle-container"
-                                             data-toggle-status="client"
-                                             data-entity-id="{{ client.pk }}"
-                                             data-entity-name="{{ client.name }}"
-                                             data-current-status="{{ client.is_active|yesno:'true,false' }}">
-                                            <div class="toggle-switch {% if client.is_active %}active{% else %}inactive{% endif %}"></div>
-                                            <span class="toggle-status-text {% if client.is_active %}status-active{% else %}status-inactive{% endif %}">
-                                                {% if client.is_active %}Activo{% else %}Inactivo{% endif %}
-                                            </span>
-                                        </div>
-                                    {% else %}
-                                        <span class="badge rounded-pill {% if client.is_active %}bg-success-subtle text-success border border-success-subtle{% else %}bg-danger-subtle text-danger border border-danger-subtle{% endif %} px-3 py-1 status-badge {% if client.is_active %}active{% endif %}">
-                                            {% if client.is_active %}Activo{% else %}Inactivo{% endif %}
-                                        </span>
-                                    {% endif %}
+                                <div class="flex-grow-1 overflow-hidden" style="min-width: 0;">
+                                    <div class="d-flex align-items-center gap-1">
+                                        <span class="text-white fw-semibold text-truncate client-name" style="font-size: 0.8rem; line-height: 1.2;">{{ client.name|truncatechars:22 }}</span>
+                                        {% if client.phone_number %}
+                                        <span class="badge bg-white rounded-pill px-1 flex-shrink-0" style="font-size: 0.5rem; color: #0d9488; padding-top: 2px; padding-bottom: 2px;"><i class="fas fa-phone"></i></span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-white-50 text-truncate client-email" style="font-size: 0.65rem;">{{ client.email|default:"Sin email"|truncatechars:30 }}</div>
                                 </div>
                             </div>
-                            {% if client.phone_number %}
-                            <div class="col-12">
-                                <div class="p-2 rounded bg-light border d-flex align-items-center gap-2">
-                                    <i class="fas fa-phone text-muted"></i>
-                                    <span class="text-dark">{{ client.phone_number }}</span>
+                            <!-- Acciones -->
+                            <div class="d-flex align-items-center justify-content-between p-2 bg-light">
+                                {% if user.is_org_admin %}
+                                <div class="status-toggle-container" data-toggle-status="client" data-entity-id="{{ client.pk }}" data-entity-name="{{ client.name }}" data-current-status="{{ client.is_active|yesno:'true,false' }}" style="transform: scale(0.8); transform-origin: left center;">
+                                    <div class="toggle-switch {% if client.is_active %}active{% else %}inactive{% endif %}"></div>
+                                    <span class="toggle-status-text {% if client.is_active %}status-active{% else %}status-inactive{% endif %}" style="font-size: 0.65rem;">{% if client.is_active %}ACTIVO{% else %}INACTIVO{% endif %}</span>
+                                </div>
+                                {% else %}
+                                <span class="badge rounded-pill {% if client.is_active %}bg-success-subtle text-success{% else %}bg-danger-subtle text-danger{% endif %} px-2" style="font-size: 0.6rem;">{% if client.is_active %}Activo{% else %}Inactivo{% endif %}</span>
+                                {% endif %}
+                                <div class="d-flex gap-1">
+                                    <a href="{% url 'orgs:client_edit' client.pk %}" class="btn btn-light btn-sm border text-primary d-flex align-items-center gap-1" style="font-size: 0.65rem; padding: 0.2rem 0.5rem; height: 26px;">
+                                        <i class="fas fa-edit" style="font-size: 0.6rem;"></i> Editar
+                                    </a>
+                                    <a href="{% url 'orgs:client_detail' client.pk %}" class="btn btn-light btn-sm border text-secondary d-flex align-items-center justify-content-center" style="width: 26px; height: 26px; padding: 0;" title="Ver">
+                                        <i class="fas fa-eye" style="font-size: 0.6rem;"></i>
+                                    </a>
+                                    <a href="{% url 'orgs:client_delete' client.pk %}" class="btn btn-light btn-sm border text-danger d-flex align-items-center justify-content-center" style="width: 26px; height: 26px; padding: 0;" title="Eliminar">
+                                        <i class="fas fa-trash-alt" style="font-size: 0.6rem;"></i>
+                                    </a>
                                 </div>
                             </div>
-                            {% endif %}
                         </div>
-                    </div>
-
-                    <div class="project-card-footer">
-                        <a href="{% url 'orgs:client_edit' client.pk %}" class="btn btn-light btn-sm flex-grow-1 d-flex align-items-center justify-content-center gap-2 border text-primary">
-                            <i class="fas fa-edit"></i> Editar
-                        </a>
-                        <a href="{% url 'orgs:client_detail' client.pk %}" class="btn btn-light btn-sm border text-secondary d-flex align-items-center justify-content-center" style="width: 40px;" title="Ver detalles">
-                            <i class="fas fa-eye"></i>
-                        </a>
-                        <a href="{% url 'orgs:client_delete' client.pk %}" 
-                           class="btn btn-light btn-sm border text-danger d-flex align-items-center justify-content-center" 
-                           style="width: 40px;" 
-                           title="Eliminar">
-                            <i class="fas fa-trash-alt"></i>
-                        </a>
                     </div>
                 </div>
                 {% endfor %}
