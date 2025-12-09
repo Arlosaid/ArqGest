@@ -21,6 +21,7 @@ urlpatterns = [
     path('accounts/', include('apps.accounts.urls')),
     path('main/', include('apps.main.urls')),
     path('organizations/', include('apps.orgs.urls')),
+    path('orgs/', include('apps.orgs.urls')),  # Fallback for legacy/cached clients
     path('users/', include('apps.users.urls')),
     path('plans/', include('apps.plans.urls')),
     path('projects/', include('apps.projects.urls')),
