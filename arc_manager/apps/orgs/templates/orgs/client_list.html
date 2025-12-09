@@ -419,6 +419,6 @@ function confirmAndDelete(clientId) {
 {% csrf_token %}
 
 <!-- Scripts de gestión de clientes -->
-<script src="{% static 'js/status-toggle.js' %}"></script>
-<script src="{% static 'js/client-delete.js' %}"></script>
+<script src="{% static 'js/status-toggle.js' %}?v={{ STATIC_VERSION }}"></script>
+<script src="{% static 'js/client-delete.js' %}?v={{ STATIC_VERSION }}"></script>
 {% endblock %}
