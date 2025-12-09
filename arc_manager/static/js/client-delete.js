@@ -43,8 +43,11 @@ class ClientDeleteManager {
         const clientName = this.extractClientName(row);
         const projectCount = this.extractProjectCount(row);
         
+        // Construir URL AJAX correcta
+        const deleteAjaxUrl = `/organizations/clients/${clientId}/delete-ajax/`;
+        
         // Mostrar modal de confirmación
-        this.showDeleteModal(clientId, clientName, projectCount, link.href);
+        this.showDeleteModal(clientId, clientName, projectCount, deleteAjaxUrl);
     }
 
     /**

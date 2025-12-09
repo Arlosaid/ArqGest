@@ -13,6 +13,7 @@ urlpatterns = [
     
     # AJAX endpoints de Clientes
     path('clients/<int:pk>/toggle-status/', views.ClientToggleStatusView.as_view(), name='client_toggle_status'),
+    path('clients/<int:pk>/delete-ajax/', views.ClientDeleteAjaxView.as_view(), name='client_delete_ajax'),
 
     # URLs de Organización
     path('<int:pk>/', views.OrganizationDetailView.as_view(), name='organization_detail'),

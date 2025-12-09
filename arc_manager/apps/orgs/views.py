@@ -332,6 +332,101 @@ class ClientDeleteView(LoginRequiredMixin, ClientOwnerMixin, DeleteView):
             return redirect(self.success_url)
 
 
+class ClientDeleteAjaxView(LoginRequiredMixin, View):
+    """Vista AJAX para eliminar un cliente"""
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Verificar si es una petición AJAX
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or \
+                  request.content_type == 'application/x-www-form-urlencoded' or \
+                  'fetch' in request.headers.get('Sec-Fetch-Mode', '')
+        
+        try:
+            client_to_delete = get_object_or_404(Client, pk=kwargs['pk'])
+        except:
+            if is_ajax or request.method == 'POST':
+                return JsonResponse({'success': False, 'error': 'Cliente no encontrado'}, status=404)
+            raise
+        
+        current_user = request.user
+        
+        # Solo org_admin puede eliminar clientes de su organización
+        if not (current_user.is_org_admin and current_user.organization and 
+                client_to_delete.organization == current_user.organization):
+            if is_ajax or request.method == 'POST':
+                return JsonResponse({'success': False, 'error': 'No tienes permisos para eliminar este cliente'}, status=403)
+            raise PermissionDenied("No tienes permisos para eliminar este cliente")
+        
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get(self, request, pk):
+        """Obtener información del cliente para mostrar en el modal"""
+        client_to_delete = get_object_or_404(Client, pk=pk)
+        
+        # Contar proyectos asociados
+        project_count = client_to_delete.projects.count() if hasattr(client_to_delete, 'projects') else 0
+        
+        client_data = {
+            'id': client_to_delete.id,
+            'name': client_to_delete.name,
+            'email': client_to_delete.email or '',
+            'phone': client_to_delete.phone_number or '',
+            'is_active': client_to_delete.is_active,
+            'project_count': project_count,
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'client': client_data
+        })
+    
+    def post(self, request, pk):
+        """Procesar la eliminación del cliente"""
+        client_to_delete = get_object_or_404(Client, pk=pk)
+        
+        try:
+            # Capturar información antes de eliminar
+            client_id = client_to_delete.id
+            client_name = client_to_delete.name
+            org_id = client_to_delete.organization.id if client_to_delete.organization else None
+            org_name = client_to_delete.organization.name if client_to_delete.organization else None
+            
+            # Eliminar
+            client_to_delete.delete()
+            
+            # Log estructurado de eliminación
+            log_info(
+                event='CLIENT_DELETED',
+                message=f"Cliente '{client_name}' eliminado exitosamente via AJAX",
+                logger_name='apps.orgs',
+                client_id=client_id,
+                client_name=client_name,
+                organization_id=org_id,
+                organization_name=org_name,
+                deleted_by=request.user.email
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': f"Cliente '{client_name}' eliminado exitosamente"
+            })
+            
+        except Exception as e:
+            log_error(
+                event='CLIENT_DELETE_FAILED',
+                error_code='CLI005',
+                error_message=str(e),
+                logger_name='apps.orgs',
+                client_id=pk,
+                deleted_by=request.user.email,
+                exception_type=str(type(e).__name__)
+            )
+            return JsonResponse({
+                'success': False,
+                'error': 'Ha ocurrido un error al eliminar el cliente'
+            }, status=500)
+
+
 class ClientToggleStatusView(LoginRequiredMixin, View):
     """Vista AJAX para cambiar el estado activo/inactivo de un cliente"""
     
