@@ -566,7 +566,7 @@ class Client(models.Model):
         max_length=50, 
         blank=True, 
         null=True,
-        help_text="Formato: +52 123 456 7890 o 1234567890"
+        help_text="Formato: 1234567890 o +521234567890"
     )
     address = models.TextField("Dirección", blank=True, null=True)
     

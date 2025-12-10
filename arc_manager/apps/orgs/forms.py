@@ -37,7 +37,7 @@ class ClientForm(forms.ModelForm):
             Field('name', css_class='form-control', placeholder='Nombre completo o Razón Social',
                   **{'data-char-counter': 'true', 'data-max-length': '100'}),
             Field('email', css_class='form-control', placeholder='correo@ejemplo.com'),
-            Field('phone_number', css_class='form-control', placeholder='+52 1 234 567 890'),
+            Field('phone_number', css_class='form-control', placeholder='123 456 7890'),
             Field('address', css_class='form-control', rows='3', placeholder='Dirección completa'),
             Field('is_active', css_class='form-check-input'),
             Submit('submit', 'Guardar Cliente', css_class='btn btn-primary mt-3')

@@ -156,7 +156,7 @@ def validate_phone_number(value):
     if not re.match(pattern, cleaned):
         raise ValidationError(
             _("Introduce un número de teléfono válido. "
-              "Formato: +52 123 456 7890 o 1234567890 (8-15 dígitos)"),
+              "Formato: 1234567890 o +521234567890 (8-15 dígitos)"),
             code='invalid_phone'
         )
 
