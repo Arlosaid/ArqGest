@@ -187,9 +187,28 @@ class ClientCreateView(LoginRequiredMixin, CreateView):
             errors = {}
             for field, error_list in form.errors.items():
                 errors[field] = [str(e) for e in error_list]
+            
+            # Mensaje de error más específico
+            error_message = 'Formulario inválido. Por favor, revisa los datos ingresados.'
+            
+            # Priorizar errores: primero errores generales, luego campos específicos
+            priority_fields = ['__all__', 'name', 'email', 'phone_number', 'address']
+            
+            found_specific = False
+            for field in priority_fields:
+                if field in errors:
+                    error_message = errors[field][0]
+                    found_specific = True
+                    break
+            
+            # Si no se encontró en los campos prioritarios, tomar el primer error disponible
+            if not found_specific and errors:
+                first_field = next(iter(errors))
+                error_message = errors[first_field][0]
+            
             return JsonResponse({
                 'success': False,
-                'error': 'Formulario inválido. Por favor, revisa los datos ingresados.',
+                'error': error_message,
                 'errors': errors
             }, status=400)
         return super().form_invalid(form)
