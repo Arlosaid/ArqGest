@@ -246,3 +246,6 @@ yarn-error.log*
 
 # Docker volumes
 docker-volumes/
+
+# Notas privadas de la landing (contienen claves)
+argest docs landing/
