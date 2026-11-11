@@ -7,10 +7,12 @@ renovaciones y cambios de plan - es el corazón del negocio.
 """
 import pytest
 from decimal import Decimal
-from datetime import timedelta
+from datetime import date, datetime, timedelta, timezone as dt_timezone
+from zoneinfo import ZoneInfo
 from django.utils import timezone
 from django.core.cache import cache
 from unittest.mock import patch, Mock
+from freezegun import freeze_time
 from tests.factories import (
     OrganizationFactory,
     PlanFactory,
@@ -20,7 +22,7 @@ from tests.factories import (
     TrialSubscriptionFactory,
     PaymentFactory,
 )
-from apps.plans.models import Subscription, Payment
+from apps.plans.models import Subscription, Payment, to_local_date
 
 
 # ============================================================================
@@ -527,6 +529,64 @@ class TestSubscriptionDaysRemaining:
         
         # Debe ser 0, no negativo
         assert days >= 0, f"BUG: days_remaining es negativo: {days}"
+
+
+# ============================================================================
+# TESTS DE ZONA HORARIA (regresión)
+# ============================================================================
+
+MX_TZ = ZoneInfo('America/Mexico_City')
+# 22:00 del 4 dic en México = 04:00 del 5 dic en UTC.
+# Entre las 18:00 y 23:59 hora de México la fecha UTC ya es "mañana".
+NIGHT_IN_MEXICO = datetime(2025, 12, 4, 22, 0, tzinfo=MX_TZ)
+
+
+@pytest.mark.django_db
+@pytest.mark.unit
+class TestSubscriptionTimezone:
+    """
+    Regresión: las fechas se comparaban en UTC en lugar de la hora local,
+    por lo que las suscripciones expiraban ~6 horas antes en México.
+    """
+
+    @freeze_time(NIGHT_IN_MEXICO)
+    def test_active_at_night_on_expiration_day(self):
+        """A las 22:00 del día de vencimiento (hora MX) debe seguir activa"""
+        plan = BasicPlanFactory(name='basic')
+        subscription = SubscriptionFactory(plan=plan)
+        subscription.end_date = datetime(2025, 12, 4, 10, 0, tzinfo=MX_TZ)
+        subscription.save()
+
+        assert subscription.calculate_current_status() == 'basic_active'
+
+    @freeze_time(NIGHT_IN_MEXICO)
+    def test_expired_day_after_expiration(self):
+        """Si venció ayer (hora MX) debe estar expirada"""
+        plan = BasicPlanFactory(name='basic')
+        subscription = SubscriptionFactory(plan=plan)
+        subscription.end_date = datetime(2025, 12, 3, 23, 0, tzinfo=MX_TZ)
+        subscription.save()
+
+        assert subscription.calculate_current_status() == 'basic_expired'
+
+    @freeze_time(NIGHT_IN_MEXICO)
+    def test_days_remaining_uses_local_date_at_night(self):
+        """De noche (hora MX) los días restantes no deben perder un día"""
+        subscription = SubscriptionFactory()
+        subscription.end_date = datetime(2025, 12, 14, 12, 0, tzinfo=MX_TZ)
+        subscription.subscription_status = 'basic_active'
+        subscription.save()
+
+        assert subscription.days_remaining == 10
+
+    def test_to_local_date_converts_aware_datetime(self):
+        """04:00 UTC del 5 dic corresponde al 4 dic en México"""
+        value = datetime(2025, 12, 5, 4, 0, tzinfo=dt_timezone.utc)
+        assert to_local_date(value) == date(2025, 12, 4)
+
+    def test_to_local_date_accepts_date_and_none(self):
+        assert to_local_date(date(2025, 12, 4)) == date(2025, 12, 4)
+        assert to_local_date(None) is None
 
 
 # ============================================================================
