@@ -164,7 +164,7 @@ class Command(BaseCommand):
             if upcoming_expirations:
                 self.stdout.write(f'\n⏰ PRÓXIMAS EXPIRACIONES (7 días):')
                 for exp in upcoming_expirations[:5]:  # Mostrar solo las primeras 5
-                    days_remaining = (exp['end_date'] - timezone.now().date()).days
+                    days_remaining = (exp['end_date'] - timezone.localdate()).days
                     self.stdout.write(f'  📅 {exp["organization"]} - {days_remaining} días ({exp["plan"]})')
                 
                 if len(upcoming_expirations) > 5:
@@ -186,7 +186,8 @@ class Command(BaseCommand):
         try:
             from datetime import date, timedelta
             
-            today = timezone.now().date()
+            # Fecha local: los lookups __date ya usan la zona horaria actual de Django
+            today = timezone.localdate()
             next_week = today + timedelta(days=7)
             
             subscriptions = Subscription.objects.filter(
@@ -199,7 +200,7 @@ class Command(BaseCommand):
                 {
                     'organization': sub.organization.name,
                     'plan': sub.plan.display_name,
-                    'end_date': sub.end_date.date(),
+                    'end_date': timezone.localtime(sub.end_date).date(),
                     'status': sub.subscription_status
                 }
                 for sub in subscriptions
