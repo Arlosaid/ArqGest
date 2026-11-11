@@ -216,6 +216,7 @@ class TestSubscriptionCalculateStatus:
         
         assert status == 'basic_expired'
     
+    @freeze_time(datetime(2025, 12, 5, 17, 0, tzinfo=ZoneInfo('America/Mexico_City')))
     def test_calculate_status_at_exact_expiration_moment(self):
         """
         EDGE CASE: En el día de expiración, la suscripción debe estar activa
@@ -224,7 +225,7 @@ class TestSubscriptionCalculateStatus:
         plan = BasicPlanFactory(name='basic')
         subscription = SubscriptionFactory(plan=plan)
         # end_date es hoy pero con hora en el pasado - debe seguir activa todo el día
-        now = timezone.now()
+        now = timezone.localtime()
         subscription.end_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
         subscription.save()
         
@@ -233,6 +234,7 @@ class TestSubscriptionCalculateStatus:
         # La suscripción debe estar activa todo el día de expiración (hasta 23:59:59)
         assert status == 'basic_active'
     
+    @freeze_time(datetime(2025, 12, 5, 17, 0, tzinfo=ZoneInfo('America/Mexico_City')))
     def test_calculate_status_active_all_day_on_expiration_date(self):
         """
         CRÍTICO: Aunque la hora de end_date ya pasó, si es el mismo día
