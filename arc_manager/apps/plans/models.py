@@ -1,9 +1,26 @@
 # apps/plans/models.py
 from django.db import models
 from django.core.exceptions import ValidationError
-from datetime import timedelta
+from datetime import datetime, timedelta
 from django.utils import timezone
 import logging
+
+
+def to_local_date(value):
+    """
+    Convierte un datetime a la fecha en la zona horaria local (settings.TIME_ZONE).
+
+    Usar `value.date()` sobre un datetime aware devuelve la fecha en UTC, lo que
+    en México (UTC-6) hace que después de las 18:00 la fecha "salte" al día
+    siguiente. Esta función evita ese desfase. Acepta también objetos `date`.
+    """
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        if timezone.is_aware(value):
+            return timezone.localtime(value).date()
+        return value.date()
+    return value
 
 class Plan(models.Model):
     """
@@ -327,12 +344,12 @@ class Subscription(models.Model):
         Ejemplo: Si end_date es 5 dic 15:00, la suscripción es válida
         todo el 5 dic, sin importar la hora actual.
         """
-        today = timezone.now().date()
+        today = timezone.localdate()
         plan_prefix = self.plan.name
-        
-        # Comparar solo fechas: la suscripción es válida todo el día de end_date
+
+        # Comparar solo fechas (en hora local): la suscripción es válida todo el día de end_date
         if self.end_date:
-            end_date = self.end_date.date() if hasattr(self.end_date, 'date') else self.end_date
+            end_date = to_local_date(self.end_date)
             if today <= end_date:
                 return f'{plan_prefix}_active'
         
@@ -372,13 +389,13 @@ class Subscription(models.Model):
         Así el día de hoy siempre cuenta como día completo.
         Ejemplo: Si hoy es 3 dic y end_date es 2 ene → 30 días
         """
-        today = timezone.now().date()
+        today = timezone.localdate()
 
         if self.is_active and self.end_date:
-            end_date = self.end_date.date() if hasattr(self.end_date, 'date') else self.end_date
+            end_date = to_local_date(self.end_date)
             remaining_days = (end_date - today).days
         elif self.is_in_grace_period and self.grace_end_date:
-            grace_date = self.grace_end_date.date() if hasattr(self.grace_end_date, 'date') else self.grace_end_date
+            grace_date = to_local_date(self.grace_end_date)
             remaining_days = (grace_date - today).days
         else:
             return 0
